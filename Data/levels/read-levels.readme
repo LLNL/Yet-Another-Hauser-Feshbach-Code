@@ -1,0 +1,76 @@
+Directory: levels/
+File:      read-levels.readme (January 8, 2009)
+***********************************************
+
+                           read-levels.f90
+
+                Example code used to read discrete level library
+                (Original version: T. Belgya on January 17, 2002)
+                (Modified version: R. Capote on January  8, 2009)                
+                *************************************************
+
+Content
+-------
+The interactive code can serve as a guide for writing user's interfaces
+for reading level schemes. Additionally it can be used to retrieve contents
+of the library for any specified atomic or mass number. 
+ 
+Platform
+--------
+PC running MS Windows / Linux and FORTRAN90 compiler.
+
+Testing
+-------
+==================================================================
+Case 1: Input the atomic number to retrieve the isotope chain Z=23
+
+On screen:
+YOU MAY INPUT ATOMIC(>0) OR MASS(<0) NUMBER TO RETRIEVE LEVELS:
+23
+
+Isot    A    Z  Nlev Ngam Ncut  NC        Sn        Sp
+42V    42   23    1    0    1    1   15.998000    -.255000
+43V    43   23    2    0    1    1   17.927000     .192000
+44V    44   23    1    0    1    1   13.890000    1.815000
+45V    45   23    7    8    1    1   16.100000    1.614000
+46V    46   23   77  100   21    6   13.271000    5.356000
+47V    47   23  155  779   23   16   13.000400    5.167600
+48V    48   23  102  204   39    9   10.544600    6.832000
+49V    49   23  255 1009   81    7   11.552800    6.758201
+50V    50   23  179   65   44    6    9.332800    7.948500
+51V    51   23  244  469   71    2   11.051150    8.063701
+52V    52   23  134  255   32    1    7.311241    9.002400
+53V    53   23   56   27   28    1    8.479000    9.670000
+54V    54   23   29    8   17    1    6.113000   10.350000
+55V    55   23    1    0    1    1    7.330000   10.670000
+56V    56   23    1    0    1    1    5.160000   11.720000
+57V    57   23    1    0    1    1    6.210001   12.530000
+58V    58   23    1    0    1    1    4.100000   13.100000
+59V    59   23    1    0    1    1    5.600000   13.630000
+60V    60   23    1    0    1    1    3.230000   14.240000
+62V    62   23    1    0    1    1    2.730000   15.560000
+63V    63   23    1    0    1    1    4.710000     .000000
+64V    64   23    1    0    1    1    2.560000   17.490000
+READ_LEVELS OK
+
+==================================================================
+Case 2: Input the mass number to retrieve the isotone chain A=48
+
+On screen:
+YOU MAY INPUT ATOMIC(>0) OR MASS(<0) NUMBER TO RETRIEVE LEVELS:
+-48
+
+Isot    A    Z  Nlev Ngam Ncut  NC        Sn        Sp
+48S    48   16    1    0    1    1    2.874000     .000000
+48Cl   48   17    1    0    1    1    2.259000   19.995000
+48Ar   48   18    1    0    1    1    5.879000   20.488000
+48K    48   19    5    0    1    1    4.499000   13.510000
+48Ca   48   20  245  126   13    5    9.945001   15.807000
+48Sc   48   21  103   56   37    3    8.235001    9.445001
+48Ti   48   22  289  521   68    4   11.626650   11.444600
+48V    48   23  102  204   39    9   10.544600    6.832000
+48Cr   48   24   62   56   11    3   16.332000    8.106000
+48Mn   48   25   17   18    1    1   15.132000    2.050000
+48Fe   48   26    1    0    1    1   19.609000    3.187000
+48Ni   48   28    1    0    1    1     .000000    -.405000
+READ_LEVELS OK

@@ -1,0 +1,332 @@
+<HTML>
+<HEAD>
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=windows-1250">
+<META NAME="Generator" CONTENT="Microsoft Word 97">
+<TITLE>Description of discrete level file structure and methods of creation</TITLE>
+<META NAME="Template" CONTENT="C:\PROGRAM FILES\MICROSOFT OFFICE\OFFICE\html.dot">
+</HEAD>
+<BODY LINK="#0000ff" VLINK="#800080">
+
+<B><FONT SIZE=5><P ALIGN="CENTER">Structure of discrete level library files</P>
+</B></FONT><P ALIGN="CENTER">T. Belgya</P>
+<P ALIGN="CENTER">Institute of Isotopes and Surface Chemistry CRC HAS</P>
+<P ALIGN="CENTER">(15 January 2002)</P>
+<P ALIGN="JUSTIFY">&nbsp;</P>
+<P ALIGN="JUSTIFY">This description is an improved and extended version of the description provided for the Second Co-ordination Meeting [Bel00]. The purpose of the discrete level library is to provide ready and easy to use nuclear decay-scheme database for reaction and statistical model calculations. The nuclear decay scheme data is arranged in separate level files. One level file contains decay data of isotopes with the same charge number Z in increasing order of mass number A. Most of the information in the level files was taken from ENSDF, and the rest was obtained in ways described below. The file naming convention is ZXXX.DAT, where XXX is running from 0 to 118. </P>
+<P ALIGN="JUSTIFY">There are three kinds of records in this human readable file. Data for every isotope begins with an identification record. This is the first type of records. An example is given below for Nb-89. Both here and below, the lines with labels in the examples are not parts of the actual file. They are only used to make explanation of the data and format simpler:</P>
+<FONT FACE="Courier New" SIZE=1 COLOR="#ff0000"><P>SYMB A Z Nol Nog Nmax Nc Sn[MeV] Sp[MeV]</P>
+</FONT><FONT FACE="Courier New" SIZE=1><P>89Nb 89 41 25 24 16 2 12.270000 4.286000</P>
+</FONT><P ALIGN="JUSTIFY">The following format statement can read it: format(a5,6i5,2f12.6). The meanings of the labels are:</P>
+<P ALIGN="JUSTIFY">SYMB&#9;&#9;mass number with elemental symbol</P>
+<P ALIGN="JUSTIFY">A&#9;&#9;mass number</P>
+<P ALIGN="JUSTIFY">Z&#9;&#9;charge number</P>
+<P ALIGN="JUSTIFY">Nol&#9;&#9;number of levels in decay scheme</P>
+<P ALIGN="JUSTIFY">Nog&#9;&#9;number of gamma rays in decay scheme</P>
+<P ALIGN="JUSTIFY">Nmax&#9;&#9;maximum number of levels up to which the level-scheme is complete; the corresponding level energy is E<SUB>max</SUB>.</P>
+<P ALIGN="JUSTIFY">Nc&#9;&#9;level number up to which the spins and parities are unique</P>
+<P ALIGN="JUSTIFY">Sn&#9;&#9;neutron separation energy in MeV</P>
+<P ALIGN="JUSTIFY">Sp&#9;&#9;proton separation energy in MeV</P>
+<P ALIGN="JUSTIFY">The second kind of record is the level record. These immediately follow the identification record. In the example below the first three level records are shown from the Nb-89 data set:</P>
+<FONT FACE="Courier New" SIZE=1 COLOR="#ff0000"><P ALIGN="JUSTIFY">Nl El[MeV] J p T1/2[s] Ng s unc spin-info nd m percent mode</P>
+</FONT><FONT FACE="Courier New" SIZE=1><P ALIGN="JUSTIFY">1 0.000000 4.5 1 6.84E+03 0 u +X (9/2+) 1 = 100.0000 %EC+%B+</P>
+<P ALIGN="JUSTIFY">2 0.000000 0.5 -1 4.25E+03 0 u +Y (1/2)- 1 = 100.0000 %EC+%B+</P>
+<P ALIGN="JUSTIFY">3 0.658600 5.5 1 4.00E-09 1 c (7/2,9/2,11/2) 0</P>
+</FONT><P ALIGN="JUSTIFY">The following format statement can read it:</P>
+<P>format(i3,1x,f10.6,1x,f5.1,i3,1x,(e10.2),i3,1x,a1,1x,a4,1x,a18,i3,10(1x,a2,1x,f10.4,1x,a7)). </P>
+<P>The meanings of the labels are:</P>
+<P ALIGN="JUSTIFY">Nl&#9;&#9;serial number of level</P>
+<P ALIGN="JUSTIFY">El&#9;&#9;level energy in (MeV)</P>
+<P ALIGN="JUSTIFY">J&#9;&#9;Assigned unique spin, determined from spin information; details are given below</P>
+<P ALIGN="JUSTIFY">p&#9;&#9;Calculated unique parity determined from parity information; details are given below</P>
+<P ALIGN="JUSTIFY">T1/2&#9;&#9;half-life of level if it is known; details are given below</P>
+<P ALIGN="JUSTIFY">Ng&#9;&#9;number of gamma rays de-exciting the level</P>
+<P ALIGN="JUSTIFY">s&#9;&#9;method of selection of J and p; details are given below</P>
+<P ALIGN="JUSTIFY">unc&#9;&#9;uncertain level energy; details are given below</P>
+<P ALIGN="JUSTIFY">spin-info&#9;original spin-parity information from ENSDF file. It can be used to adjust spin-parity values by hand</P>
+<P ALIGN="JUSTIFY">nd&#9;&#9;number of decay modes of the level if known. It can have a value up to 10.</P><DIR>
+<DIR>
+<DIR>
+<DIR>
+
+<P ALIGN="JUSTIFY">The value 0 means that it may decay by gamma ray, but other decay modes are not known</P></DIR>
+</DIR>
+</DIR>
+</DIR>
+
+<P ALIGN="JUSTIFY">m&#9;&#9;modifier of percentage; details are given below</P>
+<P ALIGN="JUSTIFY">percent&#9;&#9;percent of the decay mode; details are given below</P>
+<P ALIGN="JUSTIFY">mode&#9;&#9;ENSDF notation of decay modes; details are given below</P>
+<P ALIGN="JUSTIFY">The third kind of record is the gamma record, which immediately follows a corresponding level record. The number of gamma records is given in the level record. The sample gamma records below correspond to the 5<SUP>th</SUP> level from the Nb-94 data set (the level record is also shown):</P>
+<FONT FACE="Courier New" SIZE=1><P>5 0.113401 5.0 1 5.00E-09 2 u (5)+ 0</P>
+</FONT><FONT FACE="Courier New" SIZE=1 COLOR="#ff0000"><P>Nf Eg[MeV] Pg Pe ICC</P>
+</FONT><FONT FACE="Courier New" SIZE=1><P>3 0.055 4.267E-02 1.301E-01 2.050E+00</P>
+<P>1 0.113 7.499E-01 8.699E-01 1.600E-01</P>
+</FONT><P>The following format statement can read it: format(39x,i4,1x,f10.3,3(1x,e10.3)).</P>
+<P>The meanings of the labels are:</P>
+<P ALIGN="JUSTIFY">Nf&#9;&#9;serial number of the final state</P>
+<P ALIGN="JUSTIFY">Eg&#9;&#9;gamma-ray energy in (MeV)</P>
+<P ALIGN="JUSTIFY">Pg&#9;&#9;probability of decay by gamma ray emission; details are given below</P>
+<P ALIGN="JUSTIFY">Pe&#9;&#9;probability of decay by electromagnetic transition; details are given below</P>
+<P ALIGN="JUSTIFY">ICC&#9;&#9;internal conversion coefficient; details are given below</P>
+<P ALIGN="JUSTIFY">&nbsp;</P>
+<B><P>Ranges of values and methods of their determinations</P>
+<P>&nbsp;</P>
+</B><P>In this section a detailed description of values used in the level files is given. Formulas of calculated quantities are given in the corresponding TECDOC. Quantities where the above description provides sufficient explanations are not described again.</P>
+<B><P>J:</B> The spin values J were determined in the following way. First it was checked whether a limited set of spin values could be assigned to a level based on gamma-transitions to known spin levels. In the second step, if there were 10 or more levels with known spins (they did not need to be unique); a spin distribution was determined from the experimentally known spins, plus the spins assigned in the first step. To do this the usual form of the spin distribution [Eri60,GIL65] is utilized. The experimental spin cut-off parameter <FONT FACE="Symbol">s </FONT>was determined from the average value of (J+1/2)<SUP>2</SUP>. In the case of the continuous normalized spin distribution this average yields 2<FONT FACE="Symbol">s<SUP>2</SUP> </FONT>+1/4. Assuming that the average yields the same result in the discrete case, the experimental spin cut-off parameter <FONT FACE="Symbol">s</FONT><SUB>exp</SUB> can easily be obtained. Levels up to the E<SUB>max</SUB> value were used in this procedure. If less then 10 levels had spin assignments, then no spins were inferred; otherwise spins up to E<SUB>max</SUB> were determined uniquely as described below.</P>
+<P>Four cases were distinguished. Let <I>N<SUB>i</I></SUB> designate the number of spins, which are compatible with the experimental data for the i<SUP>th</SUP> level.</P>
+<P>1) <I>N</I><SUB>i</SUB> =0. A unique spin was determined using the spin distribution with <FONT FACE="Symbol">s</FONT><SUB>exp</SUB>. The method of assignments 's' was coded as 'n'.</P>
+<P>2) <I>N</I><SUB>i</SUB> =1. In spite of uncertainties (like (1)<SUP>+</SUP> ), this case was considered to be unique and 's' was coded as 'u'.</P>
+<P>3) <I>N</I><SUB>i</SUB> &gt;1. The spin was chosen from the limited set (eg. (1,3,4)<SUP>-</SUP>) using the spin continuous normalized distribution and 's' was coded as 'c'.</P>
+<P>4) Above E<SUB>max</SUB> or if unique spins could not be determined due to the lack of experimental spin distribution the 's' field was coded as 'blank'. If there were levels with unique experimental spin above E<SUB>max</SUB> the 's' fields were coded as 'u' for these levels.</P>
+<P>The possible spin values are: -1.0 for unknown spin, otherwise 0.0, 0.5, 1.0 …</P>
+<B><P>p:</B> Parity 'p' of a state. If parity of the level was not known then it was randomly chosen to be positive or negative with equal probability, even though this is not physically realistic for low-lying levels. Parities are determined up to E<SUB>max</SUB> as in the case of spins. The method of choice is not coded. The possible parity values are: 0 for unknown, +1 for positive and -1 for negative.</P>
+<B><P>T1/2:</B> Half-life T<SUB>1/2</SUB> of a state. All known level half-life or level width was converted into seconds. Half-lives of stable nuclei were represented as -1.0E+0.</P>
+<B><P>unc:</B> A non-blank entry designates an uncertain level energy. In certain cases due to an unobserved low energy transition out of a band head or decays to large number of levels from a super-deformed band it can be impossible to determine the absolute energy of the corresponding band. This field provides a mean to put a note in the level scheme. The ENSDF evaluators have set the energy of these band heads to 0.0 keV, or if the level order is known, to the preceding level energy and placed a note that one should add an unknown energy e.g. X to it. The notation here suggests exactly that situation by using +X, +Y, +Z etc. The same letter is used in the ENSDF data set was used for each band. The consequence of this situation is in these cases that the experimental level density can not be reliably determined. </P>
+<B><P>m: </B>The decay percentage modifier. This modifier was kept in order to inform users about major uncertainties. The modifiers were copied out of ENSDF with no modification. They can have the following values: =, &lt;, &gt;, ? (unknown, but expected), AP (approximate), GE (greater than or equal), LE (less than or equal), GT (greater than), LT (less then), SY (value is from systematics).</P>
+<B><P>percent:</B> The decay percentage of different decay modes of a level. As a general rule the percentage of various decay modes adds up 100%. There are however exceptions. The first exception is when a small percentage is present, then the sum may be slightly more then 100% due to rounding. The second case is when beta decay or electron capture is followed by heavier particle emission. In this case the percentage of the beta delayed particle emission is given as a portion of the beta decay; thus the sum can be substantially larger then 100%. Naturally where the modifier is '?' then the sum is indefinite. </P>
+<B><P>mode:</B> Short notation of decay modes of a level. The following table explains their meaning. </P>
+<TABLE BORDER CELLSPACING=1 CELLPADDING=7 WIDTH=412>
+<TR><TD WIDTH="29%" VALIGN="TOP">
+<P>%B-</TD>
+<TD WIDTH="71%" VALIGN="TOP">
+<FONT FACE="Symbol"><P>b<SUP>-</SUP></FONT> decay</TD>
+</TR>
+<TR><TD WIDTH="29%" VALIGN="TOP">
+<P>%EC</TD>
+<TD WIDTH="71%" VALIGN="TOP">
+<P>electron capture</TD>
+</TR>
+<TR><TD WIDTH="29%" VALIGN="TOP">
+<P>%EC+%B+</TD>
+<TD WIDTH="71%" VALIGN="TOP">
+<P>electron capture and <FONT FACE="Symbol">b</FONT><SUP>+</SUP> decay</TD>
+</TR>
+<TR><TD WIDTH="29%" VALIGN="TOP">
+<P>%N</TD>
+<TD WIDTH="71%" VALIGN="TOP">
+<P>neutron decay</TD>
+</TR>
+<TR><TD WIDTH="29%" VALIGN="TOP">
+<P>%A</TD>
+<TD WIDTH="71%" VALIGN="TOP">
+<P>alpha decay</TD>
+</TR>
+<TR><TD WIDTH="29%" VALIGN="TOP">
+<P>%IT</TD>
+<TD WIDTH="71%" VALIGN="TOP">
+<P>isomeric transition</TD>
+</TR>
+<TR><TD WIDTH="29%" VALIGN="TOP">
+<P>%P</TD>
+<TD WIDTH="71%" VALIGN="TOP">
+<P>proton decay</TD>
+</TR>
+<TR><TD WIDTH="29%" VALIGN="TOP">
+<P>%3HE</TD>
+<TD WIDTH="71%" VALIGN="TOP">
+<SUP><P>3</SUP>He decay</TD>
+</TR>
+<TR><TD WIDTH="29%" VALIGN="TOP">
+<P>%B+P</TD>
+<TD WIDTH="71%" VALIGN="TOP">
+<FONT FACE="Symbol"><P>b</FONT><SUP>+</SUP> delayed proton decay</TD>
+</TR>
+<TR><TD WIDTH="29%" VALIGN="TOP">
+<P>%B-N</TD>
+<TD WIDTH="71%" VALIGN="TOP">
+<FONT FACE="Symbol"><P>b<SUP>-</SUP></FONT> delayed neutron decay</TD>
+</TR>
+<TR><TD WIDTH="29%" VALIGN="TOP">
+<P>%SF</TD>
+<TD WIDTH="71%" VALIGN="TOP">
+<P>spontaneous fission</TD>
+</TR>
+<TR><TD WIDTH="29%" VALIGN="TOP">
+<P>%ECP</TD>
+<TD WIDTH="71%" VALIGN="TOP">
+<P>electron capture delayed proton decay</TD>
+</TR>
+<TR><TD WIDTH="29%" VALIGN="TOP">
+<P>%ECA</TD>
+<TD WIDTH="71%" VALIGN="TOP">
+<P>electron capture delayed alpha decay</TD>
+</TR>
+<TR><TD WIDTH="29%" VALIGN="TOP">
+<P>%G</TD>
+<TD WIDTH="71%" VALIGN="TOP">
+<P>gamma decay</TD>
+</TR>
+<TR><TD WIDTH="29%" VALIGN="TOP">
+<P>%B-2N</TD>
+<TD WIDTH="71%" VALIGN="TOP">
+<FONT FACE="Symbol"><P>b<SUP>-</SUP></FONT> delayed double neutron decay</TD>
+</TR>
+<TR><TD WIDTH="29%" VALIGN="TOP">
+<P>%B+2P</TD>
+<TD WIDTH="71%" VALIGN="TOP">
+<FONT FACE="Symbol"><P>b</FONT><SUP>+</SUP> delayed double proton decay</TD>
+</TR>
+</TABLE>
+
+<P>Some minor possibilities like decay with the emission of 20Ne were neglected and left out from the possible decay modes.</P>
+<B><P>Pg:</B> Probability that a level decays with the given gamma ray. Pg is the ratio of the total electromagnetic decay of the level and the intensity of the gamma ray. If only a limit was given for the branching in the ENSDF file then Pg was set to zero.</P>
+<B><P>Pe:</B> Probability that a level decays with the given electromagnetic transition. Thus, it is the ratio of the probability of the given electromagnetic transition and the total electromagnetic decay of the level. The sum of the electromagnetic decays was normalized to 1. If only a limit was given in the ENSDF file then Pe was set to zero. If other decay modes of a level then electromagnetic is known then the Pe and Pg values have to be multiplied with the value given in the isomeric transition decay percentage field per 100 (see explanation above) to obtain absolute decay probabilities. If no other mode is known then it was assumed that the level decays with purely electromagnetic transitions.</P>
+<B><P>ICC:</B> Internal conversion coefficient ICC of a transition. A modernized and rewritten local version of the Nuclear Data Center's program HSICC.FOR [Ewb76] was used to calculate the missing values. The rewritten program works as a subroutine, which makes it possible to integrate it into any calculation. The new local version has a simplified, but sufficiently good interpolation (based on Cardinal-splines) compared to that of the old one. The new local version uses the ICCNDX.DAT and IDDTLB.DAT files provided with HSICC.FOR. No calculations of the ICCs were performed if the ENDSF file supplied them. In calculating ICCs the first multipole mixing ratio was used. If there was no multipole mixing ratio given, then for mixed E2+M1 transitions, M1 was assumed in case of non even-even and E2 for even-even nuclei. No attempt was made to include possible E0 decay. For other mixing possibilities the lowest multipole order was used unless the mixing ratio was provided. The charge number of the nucleus and energy of the transition also limited the ICC calculations. Below Z=10, ICCs were only calculated for Li and C. The ICC was set to zero if the transition energy exceeded a certain mass-dependent energy limit.</P>
+<B><P>APPENDIX</P>
+</B><P>In this part a FORTRAN-90 program is provided that is able to read ZXXX.dat data files using the getza(data_exists) subroutine. This routine can be built into other programs to retrieve data into common variables. If the data set exists then the data_exists variable becomes TRUE; otherwise it is FALSE. The complete sample program reads all the existing data and provides a test case for its usage.</P>
+<FONT FACE="Courier New" SIZE=1><P>!MAIN</P>
+<P>!use dflib</P>
+<P>integer, parameter :: levmax=600</P>
+<P>integer, parameter :: gammax=1200</P>
+<P>integer, parameter :: brmax=30</P>
+<P>character symb*5,jpestimate_lev(levmax)*1,uncertaint_lev(levmax)*4,jptext_lev(levmax)*18</P>
+<P>character pfix_lev(levmax,brmax)*2,dmodes_lev(levmax,brmax)*7,impos*1</P>
+<P>character fname*100,mult_gam(gammax)*10</P>
+<P>integer A,Z,nlev,ngam,nmax,nc,m,i,k,j,n,nog_lev(levmax),nobr_lev(levmax)</P>
+<P>integer initial_gam(gammax),final_gam(gammax),w,jj</P>
+<P>logical both,hasQ,even</P>
+<P>real*4 sn,sp,e_gam(gammax),ri_gam(gammax),ri1_gam(gammax),cc_gam(gammax),sum,diff,eg,si,sf,pi,pf,ritot,br(brmax)</P>
+<P>real*4 e_lev(levmax),jsmy_lev(levmax),jpmy_lev(levmax),t_lev(levmax),dpercent_lev(levmax,brmax)</P>
+<P>real*4 ll1,l1,IT_percent,RIsum,TOTsum</P>
+<P>real*8 mixr_gam(gammax),prob_gam(gammax)</P>
+<P>real*8 egd,dmix,icc</P>
+<P>character*10 strmul,text</P>
+<P>logical firstentry,data_exists</P>
+<P>!COMMON declaration</P>
+<P>common /inp/ symb,jpestimate_lev,uncertaint_lev,jptext_lev, &amp;</P>
+<P>pfix_lev,dmodes_lev,impos, &amp;</P>
+<P>fname,mult_gam, &amp;</P>
+<P>A,Z,nlev,ngam,nmax,nc,m,i,k,j,n,nog_lev,nobr_lev, &amp;</P>
+<P>initial_gam,final_gam,w,jj, &amp;</P>
+<P>both,hasQ,even, &amp;</P>
+<P>sn,sp,e_gam,ri_gam,ri1_gam,cc_gam,sum,diff,eg,si,sf,pi,pf,ritot,br, &amp;</P>
+<P>e_lev,jsmy_lev,jpmy_lev,t_lev,dpercent_lev, &amp;</P>
+<P>ll1,l1,IT_percent,RIsum,TOTsum, &amp;</P>
+<P>mixr_gam,prob_gam, &amp;</P>
+<P>egd,dmix,icc, &amp;</P>
+<P>strmul,text</P>
+<P>!End of COMMON declaration</P>
+<P>!Generate all z &amp; a &amp; call getza subroutine</P>
+<P>!The getza routine provide a logical flag. If data exists it is true else it is false</P>
+<P>do z=0,109</P>
+<P>do a=1,266</P>
+<P>call getza(data_exists)</P>
+<P>if(data_exists) write(*,*) z,a,data_exists</P>
+<P>enddo</P>
+<P>enddo</P>
+<P>stop</P>
+<P>end</P>
+<P>!**************************************************************************************</P>
+<P>subroutine &#9;getza(data_exists)</P>
+<P>integer, parameter :: levmax=600</P>
+<P>integer, parameter :: gammax=1200</P>
+<P>integer, parameter :: brmax=30</P>
+<P>character symb*5,jpestimate_lev(levmax)*1,uncertaint_lev(levmax)*4,jptext_lev(levmax)*18</P>
+<P>character pfix_lev(levmax,brmax)*2,dmodes_lev(levmax,brmax)*7,impos*1</P>
+<P>character fname*100,mult_gam(gammax)*10</P>
+<P>integer A,Z,nlev,ngam,nmax,nc,m,i,k,j,n,nog_lev(levmax),nobr_lev(levmax)</P>
+<P>integer initial_gam(gammax),final_gam(gammax),w,jj</P>
+<P>logical both,hasQ,even</P>
+<P>real*4 sn,sp,e_gam(gammax),ri_gam(gammax),ri1_gam(gammax),cc_gam(gammax),sum,diff,eg,si,sf,pi,pf,ritot,br(brmax)</P>
+<P>real*4 e_lev(levmax),jsmy_lev(levmax),jpmy_lev(levmax),t_lev(levmax),dpercent_lev(levmax,brmax)</P>
+<P>real*4 ll1,l1,IT_percent,RIsum,TOTsum</P>
+<P>real*8 mixr_gam(gammax),prob_gam(gammax)</P>
+<P>real*8 egd,dmix,icc</P>
+<P>character*10 strmul,text</P>
+<P>logical firstentry,data_exists</P>
+<P>integer AA,ZZ</P>
+<P>!COMMON declaration</P>
+<P>common /inp/ symb,jpestimate_lev,uncertaint_lev,jptext_lev, &amp;</P>
+<P>pfix_lev,dmodes_lev,impos, &amp;</P>
+<P>fname,mult_gam, &amp;</P>
+<P>A,Z,nlev,ngam,nmax,nc,m,i,k,j,n,nog_lev,nobr_lev, &amp;</P>
+<P>initial_gam,final_gam,w,jj, &amp;</P>
+<P>both,hasQ,even, &amp;</P>
+<P>sn,sp,e_gam,ri_gam,ri1_gam,cc_gam,sum,diff,eg,si,sf,pi,pf,ritot,br, &amp;</P>
+<P>e_lev,jsmy_lev,jpmy_lev,t_lev,dpercent_lev, &amp;</P>
+<P>ll1,l1,IT_percent,RIsum,TOTsum, &amp;</P>
+<P>mixr_gam,prob_gam, &amp;</P>
+<P>egd,dmix,icc, &amp;</P>
+<P>strmul,text</P>
+<P>!End of COMMON declaration</P>
+<P>data_exists=.false.</P>
+<P>!Check if data request is in range</P>
+<P>if(z.lt.0.or.z.gt.109) then</P>
+<P>write(*,*) 'Data with this charge number Z does not exists Z=',z</P>
+<P>return</P>
+<P>endif</P>
+<P>if(a.lt.1.or.a.gt.266) then</P>
+<P>write(*,*) 'Data with this mass number A does not exists A=',a</P>
+<P>return</P>
+<P>endif</P>
+<P>!open file with the give Z</P>
+<P>if(z.lt.10) write(fname,'(a4,i1,a4)') 'Z_00',Z,'.dat'</P>
+<P>if(z.lt.100.and.z.ge.10) write(fname,'(a3,i2,a4)') 'Z_0',Z,'.dat'</P>
+<P>if(z.gt.99) write(fname,'(a2,i3,a4)') 'Z_',Z,'.dat'</P>
+<P>!write(fname,'(a2,i3.0,a4)') 'Z_',Z,'.dat'</P>
+<P>open(2,file=fname,status='old')</P>
+<P>1 read(2,'(a5,6i5,2f12.6)',end=999) &amp;</P>
+<P>&#9;&#9;symb, &amp;</P>
+<P>&#9;&#9;AA, &amp;</P>
+<P>&#9;&#9;ZZ, &amp;</P>
+<P>&#9;&#9;nlev, &amp;</P>
+<P>&#9;&#9;ngam, &amp;</P>
+<P>&#9;&#9;nmax, &amp;</P>
+<P>&#9;&#9;nc, &amp;</P>
+<P>&#9;&#9;sn, &amp;</P>
+<P>&#9;&#9;sp</P>
+<P>j=0;jj=0</P>
+<P>if(a.eq.aa.and.z.eq.zz) then</P>
+<P>data_exists=.true.</P>
+<P>write(*,*) symb</P>
+<P>goto 999</P>
+<P>endif</P>
+<P>do jj=1,nlev</P>
+<P>&#9;read(2,'(i3,1x,f10.6,1x,f5.1,i3,1x,(1pe10.2),i3,1x,a1,1x,a4,1x,a18,i3,10(1x,a2,1x,0pf10.4,1x,a7))') &amp;</P>
+<P>&#9;&#9;i, &amp;</P>
+<P>&#9;&#9;e_lev(i), &amp;</P>
+<P>&#9;&#9;jsmy_lev(i), &amp;</P>
+<P>&#9;&#9;w, &amp;</P>
+<P>&#9;&#9;t_lev(i), &amp;</P>
+<P>&#9;&#9;nog_lev(i), &amp;</P>
+<P>&#9;&#9;jpestimate_lev(i), &amp;</P>
+<P>&#9;&#9;uncertaint_lev(i), &amp;</P>
+<P>&#9;&#9;jptext_lev(i), &amp;</P>
+<P>&#9;&#9;nobr_lev(i), &amp;</P>
+<P>&#9;&#9;(pfix_lev(i,m),dpercent_lev(i,m),dmodes_lev(i,m),m=1,nobr_lev(i))</P>
+<P>&#9;&#9;jpmy_lev(i)=w</P>
+<P>&#9;&#9;do k=1,nog_lev(i)</P>
+<P>&#9;&#9;&#9;j=j+1</P>
+<P>&#9;&#9;&#9;read(2,'(39x,i4,1x,f10.3,3(1x,e10.3))') &amp;</P>
+<P>!&#9;&#9;&#9;initial_gam(j), &amp;</P>
+<P>&#9;&#9;&#9;final_gam(j), &amp;</P>
+<P>&#9;&#9;&#9;e_gam(j), &amp;</P>
+<P>&#9;&#9;&#9;ri_gam(j), &amp;</P>
+<P>&#9;&#9;&#9;ri1_gam(j), &amp;</P>
+<P>&#9;&#9;&#9;cc_gam(j)</P>
+<P>&#9;&#9;enddo</P>
+<P>enddo</P>
+<P>goto 1</P>
+<P>999 continue</P>
+<P>close(2)</P>
+<P>end</P>
+<P>!*******************************************</P>
+<P>logical function even(i)</P>
+<P>integer i</P>
+<P>real*4 x</P>
+<P>x=i</P>
+<P>even=.false.</P>
+<P>if(x/2.-float(int(x/2.+.1)).lt.0.1) even=.true.</P>
+<P>end</P>
+</FONT><B><P>References</P><DIR>
+<DIR>
+<DIR>
+
+</B><P>[Bel00]&#9;T. Belgya, in: "Nuclear Model Parameter Testing for Nuclear Data Evaluation", Summary Report of the Second RCM, Varenna, Italy, INDC(NDS)-<B>416</B> (2000) pp. 8-11.</P>
+<P>[Eri60]&#9;T. Ericson Adv. in Phys. <B>9</B> (1960) 425.</P>
+<P>[Gil65]&#9;A. Gilbert and A.G.W Cameron Can. J. Phys. <B>43</B> (1965) 1446.</P>
+<P>[Ewb76]&#9;W.B. Ewbank, modified by W.B.E. and J. Bell, ORNL-NDP HSICC program for ENSDF data sets (1976).</P></DIR>
+</DIR>
+</DIR>
+</BODY>
+</HTML>

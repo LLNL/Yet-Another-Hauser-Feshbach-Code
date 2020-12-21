@@ -1,0 +1,164 @@
+version 3.0:
+Reworked version for release. Main features:
+1. Added sort for commands to be executed in the proper order - user can inoput
+   commands in any order
+2. Added description headers to all routines
+3. Added "open" routines for random number and Gauss-quadrature integration
+4. Added "default" feature for fission parameters located in
+   Data/Fission-Parameters.txt. These are set up on initialization and use a
+   format similar to YAHFC commands. They can be overridden by subsequent YAHFC
+   commands.
+
+Needs replacements for random number generator and Gauss-quadrature in order to
+be released as LLNL wants
+
+version 3.1:
+
+1. New Gauss-quadrature routines based on three-term recurrence relations
+   and their eigenvalues.
+2. New 64-bit random number generator based on combination of linear
+   congruential and Marsaglia xor bit shift operators
+3. Fixed sampling errors in pre-equilbrium module
+   a. Error in unbiased sampling for pre-equilibrium gammas when cross 
+      section is zero
+   b. Error in setting angle theta with high-energy emission to a discrete
+      state
+4. Fixed order of input fission commands to ensure f_lev_ematch is 
+   correctly set. The command f_lev_delta has an overide to ensure that
+   ematch is above delta. Thus, f_lev_delta needs to be executed first.
+5. Put explit intent() for each variable in each function and subroutine
+6. Converted file level-density.f to FORTRAN90 and replaced with
+   level-density.f90.
+7. Added warning when trying to use option "optical_code". No longer used as
+   FRESCO is now the only code used with this package.
+8. Added warning with option "cs_scale". No longer used and is superceded with 
+   the option "cs_unit".
+9. Fixed error in KD proton optical potentials in fresco-potentials.f90 
+
+version 3.2
+
+1. All particle types are operational with default optical model potentials. All
+   particles can be used as projectiles and ejectiles. By default particles
+   d - alpha are excluded as ejectiles and need to be activated with the
+   option max_particles. For charged particles the elastic angular distributions
+   are given as a ratio with respect to Rutherford scattering.
+2. Changed how the optical model is set with the variable particle(k)%opt_pot.
+   This is an integer representing one the available optical models for the
+   particle k.
+3. Decoupled DWBA states in the continuous energy bins from the bin structure.
+   It is no longer necessary to rerun fresco if you change the value of de 
+   from calculation to calculation.
+4. Fixed bug for !-comments placed after valid input. There was a crash if 
+   part of the input was optional and used a !-comment.
+5. Changed name of file optical_setup.f90 to optical-setup.f90 to make it
+   conform to the naming convention used for other files containing
+   subroutines.
+
+version 3.3
+
+1. Changed the way emission spectra are printed. They are now in bins centered
+   about the printed energy with spacing +/- de/2. At Eout = 0.0, the spectra
+   are zero. 
+2. Added samples for the elastic channel at the very end of the MC sampling. 
+   The elastic events are printed along with all the MC samples with the 
+   command dump_events.
+
+version 3.4
+
+1. Fixed error in Legendre expansion for angular distributions from FRESCO. 
+   Expanded the angualar distributions for Shape Elastic to 200 points for 
+   x=(-1,1).
+
+Version 3.5
+
+1. Completed expansion of angular distribution for all elastic channels, and
+   total elastic = Shape + Compound. Added print out of Legendre coefficients.
+2. Fixed "elastic" for charged particles. Elastic is printed as a ratio relative
+   to Rutherford scattering. Exception: Compound elastic is printed as
+   crosssection. The Shape Elastic (from optical model) and total Elastic 
+   angular distributions are printed as ratio relative to Rutherford.
+2. Improved sampling of emitted angles for primary decays, coupled-channels, 
+   DWBA excitations. 
+3. Modified angular distributions for inelastic channels. Inelastic scattering
+   spectra are collected for each emission energy in 11 bins from x=(-1,1) 
+   with dx = 0.2. These are then expanded with a Legendre expansion and 
+   angular distributions are reconstructed on a grid with dx = 0.1. The number 
+   of Legendre coefficients is based on the actual number of counts in that 
+   channel. 
+4. Modified angular distributions for all Channels. Inelastic scattering
+   spectra are collected for each emission energy in 11 bins from x=(-1,1) 
+   with dx = 0.2. These are then expanded with a Legendre expansion and 
+   angular distributions are reconstructed on a grid with dx = 0.1. The number 
+   of Legendre coefficients is based on the actual number of counts in that 
+   channel.
+5. Corrected output of level # in the files defining discrete states. The 
+   ground state is level # 0.
+6. Denoted the target state in output files, inlcuding spin, parity and
+   excitation energy.
+7. Print more information for properties of final state, whether an inelastic
+   reaction, or final state of residual nucleus. State number, spin, parity,
+   excitation energy.
+8. Fixed print out for charged particles with small cross sections. Note to
+   screen when absorption cross section < 1.0d-9 (b), and skipping decay
+   process.
+9. Added notification to screen during run if width fluctuations are being 
+   applied to that incident energy. Also, added notification if width 
+   fluctions option is off.
+10.Added consistent threshold for minimum cross section threshold.
+11.Fixed identification of emitted particles for inelastic reactions to be
+   the same as incident particle. Prior it was set up assuming neutrons.
+
+Version 3.6
+1. Fixed error in mass of residual printed in Exit Cannel files.
+2. Fixed error in "particle" multiplicities in Exit Channel cross section files.
+
+Version 3.7
+1. Fixed error in Q-values
+2. Added print out of total "Elastic" data for charged particles similar to
+   what was implmented for "Shape" (or optical model). For each energy, the
+   ratio averaged over cos(theta) is printed. In general, due to the 1(1-x)^2
+   factor, the ratio at x=1 is 1 for "shape", and shape >>> compound.
+3. Made sure version number was updated in modules.f90
+
+Version 3.8
+1. Fixed problem where Elastic_cs.dat wasn't showing up.com
+
+Version 3.9 
+1. Added feature to adjust a-parameter when fitting to D0 to provide a similar
+   feature as in TALYS. 
+2. Made some changes to option names for global and nucleus specfic
+   level-density options
+3. Adjusted order options are executed and adjusted how default parameters are
+   set while setting options and values to improve set up. Also, removed some
+   speghetti code that crept in as things were added over time.
+4. Fixed what was likely a bug in the boost matrix for cases where initial
+   kinetic energy is input with a spread. The boost matrix was setup with the 
+   central value and not adjusted for the spread.
+5. Fixed typo in output file while describing the vibrational collective
+   enhancement factor.
+
+Version 3.10
+1. Fixed variable-type mismatch in HF-decay-MC.f90. Corrected L_ang and Max_L
+   from integer(kind=8) to integer(kind=4). Potential issue with function poly
+2. Fixed some warnings for unitialized variables. They were initialized in
+   if statements, so they were "spurious" warnings.
+
+Version 3.11
+1. Added consistent options for pre-equilibrium all parameters that can be 
+   controlled with inputs, e.g., Rpp, etc
+2. Fixed error in well in pre-equilibrium model for incident protons, had same
+   value as for incident neutrons.
+3. Fixed problem with setting Preeq_V < Preeq_V1, which leads to funny looking
+   pre-equilibirum spectrum. Now, if user sets Preeq_V < Preeq_V1, Preeq_V1 =
+   Preeq_V - 3. Mostly, a failsafe mode.
+4. Reverted back to pure step function in the finite well routine in
+   pre-equilibirum model.
+5. Added randomness to initial seed if not set with command ran_seed.
+   Previously, iseed =  3141592654_int_64. Now, 
+   call system_clock(COUNT=cnt,COUNT_RATE=cnt_r,COUNT_MAX=cnt_m) is made 
+   to alter the seed at runtime so that iseed = iseed + max(mod(cnt,100000),1). 
+   Also, iseed is ensured to be odd. This adds randomness to the start so that 
+   successive runs won't be exactly the same. Not used if iseed is set with 
+   ran_seed.
+
+

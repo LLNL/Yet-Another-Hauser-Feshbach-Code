@@ -1,0 +1,284 @@
+! Fission parameters for nuclei using command structure for YAHFC
+! The parameters are entered within a block initiated by 
+! the line 'start  Z  A  Num' where Z and A define the nucleus and 
+! Num is the number of fission barriers. The lines that follow 
+! are the paremeters using the YAHFC command structure. The input
+! is terminated with the next 'start   Z  A' line or the 'end' line. 
+! The order of the parameter input is arbitary and case does not
+! matter as all text is converted to lower case when read in. The command 
+! 'f_num_barrier' is optional and not needed as the number of barriers 
+! MUST appear in the 'start Z  A  Num' line. 
+! A line initiated with '!' or '#' is a comment line and can 
+! be inserted anywhere. 
+! 
+start  92  239   2
+f_num_barrier       92 239  2
+f_barrier           92 239  1   6.05   0.3
+f_lev_delta         92 239  1   0.82
+f_lev_shell         92 239  1   0.8
+f_lev_gamma         92 239  1   0.0760028
+f_lev_spin          92 239  1   0.0138900
+f_lev_ematch        92 239  1   3.75
+f_barrier_symmetry  92 239  1   3
+f_barrier           92 239  2   5.5   0.3
+f_lev_delta         92 239  2   0.0
+f_lev_shell         92 239  2   1.8
+f_lev_gamma         92 239  2   0.0760028
+f_lev_ematch        92 239  2   4.3
+f_barrier_symmetry  92 239  2   2
+#
+start  92  238   2
+f_num_barrier       92 238  2
+f_barrier           92 238  1   6.4  0.7
+f_lev_delta         92 238  1   1.0
+f_lev_shell         92 238  1   1.3
+f_lev_gamma         92 238  1   0.0760028
+f_lev_spin          92 238  1   0.0138900
+f_lev_ematch        92 238  1   3.65
+f_barrier_symmetry  92 238  1   3
+f_barrier           92 238  2   5.8   0.6
+f_lev_delta         92 238  2   0.4
+f_lev_shell         92 238  2   1.6
+f_lev_gamma         92 238  2   0.0760028
+f_lev_spin          92 238  2   0.0138900
+f_lev_ematch        92 238  2   3.2
+f_barrier_symmetry  92 238  2   2
+#
+start  92  237   2
+f_num_barrier       92 237  2
+f_barrier           92 237  1   5.8   0.5
+f_lev_delta         92 237  1   0.9
+f_lev_shell         92 237  1   0.0
+f_lev_gamma         92 237  1   0.0760028
+f_lev_spin          92 237  1   0.0138900
+f_lev_ematch        92 237  1   3.75
+f_barrier_symmetry  92 237  1   3
+f_barrier           92 237  2   5.3   0.6
+f_lev_delta         92 237  2   0.5
+f_lev_shell         92 237  2   0.50
+f_lev_gamma         92 237  2   0.0760028
+f_lev_spin          92 237  2   0.0138900
+f_lev_ematch        92 237  2   3.4
+f_barrier_symmetry  92 237  2   2
+#
+start  92  236   2
+f_num_barrier       92 236  2
+f_barrier           92 236  1   5.8  0.6
+f_lev_delta         92 236  1   1.00
+f_lev_shell         92 236  1   0.50
+f_lev_gamma         92 236  1   0.0760028
+f_lev_spin          92 236  1   0.0138900
+f_lev_ematch        92 236  1   3.00
+f_barrier_symmetry  92 236  1   3
+f_barrier           92 236  2   5.4   0.6
+f_lev_delta         92 236  2   0.5
+f_lev_shell         92 236  2   2.00
+f_lev_gamma         92 236  2   0.0760028
+f_lev_spin          92 236  2   0.0138900
+f_lev_ematch        92 236  2   3.00
+f_barrier_symmetry  92 236  2   2
+#
+start  94  240   2
+f_num_barrier       94 240  2
+f_barrier           94 240  1   6.5  0.45  
+f_lev_delta         94 240  1   0.085
+f_lev_shell         94 240  1   2.0
+f_lev_gamma         94 240  1   0.0760028
+f_lev_spin          94 240  1   0.0138900
+f_lev_ematch        94 240  1   0.85
+f_barrier_symmetry  94 240  1   3
+f_barrier           94 240  2   6.25  0.6
+f_lev_delta         94 240  2   0.40
+f_lev_shell         94 240  2   1.9
+f_lev_gamma         94 240  2   0.0760028
+f_lev_spin          94 240  2   0.0138900 
+f_lev_ematch        94 240  2   3.0
+f_barrier_symmetry  94 240  2   2
+#
+start  94  239   2
+f_num_barrier       94 239  2
+f_barrier           94 239  1   5.85  0.45
+f_lev_delta         94 239  1   0.3 
+f_lev_shell         94 239  1   1.2 
+f_lev_gamma         94 239  1   0.0760028
+f_lev_spin          94 239  1   0.0138900 
+f_lev_ematch        94 239  1   2.4 2.5
+f_barrier_symmetry  94 239  1   3
+f_barrier           94 239  2   5.55    0.5
+f_lev_delta         94 239  2   0.4 
+f_lev_shell         94 239  2   1.3
+f_lev_gamma         94 239  2   0.0760028
+f_lev_spin          94 239  2   0.0138900 
+f_lev_ematch        94 239  2   2.0
+f_barrier_symmetry  94 239  2   2
+#
+start  94  238   2
+f_num_barrier       94 238  2
+f_barrier           94 238  1   5.5   0.6
+f_lev_delta         94 238  1   0.0
+f_lev_shell         94 238  1   0.50
+f_lev_gamma         94 238  1   0.0760028
+f_lev_spin          94 238  1   0.0138900
+f_lev_ematch        94 238  1   2.30
+f_barrier_symmetry  94 238  1   1
+f_barrier           94 238  2   5.20   0.6
+f_lev_delta         94 238  2   0.3
+f_lev_shell         94 238  2   0.0
+f_lev_gamma         94 238  2   0.0760028
+f_lev_spin          94 238  2   0.0138900
+f_lev_ematch        94 238  2   1.00
+f_barrier_symmetry  94 238  2   2
+#
+start  94  237   2
+f_num_barrier       94 237  2
+f_barrier           94 237  1   5.3  0.6
+f_lev_delta         94 237  1   0.3
+f_lev_shell         94 237  1   1.5
+f_lev_gamma         94 237  1   0.0760028
+f_lev_spin          94 237  1   0.0138900
+f_lev_ematch        94 237  1   2.6
+f_barrier_symmetry  94 237  1   1
+f_barrier           94 237  2   5.0  0.6
+f_lev_delta         94 237  2   0.3
+f_lev_shell         94 237  2   1.5
+f_lev_gamma         94 237  2   0.0760028
+f_lev_spin          94 237  2   0.0138900
+f_lev_ematch        94 237  2   2.0
+f_barrier_symmetry  94 237  2   2
+#
+start  94  236   2
+f_num_barrier       94 236  2
+f_barrier           94 236  1   5.55    0.8
+f_lev_delta         94 236  1   0.4
+f_lev_shell         94 236  1   0.0
+f_lev_gamma         94 236  1   0.0760028
+f_lev_spin          94 236  1   0.0138900
+f_lev_ematch        94 236  1   2.6
+f_barrier_symmetry  94 236  1   1
+f_barrier           94 236  2   5.15    1.0
+f_lev_delta         94 236  2   0.50
+f_lev_shell         94 236  2   0.00
+f_lev_gamma         94 236  2   0.0760028
+f_lev_spin          94 236  2   0.0138900
+f_lev_ematch        94 236  2   2.0
+f_barrier_symmetry  94 236  2   2
+#
+start  94  235   2
+f_num_barrier       94 235  2
+f_barrier           94 235  1   5.50    0.8
+f_lev_delta         94 235  1   0.4
+f_lev_shell         94 235  1   0.0
+f_lev_gamma         94 235  1   0.0760028
+f_lev_spin          94 235  1   0.0138900
+f_lev_ematch        94 235  1   2.6
+f_barrier_symmetry  94 235  1   1
+f_barrier           94 235  2   5.15    1.0
+f_lev_delta         94 235  2   0.50
+f_lev_shell         94 235  2   0.00
+f_lev_gamma         94 235  2   0.0760028
+f_lev_spin          94 235  2   0.0138900
+f_lev_ematch        94 235  2   2.0
+f_barrier_symmetry  94 235  2   2
+#
+start  94  234   2
+f_num_barrier       94 234  2
+f_barrier           94 234  1   5.50    0.8
+f_lev_delta         94 234  1   0.4
+f_lev_shell         94 234  1   0.0 
+f_lev_gamma         94 234  1   0.0760028
+f_lev_spin          94 234  1   0.0138900
+f_lev_ematch        94 234  1   2.6
+f_barrier_symmetry  94 234  1   1
+f_barrier           94 234  2   5.15    1.0
+f_lev_delta         94 234  2   0.50
+f_lev_shell         94 234  2   0.00
+f_lev_gamma         94 234  2   0.0760028
+f_lev_spin          94 234  2   0.0138900
+f_lev_ematch        94 234  2   2.0
+f_barrier_symmetry  94 234  2   2
+#
+start  95  243   2
+f_num_barrier       95 243  2
+f_barrier           95 243  1   6.2   0.5    6.45   0.55  
+f_lev_delta         95 243  1   0.2       
+f_lev_shell         95 243  1   2.0         
+f_lev_gamma         95 243  1   0.0760028   
+f_lev_spin          95 243  1   0.0138900    
+f_lev_ematch        95 243  1   2.5
+f_barrier_symmetry  95 243  1   3
+f_barrier           95 243  2   5.8   0.6  5.6   0.8   
+f_lev_delta         95 243  2   0.25         
+f_lev_shell         95 243  2   2.2        
+f_lev_gamma         95 243  2   0.0760028   
+f_lev_spin          95 243  2   0.0138900    
+f_lev_ematch        95 243  2   2.5
+f_barrier_symmetry  95 243  2   2
+#
+start  95  242   2
+F_Num_Barrier       95 242  2
+F_Barrier           95 242  1   6.47   0.5 
+F_lev_delta         95 242  1   0.07
+F_lev_shell         95 242  1   2.12
+F_lev_gamma         95 242  1   0.0760028
+F_lev_spin          95 242  1   0.0138900
+F_lev_ematch        95 242  1   3.4
+f_barrier_symmetry  95 242  1   3
+F_Barrier           95 242  2   5.9   0.6 
+F_lev_delta         95 242  2   0.0
+F_lev_shell         95 242  2   3.05
+F_lev_gamma         95 242  2   0.0760028
+F_lev_spin          95 242  1   0.0138900
+F_lev_ematch        95 242  2   3.15
+f_barrier_symmetry  95 242  2   2
+#
+start  95  241   2
+F_Num_Barrier       95 241  2
+F_Barrier           95 241  1   6.59  0.6
+F_lev_delta         95 241  1   0.0
+F_lev_shell         95 241  1   2.5
+F_lev_gamma         95 241  1   0.0760028
+F_lev_spin          95 241  1   0.0138900
+F_lev_ematch        95 241  1   3.8
+f_barrier_symmetry  95 241  1   3
+F_Barrier           95 241  2   6.2   0.7
+F_lev_delta         95 241  2   0.
+F_lev_shell         95 241  2   3.2
+F_lev_gamma         95 241  2   0.0760028
+F_lev_spin          95 241  2   0.0138900
+F_lev_ematch        95 241  2   3.6
+f_barrier_symmetry  95 241  2   2
+#
+start  95  240   2
+F_Num_Barrier       95 240  2
+F_Barrier           95 240  1   6.22  0.5 
+F_lev_delta         95 240  1   0.0
+F_lev_shell         95 240  1   3.6  2.8
+F_lev_gamma         95 240  1   0.0760028
+F_lev_spin          95 240  1   0.0138900
+F_lev_ematch        95 240  1   3.8  3.6
+f_barrier_symmetry  95 240  1   3
+F_Barrier           95 240  2   5.7  0.6 
+F_lev_delta         95 240  2   0.0
+F_lev_shell         95 240  2   3.5
+F_lev_gamma         95 240  2   0.0760028
+F_lev_spin          95 240  2   0.0138900
+F_lev_ematch        95 240  2   3.6
+f_barrier_symmetry  95 240  2   2
+#
+start  95  239   2
+F_Num_Barrier       95 239  2
+F_Barrier           95 239  1   6.2  0.6
+F_lev_delta         95 239  1   0.0
+F_lev_shell         95 239  1   2.5
+F_lev_gamma         95 239  1   0.0760028
+F_lev_spin          95 239  1   0.0138900
+F_lev_ematch        95 239  1   3.4
+f_barrier_symmetry  95 239  1   3
+F_Barrier           95 239  2   5.8  0.6
+F_lev_delta         95 239  2   0.0
+F_lev_shell         95 239  2   2.9
+F_lev_gamma         95 239  2   0.0760028
+F_lev_spin          95 239  2   0.0138900
+F_lev_ematch        95 239  2   3.60
+f_barrier_symmetry  95 239  2   2
+end

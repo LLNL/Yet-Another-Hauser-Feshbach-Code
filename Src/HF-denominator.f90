@@ -1,0 +1,1056 @@
+!
+!*******************************************************************************
+!
+subroutine HF_denominator(icomp,delta_e)
+!
+!*******************************************************************************
+!
+!  Discussion:
+!
+!   This subroutine precalculates Hauser-Feshbach denominators.       
+!   The primary purpose is to speed up the Hauser-Feshbach decay      
+!   loops by having the important information pre-stored for          
+!   each initial (E,J,par) bin for each compound nucleus.             
+!   Program calculates HF-denominators for each (j,ip,n) bin          
+!   Then creates an array of decay probabilites for each possible     
+!   final nucleus from the starting compound nucleus.                 
+!   To accomplish this, the HF-denominator loops are cycled through   
+!   three times. The first is to get the overal magnitude of the      
+!   denominator. The second is to attempt to cull paths within the    
+!   a decay chain so that the more probable paths exist. The third    
+!   finalizes the process. Note that all data is sotred in the        
+!   derived types                                                     
+!      nucleus(icomp)%bins(j,ip,n)%nuke_decay(if1)%decay_prob(num)    
+!   and are dynamically allocated to use only the required memory.    
+!
+!  Licensing:
+!
+!    This code is distributed under the GNU LGPL version 2 license. 
+!
+!  Date:
+!
+!    25 September 2019
+!
+!  Author:
+!
+!      Erich Ormand, LLNL
+!
+!*******************************************************************************
+!
+   use variable_kinds
+   use options
+   use nuclei
+   use particles_def
+   use constants 
+   use nodeinfo
+   implicit none
+   integer(kind=4), intent(in) :: icomp
+   real(kind=8), intent(in) :: delta_e
+!-------------------------------------------------------------------------+
+   integer(kind=4) j, k, l, jj, nnn, nnnn
+   integer(kind=4) :: Ix_i_max, Ix_i
+   integer(kind=4) :: Ix_f_min, Ix_f_max, Ix_f
+   real(kind=8) :: xI_i, xI_i_shift
+   real(kind=8) :: xI_f_min, xI_f_max, xI_f, xI_f_max1
+   integer(kind=4) :: lmin, lmax, le_min, lm_min
+   integer(kind=4) :: nbin, ibin, jbin
+   real(kind=8) :: xj_f, xj_f_min1, xj_f_min, xj_f_max
+   integer(kind=4) n
+   integer(kind=4) :: ip
+   integer(kind=4) :: if1, i_f, n_f, ns_f, ip_f
+   integer(kind=4) :: ifi
+   integer(kind=4) :: iss
+   real(kind=8) :: par, par_i, par_f
+   real(kind=8) :: hf_den, hf_den2, hf_denp, hf_prob(0:7)
+   real(kind=8) :: p_spin
+   real(kind=8) :: energy, e_f, e_gamma
+   real(kind=8) :: cpar2
+   real(kind=8) :: trans, trans_eff
+   real(kind=8) :: F_trans(4)
+   real(kind=8) :: eout_low, eout_high
+   real(kind=8) :: ex
+!--------------------------------------------------------------------------
+
+   integer(kind=4) :: num_j
+   integer(kind=4) :: ii
+   integer(kind=4) :: isp
+   integer(kind=4) :: num_prob
+   integer(kind=8) :: num_tot
+   integer(kind=4) :: itemp, idb
+
+   real(kind=8) :: prob, prob_sum, prob_norm
+
+   integer(kind=4) :: iprint
+
+!-------------------------------------------------------------------------+
+!------     Function declarations
+   real(kind=8) :: tco_interpolate
+   real(kind=8) :: EL_trans
+   real(kind=8) :: ML_trans
+!-------------------------------------------------------------------------+
+!------                                                                   +
+!--------------------   Start subroutine                                  +
+!------                                                                   +
+!-------------------------------------------------------------------------+
+
+   num_tot = 0
+
+   Ix_i_max=nucleus(icomp)%j_max
+   xI_i_shift=nucleus(icomp)%jshift
+   nbin=nucleus(icomp)%nbin
+
+   prob_norm = 0.0d0
+!----------------------------------------------------------------------------------+
+!-----   Compute decay probabilities for each continuous energy bin                +
+!-----   Cycle trhough each bin and make a list of possible decays that satisfy    +
+!-----   cuts imposed. The loop needs to be done three times.                      +
+!-----                                                                             +
+!-----   1. Compute overall size of the Hauser-Feshbach denominator for all decays +
+!-----   2. Check if decay probability is > prob_cut and count number and allocate +
+!-----   3. Set up decay arrays                                                    +
+!-----                                                                             +
+!-----   Order was changed from previous versions to have decay arrays in          +
+!-----   in ascending order for final excitation energy. This is to help with      +
+!-----   "jitter" problem, where initial excitation energy falls below the final   +
+!-----   state and becomes forbidden. These decays are accounted for by first      +
+!-----   attempting another try. This is done 15 times, afterwards an explicit     +
+!-----   calculation is made to renormalize decay probabilities. Fors this         +
+!-----   it is useful to have the final states ordered so that it is simple        +
+!-----   to skip forbidden decays. The goal is to do this infrequently.            +  
+!-----                                                                             +
+!----------------------------------------------------------------------------------+
+
+   do n = 1, nbin                  
+      ibin = nbin - n + 1
+      energy = nucleus(icomp)%e_grid(n)
+      do ip = 0, 1 
+         par = 2.0d0*real(ip) - 1.0d0
+         par_i = par
+         do Ix_i = Ix_i_max, 0, -1                                            !  start at maximum angular momentum
+            xI_i = real(Ix_i,kind=8)+xI_i_shift
+            hf_prob(0:7) = 0.0d0
+            hf_den2 = 0.0d0
+
+            allocate(nucleus(icomp)%bins(Ix_i,ip,n)%HF_prob(nucleus(icomp)%num_decay+1))
+            allocate(nucleus(icomp)%bins(Ix_i,ip,n)%HF_prob2(nucleus(icomp)%num_decay+1))
+            allocate(nucleus(icomp)%bins(Ix_i,ip,n)%decay_to(nucleus(icomp)%num_decay+1))
+            allocate(nucleus(icomp)%bins(Ix_i,ip,n)%decay_particle(nucleus(icomp)%num_decay+1))
+            allocate(nucleus(icomp)%bins(Ix_i,ip,n)%HF_trans(nucleus(icomp)%num_decay+3))    ! added to see effect of each barrier
+            allocate(nucleus(icomp)%bins(Ix_i,ip,n)%nuke_decay(nucleus(icomp)%num_decay+1))
+            nucleus(icomp)%bins(Ix_i,ip,n)%HF_prob(1:nucleus(icomp)%num_decay+1) = 0.0d0
+            nucleus(icomp)%bins(Ix_i,ip,n)%HF_prob2(1:nucleus(icomp)%num_decay+1) = 0.0d0
+            nucleus(icomp)%bins(Ix_i,ip,n)%HF_trans(1:nucleus(icomp)%num_decay+3) = 0.0d0
+            nucleus(icomp)%bins(Ix_i,ip,n)%num_decay = 0
+            nucleus(icomp)%bins(Ix_i,ip,n)%decay_to(1:nucleus(icomp)%num_decay+1) = 0
+            nucleus(icomp)%bins(Ix_i,ip,n)%decay_particle(1:nucleus(icomp)%num_decay+1) = 0
+
+            do if1 = 1, nucleus(icomp)%num_decay                       !  loop over nuclei in the decay chain
+               prob_sum = 0.0d0
+               i_f = nucleus(icomp)%decay_to(if1)
+               k = nucleus(icomp)%decay_particle(if1)
+               if(energy < nucleus(icomp)%sep_e(k))cycle           !   not eneough energy to decay - cycle out
+               xI_f_max1 = real(nucleus(i_f)%j_max,kind=8) + nucleus(i_f)%jshift
+               if(k > 0)then                                    ! particle n,p,d,t,h,a
+!--------------------------   particle decay
+                  p_spin = particle(k)%spin
+                  isp = nint(2.0d0*p_spin)
+!
+!---------------    Start with discrete states below ecut
+!
+                  do ns_f = 1, nucleus(i_f)%ncut
+                     e_f = energy - nucleus(icomp)%sep_e(k) -                             &
+                                nucleus(i_f)%state(ns_f)%energy
+                     if(e_f <= 1.0d-6)cycle
+                     xI_f = nucleus(i_f)%state(ns_f)%spin
+                     Ix_f = nint(xI_f - nucleus(i_f)%jshift)
+                     xj_f_min = abs(xI_f - xI_i)
+                     xj_f_max = xI_f + xI_i
+                     num_j = nint(xj_f_max - xj_f_min)
+                     do j = 0, num_j
+                        xj_f = real(j,kind=8) + xj_f_min
+                        lmin = nint(abs(xj_f - p_spin))
+                        lmax = min(particle(k)%lmax, nint(xj_f + p_spin))
+                        cpar2 = particle(k)%par*nucleus(i_f)%state(ns_f)%parity
+                        ip_f = nint((cpar2+1.0d0)/2.0d0)
+                        if(ip == ip_f)then                            !   parities are the same, l=even
+                           if(iand(lmin,1) == 1)lmin=lmin+1                  !   odd lmin, add 1 to make it even
+                           if(iand(lmax,1) == 1)lmax=lmax-1                  !   odd lmax, subtract 1 to make it even
+                        else                                          !   parities are different, l=odd
+                           if(iand(lmin,1) == 0)lmin=lmin+1                  !   even lmin, add 1 to make it even
+                           if(iand(lmax,1) == 0)lmax=lmax-1                  !   even lmax, subtract 1 to make it even
+                        end if
+                        do l = lmin,lmax,2
+                           xj_f_min1 = real(l,kind=8) - p_spin
+                           iss = nint(xj_f - xj_f_min1)
+                           if(iss < 0 .or. iss > nint(2*p_spin))cycle
+                           trans=tco_interpolate(e_f,particle(k)%nume,                    &
+                                                 particle(k)%e_grid,                      &
+                                                 particle(k)%trans_read(1,iss,l))  
+                           if(trans < trans_p_cut)cycle
+                           hf_den2 = hf_den2 + trans
+                           prob_sum = prob_sum + trans
+                        end do
+                     end do
+                  end do
+!                  do n_f = nucleus(i_f)%nbin - ibin + 1,1,-1                  !  loop over final excitation energies
+                  do n_f = 1, nucleus(i_f)%nbin - ibin + 1, 1                  !  loop over final excitation energies
+!---------------------------   particle decay to discrete states
+!
+!-------    Check for discrete states embedded in the continuum
+!
+                     do ns_f = nucleus(i_f)%ncut+1, nucleus(i_f)%num_discrete
+                        if(nucleus(i_f)%state(ns_f)%energy > nucleus(i_f)%e_grid(n_f))exit
+                        if(n_f > 1)then
+                           if(nucleus(i_f)%state(ns_f)%energy < nucleus(i_f)%e_grid(n_f-1))cycle
+                        end if
+
+                        e_f = energy - nucleus(icomp)%sep_e(k) -                             &
+                                   nucleus(i_f)%state(ns_f)%energy
+                        if(e_f <= 1.0d-6)cycle
+                        xI_f = nucleus(i_f)%state(ns_f)%spin
+                        Ix_f = nint(xI_f - nucleus(i_f)%jshift)
+                        xj_f_min = abs(xI_f - xI_i)
+                        xj_f_max = xI_f + xI_i
+                        num_j = nint(xj_f_max - xj_f_min)
+                        do j = 0, num_j
+                           xj_f = real(j,kind=8) + xj_f_min
+                           lmin = nint(abs(xj_f - p_spin))
+                           lmax = min(particle(k)%lmax, nint(xj_f + p_spin))
+                           cpar2 = particle(k)%par*nucleus(i_f)%state(ns_f)%parity
+                           ip_f = nint((cpar2+1.0d0)/2.0d0)
+                           if(ip == ip_f)then                            !   parities are the same, l=even
+                              if(iand(lmin,1) == 1)lmin=lmin+1                  !   odd lmin, add 1 to make it even
+                              if(iand(lmax,1) == 1)lmax=lmax-1                  !   odd lmax, subtract 1 to make it even
+                           else                                          !   parities are different, l=odd
+                              if(iand(lmin,1) == 0)lmin=lmin+1                  !   even lmin, add 1 to make it even
+                              if(iand(lmax,1) == 0)lmax=lmax-1                  !   even lmax, subtract 1 to make it even
+                           end if
+                           do l = lmin,lmax,2
+                              xj_f_min1 = real(l,kind=8) - p_spin
+                              iss = nint(xj_f - xj_f_min1)
+                              if(iss < 0 .or. iss > nint(2*p_spin))cycle
+                              trans=tco_interpolate(e_f,particle(k)%nume,                    &
+                                                    particle(k)%e_grid,                      &
+                                                    particle(k)%trans_read(1,iss,l))  
+                              if(trans < trans_p_cut)cycle
+                              hf_den2 = hf_den2 + trans
+                              prob_sum = prob_sum + trans
+                           end do
+                        end do
+                     end do
+
+                     e_f = energy - nucleus(icomp)%sep_e(k) -       &
+                                    nucleus(i_f)%e_grid(n_f)
+                     eout_low = e_f - 0.5d0*delta_e
+                     eout_high = e_f + 0.5d0*delta_e
+                     if(e_f <= 1.0d-6)cycle
+                     jbin = nucleus(i_f)%nbin - ibin - n_f + 1                !  index for transmission coeff array
+                     do l = 0, particle(k)%lmax                          !  loop over l-partial wave
+                        cpar2 = par*(-1.0d0)**l                         !  Parity of nucleus and emitted part
+                        par_f = cpar2*particle(k)%par                !  Parity of final nucleus
+                        ip_f = nint((par_f + 1.0)/2.0)
+                        xj_f = real(l,kind=8) - p_spin
+                        do iss = 0, isp                               !  loop over particle spins
+                           xj_f = xj_f + real(iss,kind=8)
+                           if(xj_f < 0.0d0)cycle
+                           trans = particle(k)%trans(iss,l,jbin)
+                           if(trans < trans_p_cut)cycle
+                           xI_f_min = abs(xj_f - xI_i)
+                           xI_f_max = xj_f + xI_i
+                           Ix_f_min = nint(xI_f_min - nucleus(i_f)%jshift)      !  min j-index
+                           Ix_f_max = nint(xI_f_max - nucleus(i_f)%jshift)      !  max j-index
+                           Ix_f_max = min(Ix_f_max, nucleus(i_f)%j_max)
+                           do Ix_f = Ix_f_min, Ix_f_max                    !  loop over final j
+                              xI_f = real(Ix_f,kind=8) + nucleus(i_f)%jshift
+                              trans_eff = delta_e*trans*nucleus(i_f)%bins(Ix_f,ip_f,n_f)%rho
+                              hf_den2 = hf_den2 + trans_eff
+                              prob_sum = prob_sum + trans_eff
+                           end do
+                        end do
+                     end do
+                  end do
+               else                                              !  photons
+!---------------------------   Gamma decay
+!-------   Start with discrete states below ecut
+                  do ns_f = 1, nucleus(i_f)%ncut
+                     e_f = energy - nucleus(i_f)%state(ns_f)%energy
+                     e_gamma = e_f
+                     xI_f = nucleus(i_f)%state(ns_f)%spin
+                     if(e_gamma <= 1.0d-6)cycle
+                     if(xI_f < 1.0d-3 .and. xI_f < 1.0d-3)cycle        !  O -> 0 not allowed
+                     lmin = max(1, nint(abs(xI_f - xI_i)))                      !   can't have L=0
+                     ip_f=iabs(nint((nucleus(i_f)%state(ns_f)%parity+1.)/2.))
+                     if(ip == ip_f)then                  !  parity the same even L for E odd L for M
+                        if(iand(lmin,1) == 0)then
+                           le_min = lmin
+                           lm_min = lmin + 1
+                        else
+                           le_min = lmin + 1
+                           lm_min = lmin
+                        end if
+                     else                                !  parity the same odd L for E even L for M             
+                        if(iand(lmin,1) == 0)then
+                           le_min = lmin + 1
+                           lm_min = lmin
+                        else
+                           le_min = lmin
+                           lm_min = lmin + 1
+                        end if
+                     end if
+                     do l = le_min, nucleus(i_f)%lmax_E, 2
+                        trans = EL_trans(i_f, l, e_gamma, energy)
+                        if(trans < trans_e_cut)cycle
+                        hf_den2 = hf_den2 + trans
+                        prob_sum = prob_sum + trans
+                     end do
+                     do l = lm_min, nucleus(i_f)%lmax_M, 2
+                        trans = ML_trans(i_f, l, e_gamma)
+                        if(trans < trans_e_cut)cycle
+                        hf_den2 = hf_den2 + trans
+                        prob_sum = prob_sum + trans
+                     end do
+                  end do
+!--------------    Now continuous bins
+
+                  do n_f = 1, n, 1              !  loop over final excitation energies
+!
+!---------------------------  Next check on discrete states embedded in the continuum
+!
+                     do ns_f = nucleus(i_f)%ncut+1, nucleus(i_f)%num_discrete
+                        if(nucleus(i_f)%state(ns_f)%energy > nucleus(i_f)%e_grid(n_f))exit
+                        if(n_f > 1)then
+                           if(nucleus(i_f)%state(ns_f)%energy < nucleus(i_f)%e_grid(n_f-1))cycle
+                        end if
+                        e_f = energy - nucleus(i_f)%state(ns_f)%energy
+                        e_gamma = e_f
+                        xI_f = nucleus(i_f)%state(ns_f)%spin
+!                     if(e_gamma <= 0.5d0*delta_e)cycle
+                        if(e_gamma <= 1.0d-6)cycle
+                        if(xI_f < 1.0d-3 .and. xI_f < 1.0d-3)cycle        !  O -> 0 not allowed
+                        lmin = max(1, nint(abs(xI_f - xI_i)))                      !   can't have L=0
+                        ip_f=iabs(nint((nucleus(i_f)%state(ns_f)%parity+1.)/2.))
+                        if(ip == ip_f)then                  !  parity the same even L for E odd L for M
+                           if(iand(lmin,1) == 0)then
+                              le_min = lmin
+                              lm_min = lmin + 1
+                           else
+                              le_min = lmin + 1
+                              lm_min = lmin
+                           end if
+                        else                                !  parity the same odd L for E even L for M             
+                           if(iand(lmin,1) == 0)then
+                              le_min = lmin + 1
+                              lm_min = lmin
+                           else
+                              le_min = lmin
+                              lm_min = lmin + 1
+                           end if
+                        end if
+                        do l = le_min, nucleus(i_f)%lmax_E, 2
+                           trans = EL_trans(i_f, l, e_gamma, energy)
+                           if(trans < trans_e_cut)cycle
+                           hf_den2 = hf_den2 + trans
+                           prob_sum = prob_sum + trans
+                        end do
+                        do l = lm_min, nucleus(i_f)%lmax_M, 2
+                           trans = ML_trans(i_f, l, e_gamma)
+                           if(trans < trans_e_cut)cycle
+                           hf_den2 = hf_den2 + trans
+                           prob_sum = prob_sum + trans
+                        end do
+                     end do
+!-----------------------------------     End discrete state loop
+
+                     jbin = nucleus(i_f)%nbin - ibin - n_f + 1                    !  index for transmission coeff array
+                     e_gamma = energy - nucleus(i_f)%e_grid(n_f)
+                     if(e_gamma <= 1.0d-6)cycle
+                     e_gamma = max(e_gamma,delta_e/10.0)
+!---------------------------   Start with Electric decay 
+                     do l = 1, nucleus(i_f)%lmax_E                   !  loop over EL decays
+                        trans = EL_trans(i_f, l, e_gamma, energy)
+                        if(trans < trans_e_cut)cycle
+                        ip_f = iand((ip+l),1)                          !  parity of final state
+                        xI_f_min = abs(xI_i-real(l,kind=8))                 !  min final spin
+                        xI_f_max = min(xI_f_max1,xI_i+real(l,kind=8))       !  max final spin
+                        Ix_f_min = nint(xI_f_min - nucleus(i_f)%jshift)        !  min j-index
+                        Ix_f_max = nint(xI_f_max - nucleus(i_f)%jshift)        !  max j-index
+                        do Ix_f = Ix_f_min, Ix_f_max                 !  loop over final j
+                           xI_f = real(Ix_f,kind=8) + nucleus(i_f)%jshift
+                           if(xI_i < 1.0d-3 .and. xI_f < 1.0d-3)cycle        !  O -> 0 not allowed
+                           trans_eff = trans*nucleus(i_f)%bins(Ix_f,ip_f,n_f)%rho*delta_e
+                           hf_den2 = hf_den2 + trans_eff
+                           prob_sum = prob_sum + trans_eff
+                        end do
+                     end do
+!---------------------------   Now Magnetic decay 
+                     do l = 1, nucleus(i_f)%lmax_M                            !  loop over ML decays
+                        trans = ML_trans(i_f, l, e_gamma)
+                        if(trans < trans_e_cut)cycle
+                        ip_f = iand((ip+l+1),1)                       !  parity of final state
+                        xI_f_min = abs(xI_i-real(l,kind=8))                !  min final spin
+                        xI_f_max = min(xI_f_max1,xI_i+real(l,kind=8))       !  max final spin
+                        Ix_f_min = nint(xI_f_min-nucleus(i_f)%jshift)      !  min j-index
+                        Ix_f_max = nint(xI_f_max-nucleus(i_f)%jshift)      !  max j-index
+                        do Ix_f = Ix_f_min, Ix_f_max                    !  loop over final j
+                           xI_f = real(Ix_f,kind=8) + nucleus(i_f)%jshift
+                           if(abs(xI_i) < 1.0d-3.and. abs(xI_f) < 1.0d-3)cycle        !  O -> 0 not allowed
+                           trans_eff = trans*nucleus(i_f)%bins(Ix_f,ip_f,n_f)%rho*delta_e
+                           hf_den2 = hf_den2 + trans_eff
+                           prob_sum = prob_sum + trans_eff
+                        end do
+                     end do
+                  end do
+               end if
+            end do
+
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!---------   Decay probabilities to each channel
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+            if(nucleus(icomp)%fission)then
+               call Fission_transmission(icomp,energy,xI_i,ip,F_trans)
+               hf_den2 = hf_den2 + F_trans(4)
+            end if
+
+            if(hf_den2 <= min(trans_p_cut,trans_e_cut))then       !   cannot decay this bin
+               nucleus(icomp)%bins(Ix_i,ip,n)%HF_den = 0.0d0
+               do if1 = 1, nucleus(icomp)%num_decay
+                  nucleus(icomp)%bins(Ix_i,ip,n)%HF_prob(if1) = 0.0d0
+                  nucleus(icomp)%bins(Ix_i,ip,n)%HF_prob2(if1) = 0.0d0
+                  nucleus(icomp)%bins(Ix_i,ip,n)%nuke_decay(if1)%num_decay = 0
+               end do
+               goto 10101
+            end if
+
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!-------  Do again, and reduce possible paths if need be     ----------------------------------+
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+            nucleus(icomp)%bins(Ix_i,ip,n)%HF_prob(1:nucleus(icomp)%num_decay) = 0.0d0
+            nucleus(icomp)%bins(Ix_i,ip,n)%HF_prob(1:nucleus(icomp)%num_decay+1) = 0.0d0
+            nucleus(icomp)%bins(Ix_i,ip,n)%nuke_decay(1:nucleus(icomp)%num_decay)%num_decay = 0
+            do ii = 1, 2                                        ! do twice, the first is to count
+               if(ii == 1)hf_den = 0.0d0
+               ifi = 1
+               do if1 = 1,nucleus(icomp)%num_decay                       !  loop over nuclei in the decay chain
+                  hf_denp = 0.0d0
+                  num_prob = 0
+                  prob_sum = 0.0d0
+                  if(ii == 2) prob_norm = nucleus(icomp)%bins(Ix_i,ip,n)%HF_prob(ifi)
+                  i_f = nucleus(icomp)%decay_to(if1)
+                  k = nucleus(icomp)%decay_particle(if1)
+                  if(energy < nucleus(icomp)%sep_e(k))cycle           !   not eneough energy to decay - cycle out
+                  xI_f_max1 = real(nucleus(i_f)%j_max,kind=8) + nucleus(i_f)%jshift
+                  if(k > 0)then                                    ! particle n,p,d,t,h,a
+!--------------------------   particle decay to continuous level bins
+                     p_spin=particle(k)%spin
+                     isp = nint(2.0d0*p_spin)
+!
+!------------   Start with discrete states below ecut
+!
+                     do ns_f = 1, nucleus(i_f)%ncut
+                        e_f = energy - nucleus(icomp)%sep_e(k)-           &
+                                       nucleus(i_f)%state(ns_f)%energy
+                        if(e_f <= 1.0d-6)cycle
+                        xI_f = nucleus(i_f)%state(ns_f)%spin
+                        Ix_f = nint(xI_f - nucleus(i_f)%jshift)
+                        xj_f_min = abs(xI_f - xI_i)
+                        xj_f_max = xI_f + xI_i
+                        num_j = nint(xj_f_max - xj_f_min)
+                        do j = 0, num_j
+                           xj_f = real(j,kind=8) + xj_f_min
+                           lmin = nint(abs(xj_f - p_spin))
+                           lmax = min(particle(k)%lmax, nint(xj_f + p_spin))
+                           cpar2 = particle(k)%par*nucleus(i_f)%state(ns_f)%parity
+                           ip_f = nint((cpar2+1.0d0)/2.0d0)
+                           if(ip == ip_f)then                            !   parities are the same, l=even
+                              if(iand(lmin,1) == 1)lmin=lmin+1                  !   odd lmin, add 1 to make it even
+                              if(iand(lmax,1) == 1)lmax=lmax-1                  !   odd lmax, subtract 1 to make it even
+                           else                                          !   parities are different, l=odd
+                              if(iand(lmin,1) == 0)lmin=lmin+1                  !   even lmin, add 1 to make it even
+                              if(iand(lmax,1) == 0)lmax=lmax-1                  !   even lmax, subtract 1 to make it even
+                           end if
+                           do l = lmin,lmax,2
+                              xj_f_min1 = real(l,kind=8) - p_spin
+                              iss = nint(xj_f - xj_f_min1)
+                              if(iss < 0 .or. iss > nint(2*p_spin))cycle
+                              trans = tco_interpolate(e_f,particle(k)%nume,           &
+                                                      particle(k)%e_grid,             &
+                                                      particle(k)%trans_read(1,iss,l))  
+                              if(trans < trans_p_cut)cycle
+                              prob = trans/hf_den2
+                              if(prob <= prob_cut) cycle
+!   if( k == 2)write(91,'(''D'',1x,i4,1x,f4.1,2(1x,i4),2(1x,f4.1),1x,f10.4,3(1x,1pe15.7))')       &
+!      n, xI_i, k, l, xj_f, XI_f,e_f, trans_eff, prob, prob_cut
+                              if(ii == 1) then
+                                 hf_den = hf_den + trans
+                              end if
+                              num_prob = num_prob + 1
+!    if(ii == 2)write(26,*)n,n_f,ns_f,nucleus(i_f)%state(ns_f)%energy,trans,prob_sum
+                              prob_sum = prob_sum + trans
+                              if(ii == 2)then
+                                 nucleus(icomp)%bins(Ix_i,ip,n)%nuke_decay(ifi)%decay_prob(num_prob) = &
+                                     prob_sum/prob_norm
+                                 idb = 1
+                                 call pack_data(Ix_f, ip_f, ns_f, idb, l, iss, itemp)
+                                 nucleus(icomp)%bins(Ix_i,ip,n)%nuke_decay(ifi)%decay_list(num_prob) = itemp
+                              end if
+                           end do
+                        end do
+                     end do
+
+
+
+!                     do n_f = nucleus(i_f)%nbin - ibin + 1, 1,-1                  !  loop over final excitation energies
+                     do n_f = 1, nucleus(i_f)%nbin - ibin + 1, 1                  !  loop over final excitation energies
+!
+!---------------------------   Check on states embedded in the continuum
+                        do ns_f = nucleus(i_f)%ncut+1, nucleus(i_f)%num_discrete
+                           if(nucleus(i_f)%state(ns_f)%energy > nucleus(i_f)%e_grid(n_f))exit
+                           if(n_f > 1)then
+                              if(nucleus(i_f)%state(ns_f)%energy < nucleus(i_f)%e_grid(n_f-1))cycle
+                           end if
+                           e_f = energy - nucleus(icomp)%sep_e(k)-           &
+                                          nucleus(i_f)%state(ns_f)%energy
+                           if(e_f <= 1.0d-6)cycle
+                           xI_f = nucleus(i_f)%state(ns_f)%spin
+                           Ix_f = nint(xI_f - nucleus(i_f)%jshift)
+                           xj_f_min = abs(xI_f - xI_i)
+                           xj_f_max = xI_f + xI_i
+                           num_j = nint(xj_f_max - xj_f_min)
+                           do j = 0, num_j
+                              xj_f = real(j,kind=8) + xj_f_min
+                              lmin = nint(abs(xj_f - p_spin))
+                              lmax = min(particle(k)%lmax, nint(xj_f + p_spin))
+                              cpar2 = particle(k)%par*nucleus(i_f)%state(ns_f)%parity
+                              ip_f = nint((cpar2+1.0d0)/2.0d0)
+                              if(ip == ip_f)then                            !   parities are the same, l=even
+                                 if(iand(lmin,1) == 1)lmin=lmin+1                  !   odd lmin, add 1 to make it even
+                                 if(iand(lmax,1) == 1)lmax=lmax-1                  !   odd lmax, subtract 1 to make it even
+                              else                                          !   parities are different, l=odd
+                                 if(iand(lmin,1) == 0)lmin=lmin+1                  !   even lmin, add 1 to make it even
+                                 if(iand(lmax,1) == 0)lmax=lmax-1                  !   even lmax, subtract 1 to make it even
+                              end if
+                              do l = lmin,lmax,2
+                                 xj_f_min1 = real(l,kind=8) - p_spin
+                                 iss = nint(xj_f - xj_f_min1)
+                                 if(iss < 0 .or. iss > nint(2*p_spin))cycle
+                                 trans = tco_interpolate(e_f,particle(k)%nume,           &
+                                                         particle(k)%e_grid,             &
+                                                         particle(k)%trans_read(1,iss,l))  
+                                 if(trans < trans_p_cut)cycle
+                                 prob = trans/hf_den2
+                                 if(prob <= prob_cut) cycle
+                                 if(ii == 1) then
+                                    hf_den = hf_den + trans
+                                 end if
+                                 num_prob = num_prob + 1
+!    if(ii == 2)write(26,*)n,n_f,ns_f,nucleus(i_f)%state(ns_f)%energy,trans,prob_sum
+                                 prob_sum = prob_sum + trans
+                                 if(ii == 2)then
+                                    nucleus(icomp)%bins(Ix_i,ip,n)%nuke_decay(ifi)%decay_prob(num_prob) = &
+                                        prob_sum/prob_norm
+                                    idb = 1
+                                    call pack_data(Ix_f, ip_f, ns_f, idb, l, iss, itemp)
+                                    nucleus(icomp)%bins(Ix_i,ip,n)%nuke_decay(ifi)%decay_list(num_prob) = itemp
+                                 end if
+                              end do
+                           end do
+                        end do
+!-----------------    End of discrete state loop
+
+
+                        e_f = energy-nucleus(icomp)%sep_e(k) -                            &
+                               nucleus(i_f)%e_grid(n_f)
+                        eout_low = e_f - 0.5d0*delta_e
+                        eout_high = e_f + 0.5d0*delta_e
+!                        if(eout_high <= 0.0d0)cycle
+                        if(e_f <= 1.0d-6)cycle
+                        jbin = nucleus(i_f)%nbin-ibin-n_f+1                !  index for transmission coeff array
+                        do l = 0, particle(k)%lmax                          !  loop over l-partial wave
+                           xj_f = real(l,kind=8) - p_spin
+                           cpar2 = par*(-1.)**l                         !  Parity of nucleus and emitted part
+                           par_f = cpar2*particle(k)%par                !  Parity of final nucleus
+                           ip_f = nint((par_f + 1.0)/2.0)
+                           do iss = 0, isp                               !  loop over particle spins
+                              xj_f = xj_f + real(iss,kind=8)
+                              if(xj_f < 0.0d0)cycle
+                              trans = particle(k)%trans(iss,l,jbin)
+                              if(trans < trans_p_cut)cycle
+                              xI_f_min = abs(xj_f - xI_i)
+                              xI_f_max = xj_f + xI_i
+                              Ix_f_min = nint(xI_f_min - nucleus(i_f)%jshift)      !  min j-index
+                              Ix_f_max = nint(xI_f_max - nucleus(i_f)%jshift)      !  max j-index
+                              Ix_f_max = min(Ix_f_max,nucleus(i_f)%j_max)
+                              do Ix_f = Ix_f_min, Ix_f_max                    !  loop over final j
+                                 xI_f = real(Ix_f,kind=8) + nucleus(i_f)%jshift
+                                 trans_eff = delta_e*trans*nucleus(i_f)%bins(Ix_f,ip_f,n_f)%rho
+
+                                 prob = trans_eff/hf_den2
+                                 if(prob <= prob_cut)cycle
+                                 if(ii == 1)then
+                                    hf_den = hf_den + trans_eff
+                                 end if
+                                 num_prob = num_prob + 1
+                                 prob_sum = prob_sum + trans_eff
+                                 if(ii == 2)then
+                                    nucleus(icomp)%bins(Ix_i,ip,n)%nuke_decay(ifi)%decay_prob(num_prob) = prob_sum/prob_norm
+                                    idb = 0
+                                    call pack_data(Ix_f,ip_f,n_f,idb,l,iss,itemp)
+                                    nucleus(icomp)%bins(Ix_i,ip,n)%nuke_decay(ifi)%decay_list(num_prob) = itemp
+                                 end if
+                              end do
+                           end do
+                        end do
+                     end do
+                  else                                                       !  photons
+!---------------------------   Gamma decay
+!
+!----------   First check states below ecut
+!
+
+                     do ns_f = 1, nucleus(i_f)%ncut
+                        e_f = energy-nucleus(i_f)%state(ns_f)%energy
+                        e_gamma=e_f
+                        if(e_gamma <= 1.0d-6)cycle
+                        xI_f = nucleus(i_f)%state(ns_f)%spin
+                        Ix_f = nint(xI_f - nucleus(i_f)%jshift)
+                        if(xI_f < 1.0d-3 .and. xI_f < 1.0d-3)cycle        !  O -> 0 not allowed
+                        lmin = max(1, nint(abs(xI_f-xI_i)))                      !   can't have L=0
+                        ip_f=iabs(nint((nucleus(i_f)%state(ns_f)%parity+1.)/2.))
+                        if(ip == ip_f)then                  !  parity the same even L for E odd L for M
+                           if(iand(lmin,1) == 0)then
+                              le_min = lmin
+                              lm_min = lmin + 1
+                           else
+                              le_min = lmin + 1
+                              lm_min = lmin
+                           end if
+                        else                                !  parity the same odd L for E even L for M             
+                           if(iand(lmin,1) == 0)then
+                              le_min = lmin + 1
+                              lm_min = lmin
+                           else
+                              le_min = lmin
+                              lm_min = lmin + 1
+                           end if
+                        end if
+                        do l = le_min, nucleus(i_f)%lmax_E, 2
+                           trans = EL_trans(i_f, l, e_gamma, energy)
+                           if(trans < trans_e_cut)cycle
+                           prob = trans/hf_den2
+                           if(prob <= prob_cut) cycle
+                           if(ii == 1)then
+                              hf_den = hf_den + trans
+                           end if
+                           num_prob = num_prob + 1
+                           prob_sum = prob_sum + trans
+                           if(ii == 2)then
+                              nucleus(icomp)%bins(Ix_i,ip,n)%nuke_decay(ifi)%decay_prob(num_prob) = &
+                                  prob_sum/prob_norm
+                              idb = 1
+                              iss = 0
+                              call pack_data(Ix_f, ip_f, ns_f, idb, l, iss, itemp)
+                              nucleus(icomp)%bins(Ix_i,ip,n)%nuke_decay(ifi)%decay_list(num_prob) = itemp
+                           end if
+                        end do
+                        do l = lm_min, nucleus(i_f)%lmax_M, 2
+                           trans = ML_trans(i_f,l,e_gamma)
+                           if(trans < trans_e_cut)cycle
+                           prob = trans/hf_den2
+                           if(prob <= prob_cut) cycle
+                           if(ii == 1)then
+                              hf_den = hf_den + trans
+                           end if
+                           num_prob = num_prob + 1
+                           prob_sum = prob_sum + trans
+                           if(ii == 2)then
+                              nucleus(icomp)%bins(Ix_i,ip,n)%nuke_decay(ifi)%decay_prob(num_prob) = &
+                                  prob_sum/prob_norm
+                              idb = 1
+                              iss = 1
+                              call pack_data(Ix_f,ip_f,ns_f,idb,l,iss,itemp)
+                              nucleus(icomp)%bins(Ix_i,ip,n)%nuke_decay(ifi)%decay_list(num_prob) = itemp
+                           end if
+                        end do
+                     end do
+
+                     do n_f = 1, n, 1              !  loop over final excitation energies
+
+
+!---------------------------   gamma decay to discrete states
+                        do ns_f = nucleus(i_f)%ncut+1, nucleus(i_f)%num_discrete
+                           if(nucleus(i_f)%state(ns_f)%energy > nucleus(i_f)%e_grid(n_f))exit
+                           if(n_f > 1)then
+                              if(nucleus(i_f)%state(ns_f)%energy < nucleus(i_f)%e_grid(n_f-1))cycle
+                           end if
+                           e_f = energy-nucleus(i_f)%state(ns_f)%energy
+                           e_gamma=e_f
+!                        if(e_gamma <= 0.5d0*delta_e)cycle
+                           if(e_gamma <= 1.0d-6)cycle
+                           xI_f = nucleus(i_f)%state(ns_f)%spin
+                           Ix_f = nint(xI_f - nucleus(i_f)%jshift)
+                           if(xI_f < 1.0d-3 .and. xI_f < 1.0d-3)cycle        !  O -> 0 not allowed
+                           lmin = max(1, nint(abs(xI_f-xI_i)))                      !   can't have L=0
+                           ip_f=iabs(nint((nucleus(i_f)%state(ns_f)%parity+1.)/2.))
+                           if(ip == ip_f)then                  !  parity the same even L for E odd L for M
+                              if(iand(lmin,1) == 0)then
+                                 le_min = lmin
+                                 lm_min = lmin + 1
+                              else
+                                 le_min = lmin + 1
+                                 lm_min = lmin
+                              end if
+                           else                                !  parity the same odd L for E even L for M             
+                              if(iand(lmin,1) == 0)then
+                                 le_min = lmin + 1
+                                 lm_min = lmin
+                              else
+                                 le_min = lmin
+                                 lm_min = lmin + 1
+                              end if
+                           end if
+                           do l = le_min, nucleus(i_f)%lmax_E, 2
+                              trans = EL_trans(i_f, l, e_gamma, energy)
+                              if(trans < trans_e_cut)cycle
+                              prob = trans/hf_den2
+                              if(prob <= prob_cut) cycle
+                              if(ii == 1)then
+                                 hf_den = hf_den + trans
+                              end if
+                              num_prob = num_prob + 1
+                              prob_sum = prob_sum + trans
+                              if(ii == 2)then
+
+
+                                 nucleus(icomp)%bins(Ix_i,ip,n)%nuke_decay(ifi)%decay_prob(num_prob) = &
+                                     prob_sum/prob_norm
+                                 idb = 1
+                                 iss = 0
+                                 call pack_data(Ix_f, ip_f, ns_f, idb, l, iss, itemp)
+                                 nucleus(icomp)%bins(Ix_i,ip,n)%nuke_decay(ifi)%decay_list(num_prob) = itemp
+                              end if
+                           end do
+                           do l = lm_min, nucleus(i_f)%lmax_M, 2
+                              trans = ML_trans(i_f,l,e_gamma)
+                              if(trans < trans_e_cut)cycle
+                              prob = trans/hf_den2
+                              if(prob <= prob_cut) cycle
+                              if(ii == 1)then
+                                 hf_den = hf_den + trans
+                              end if
+                              num_prob = num_prob + 1
+                              prob_sum = prob_sum + trans
+                              if(ii == 2)then
+                                 nucleus(icomp)%bins(Ix_i,ip,n)%nuke_decay(ifi)%decay_prob(num_prob) = &
+                                     prob_sum/prob_norm
+                                 idb = 1
+                                 iss = 1
+                                 call pack_data(Ix_f,ip_f,ns_f,idb,l,iss,itemp)
+                                 nucleus(icomp)%bins(Ix_i,ip,n)%nuke_decay(ifi)%decay_list(num_prob) = itemp
+                              end if
+                           end do
+                        end do
+!------------    End of loop over discrete states
+
+                        jbin=nucleus(i_f)%nbin-ibin-n_f+1                    !  index for transmission coeff array
+                        e_gamma=energy-nucleus(i_f)%e_grid(n_f)
+                        if(e_gamma <= 1.0d-6)cycle
+                        e_gamma = max(e_gamma,delta_e/10.0)
+!---------------------------   Start with Electric decay 
+                        do l=1,nucleus(i_f)%lmax_E                           !  loop over EL decays
+                           trans = EL_trans(i_f, l, e_gamma, energy)
+                           if(trans < trans_e_cut)cycle
+                           ip_f=iand((ip+l),1)                               !  parity of final state
+                           xI_f_min=abs(xI_i-real(l,kind=8))                      !  min final spin
+                           xI_f_max=min(xI_f_max1,xI_i+real(l,kind=8))            !  max final spin
+                           Ix_f_min = nint(xI_f_min-nucleus(i_f)%jshift)     !  min j-index
+                           Ix_f_max = nint(xI_f_max-nucleus(i_f)%jshift)     !  max j-index
+                           do Ix_f = Ix_f_min, Ix_f_max                      !  loop over final j
+                              xI_f = real(Ix_f,kind=8) + nucleus(i_f)%jshift
+                              if(xI_i < 1.0d-3 .and. xI_f < 1.0d-3)cycle        !  O -> 0 not allowed
+                              trans_eff = trans*nucleus(i_f)%bins(Ix_f,ip_f,n_f)%rho*delta_e
+                              prob = trans_eff/hf_den2
+
+                              if(prob <= prob_cut) cycle
+                              if(ii == 1)then
+                                 hf_den = hf_den + trans_eff
+                              end if
+                              num_prob = num_prob + 1
+                              prob_sum = prob_sum + trans_eff
+                              if(ii == 2)then
+                                 nucleus(icomp)%bins(Ix_i,ip,n)%nuke_decay(ifi)%decay_prob(num_prob) = prob_sum/prob_norm
+                                 idb = 0
+                                 iss = 0
+                                 call pack_data(Ix_f, ip_f, n_f, idb, l, iss, itemp)
+                                 nucleus(icomp)%bins(Ix_i,ip,n)%nuke_decay(ifi)%decay_list(num_prob) = itemp
+                              end if
+                           end do
+                        end do
+!---------------------------   Now Magnetic decay 
+                        do l = 1, nucleus(i_f)%lmax_M                            !  loop over ML decays
+                           trans = ML_trans(i_f, l, e_gamma)
+                           if(trans < trans_e_cut)cycle
+                           ip_f = iand((ip+l+1),1)                          !  parity of final state
+                           xI_f_min = abs(xI_i-real(l,kind=8))                   !  min final spin
+                           xI_f_max = min(xI_f_max1,xI_i+real(l,kind=8))         !  max final spin
+                           Ix_f_min = nint(xI_f_min-nucleus(i_f)%jshift)    !  min j-index
+                           Ix_f_max = nint(xI_f_max-nucleus(i_f)%jshift)    !  max j-index
+                           do Ix_f = Ix_f_min, Ix_f_max                     !  loop over final j
+                              xI_f = real(Ix_f,kind=8) + nucleus(i_f)%jshift
+                              if(xI_i < 1.0d-3.and.xI_f < 1.0d-3)cycle      !  O -> 0 not allowed
+                              trans_eff = trans*nucleus(i_f)%bins(Ix_f,ip_f,n_f)%rho*delta_e
+                              prob = trans_eff/hf_den2
+                              if(prob <= prob_cut) cycle
+                              if(ii == 1)then
+                                 hf_den = hf_den + trans_eff
+                              end if
+                              num_prob = num_prob + 1
+                              prob_sum = prob_sum + trans_eff
+                              if(ii == 2)then
+                                 nucleus(icomp)%bins(Ix_i,ip,n)%nuke_decay(ifi)%decay_prob(num_prob) = prob_sum/prob_norm
+                                 idb = 0
+                                 iss = 1
+
+                                 call pack_data(Ix_f, ip_f, n_f, idb, l, iss, itemp)
+
+                                 nucleus(icomp)%bins(Ix_i,ip,n)%nuke_decay(ifi)%decay_list(num_prob) = itemp
+                              end if
+                           end do
+                        end do
+                     end do
+                  end if
+
+!   if(icomp == 2)write(6,*)icomp,ifi,n,num_prob, ' sorting'
+!   if(icomp == 2)write(36,*)icomp,ifi,Ix_i,ip,n,num_prob, ' sorting'
+                  if(num_prob > 0)then
+                     if(ii == 1)then
+                        nucleus(icomp)%bins(Ix_i,ip,n)%num_decay =                        &
+                           nucleus(icomp)%bins(Ix_i,ip,n)%num_decay + 1
+                        nucleus(icomp)%bins(Ix_i,ip,n)%decay_to(ifi) = i_f
+                        nucleus(icomp)%bins(Ix_i,ip,n)%decay_particle(ifi) = k
+                        nucleus(icomp)%bins(Ix_i,ip,n)%nuke_decay(ifi)%num_decay = num_prob
+                        allocate(nucleus(icomp)%bins(Ix_i,ip,n)%nuke_decay(ifi)%decay_prob(num_prob))
+                        allocate(nucleus(icomp)%bins(Ix_i,ip,n)%nuke_decay(ifi)%decay_list(num_prob))
+                        nucleus(icomp)%bins(Ix_i,ip,n)%nuke_decay(ifi)%decay_prob(1:num_prob) = 0.0d0
+                        nucleus(icomp)%bins(Ix_i,ip,n)%nuke_decay(ifi)%decay_list(1:num_prob) = 0
+                        nucleus(icomp)%bins(Ix_i,ip,n)%HF_prob(ifi) = prob_sum
+                        nucleus(icomp)%bins(Ix_i,ip,n)%HF_prob2(if1) = prob_sum
+                        nucleus(icomp)%bins(Ix_i,ip,n)%HF_trans(if1) = prob_sum
+                        num_tot = num_tot + num_prob
+                     end if
+                     ifi = ifi + 1
+                  end if
+               end do                           !  Finish do if1 = 1, nucleus(icomp)%num_decay
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!---------   Fission decay channel         ----------------------------+
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+               if(nucleus(icomp)%fission)then
+                  call Fission_transmission(icomp,energy,xI_i,ip,F_trans)
+                  prob = F_trans(4)/hf_den2
+
+                  if(ii == 2)then
+                     nnnn = nucleus(icomp)%num_decay + 1
+                     nucleus(icomp)%bins(Ix_i,ip,n)%HF_trans(nnnn) = F_trans(4)
+                     nucleus(icomp)%bins(Ix_i,ip,n)%HF_trans(nnnn+1) = F_trans(1)
+                     nucleus(icomp)%bins(Ix_i,ip,n)%HF_trans(nnnn+2) = F_trans(2)
+                  end if
+
+                  if(prob > prob_cut)then
+                     if(ii == 1)then
+                        hf_den = hf_den + F_trans(4)
+                        nucleus(icomp)%bins(Ix_i,ip,n)%num_decay =                        &
+                           nucleus(icomp)%bins(Ix_i,ip,n)%num_decay + 1
+                        nnn = nucleus(icomp)%bins(Ix_i,ip,n)%num_decay
+                     end if
+                     prob_sum = prob_sum + F_trans(4)
+
+                     if(ii == 2)then
+                        nnn = nucleus(icomp)%bins(Ix_i,ip,n)%num_decay
+                        nnnn = nucleus(icomp)%num_decay + 1
+                        nucleus(icomp)%bins(Ix_i,ip,n)%HF_prob(nnn) = F_trans(4)
+                        nucleus(icomp)%bins(Ix_i,ip,n)%HF_prob2(nnnn) = F_trans(4)
+                        nucleus(icomp)%bins(Ix_i,ip,n)%HF_trans(nnnn) = F_trans(4)
+                        nucleus(icomp)%bins(Ix_i,ip,n)%HF_trans(nnnn+1) = F_trans(1)
+                        nucleus(icomp)%bins(Ix_i,ip,n)%HF_trans(nnnn+2) = F_trans(2)
+                        nucleus(icomp)%bins(Ix_i,ip,n)%decay_to(nnn) = -1    !  Another signal that it is fission
+                        nucleus(icomp)%bins(Ix_i,ip,n)%decay_particle(nnn) = -10
+                        nucleus(icomp)%bins(Ix_i,ip,n)%nuke_decay(nnn)%num_decay = -1          !  Signal that this is a fission event
+                     end if
+                  end if
+               end if
+!---------------------------------------------------------------------------------------------------
+            end do               !   Finish do ii = 1, 2
+
+            nucleus(icomp)%bins(Ix_i,ip,n)%HF_den = hf_den
+
+
+
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!----   Clean up probabilities to get them to line up to 1.00000000000, so we can eliminate some
+!----   potential traps
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+10101   continue
+
+
+            nnn = nucleus(icomp)%bins(Ix_i,ip,n)%num_decay
+            if(nnn > 0)then
+               do if1 = 2, nnn
+                  nucleus(icomp)%bins(Ix_i,ip,n)%HF_prob(if1) =                              &
+                      nucleus(icomp)%bins(Ix_i,ip,n)%HF_prob(if1) +                          &
+                      nucleus(icomp)%bins(Ix_i,ip,n)%HF_prob(if1-1)
+               end do
+           
+               if(nucleus(icomp)%bins(Ix_i,ip,n)%HF_prob(nnn) > 0.0d0)then
+                  do if1 = 1, nnn
+                     nucleus(icomp)%bins(Ix_i,ip,n)%HF_prob(if1) =                           &
+                        nucleus(icomp)%bins(Ix_i,ip,n)%HF_prob(if1)/                         &
+                        nucleus(icomp)%bins(Ix_i,ip,n)%HF_prob(nnn)
+                  end do
+               end if
+            end if
+            nnn = nucleus(icomp)%num_decay
+            if(nucleus(icomp)%fission)nnn = nnn + 1
+
+            do if1 = 2, nnn 
+               nucleus(icomp)%bins(Ix_i,ip,n)%HF_prob2(if1) =                              &
+                   nucleus(icomp)%bins(Ix_i,ip,n)%HF_prob2(if1) +                          &
+                   nucleus(icomp)%bins(Ix_i,ip,n)%HF_prob2(if1-1)
+            end do
+           
+            if(nucleus(icomp)%bins(Ix_i,ip,n)%HF_prob2(nnn) > 0.0d0)then
+               do if1 = 1, nnn
+                  nucleus(icomp)%bins(Ix_i,ip,n)%HF_prob2(if1) =                           &
+                     nucleus(icomp)%bins(Ix_i,ip,n)%HF_prob2(if1)/                         &
+                     nucleus(icomp)%bins(Ix_i,ip,n)%HF_prob2(nnn)
+               end do
+            end if
+
+
+            iprint = 0
+ 
+            if(iprint == 1)then
+
+
+               write(40,'(''Start'',1x,i5,1x,f5.1,1x,f4.1,1x,i6,1x,f9.4,1x,e15.7)')icomp,xI_i,par_i,n,       &
+                   nucleus(icomp)%e_grid(n),nucleus(icomp)%bins(Ix_i,ip,n)%HF_den
+ 
+               do if1 = 1, nucleus(icomp)%bins(Ix_i,ip,n)%num_decay
+                  prob = nucleus(icomp)%bins(Ix_i,ip,n)%HF_prob(if1)
+                  if(if1 > 1)prob = prob - nucleus(icomp)%bins(Ix_i,ip,n)%HF_prob(if1-1)
+                  write(40,'(''if1'',1x,i6,1x,i6,2(1x,e15.7))')if1,nucleus(icomp)%bins(Ix_i,ip,n)%decay_to(if1),   &
+                        prob,nucleus(icomp)%bins(Ix_i,ip,n)%HF_prob(if1)
+               end do
+               do if1 = 1, nucleus(icomp)%bins(Ix_i,ip,n)%num_decay
+                  prob = nucleus(icomp)%bins(Ix_i,ip,n)%HF_prob(if1)
+                  if(if1 > 1)prob = prob - nucleus(icomp)%bins(Ix_i,ip,n)%HF_prob(if1-1)
+                  i_f = nucleus(icomp)%bins(Ix_i,ip,n)%decay_to(if1)
+
+                  write(40,*)'Num decays',nucleus(icomp)%bins(Ix_i,ip,n)%nuke_decay(if1)%num_decay
+   
+                  do jj = 1, nucleus(icomp)%bins(Ix_i,ip,n)%nuke_decay(if1)%num_decay
+                     itemp = nucleus(icomp)%bins(Ix_i,ip,n)%nuke_decay(if1)%decay_list(jj)
+ 
+                     call unpack_data(Ix_f, ip_f, n_f, idb, l, iss, itemp)
+
+                     prob = nucleus(icomp)%bins(Ix_i,ip,n)%nuke_decay(if1)%decay_prob(jj)
+                     if(jj > 1)prob = prob - nucleus(icomp)%bins(Ix_i,ip,n)%nuke_decay(if1)%decay_prob(jj-1)
+
+                     xI_f = real(Ix_f) + nucleus(i_f)%jshift
+                     par_f = 2*ip_f - 1
+                     if(idb == 0)ex = nucleus(i_f)%e_grid(n_f)
+                     if(idb == 1)ex = nucleus(i_f)%state(n_f)%energy
+
+                     write(40,'(i5,1x,i7,1x,f5.1,1x,f4.1,1x,i6,3(1x,i4),1x,f8.4,2(1x,e15.7))')i_f,jj,xI_f,    &
+                          par_f, n_f, idb, l, iss,     &
+                          ex,prob,nucleus(icomp)%bins(Ix_i,ip,n)%nuke_decay(if1)%decay_prob(jj)
+                  end do
+               end do
+               flush(40)
+            end if
+!---------------------------------------------------------------------------------------------
+         end do                         !   do Ix_i = Ix_i_max,0,-1
+      end do                            !   Finish: ip = 0, 1 
+   end do                               !   Finish: do n = 1,nbin 
+   write(6,*)'Total number = ', num_tot
+   write(6,*)'Finished'
+return
+end subroutine HF_denominator
+!
+!*******************************************************************************
+!
+subroutine pack_data(Ix_f, ip_f, n_f, idb, l, iss, itemp)
+!
+!*******************************************************************************
+!
+!  Discussion:
+!
+!    This subroutine packs integer data defining aspects of a decay
+!    into a single integer(kind=4) itemp
+!
+!  Licensing:
+!
+!    This code is distributed under the GNU LGPL version 2 license. 
+!
+!  Date:
+!
+!    25 September 2019
+!
+!  Author:
+!
+!      Erich Ormand, LLNL
+!
+!*******************************************************************************
+!
+   use variable_kinds
+   implicit none
+   integer(kind=4), intent(in) :: Ix_f, ip_f, n_f, idb, l, iss
+   integer(kind=4), intent(out) :: itemp
+
+
+   itemp = Ix_f
+   itemp = ior(itemp,ishft(ip_f,6))
+   itemp = ior(itemp,ishft(n_f,7))
+   itemp = ior(itemp,ishft(idb,21))
+   itemp = ior(itemp,ishft(l,22))
+   itemp = ior(itemp,ishft(iss,28))
+   return
+end subroutine pack_data 
+ 
+subroutine unpack_data(Ix_f, ip_f, n_f, idb, l, iss, itemp)
+!
+!*******************************************************************************
+!
+!  Discussion:
+!
+!    This subroutine unpacks data in the integer(kind=4) itemp
+!    that was packed into it using the subroutine pack_data
+!
+!  Licensing:
+!
+!    This code is distributed under the GNU LGPL version 2 license. 
+!
+!  Date:
+!
+!    25 September 2019
+!
+!  Author:
+!
+!      Erich Ormand, LLNL
+!
+!*******************************************************************************
+!
+   use variable_kinds
+   implicit none
+   integer(kind=4), intent(out) :: Ix_f, ip_f, n_f, idb, l, iss
+   integer(kind=4), intent(in) :: itemp
+
+
+   Ix_f = iand(itemp,2**6-1)
+   ip_f = iand(ishft(itemp,-6),1)
+   n_f = iand(ishft(itemp,-7),2**14-1)
+   idb = iand(ishft(itemp,-21),1)
+   l = iand(ishft(itemp,-22),2**6-1)
+   iss = iand(ishft(itemp,-28),2**5-1)
+
+   return
+end subroutine unpack_data 
+ 
