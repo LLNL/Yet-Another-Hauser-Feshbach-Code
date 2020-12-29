@@ -134,7 +134,7 @@ subroutine make_fresco_tco(data_path, len_path, tco_file, len_tco,       &
   integer(kind=4)ie
   real(kind=8) :: tco_data
   real(kind=8), allocatable :: energy(:)
-  real(kind=8) :: e_rel
+  real(kind=8) :: e_rel, e_lab
   real(kind=8), allocatable :: optical_cs(:,:)
   real(kind=8), allocatable :: optical_leg(:,:,:)
 
@@ -238,6 +238,7 @@ subroutine make_fresco_tco(data_path, len_path, tco_file, len_tco,       &
   spin = particle(pindex)%spin
   lmax = particle(pindex)%lmax
 
+  isp_max = nint(2.0d0*spin)
 
 !----------------------------------------------------------
   iend = 0
@@ -699,42 +700,41 @@ subroutine make_fresco_tco(data_path, len_path, tco_file, len_tco,       &
 !
 !-------   Set up energy grid. multiplication, to make log-log grid
 !
+
   nume = 200
   xnume = real(nume,kind=8)
   emin = min(1.0d-4,e_min)
-  emax = max(e_max, 25.0d0)
-  factor=(log(emax)-log(emin))/xnume
-  factor=exp(factor)
+  emax = 25.0d0
+  factor = (log(emax)-log(emin))/xnume
+  factor = exp(factor)
   if(pindex == 2)then
      emin = 0.05d0
-     factor=(log(emax+5.0d0)-log(emin))/xnume
-     factor=exp(factor)
   elseif(pindex == 3)then
-     emin=0.020d0
-     factor=(log(emax+5.0d0)-log(emin))/xnume
-     factor=exp(factor)
+     emin = 0.020d0
   elseif(pindex == 4)then
-     emin=0.020d0
-     factor=(log(emax+5.0d0)-log(emin))/xnume
-     factor=exp(factor)
+     emin = 0.020d0
   elseif(pindex == 5)then
-     emin=0.100d0
-     factor=(log(emax+5.0d0)-log(emin))/xnume
-     factor=exp(factor)
+     emin = 0.100d0
   elseif(pindex == 6)then
-     emin=0.100d0
-     factor=(log(emax+5.0d0)-log(emin))/xnume
-     factor=exp(factor)
+     emin = 0.100d0
   end if             
+  factor = (log(30.0d0)-log(emin))/xnume
+  factor = exp(factor)
 
-
-  isp_max = nint(2.0d0*spin)
   ener = emin/factor
   nume = 0
-  do while(ener <= emax)
+
+!  write(6,*)'e_max = ',e_max
+
+  emax = max(e_max + 5.0d0, 25.0d0)
+
+!  write(6,*)emin,emax,factor
+
+  do while(ener < emax)
      nume = nume + 1
      ener = ener*factor
   end do
+
 
   particle(pindex)%nume = nume
   if(.not.allocated(particle(pindex)%e_grid))allocate(particle(pindex)%e_grid(nume))
@@ -747,10 +747,11 @@ subroutine make_fresco_tco(data_path, len_path, tco_file, len_tco,       &
   ener = emin/factor
   do ie = 1, nume
      ener = ener*factor
-     energy(ie) = ener
+!     energy(ie) = ener
      particle(pindex)%e_grid(ie) = ener
-     e_rel = ener*mass_target/(mass_target + mass_proj)
-     particle(pindex)%e_grid(ie) = e_rel
+!     e_rel = ener*mass_target/(mass_target + mass_proj)
+     e_lab = ener*(mass_target + mass_proj)/mass_target
+     energy(ie) = e_lab
      write(6,*)ie, energy(ie), particle(pindex)%e_grid(ie)
   end do
 

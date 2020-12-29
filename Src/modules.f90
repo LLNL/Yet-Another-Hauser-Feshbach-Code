@@ -32,7 +32,7 @@ module options
 !
    use variable_kinds
    character(len=132) version
-   parameter (version = 'MC-3.11')
+   parameter (version = 'MC-3.12')
    integer(kind=int_64) :: iseed
    logical ran_setup
    integer(kind=4) PREEQ_Model

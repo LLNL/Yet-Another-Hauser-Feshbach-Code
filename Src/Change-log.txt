@@ -161,4 +161,7 @@ Version 3.11
    successive runs won't be exactly the same. Not used if iseed is set with 
    ran_seed.
 
-
+Version 3.12
+1. Fixed issue with setting up incident energies while calling frescox. Also,
+   fixed mixup between relative (COM) and lab frame energies for incdient
+   projectiles and calculating and storing transmission coefficients.
