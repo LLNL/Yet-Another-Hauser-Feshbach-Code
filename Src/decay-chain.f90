@@ -47,8 +47,9 @@ subroutine set_up_decay_chain(Z_p, A_p, Z_t, A_t, num_comp)
    integer(kind=4) ::  N_i,d_i,alpha_i
    integer(kind=4) ::  NZ
    real(kind=8) :: e_rel
-   integer(kind=4) :: storeZA(2,100)                 !  Temporary storage array for compound nuclei
-   real(kind=8) ::  store_exmax(100)                 !  Temporary storage array for compound nuclei
+   integer, parameter :: max_nuc = 200
+   integer(kind=4) :: storeZA(2,max_nuc)                 !  Temporary storage array for compound nuclei
+   real(kind=8) ::  store_exmax(max_nuc)                 !  Temporary storage array for compound nuclei
    real(kind=8) :: exmax
    real(kind=8) :: em_proj
    real(kind=8) :: Coul
@@ -158,7 +159,7 @@ subroutine set_up_decay_chain(Z_p, A_p, Z_t, A_t, num_comp)
 !------   Not found in temporary storage, so put into list
                      if(.not. found)then
                         num_comp = num_comp + 1
-                        if(num_comp > 100) stop "Error too many compound nuclei in set_up_decay_chain"
+                        if(num_comp > max_nuc) stop "Error too many compound nuclei in set_up_decay_chain"
                         storeZA(1,num_comp) = Z_f
                         storeZA(2,num_comp) = A_f
                         store_exmax(num_comp) = exmax
