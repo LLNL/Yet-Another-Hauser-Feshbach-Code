@@ -165,3 +165,15 @@ Version 3.12
 1. Fixed issue with setting up incident energies while calling frescox. Also,
    fixed mixup between relative (COM) and lab frame energies for incdient
    projectiles and calculating and storing transmission coefficients.
+
+Version 3.13
+1. Fixed issue with defining channels tht was messed up when not having protons
+   or neutrons as incident particles.
+2. Altered pre-equilibrium spectra files to permit incident energies greater 
+   than 100 MeV, should be OK up to 999.9999 - but note that YAHFC doesn't
+   do relativistic kinematics yet.
+3. Fixed issue with delta E for outgoing spectra that would be incorrectly set 
+   for some values of de for the continous energy bins.
+4. Added python parsing scripts to convert YAHFC output into a GNDS xml file 
+   and a python script to extract data from the GNDS xml file to plot. For Ian 
+   Thompson. REQUIRES that FUDGE be installed and in PYTHONPATH.

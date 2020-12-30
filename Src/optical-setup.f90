@@ -226,7 +226,6 @@ subroutine optical_setup(data_path, len_path, iproj, itarget,                  &
 
       do ie = 1, nume 
          do l = 0, lmax
-            xj = real(l,kind=8) - spin
             do j = 0, isp
                particle(k)%trans_read(ie,j,l) = particle(k)%trans_read(ie,j,l)*T_norm
             end do
@@ -234,6 +233,7 @@ subroutine optical_setup(data_path, len_path, iproj, itarget,                  &
       end do
 
       spin = particle(k)%spin
+
       if(abs(spin - 0.5d0) < 1.0d-5 .and. trans_avg_l)then
          do ie = 1, nume 
             do l = 0, lmax
@@ -513,8 +513,8 @@ subroutine optical_setup(data_path, len_path, iproj, itarget,                  &
        do l = 0, lmax
           do j = 0, isp
              do i= 1, nbin
-                energy=real(i,kind=8)*de
-                particle(k)%trans(j,l,i)=                           & !   changed order for better access in HF decay
+                energy = real(i,kind=8)*de
+                particle(k)%trans(j,l,i) =                              & !   changed order for better access in HF decay
                      tco_interpolate(energy,nume,                       &
                                      particle(k)%e_grid,                &
                                      particle(k)%trans_read(1,j,l))

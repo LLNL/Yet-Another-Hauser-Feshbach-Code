@@ -1081,7 +1081,8 @@ program YAHFC_MASTER
          Q = mass_target + particle(iproj)%mass - nucleus(inuc)%mass - mass_exit
          if(abs(Q) < 1.0d-6)Q = 0.0d0
 
-         write(6,*)'channel ', i, Q
+         ilast = index(Exit_Channel(i)%Channel_Label,' ')
+         write(6,*)'channel ',i, Exit_Channel(i)%Channel_Label,Q
  
          Exit_Channel(i)%Q_value = Q
 
@@ -1249,10 +1250,10 @@ program YAHFC_MASTER
   
       rel_factor = mass_target/(mass_target + mass_proj)
       e_in_problem = .false.
-      xmu=dfloat(target%A)/dfloat(target%A+projectile%A)
+      xmu=dfloat(target%A)/dfloat(target%A + projectile%A)
       itarget=target%icomp
       do in = 1, num_energies
-         e_in=projectile%energy(in)
+         e_in = projectile%energy(in)
 
          test_e(in) = projectile%energy(in)
          if(.not.pop_calc)then
@@ -1802,27 +1803,26 @@ program YAHFC_MASTER
       end if
 
       de_spec = de
+      if(de <= 1.0d0)then
+         ii = nint(1.0d0/de)
+         de_spec = 1.0d0/real(ii,kind=8)
+      else
+         de_spec = real(nint(de),kind=8)    
+      end if
 
-      de_spec = log10(de)
-      i = nint(de_spec)
-      de_spec = 10.0d0**(real(i,kind=8))
-
-      ii = nint(de_spec/de)
-
-      de_spec = de_spec/real(ii,kind=8)
       de_spec2 = de_spec
        
       num_e = int(ee_max/de_spec) + 3
 
-     write(6,*)de, de_spec, num_e
+      write(6,*)'de = ',de, 'de_spec = ',de_spec,'num_e = ', num_e
 
-     if(.not. pop_calc)then
-         if(PREEQ_Model > 0)then
-            allocate(preeq_css(0:6,1:num_energies))
-            allocate(preeq_spect(0:6,0:num_e))
-            allocate(preeq_spect_full(0:6,0:num_e))
-         end if
-      end if
+      if(.not. pop_calc)then
+          if(PREEQ_Model > 0)then
+             allocate(preeq_css(0:6,1:num_energies))
+             allocate(preeq_spect(0:6,0:num_e))
+             allocate(preeq_spect_full(0:6,0:num_e))
+          end if
+       end if
 
 
 
@@ -1832,10 +1832,10 @@ program YAHFC_MASTER
 !------                                                                   +
 !-------------------------------------------------------------------------+
 
-      do i=1,num_comp
-         write(6,*)'HF-denominators for nucleus #',i
-         call HF_denominator(i,de)
-      end do
+       do i=1,num_comp
+          write(6,*)'HF-denominators for nucleus #',i
+          call HF_denominator(i,de)
+       end do
 
 !-------------------------------------------------------------------------+
 !---------                                                                +
@@ -3539,13 +3539,18 @@ program YAHFC_MASTER
          file_name(ifile:ifile+4) = '_Ein_'
          ifile =ifile + 4
          if(e_in < 10.0)then
-            file_name(ifile+1:ifile+1)='0'
-            ifile=ifile+1
+            file_name(ifile+1:ifile+2)='00'
+            ifile=ifile+2
             write(file_name(ifile+1:ifile+6),'(f6.4)')e_in
             ifile=ifile+6
-         else
+         elseif(e_in < 100.0)then
+            file_name(ifile+1:ifile+2)='0'
+            ifile=ifile+1
             write(file_name(ifile+1:ifile+7),'(f7.4)')e_in
             ifile=ifile+7
+         elseif(e_in < 1000.0)then
+            write(file_name(ifile+1:ifile+7),'(f8.4)')e_in
+            ifile=ifile+8
          end if
 
          max_num = nint(ee_max/de_spec2) + 1

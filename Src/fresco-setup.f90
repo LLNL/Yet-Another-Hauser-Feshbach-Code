@@ -54,6 +54,7 @@ subroutine make_fresco_tco(data_path, len_path, tco_file, len_tco,       &
   integer(kind=4) :: zpart, apart
   real(kind=8) :: mass
   real(kind=8) :: spin
+  integer(kind=4) :: ifirst, ilast
 !---------------------------------------------------------------------
   integer(kind=4)iaaa
   character(len=5) nuke
@@ -748,10 +749,10 @@ subroutine make_fresco_tco(data_path, len_path, tco_file, len_tco,       &
   do ie = 1, nume
      ener = ener*factor
 !     energy(ie) = ener
-     particle(pindex)%e_grid(ie) = ener
+     particle(pindex)%e_grid(ie) = ener                  !   COM frame
 !     e_rel = ener*mass_target/(mass_target + mass_proj)
      e_lab = ener*(mass_target + mass_proj)/mass_target
-     energy(ie) = e_lab
+     energy(ie) = e_lab                                  !   Lab frame
      write(6,*)ie, energy(ie), particle(pindex)%e_grid(ie)
   end do
 
@@ -967,6 +968,40 @@ subroutine make_fresco_tco(data_path, len_path, tco_file, len_tco,       &
 !-------     Now run fresco
      write(6,*)'**********************************************'
      write(6,*)'Calling unix system command to execute fresco'
+
+     line(1:132) = ' '
+     ifirst = 1
+     ilast = 12
+     line(ifirst:ilast) = 'Calculating '
+     ifirst = 13
+     ilast = 13
+     line(ifirst:ilast) = particle(pindex)%label
+     ifirst = 14
+     ilast = 16
+     line(ifirst:ilast) = ' + '
+     ifirst = 17
+     if(iA < 10)then
+        ilast = 18
+        write(line(ifirst:ilast),'(i1)')iA
+     elseif(iA < 100)then
+        ilast = 19
+        write(line(ifirst:ilast),'(i2)')iA
+     elseif(iA < 1000)then
+        ilast = 20
+        write(line(ifirst:ilast),'(i3)')iA
+     end if
+     ifirst = ilast + 1
+     if(symb(1:1).ne.' ')then
+        ilast = ifirst + 1
+        line(ifirst:ilast) = symb
+     else
+        ilast = ifirst
+        line(ifirst:ilast) = symb(2:2)
+     end if
+  
+
+     write(6,'(a)')line(1:ilast)//', at E_lab ='//char_energy
+
      command(1:132) = ' '
      istart = 1
      istop = 10

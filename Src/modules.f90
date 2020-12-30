@@ -32,7 +32,7 @@ module options
 !
    use variable_kinds
    character(len=132) version
-   parameter (version = 'MC-3.12')
+   parameter (version = 'MC-3.13')
    integer(kind=int_64) :: iseed
    logical ran_setup
    integer(kind=4) PREEQ_Model
@@ -168,7 +168,7 @@ module useful_data
    character(len=2) symb(99)                 !   moved to module useful_data
 !.. mixed case
    data symb/    &
-          'H ','He','Li','Be',' B',' C',' N',' O',' F','Ne','Na', &
+          ' H','He','Li','Be',' B',' C',' N',' O',' F','Ne','Na', &
           'Mg','Al','Si','P ',' S','Cl','Ar',' K','Ca','Sc','Ti', &
           ' V','Cr','Mn','Fe','Co','Ni','Cu','Zn','Ga','Ge','As', &
           'Se','Br','Kr','Rb','Sr',' Y','Zr','Nb','Mo','Tc','Ru', &

@@ -111,21 +111,22 @@ subroutine set_up_decay_chain(Z_p, A_p, Z_t, A_t, num_comp)
 
    particle(0:6)%in_decay = .false.
 
+   num_comp = 0
    
 !-------   Loop over particle types
-   do ia=0,max_particle(6)
-      do ih=0,max_particle(5)
-         do it=0,max_particle(4)
-            do id=0,max_particle(3)
-               do ip=0,max_particle(2)
-                  do in=0,max_particle(1)
-                     Z_f=Z_i-ip-id-it-ih*2-ia*2
-                     A_f=A_i-in-ip-id*2-it*3-ih*3-ia*4
+   do ia = 0, max_particle(6)
+      do ih = 0, max_particle(5)
+         do it = 0, max_particle(4)
+            do id = 0, max_particle(3)
+               do ip = 0, max_particle(2)
+                  do in = 0, max_particle(1)
+                     Z_f = Z_i - ip - id - it - ih*2 - ia*2
+                     A_f = A_i - in - ip - id*2 - it*3 - ih*3 - ia*4
                      npart = in + ip + id + it + ih + ia
-                     if(Z_f < 2.or.A_f < 4)exit
+                     if(Z_f < 2 .or. A_f < 4)exit
 !-----   Get Binding energy and compute total mass excess
 !-----   See if channel is open
-                     call get_binding_energy(data_path,len_path,   &
+                     call get_binding_energy(data_path,len_path,      &
                                              Z_f,A_f,me_f,be_f,sep_f)
                      if(me_f <= -1.01d6)exit
                      sep_tot= me_f - me + ia*particle(6)%ME +    &
@@ -135,34 +136,37 @@ subroutine set_up_decay_chain(Z_p, A_p, Z_t, A_t, num_comp)
                                           ip*particle(2)%ME +    &
                                           in*particle(1)%ME
                      Coul = 0.0d0
-                     if(Apply_Coulomb_Barrier)               &
-                     Coul = in*Coulomb_Barrier(1) +          &
-                            ip*Coulomb_Barrier(2) +          &
-                            id*Coulomb_Barrier(3) +          &
-                            it*Coulomb_Barrier(4) +          &
-                            ih*Coulomb_Barrier(5) +          &
-                            ia*Coulomb_Barrier(6)
+                     if(Apply_Coulomb_Barrier)                   &
+                        Coul = in*Coulomb_Barrier(1) +           &
+                               ip*Coulomb_Barrier(2) +           &
+                               id*Coulomb_Barrier(3) +           &
+                               it*Coulomb_Barrier(4) +           &
+                               ih*Coulomb_Barrier(5) +           &
+                               ia*Coulomb_Barrier(6)
                      if(emax < sep_tot + Coul)cycle
-                        exmax=emax-sep_tot
-                        found=.false.
+
+                     exmax = emax - sep_tot
+                     found = .false.
 !------   Check temporary storage   -------
-                        do i=1,num_comp
-                           if(Z_f == storeZA(1,i) .and. A_f == storeZA(2,i))then
-                              if(exmax > store_exmax(i))store_exmax(i) = exmax
-                              found=.true.
-                              exit
-                           end if
-                        end do
+                     do i = 1, num_comp
+                        if(Z_f == storeZA(1,i) .and. A_f == storeZA(2,i))then
+                           if(exmax > store_exmax(i))store_exmax(i) = exmax
+                           found=.true.
+                           exit
+                        end if
+                     end do
 !------   Not found in temporary storage, so put into list
-                        if(.not.found)num_comp = num_comp + 1
-                        num_paths = num_paths + nint(factorial(npart)/(factorial(in)*factorial(ip)*factorial(id)*    &
-                                  factorial(it)*factorial(ih)*factorial(ia)))
+                     if(.not. found)then
+                        num_comp = num_comp + 1
                         if(num_comp > 100) stop "Error too many compound nuclei in set_up_decay_chain"
                         storeZA(1,num_comp) = Z_f
                         storeZA(2,num_comp) = A_f
                         store_exmax(num_comp) = exmax
-                        num = in + ip + id + it + ih + ia
-                        if(num > max_num) max_num = num
+                     end if
+                     num_paths = num_paths + nint(factorial(npart)/(factorial(in)*factorial(ip)*factorial(id)*    &
+                                 factorial(it)*factorial(ih)*factorial(ia)))
+                     num = in + ip + id + it + ih + ia
+                     if(num > max_num) max_num = num
                   end do
                end do
             end do
@@ -206,11 +210,11 @@ subroutine set_up_decay_chain(Z_p, A_p, Z_t, A_t, num_comp)
                   nump(2) = ip
                   do in = 0, max_particle(1)
                      nump(1) = in
-                     Z_f=Z_i-ip-id-it-ih*2-ia*2
-                     A_f=A_i-in-ip-id*2-it*3-ih*3-ia*4
+                     Z_f = Z_i - ip - id - it - ih*2 - ia*2
+                     A_f = A_i - in - ip - id*2 - it*3 - ih*3 - ia*4
                      npart = in + ip + id + it + ih + ia
-                     if(Z_f < 2.or.A_f < 4)exit
-                     call get_binding_energy(data_path,len_path,   &
+                     if(Z_f < 2 .or. A_f < 4)exit
+                     call get_binding_energy(data_path,len_path,       &
                                              Z_f,A_f,me_f,be_f,sep_f)
                      if(me_f <= -1.01d6)exit
                      sep_tot = me_f - me + ia*particle(6)%ME +    &
@@ -220,29 +224,31 @@ subroutine set_up_decay_chain(Z_p, A_p, Z_t, A_t, num_comp)
                                            ip*particle(2)%ME +    &
                                            in*particle(1)%ME
                      Coul = 0.0d0
-                     if(Apply_Coulomb_Barrier)               &
-                     Coul = in*Coulomb_Barrier(1) +          &
-                            ip*Coulomb_Barrier(2) +          &
-                            id*Coulomb_Barrier(3) +          &
-                            it*Coulomb_Barrier(4) +          &
-                            ih*Coulomb_Barrier(5) +          &
-                            ia*Coulomb_Barrier(6)
+                     if(Apply_Coulomb_Barrier)                   &
+                        Coul = in*Coulomb_Barrier(1) +           &
+                               ip*Coulomb_Barrier(2) +           &
+                               id*Coulomb_Barrier(3) +           &
+                               it*Coulomb_Barrier(4) +           &
+                               ih*Coulomb_Barrier(5) +           &
+                               ia*Coulomb_Barrier(6)
                      if(emax < sep_tot + Coul)cycle
-                        exmax = emax - sep_tot
-                        found = .false.
+
+                     exmax = emax - sep_tot
+                     found = .false.
 !----   Check if already made
-                        do i = 1, inuc
-                           if(Z_f == nucleus(inuc)%Z .and. A_f == nucleus(inuc)%A)then
-                              if(exmax > store_exmax(i))store_exmax(i) = exmax
-                              found=.true.
+                     do i = 1, inuc
+                        if(Z_f == nucleus(i)%Z .and. A_f == nucleus(i)%A)then
+                           if(exmax > store_exmax(i))store_exmax(i) = exmax
+                           found=.true.
 !----   Found, but check if exmax is greater than current, if so, use this instead
-                              if(exmax > nucleus(i)%Ex_max)nucleus(i)%Ex_max = exmax
-                              exit
-                           end if
-                        end do
+                           if(exmax > nucleus(i)%Ex_max)nucleus(i)%Ex_max = exmax
+                           exit
+                        end if
+                     end do
 !----   Not made previously, so add to list and fill data arrays
-                        if(.not.found)inuc = inuc + 1
-                        if(num_comp > 100) stop "Error too many compound nuclei in set_up_decay_chain"
+                     if(.not.found)then
+                        inuc = inuc + 1
+                        if(inuc > num_comp) stop "inuc > num_comp"
                         nucleus(inuc)%Z = Z_f
                         nucleus(inuc)%A = A_f
                         nucleus(inuc)%D0exp=-1.0d0
@@ -276,11 +282,11 @@ subroutine set_up_decay_chain(Z_p, A_p, Z_t, A_t, num_comp)
                         nucleus(inuc)%level_param(1:11)=0.0d0
                         nucleus(inuc)%fit_D0=.true.       !   Fit to D0 (if known)  
                         nucleus(inuc)%fit_ematch=.true.   !   Fit ematch to cummlative level density
-                                                          !----------   Now set up connections in the primary array nucleus so that
-                                                          !----------   the HF denominators can be calculated
-                                                          !             to overide set to false with 
-                                                          !             option lev_fit_ematch for each nucleus
-                                                          !             or globally with fit_ematch; 0 for false, 1 for true
+                                                       !----------   Now set up connections in the primary array nucleus so that
+                                                       !----------   the HF denominators can be calculated
+                                                       !             to overide set to false with 
+                                                       !             option lev_fit_ematch for each nucleus
+                                                       !             or globally with fit_ematch; 0 for false, 1 for true
                         nucleus(inuc)%fission_read=.false.       !  Set true once fission parameters from default are read  
                         nucleus(inuc)%atomic_symbol=symb(Z_f)
                         nucleus(inuc)%BE = be_f
@@ -300,14 +306,12 @@ subroutine set_up_decay_chain(Z_p, A_p, Z_t, A_t, num_comp)
                         do i=1,6
                            nucleus(inuc)%sep_e(i)=sep_f(i)            !  separation energy neutron to alpha
                         end do
+                     end if
 
-
-                        num = in + ip + id + it + ih + ia
-                        if(num > max_num) max_num = num
+                     num = in + ip + id + it + ih + ia
+                     if(num > max_num) max_num = num
 !----  Set up all the channels for this final compound nucleus - note ichannel is incremented in make_channels
-                        call make_channels(num, nump, inuc, ichannel)
-
-
+                     call make_channels(num, nump, inuc, ichannel)
                   end do
                end do
             end do
