@@ -3,9 +3,9 @@
 !
    subroutine MC_decay_bin(icomp_i, Ix_i, ip_i, nbin_i,                &
                            icomp_f, Ix_f, ip_f, nbin_f, idb,           &
-                           n_dat,dim_part,num_part,part_data,          &
-                           Ang_L_max, part_Ang_data,                   &
-                           Boost_Lab, Boost_COM) 
+                           n_dat, dim_part, num_part_type, part_fact,  &
+                           num_part, part_data,                        &
+                           Ang_L_max, part_Ang_data)
 !
 !*******************************************************************************
 !
@@ -41,45 +41,34 @@
 !-----------  Input  ------------------------------------------------
    integer(kind=4), intent(in) :: icomp_i, Ix_i, ip_i, nbin_i 
    integer(kind=4), intent(out) :: icomp_f, Ix_f, ip_f, nbin_f, idb
+   integer(kind=4), intent(inout) :: num_part_type(6)
+   real(kind=8), intent(inout) :: part_fact(0:7)
    integer(kind=4), intent(in) :: n_dat, dim_part
    integer(kind=4), intent(inout) :: num_part
    real(kind=8), intent(inout) :: part_data(n_dat,dim_part)
    integer(kind=4), intent(in) :: Ang_L_max
    real(kind=8), intent(out) :: part_Ang_data(0:Ang_L_max,dim_part)
-   real(kind=8), intent(inout) :: Boost_Lab(0:3,0:3), Boost_COM(0:3,0:3)
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !----------   Internal Data
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ 
    real(kind=8) :: prob
-   integer(kind=4) :: if1, iif1
    integer(kind=4) idex
    integer(kind=4) :: itemp
    integer(kind=4) :: mask6, mask10
-   integer(kind=4) :: i,j, k, l, iss
+   integer(kind=4) :: k, l, iss
    real(kind=8) :: e_i, e_f, ex_i, ex_f
-   real(kind=8) :: xI_i, xI_f, xj_f, xj_f_min, xip_f
-   real(kind=8) :: shift
+   real(kind=8) :: xI_i, xI_f, xj_f, xj_f_min, xip_f, xip_i
+
+   integer(kind=4) :: if1
+
+   real(kind=8) :: base_prob, check_prob, tally_norm
 
 
    real(kind=8) :: costhp, sinthp, theta_0, phi_0
-   real(kind=8) :: T_1, T_2, mass_1, mass_2, theta, phi
-   real(kind=8) :: T_L, theta_L, phi_L
 
-   integer(kind=4) :: icomp_ff, Ix_FF, ip_ff, nbin_ff, idb_ff, l_ff, iss_ff
-   integer(kind=4) :: kk
-   real(kind=8) :: e_ff
 
    real(kind=8) :: tally_prob
    real(kind=8) :: xnnn
-   integer(kind=4) :: nnn, nnn_map(100)
-
-   real(kind=8) :: test_prob(15)
-   integer(kind=4) :: test_idex(15), test_if1(15)
-
-   real(kind=8), allocatable :: prob_if1(:)
-   integer(kind=4), allocatable :: num_if1(:)
-   integer(kind=4) :: num_i, ii, ic
-   real(kind=8) :: prob_sum, prob_sum_i
 
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !----------   External Functions
@@ -107,6 +96,9 @@
 !-----   part_data(19,num_part) = Tally        !--------   tally probability
 !-----   part_data(20,num_part) = ex_i         !--------   excitation energy of the system after particle emission
 !-----   part_data(21,num_part) = icomp_i      !--------   compound nucleus that decayed
+!-----   part_data(22,num_part) = xI_i         !--------   Spin of initial state
+!-----   part_data(23,num_part) = xip_i        !--------   parity of final state
+!-----   part_data(24,num_part) = nbin_i       !--------   Bin or state number of initial state
 
 
 
@@ -116,66 +108,103 @@
 
    e_i = nucleus(icomp_i)%e_grid(nbin_i)
    ex_i = e_i
-   xI_i = real(iX_i) + nucleus(icomp_i)%jshift
-
-   if(num_part >= 1)ex_i = part_data(20,num_part)
-
+   xI_i = real(iX_i,kind=8) + nucleus(icomp_i)%jshift
+   xip_i = 2.0d0*real(ip_i,kind=8) - 1.0d0
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !--------  First, check which nucleus it decays to
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   tries = 0
 
-22   prob = random_64(iseed)                !  starting probability
-
-   tries = tries + 1
-
-   test_prob(tries) = prob
+   prob = random_64(iseed)                !  starting probability
 
    if1 = 0
    icomp_f = icomp_i
-   nbin_f = -1
+   nbin_f = 0
    if(nucleus(icomp_i)%bins(Ix_i,ip_i,nbin_i)%num_decay == 0)return   ! no way to decay, hung up
 !
    tally_prob = 1.0d0
 
+!   part_fact(0:7) = 1.0d0
+!   num_part_type(0:6) = 0
+!   do i = 1, num_part
+!      k = nint(part_data(2,i))
+!      if(k > 0 .and. k <= 6)then
+!         num_part_type(k) = num_part_type(k) + 1
+!         if(num_part_type(k) >= max_particle(k))part_fact(k) = 0.0d0
+!      end if
+!   end do
+
+   xnnn = 0.0d0
+   tally_norm = 0.0d0
+   do if1 = 1, nucleus(icomp_i)%bins(Ix_i,ip_i,nbin_i)%num_decay
+      k = nucleus(icomp_i)%bins(Ix_i,ip_i,nbin_i)%decay_particle(if1)
+      tally_norm = tally_norm + nucleus(icomp_i)%bins(Ix_i,ip_i,nbin_i)%HF_prob(if1)*part_fact(k)
+      xnnn= xnnn + part_fact(k)
+   end do
+   tally_norm = 1.0d0/tally_norm
+
    if(biased_sampling)then
+      check_prob = 0.0d0
       do if1 = 1, nucleus(icomp_i)%bins(Ix_i,ip_i,nbin_i)%num_decay
-         if(prob <= nucleus(icomp_i)%bins(Ix_i,ip_i,nbin_i)%HF_prob(if1))exit
+         k = nucleus(icomp_i)%bins(Ix_i,ip_i,nbin_i)%decay_particle(if1)
+         check_prob = check_prob + nucleus(icomp_i)%bins(Ix_i,ip_i,nbin_i)%HF_prob(if1)*part_fact(k)
+         if(prob <= check_prob)exit
       end do
    else
-      xnnn = nucleus(icomp_i)%bins(Ix_i,ip_i,nbin_i)%num_decay
-      if1 = int(random_64(iseed)*xnnn) + 1
-      tally_prob = nucleus(icomp_i)%bins(Ix_i,ip_i,nbin_i)%HF_prob(if1)
-      if(if1 > 1) tally_prob = tally_prob - nucleus(icomp_i)%bins(Ix_i,ip_i,nbin_i)%HF_prob(if1-1)
-      tally_prob = tally_prob*xnnn
+      base_prob = 1.0d0/real(xnnn,kind=8)
+      check_prob = 0.0d0
+      do if1 = 1, nucleus(icomp_i)%bins(Ix_i,ip_i,nbin_i)%num_decay
+         k = nucleus(icomp_i)%bins(Ix_i,ip_i,nbin_i)%decay_particle(if1)
+         check_prob = check_prob + base_prob*part_fact(k)*tally_norm
+         if(prob <= check_prob)exit
+      end do
+      tally_prob = nucleus(icomp_i)%bins(Ix_i,ip_i,nbin_i)%HF_prob(if1)*xnnn*tally_norm
    end if
-
 !
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !--------  set icomp_f, note if1 > num_decay ->  Fission 
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-   if(nucleus(icomp_i)%bins(Ix_i,ip_i,nbin_i)%decay_particle(if1) == -10)then     !  Fission 
+   if(nucleus(icomp_i)%bins(Ix_i,ip_i,nbin_i)%decay_particle(if1) == 7)then     !  Fission 
       icomp_f = icomp_i
-      nbin_f = 0
+      nbin_f = -nbin_i
       num_part = num_part + 1
       part_data(1,num_part) = real(icomp_f,kind=8)
-      part_data(2,num_part) = -2.0d0        !  one signal this is a fission event
+      part_data(2,num_part) = 7.0d0        !  one signal this is a fission event
       part_data(3,num_part) = xI_i
       part_data(4,num_part) = 0.0d0
-      part_data(5,num_part) = nbin_f      !  Other signal this is a fission event
+      part_data(5,num_part) = real(nbin_f,kind=8) 
       part_data(6,num_part) = 0.0d0
       part_data(7,num_part) = 0.0d0
       part_data(19,num_part) = tally_prob
-      part_data(20,num_part) = -10.0d0
+      part_data(20,num_part) = -10.0d0     !  Other signal this is a fission event
       part_data(21,num_part) = icomp_i
+      part_data(22,num_part) = xI_i
+      part_data(23,num_part) = xip_i
+      part_data(24,num_part) = real(nbin_i,kind=8)
       return
    end if
 
    icomp_f = nucleus(icomp_i)%bins(Ix_i,ip_i,nbin_i)%decay_to(if1)
+
+   if(icomp_f < 1)then
+      write(6,*)xnnn, base_prob
+      do k = 0,7
+         write(6,*)num_part_type(k),max_particle(k)
+         write(6,*)k,part_fact(k)
+      end do
+      check_prob = 0.0d0
+      do if1 = 1, nucleus(icomp_i)%bins(Ix_i,ip_i,nbin_i)%num_decay
+         k = nucleus(icomp_i)%bins(Ix_i,ip_i,nbin_i)%decay_particle(if1)
+         check_prob = check_prob + base_prob*part_fact(k)*tally_norm
+      write(6,*)if1,k,check_prob,prob
+         if(prob <= check_prob)exit
+      end do
+      tally_prob = nucleus(icomp_i)%bins(Ix_i,ip_i,nbin_i)%HF_prob(if1)/base_prob
+      write(6,*)tally_prob
+
+   end if
+
    if(icomp_f < 1) stop 'icomp_f < 1 after attempting to decay'
-
-
 
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !--------  Next, find which state it decays to
@@ -195,9 +224,15 @@
                   nucleus(icomp_i)%bins(Ix_i,ip_i,nbin_i)%nuke_decay(if1)%decay_prob,    &
                   prob, idex)
 
-   test_idex(tries) = idex
-   test_if1(tries) = if1
    k = nucleus(icomp_i)%bins(Ix_i,ip_i,nbin_i)%decay_particle(if1)
+
+   if(k > 0 .and. k <= 6)then
+      num_part_type(k) = num_part_type(k) + 1
+      if(num_part_type(k) >= max_particle(k))part_fact(k) = 0.0d0
+   end if
+
+
+
 
    mask6 = 2**6 - 1
    mask10 = 2**9 - 1
@@ -217,268 +252,42 @@
    xI_f = real(Ix_f) + nucleus(icomp_f)%jshift
    xj_f_min = abs(dfloat(l) - particle(k)%spin) 
    xj_f = real(iss) + xj_f_min
-   xip_f = 2*ip_f - 1
+   xip_f = 2.0d0*real(ip_f,kind=8) - 1
 
    if(idb == 0)then
       e_f = ex_i - nucleus(icomp_i)%sep_e(k) -           &
                    nucleus(icomp_f)%e_grid(nbin_f)
+      ex_f = nucleus(icomp_f)%e_grid(nbin_f)
       if(e_f < -0.5d0*de)then
          write(6,*)'icomp_i = ',icomp_i,' icomp_f= ',icomp_f
          write(6,*)'k= ', k
          write(6,*)'nbin_i = ',nbin_i,' nbin_f = ',nbin_f
-         write(6,*)'ex_f = ',ex_f
+         write(6,*)'e_f = ',e_f
          write(6,*)'ex_i = ',ex_i
-         write(6,*)'Separation energy = ',nucleus(icomp_i)%sep_e(k)
-         write(6,*)'Initial Bin energy = ',nucleus(icomp_f)%e_grid(nbin_i)
-         write(6,*)'Final Bin energy = ',nucleus(icomp_f)%e_grid(nbin_f)
-         write(6,*)'num_part = ',num_part
+         write(6,*)'Separation energy = ', nucleus(icomp_i)%sep_e(k)
+         write(6,*)'Initial Bin energy = ', nucleus(icomp_i)%e_grid(nbin_i)
+         write(6,*)'Final Bin energy = ', nucleus(icomp_f)%e_grid(nbin_f)
+         write(6,*)'Energy bin width = ', de
+         write(6,*)'num_part = ', num_part
          stop 'e_f < -de/2 in MC_decay_bin (1)'
-      end if
-      if(e_f < 0.0d0)then
-         e_f = (e_f + 0.5d0*de)*random_64(iseed)
-         ex_f = ex_i - e_f - nucleus(icomp_i)%sep_e(k)
-      elseif(e_f <= de)then           !   decays to same bin
-         e_f = e_f*random_64(iseed)
-         ex_f = ex_i - e_f - nucleus(icomp_i)%sep_e(k)
-      elseif(e_f > de)then
-         shift = 0.5d0*de*(2.0d0*random_64(iseed) - 1.0d0)
-         ex_f = nucleus(icomp_f)%e_grid(nbin_f) + shift
-         e_f = ex_i - nucleus(icomp_i)%sep_e(k) - ex_f
       end if
    else  
       e_f = ex_i - nucleus(icomp_i)%sep_e(k) -         &
                    nucleus(icomp_f)%state(nbin_f)%energy
       ex_f = nucleus(icomp_f)%state(nbin_f)%energy
-      if(e_f < 0.0d0)then                !  Decay forbidden due to energy conservation issue
-         if(tries < 8)then              !  try a few more times
-            goto 22              
-         else                            !  Tried too many times force decay so we can finish
-            re_baseline = re_baseline + 1
-!------------   Print out to analyze situation -- caused by previous decay, with "jitter" dropping
-!------------   the initial excitation energy below a discrete state and decay not allowed.
-!------------   First, try again, up to 15 times. If failed, then recompute probabilities for this
-!------------   special case.
-!            write(6,*)
-!            write(6,'(''*************************************************************************************'')')
-!            write(6,'(''Warning MC attempted to decay with negative energy of e_f = '',1pe15.7,'' MeV'')')e_f
-!            write(6,'(''Caused by jitter in emission spectrum and decay to discrete states near threshold'')')
-!            write(6,'(''Recomputing decay probabilities to find new decay path'')')
-!            write(6,'(''*************************************************************************************'')')
-!            write(6,*)
-            write(26,*)
-            write(26,'(''*************************************************************************************'')')
-            write(26,'(''Warning MC attempted to decay with negative energy of e_f = '',1pe15.7,'' MeV'')')e_f
-            write(26,'(''Caused by jitter in emission spectrum and decay to discrete states near threshold'')')
-            write(26,'(''Recomputing decay probabilities to find new decay path'')')
-            write(26,'(''*************************************************************************************'')')
-            write(26,'(''Current sample # '',i10)')nsamp
-            write(26,*)
-            write(26,*)'Biased sampling = ',biased_sampling
-            write(26,'(''Decay from continuous bin to discrete state'')')
-!            write(26,'(''Tried 15 times and could not make the decay work. Will force decay with e_f = 0.001 MeV'')')
-!            write(26,'(''decay particle = '',i4)')k
-!  80        format('Initial nucleus ',i4,'  J = ',f3.1,' Ix_i = ',i3,' ip_i = ',i3,' initial bin ',i4,   &
-!                   ' energy = ',f8.4,' bin energy ',f8.4,' Separation energy = ',f8.4)
-!            write(26,80)icomp_i,xI_i,Ix_i,ip_i,nbin_i,ex_i,nucleus(icomp_i)%e_grid(nbin_i),nucleus(icomp_i)%sep_e(k)
-!            write(26,'(''Final nucleus '',i4,'' Final state# '',i4,'' energy = '',f8.4)')  &
-!                 icomp_f,nbin_f,nucleus(icomp_f)%state(nbin_f)%energy
-!            write(26,'(''Emitted energy = '',f8.4)')e_f
-!           write(26,'(''Number of possible particle decays '',i10)')nucleus(icomp_i)%bins(Ix_i,ip_i,nbin_i)%num_decay
-!            write(26,*)'Last tried to decay to path #',if1,'Ran = ',prob
-!            do i = 1, nucleus(icomp_i)%bins(Ix_i,ip_i,nbin_i)%num_decay
-!               write(26,'(i6,1x,f10.7)')i,nucleus(icomp_i)%bins(Ix_i,ip_i,nbin_i)%HF_prob(i)
-!            end do
-!            do i = 1, tries
-!               write(26,'(''Rolled probabilities'',i6,1x,f10.7,'' if1 = '',i4,'' idex = '',i4)')             &
-!                    i,test_prob(i),test_if1(i),test_idex(i)
-!            end do
-            do i = 1, nucleus(icomp_i)%bins(Ix_i,ip_i,nbin_i)%num_decay
-               icomp_ff = nucleus(icomp_i)%bins(Ix_i,ip_i,nbin_i)%decay_to(i)
-!               write(26,'(''Decay path# '',i4,'' icomp_f = '',i6,'' Num decays = '',i6)')i,icomp_ff,         &
-!                   nucleus(icomp_i)%bins(Ix_i,ip_i,nbin_i)%nuke_decay(i)%num_decay
-!               if(i == if1)write(26,'(''Last tried to decay to posiibility #'',i6)')idex
-!               write(26,'('' Number of decays in this channel '',i10)')                                      &
-!                    nucleus(icomp_i)%bins(Ix_i,ip_i,nbin_i)%nuke_decay(i)%num_decay
-               do j = 1, nucleus(icomp_i)%bins(Ix_i,ip_i,nbin_i)%nuke_decay(i)%num_decay                !
-                  itemp = nucleus(icomp_i)%bins(Ix_i,ip_i,nbin_i)%nuke_decay(i)%decay_list(j)
-                  call unpack_data(Ix_ff, ip_ff, nbin_ff, idb_ff, l_ff, iss_ff, itemp)
-!                  if(idb_ff == 0)write(26,'(''Possibile decay to bin  '',i6,1pe15.7,2i6,1x,0pf8.4)')j,       &
-!                       nucleus(icomp_i)%bins(Ix_i,ip_i,nbin_i)%nuke_decay(i)%decay_prob(j),                  &
-!                       idb_ff,nbin_ff,nucleus(icomp_ff)%e_grid(nbin_ff)
-!                  if(idb_ff == 1)write(26,'(''Possible decay to state '',i6,1pe15.7,2i6,1x,0pf8.4)')j,       &
-!                       nucleus(icomp_i)%bins(Ix_i,ip_i,nbin_i)%nuke_decay(i)%decay_prob(j),                  &
-!                       idb_ff,nbin_ff,nucleus(icomp_ff)%state(nbin_ff)%energy
-               end do
-            end do
-            flush(26)
-            ex_f = nucleus(icomp_f)%state(nbin_f)%energy
-            num_i = nucleus(icomp_i)%bins(Ix_i,ip_i,nbin_i)%num_decay
-            allocate(prob_if1(num_i))
-            allocate(num_if1(num_i))
-            prob_sum_i = 0.0d0
-            do ii = 1, num_i
-               prob_sum_i = 0.0d0
-               ic = nucleus(icomp_i)%bins(Ix_i,ip_i,nbin_i)%decay_to(ii)
-               if(nucleus(icomp_i)%bins(Ix_i,ip_i,nbin_i)%decay_particle(ii) == -10)then     !  Fission 
-                  prob_sum_i = 1.0d0
-               else
-                  kk = nucleus(icomp_i)%bins(Ix_i,ip_i,nbin_i)%decay_particle(ii)
-!      write(26,*)'ii = ',ii,' kk = ',kk,' icomp = ',ic
-!      write(26,*)'num ',nucleus(icomp_i)%bins(Ix_i,ip_i,nbin_i)%nuke_decay(ii)%num_decay
-                  num_if1(ii) = 0
-                  do j = 1, nucleus(icomp_i)%bins(Ix_i,ip_i,nbin_i)%nuke_decay(ii)%num_decay
-                     itemp = nucleus(icomp_i)%bins(Ix_i,ip_i,nbin_i)%nuke_decay(ii)%decay_list(j)
 
-                     call unpack_data(Ix_ff, ip_ff, nbin_ff, idb_ff, l_ff, iss_ff, itemp)
-                     e_ff = 0.0d0
-                     if(idb_ff == 0)then
-                        e_ff = ex_i - nucleus(icomp_i)%sep_e(kk) -         &
-                               nucleus(ic)%e_grid(nbin_ff)
-                     elseif(idb_ff == 1)then
-                        e_ff = ex_i - nucleus(icomp_i)%sep_e(kk) -         &
-                               nucleus(ic)%state(nbin_ff)%energy
-                     end if
-                     if(e_ff < 1.0d-6)exit
-                     prob_sum_i = nucleus(icomp_i)%bins(Ix_i,ip_i,nbin_i)%nuke_decay(ii)%decay_prob(j)
-!                  if(idb_ff == 0)write(26,'(''Bin   '',i6,1pe15.7,i6,1x,0pf8.4,1x,1pE15.7)')j,        &
-!                       nucleus(icomp_i)%bins(Ix_i,ip_i,nbin_i)%nuke_decay(ii)%decay_prob(j),          &
-!                       nbin_ff,nucleus(ic)%e_grid(nbin_ff),prob_sum_i
-!                  if(idb_ff == 1)write(26,'(''State '',i6,1pe15.7,i6,1x,0pf8.4,1x,1pE15.7)')j,        &
-!                       nucleus(icomp_i)%bins(Ix_i,ip_i,nbin_i)%nuke_decay(ii)%decay_prob(j),          &
-!                       nbin_ff,nucleus(ic)%state(nbin_ff)%energy,prob_sum_i
-                     num_if1(ii) = num_if1(ii) + 1
-                  end do
-               end if
-               if(ii == 1)then
-                  prob_if1(ii) = nucleus(icomp_i)%bins(Ix_i,ip_i,nbin_i)%HF_prob(ii)*prob_sum_i
-               else
-                  prob_if1(ii) = (nucleus(icomp_i)%bins(Ix_i,ip_i,nbin_i)%HF_prob(ii)-    &
-                                   nucleus(icomp_i)%bins(Ix_i,ip_i,nbin_i)%HF_prob(ii-1))*prob_sum_i
-               end if
-!               write(26,'('' Prob for decay path '',i4,'' = '',f10.7)')ii,prob_if1(ii)
-            end do
-!----    Check if no decay is possible, leading to the bin being hung up, i.e., computational isomer
-            if(prob_sum_i < 1.0d-8)then
-               if1 = 0
-               icomp_f = icomp_i
-               nbin_f = -1
-               return
-            end if
-
-!----    Check if any decays have been excluded and make map for unbiased sampling
-!----    This fixes a bug where a channel is now excluded, but with unbiased sampling
-!----    all possibilities are equally probable, hecen to need to skip it
-!----    nnnn is the number of decay paths with non-zero probability, i.e. has a decay possibility
-!----    nnnn_map is the original index
-            nnn = 0
-            nnn_map(1:100) = 0
-            do ii = 1, num_i
-               if(prob_if1(ii) > 1.0d-10)then
-                  nnn = nnn + 1
-                  nnn_map(nnn) = ii
-               end if
-            end do
-
-!----    have baseline probabilities excluding decays to states that are forbidden
-!----    renormalize probabilities for particle decays
-
-            prob_sum = prob_if1(1)
-            do ii = 2, num_i
-               prob_if1(ii) = prob_if1(ii) + prob_if1(ii-1)               
-            end do
-            do ii = 1, num_i
-               prob_if1(ii) = prob_if1(ii)/prob_if1(num_i)
-!    write(26,*)'new Probabilities',ii,prob_if1(ii), num_if1(ii)
-            end do
-
-            prob = random_64(iseed)                !  starting probability
-!    write(26,*)'Finding new path with prob = ',prob
-            if(biased_sampling)then
-               do if1 = 1, num_i
-                  if(prob <= prob_if1(if1))exit
-               end do
-            else
-               xnnn = nnn
-               iif1 = int(random_64(iseed)*xnnn) + 1
-               if1 = nnn_map(iif1)
-               tally_prob = prob_if1(if1)
-               if(if1 > 1) tally_prob = tally_prob - prob_if1(if1-1)
-               tally_prob = tally_prob*xnnn
-            end if
-!            write(26,*)'Decay path = ',if1,' k = ',nucleus(icomp_i)%bins(Ix_i,ip_i,nbin_i)%decay_particle(if1)
-            if(nucleus(icomp_i)%bins(Ix_i,ip_i,nbin_i)%decay_particle(if1) == -10)then     !  Fission 
-               icomp_f = icomp_i
-               nbin_f = 0
-               num_part = num_part + 1
-               part_data(1,num_part) = real(icomp_f,kind=8)
-               part_data(2,num_part) = -2.0d0        !  one signal this is a fission event
-               part_data(3,num_part) = 0.0d0
-               part_data(4,num_part) = 0.0d0
-               part_data(5,num_part) = nbin_f      !  Other signal this is a fission event
-               part_data(6,num_part) = 0.0d0
-               part_data(7,num_part) = 0.0d0
-               part_data(19,num_part) = tally_prob
-               part_data(20,num_part) = -10.0d0
-               part_data(21,num_part) = icomp_i
-               return
-            end if
-
-            icomp_f = nucleus(icomp_i)%bins(Ix_i,ip_i,nbin_i)%decay_to(if1)
-            if(icomp_f < 1) stop 'icomp_f < 1 after renormalization of probabilities'
-            prob = random_64(iseed)
-            k = nucleus(icomp_i)%bins(Ix_i,ip_i,nbin_i)%decay_particle(if1)
-
-!    write(26,*)'Search for decay. if1 = ',if1,num_if1(if1),prob
-            call find_prob(num_if1(if1),                                                 &
-                  nucleus(icomp_i)%bins(Ix_i,ip_i,nbin_i)%nuke_decay(if1)%decay_prob,    &
-                  prob, idex)
-            itemp = nucleus(icomp_i)%bins(Ix_i,ip_i,nbin_i)%nuke_decay(if1)%decay_list(idex)
-
-            call unpack_data(Ix_f, ip_f, nbin_f, idb, l, iss, itemp)
-
-
-!            write(26,*)idex,itemp,Ix_f,ip_f,nbin_f,idb,l,iss
-!                  if(idb == 0)write(26,'(''Bin   '',i6,1pe15.7,i6,1x,0pf8.4,1x,1pE15.7)')idex,        &
-!                       nucleus(icomp_i)%bins(Ix_i,ip_i,nbin_i)%nuke_decay(if1)%decay_prob(idex),      &
-!                       nbin_ff,nucleus(icomp_f)%e_grid(nbin_f),prob_sum_i
-!                  if(idb == 1)write(26,'(''State '',i6,1pe15.7,i6,1x,0pf8.4,1x,1pE15.7)')idex,        &
-!                       nucleus(icomp_i)%bins(Ix_i,ip_i,nbin_i)%nuke_decay(if1)%decay_prob(idex),      &
-!                       nbin_ff,nucleus(icomp_f)%state(nbin_f)%energy,prob_sum_i
-            
-
-            if(nbin_f == 0)then
-               write(6,*)'Error nbin_f = 0 in MC_decay_bin'
-               write(6,*)nucleus(icomp_i)%A, Ix_i, ip_i, nbin_i
-               write(6,*)idb,l,k
-               stop
-            end if
-            if(idb == 0)then
-               e_f = ex_i - nucleus(icomp_i)%sep_e(k) -           &
-                     nucleus(icomp_f)%e_grid(nbin_f)
-               if(e_f < -0.5d0*de)stop 'e_f < -de/2 in MC_decay_bin (2)'
-               if(e_f < 0.0d0)then
-                  e_f = (e_f + 0.5d0*de)*random_64(iseed)
-                  ex_f = ex_i - e_f - nucleus(icomp_i)%sep_e(k)
-               elseif(e_f <= de)then           !   decays to same bin
-                   e_f = e_f*random_64(iseed)
-                   ex_f = ex_i - e_f - nucleus(icomp_i)%sep_e(k)
-               elseif(e_f > de)then
-                  shift = 0.5d0*de*(2.0d0*random_64(iseed) - 1.0d0)
-                  ex_f = nucleus(icomp_f)%e_grid(nbin_f) + shift
-                  e_f = ex_i - nucleus(icomp_i)%sep_e(k) - ex_f
-               end if
-            else  
-               e_f = ex_i - nucleus(icomp_i)%sep_e(k) -         &
-                     nucleus(icomp_f)%state(nbin_f)%energy
-               ex_f = nucleus(icomp_f)%state(nbin_f)%energy
-               if(e_f < 0.0d0)then                !  Decay forbidden due to energy conservation issue
-                  write(6,*)'Still does not work negative energy in MC_decay_HF'
-                  stop
-               end if
-            end if
-            deallocate(prob_if1)
-            deallocate(num_if1)
-         end if
+      if(e_f < 0.d0*de)then
+         write(6,*)'icomp_i = ',icomp_i,' icomp_f= ',icomp_f
+         write(6,*)'k= ', k
+         write(6,*)'nbin_i = ',nbin_i,' nbin_f = ',nbin_f
+         write(6,*)'e_f = ',e_f
+         write(6,*)'ex_i = ',ex_i
+         write(6,*)'Separation energy = ', nucleus(icomp_i)%sep_e(k)
+         write(6,*)'Initial Bin energy = ', nucleus(icomp_i)%e_grid(nbin_i)
+         write(6,*)'Final State energy = ', nucleus(icomp_f)%state(nbin_f)%energy
+         write(6,*)'Energy bin width = ', de
+         write(6,*)'num_part = ', num_part
+         stop 'e_f < 0.0 in MC_decay_bin (1)'
       end if
    end if
 
@@ -504,30 +313,23 @@
    theta_0 = acos(costhp)
    phi_0 = two_pi*random_64(iseed)
 
-   mass_1 = particle(k)%Mass
-   if(idb == 0)then
-      mass_2 = nucleus(icomp_f)%Mass + nucleus(icomp_f)%e_grid(nbin_f)
-   else
-      mass_2 = nucleus(icomp_f)%Mass + nucleus(icomp_f)%state(nbin_f)%energy
-   end if
-   call Boost_frame(e_f, mass_1, mass_2, theta_0, phi_0,                   &
-                    Boost_Lab, Boost_COM, T_1, theta, phi,                 &
-                    T_2, T_L, theta_L, phi_L)
-
-   part_data(9,num_part) = e_f
+   part_data(9,num_part)  = e_f
    part_data(10,num_part) = theta_0
    part_data(11,num_part) = phi_0
-   part_data(12,num_part) = T_1
-   part_data(13,num_part) = theta
-   part_data(14,num_part) = phi
-   part_data(15,num_part) = T_L
-   part_data(16,num_part) = theta_L
-   part_data(17,num_part) = phi_L
-   part_data(18,num_part) = T_2
+!   part_data(12,num_part) = T_1
+!   part_data(13,num_part) = theta
+!   part_data(14,num_part) = phi
+!   part_data(15,num_part) = T_L
+!   part_data(16,num_part) = theta_L
+!   part_data(17,num_part) = phi_L
+!   part_data(18,num_part) = T_2
    part_data(19,num_part) = tally_prob
    part_data(20,num_part) = ex_f
    part_data(21,num_part) = icomp_i
-   nucleus(icomp_f)%Kinetic_Energy = T_2
+   part_data(22,num_part) = xI_i
+   part_data(23,num_part) = xip_i
+   part_data(24,num_part) = real(nbin_i,kind=8)
+!   nucleus(icomp_f)%Kinetic_Energy = T_2
    if(.not.pop_calc)part_Ang_data(0,num_part) = 0.5d0
    return
 
@@ -537,8 +339,7 @@
 !
    subroutine MC_decay_state(icomp_i, istate_i,                       &
                              n_dat,dim_part,num_part,part_data,       &
-                             Ang_L_max,part_Ang_data, ichan, in,      &
-                             Boost_Lab, Boost_COM)
+                             Ang_L_max,part_Ang_data, ichan, in)
 !
 !*******************************************************************************
 !
@@ -580,8 +381,6 @@
    integer(kind=4), intent(in) :: Ang_L_max
    real(kind=8), intent(out) :: part_Ang_data(0:Ang_L_max,dim_part)
    integer(kind=4), intent(in) :: ichan, in
-   real(kind=8), intent(inout) :: Boost_Lab(0:3,0:3), Boost_COM(0:3,0:3)
-
 
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !----------   Internal Data
@@ -595,8 +394,6 @@
 
 
    real(kind=8) :: costhp, sinthp, theta_0, phi_0
-   real(kind=8) :: mass_1, mass_2, T_1, T_2, theta, phi
-   real(kind=8) :: T_L, theta_L, phi_L
 
    real(kind=8) :: tally_prob, tally_weight
    integer(kind=4) :: n
@@ -654,8 +451,8 @@
    if(nucleus(icomp_i)%state(istate)%nbranch == 0)then
       n_f = 1
       idb = 1
-      xj_f=nucleus(icomp_i)%state(n_f)%spin
-      xip_f=nucleus(icomp_i)%state(n_f)%parity
+      xj_f = nucleus(icomp_i)%state(n_f)%spin
+      xip_f = nucleus(icomp_i)%state(n_f)%parity
       iss = 0
       l = 0
       e_gamma = nucleus(icomp_i)%state(istate)%energy - nucleus(icomp_i)%state(n_f)%energy
@@ -678,28 +475,23 @@
       theta_0 = acos(costhp)
       phi_0 = two_pi*random_64(iseed)
 
-
-      mass_1 = particle(k)%Mass
-      mass_2 = nucleus(icomp_f)%Mass + nucleus(icomp_f)%state(n_f)%energy
-
-      call Boost_frame(e_gamma, mass_1, mass_2, theta_0, phi_0,                &
-                       Boost_Lab, Boost_COM, T_1, theta, phi,                  &
-                       T_2, T_L, theta_L, phi_L)
-
       part_data(9,num_part) = e_gamma
       part_data(10,num_part) = theta_0
       part_data(11,num_part) = phi_0
-      part_data(12,num_part) = T_1
-      part_data(13,num_part) = theta
-      part_data(14,num_part) = phi
-      part_data(15,num_part) = T_L
-      part_data(16,num_part) = theta_L
-      part_data(17,num_part) = phi_L
-      part_data(18,num_part) = T_2
+!      part_data(12,num_part) = T_1
+!      part_data(13,num_part) = theta
+!      part_data(14,num_part) = phi
+!      part_data(15,num_part) = T_L
+!      part_data(16,num_part) = theta_L
+!      part_data(17,num_part) = phi_L
+!      part_data(18,num_part) = T_2
       part_data(19,num_part) = tally_prob
       part_data(20,num_part) = nucleus(icomp_i)%state(n_f)%energy
       part_data(21,num_part) = icomp_i
-      nucleus(icomp_f)%Kinetic_Energy = T_2
+      part_data(22,num_part) = nucleus(icomp_i)%state(istate)%spin
+      part_data(23,num_part) = nucleus(icomp_i)%state(istate)%parity
+      part_data(24,num_part) = real(istate,kind=8)
+!      nucleus(icomp_f)%Kinetic_Energy = T_2
 
 
       if(.not.pop_calc)part_Ang_data(0,num_part) = 0.5e0
@@ -761,27 +553,24 @@
    theta_0 = acos(costhp)
    phi_0 = two_pi*random_64(iseed)
 
-   mass_1 = particle(k)%Mass
-   mass_2 = nucleus(icomp_f)%Mass + nucleus(icomp_f)%state(n_f)%energy
-
-   call Boost_frame(e_gamma, mass_1, mass_2, theta_0, phi_0,                &
-                    Boost_Lab, Boost_COM, T_1, theta, phi,                  &
-                    T_2, T_L, theta_L, phi_L)
 
    part_data(9,num_part) = e_gamma
    part_data(10,num_part) = theta_0
    part_data(11,num_part) = phi_0
-   part_data(12,num_part) = T_1
-   part_data(13,num_part) = theta
-   part_data(14,num_part) = phi
-   part_data(15,num_part) = T_L
-   part_data(16,num_part) = theta_L
-   part_data(17,num_part) = phi_L
-   part_data(18,num_part) = T_2
+!   part_data(12,num_part) = T_1
+!   part_data(13,num_part) = theta
+!   part_data(14,num_part) = phi
+!   part_data(15,num_part) = T_L
+!   part_data(16,num_part) = theta_L
+!   part_data(17,num_part) = phi_L
+!   part_data(18,num_part) = T_2
    part_data(19,num_part) = tally_prob
    part_data(20,num_part) = nucleus(icomp_i)%state(n_f)%energy
    part_data(21,num_part) = icomp_i
-   nucleus(icomp_f)%Kinetic_Energy = T_2
+   part_data(22,num_part) = nucleus(icomp_i)%state(istate)%spin
+   part_data(23,num_part) = nucleus(icomp_i)%state(istate)%parity
+   part_data(24,num_part) = real(istate,kind=8)
+!   nucleus(icomp_f)%Kinetic_Energy = T_2
 
    if(.not.pop_calc)part_Ang_data(0,num_part) = 0.5e0         !  Isotropic emission
 
@@ -965,13 +754,13 @@
 !
 !*******************************************************************************
 !
-   subroutine MC_primary_decay(iproj,spin_target,                        &
-                               l_i, is_i, Ix_i, e_i, icomp_i,            &
-                               icomp_f, Ix_f, ip_f, nbin_f, idb,         &
-                               n_dat, dim_part, num_part, part_data,     &
-                               Ang_L_max, part_Ang_data,                 &
-                               ixx_max, delta_x,                         &
-                               Boost_Lab, Boost_COM)
+   subroutine MC_primary_decay(iproj,spin_target,                          &
+                               l_i, is_i, Ix_i, e_i, icomp_i,              &
+                               icomp_f, Ix_f, ip_f, nbin_f, idb,           &
+                               n_dat, dim_part, num_part_type, part_fact,  &
+                               num_part, part_data,                        &
+                               Ang_L_max, part_Ang_data,                   &
+                               ixx_max, delta_x)
 !
 !*******************************************************************************
 !
@@ -1014,13 +803,14 @@
 !-----------  Output ------------------------------------------------
    integer(kind=4), intent(out) :: icomp_f, Ix_f, ip_f, nbin_f, idb
    integer(kind=4), intent(in) :: n_dat, dim_part
+   integer(kind=4), intent(inout) :: num_part_type(6)
+   real(kind=8), intent(inout) :: part_fact(0:7)
    integer(kind=4), intent(inout) :: num_part
    real(kind=8), intent(inout) :: part_data(n_dat,dim_part)
    integer(kind=4), intent(in) :: Ang_L_max
    real(kind=8), intent(inout) :: part_Ang_data(0:Ang_L_max,dim_part)
    integer(kind=4), intent(in) :: ixx_max
    real(kind=8), intent(in) :: delta_x
-   real(kind=8), intent(inout) :: Boost_Lab(0:3,0:3), Boost_COM(0:3,0:3)
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !----------   Internal Data
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ 
@@ -1039,15 +829,9 @@
    real(kind=8) :: spin_proj, spin_eject, spin_target_4
    integer(kind=4) :: L_ang, max_L
    real(kind=8) :: factor
-   real(kind=8) :: shift
    real(kind=8) :: x, x1, check, sum, ran
 
-!   real(kind=8) :: t, costhp, sinthp, tanth, thetap, phi, mass_i, mass_f, mass
-!   real(kind=8) :: xkpxc, xk_0xc, xKKp_0xc, gamma, theta_f, phi_f
-
    real(kind=8) :: theta_0, phi_0
-   real(kind=8) :: T_1, T_2, mass_1, mass_2, theta, phi
-   real(kind=8) :: T_L, theta_L, phi_L
 
    real(kind=8) :: tally_prob
    real(kind=8) :: xnnn
@@ -1056,10 +840,8 @@
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !----------   External Functions
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ 
-!   real(kind=8) :: ran3
    real(kind=8) :: random_64
    real(kind=8) :: racahr
-!   real(kind=8) :: Legendre
    real(kind=8) :: poly
 
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -1068,7 +850,6 @@
 
    tally_prob = 1.0d0
 
-!   e_i = nucleus(icomp_i)%e_grid(nbin_i)
    ex_i = e_i
    xI_i = real(Ix_i,kind=8) + real(nucleus(icomp_i)%jshift,kind=8)
    spin_proj = real(particle(iproj)%spin,kind=8)
@@ -1084,7 +865,7 @@
 
    if1 = 0
    icomp_f = icomp_i
-   nbin_f = -1
+   nbin_f = 0
    if(Channel(l_i,is_i,Ix_i)%num_decay == 0)return   ! no way to decay, hung up
 
    if(biased_sampling)then
@@ -1097,32 +878,35 @@
       tally_prob = Channel(l_i,is_i,Ix_i)%Channel_prob(if1)
       if(if1 > 1) tally_prob = tally_prob - Channel(l_i,is_i,Ix_i)%Channel_prob(if1-1)
       tally_prob = tally_prob*xnnn
-!      write(44,'(''++++++++++++++++++++++++++++++++++++++++++++++++'')')
-!      write(44,*)if1
-!      write(44,'(5(1x,i10))')l_i,is_i,Ix_i,if1,Channel(l_i,is_i,Ix_i)%num_decay
-!      write(44,'(10(1x,f20.15))')(Channel(l_i,is_i,Ix_i)%Channel_prob(i),i=1,Channel(l_i,is_i,Ix_i)%num_decay)
-!      write(44,*)'tally_prob = ',tally_prob
    end if
 
-   if(Channel(l_i,is_i,Ix_i)%decay_particle(if1) == -10)then      !!  Fission
+   if(Channel(l_i,is_i,Ix_i)%decay_particle(if1) == 7)then      !!  Fission
       icomp_f = icomp_i
-      nbin_f = 0
+      nbin_f = -999
       num_part = num_part + 1
       part_data(1,num_part) = real(icomp_f,kind=8)
-      part_data(2,num_part) = -2.0d0        !  one signal this is a fission event
+      part_data(2,num_part) = 7.0d0        !  one signal this is a fission event
       part_data(3,num_part) = xI_i
       part_data(4,num_part) = 0.0d0
-      part_data(5,num_part) = real(nbin_f,kind=8)      !  Other signal this is a fission event
+      part_data(5,num_part) = real(nbin_f,kind=8)
       part_data(6,num_part) = 0.0d0
       part_data(7,num_part) = 0.0d0
       part_data(19,num_part) = tally_prob
-      part_data(20,num_part) = -10.0d0
+      part_data(20,num_part) = -10.0d0     !  Other signal this is a fission event
       part_data(21,num_part) = icomp_i
+      part_data(22,num_part) = xI_i
+      part_data(23,num_part) = 0.0d0
+      part_data(24,num_part) = -1.0d0
       return
    end if
 
    icomp_f = Channel(l_i,is_i,Ix_i)%decay_to(if1)
    k = Channel(l_i,is_i,Ix_i)%decay_particle(if1)
+
+   if(k > 0 .and. k <= 6)then
+      num_part_type(k) = num_part_type(k) + 1
+      if(num_part_type(k) >= max_particle(k))part_fact(k) = 0.0d0
+   end if
 
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !--------  Next, find which state it decays to
@@ -1141,11 +925,6 @@
                   Channel(l_i,is_i,Ix_i)%Channel_decay(if1)%decay_prob,    &
                   prob, idex)
 
-
-
-
-!   num_dec(k) = num_dec(k) + 1
-
    num_part = num_part +1
    if(num_part > dim_part) stop 'num_part > dim_part'
 
@@ -1156,13 +935,6 @@
 
    call unpack_data(Ix_f, ip_f, nbin_f, idb, l_f, iss, itemp)
 
-!   Ix_f = iand(itemp,mask6)
-!   ip_f = iand(ishft(itemp,-6),1)
-!   nbin_f = iand(ishft(itemp,-7),mask10)
-!   idb = iand(ishft(itemp,-17),1)
-!   l_f = iand(ishft(itemp,-18),mask6)
-!   iss = iand(ishft(itemp,-24),mask6)
-
    xl_f = l_f
    xI_f = real(Ix_f,kind=8) + real(nucleus(icomp_f)%jshift,kind=8)
    xj_f_min = abs(real(l_f,kind=8) - real(particle(k)%spin,kind=8)) 
@@ -1172,18 +944,8 @@
    if(idb == 0)then
       e_f = ex_i - nucleus(icomp_i)%sep_e(k) -           &
                    nucleus(icomp_f)%e_grid(nbin_f)
-      if(e_f < -0.5d0*de)stop 'e_f < -de/2 in MC_primary_decay (3)'
-      if(e_f < 0.0d0)then
-         e_f = (e_f + 0.5d0*de)*random_64(iseed)
-         ex_f = ex_i - e_f - nucleus(icomp_i)%sep_e(k)
-      elseif(e_f <= de)then           !   decays to same bin
-         e_f = e_f*random_64(iseed)
-         ex_f = ex_i - e_f - nucleus(icomp_i)%sep_e(k)
-      elseif(e_f > de)then
-         shift = 0.5d0*de*(2.0d0*random_64(iseed) - 1.0d0)
-         ex_f = nucleus(icomp_f)%e_grid(nbin_f) + shift
-         e_f = ex_i - nucleus(icomp_i)%sep_e(k) - ex_f
-      end if
+      ex_f = nucleus(icomp_f)%e_grid(nbin_f)
+      if(e_f < 0.0d0)stop 'problem with primary decay: e_f < 0 in MC_primary_decay'
    else  
       e_f = ex_i - nucleus(icomp_i)%sep_e(k) -         &
                    nucleus(icomp_f)%state(nbin_f)%energy
@@ -1192,15 +954,10 @@
    end if
 
 
-!   write(41,'(3(1x,i5),1x,f5.1,1x,i5,1x,i3,3(1x,i5),2(1x,f5.1),i5)')                  &
-!      icomp_i, l_i, iX_i, xI_i, nbin_i, k, icomp_f, l_f, Ix_f, xI_f, xip_f, nbin_f
-
-
    part_data(1,num_part) = real(icomp_f,kind=8)
    part_data(2,num_part) = real(k,kind=8)
    part_data(3,num_part) = xI_f
    part_data(4,num_part) = xip_f
-!   part_data(4,num_part) = real(2*ip_f-1,kind=8)
    part_data(5,num_part) = real(nbin_f,kind=8)
    part_data(6,num_part) = real(idb,kind=8)
    part_data(7,num_part) = real(l_f,kind=8)
@@ -1267,42 +1024,25 @@
 
    phi_0 = two_pi*random_64(iseed)
 
-   mass_1 = particle(k)%Mass
-   if(idb == 0)then
-      mass_2 = nucleus(icomp_f)%Mass + nucleus(icomp_f)%e_grid(nbin_f)
-   else
-      mass_2 = nucleus(icomp_f)%Mass + nucleus(icomp_f)%state(nbin_f)%energy
-   end if
-
-!   write(6,*)'theta,phi', e_f, theta_0, phi_0
    part_data(9,num_part) = e_f
    part_data(10,num_part) = theta_0
    part_data(11,num_part) = phi_0
 
-!   if(k == 2 .and. T_1 >= 3.40001d0 .and. T_1 <= 3.6d0)then
-!       write(61,*)'before ',e_f, x
-!   end if
-!   if(k == 2 .and. T_1 >= 3.50001d0 .and. T_1 <= 3.6d0)then
-!       write(62,*)'before ',e_f, x
-!   end if
 
-
-
-   call Boost_frame(e_f, mass_1, mass_2, theta_0, phi_0,                &
-                    Boost_Lab, Boost_COM, T_1, theta, phi,              &
-                    T_2, T_L, theta_L, phi_L)
-
-   part_data(12,num_part) = T_1
-   part_data(13,num_part) = theta
-   part_data(14,num_part) = phi
-   part_data(15,num_part) = T_L
-   part_data(16,num_part) = theta_L
-   part_data(17,num_part) = phi_L
-   part_data(18,num_part) = T_2
+!   part_data(12,num_part) = T_1
+!   part_data(13,num_part) = theta
+!   part_data(14,num_part) = phi
+!   part_data(15,num_part) = T_L
+!   part_data(16,num_part) = theta_L
+!   part_data(17,num_part) = phi_L
+!   part_data(18,num_part) = T_2
    part_data(19,num_part) = tally_prob
    part_data(20,num_part) = ex_f
    part_data(21,num_part) = icomp_i
-   nucleus(icomp_f)%Kinetic_Energy = T_2
+   part_data(22,num_part) = xI_i
+   part_data(23,num_part) = 0.0d0
+   part_data(24,num_part) = -1.0d0
+!   nucleus(icomp_f)%Kinetic_Energy = T_2
 
 
 !   if(k == 2 .and. T_L >= 3.40001d0 .and. T_L <= 3.5d0)then
@@ -1322,8 +1062,7 @@
 subroutine force_decay(icomp_i, nbin_i,                              &
                        icomp_f, Ix_f, ip_f, nbin_f, idb,             &
                        n_dat, dim_part, num_part, part_data,         &
-                       Ang_L_max, part_Ang_data,                     &
-                       Boost_Lab, Boost_COM)
+                       Ang_L_max, part_Ang_data)
 !
 !*******************************************************************************
 !
@@ -1369,7 +1108,6 @@ subroutine force_decay(icomp_i, nbin_i,                              &
    real(kind=8), intent(inout) :: part_data(n_dat,dim_part)
    integer(kind=4), intent(in) :: Ang_L_max
    real(kind=8), intent(inout) :: part_Ang_data(0:Ang_L_max,dim_part)
-   real(kind=8), intent(inout) :: Boost_Lab(0:3,0:3), Boost_COM(0:3,0:3)
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !----------   Internal Data
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ 
@@ -1378,8 +1116,6 @@ subroutine force_decay(icomp_i, nbin_i,                              &
    real(kind=8) :: xnstate
 
    real(kind=8) :: costhp, sinthp, theta_0, phi_0
-   real(kind=8) :: T_1, T_2, mass_1, mass_2, theta, phi
-   real(kind=8) :: T_L, theta_L, phi_L
 
    real(kind=8) :: tally_prob
 
@@ -1429,31 +1165,23 @@ subroutine force_decay(icomp_i, nbin_i,                              &
    theta_0 = acos(costhp)
    phi_0 = two_pi*random_64(iseed)
 
-   mass_1 = particle(k)%Mass
-   if(idb == 0)then
-      mass_2 = nucleus(icomp_f)%Mass + nucleus(icomp_f)%e_grid(nbin_f)
-   else
-      mass_2 = nucleus(icomp_f)%Mass + nucleus(icomp_f)%state(nbin_f)%energy
-   end if
-
-   call Boost_frame(e_f, mass_1, mass_2, theta_0, phi_0,                &
-                    Boost_Lab, Boost_COM, T_1, theta, phi,              &
-                    T_2, T_L, theta_L, phi_L)
-
    part_data(9,num_part) = e_f
    part_data(10,num_part) = theta_0
    part_data(11,num_part) = phi_0
-   part_data(12,num_part) = T_1
-   part_data(13,num_part) = theta
-   part_data(14,num_part) = phi
-   part_data(15,num_part) = T_L
-   part_data(16,num_part) = theta_L
-   part_data(17,num_part) = phi_L
-   part_data(18,num_part) = T_2
+!   part_data(12,num_part) = T_1
+!   part_data(13,num_part) = theta
+!   part_data(14,num_part) = phi
+!   part_data(15,num_part) = T_L
+!   part_data(16,num_part) = theta_L
+!   part_data(17,num_part) = phi_L
+!   part_data(18,num_part) = T_2
    part_data(19,num_part) = tally_prob
    part_data(20,num_part) = ex_f
    part_data(21,num_part) = icomp_i
-   nucleus(icomp_f)%Kinetic_Energy = T_2
+   part_data(22,num_part) = -1.0d0
+   part_data(23,num_part) = 0.0d0
+   part_data(24,num_part) = real(nbin_i,kind=8)
+!   nucleus(icomp_f)%Kinetic_Energy = T_2
 
    if(.not.pop_calc)part_Ang_data(0,num_part) = 0.5e0
 
@@ -1469,12 +1197,28 @@ subroutine Boost_frame(e_f, mass_1, mass_2, theta_0, phi_0,                   &
 !
 !  Discussion:
 !
-!    This subroutine calculates and apply relativistic boost to the 
+!    This subroutine calculates and applies relativistic boost to the 
 !    current decay frame. Decays occur in rest frame of compound nucleus, 
 !    therefore, boost to Center of momentum or Lab frame
 !    returns T_1 = kinetic emergy of emitted fragment
 !    theta - angle measured relative to z-axis, or initial beam direction
 !    phi, azimuthal angle, which is not tracked                                          
+!
+!
+!    mass_1:    Mass of emitted particle
+!    mass_2:    Mass of residual nucleus
+!    Boost_Lab: Relativisitic Boost matrix to Lab frame
+!    Boost_COM: Relativisitic Boost matrix to COM frame
+!    e_f:       Kinetic Energy of emitted particle in rest frame of the compound nucleus
+!    theta_0:   Theta of emitted particle in rest frame
+!    phi_0:     Azimutal angle of emitted particle in rest frame
+!    T_1:       Kinetic Energy of the emitted particle in COM frame
+!    theta_1:   Theta of emitted particle in COM frame
+!    phi_1:     Azimutal angle of emitted particle in COM frame
+!    T_2:       Recoil kinetic energy of the residual nucleus
+!    T_L:       Kinetic energy of the emitted particle in the Lab frame
+!    theta_L:   Theta of emitted particle in Lab frame
+!    phi_L:     Azimutal angle of emitted particle in Lab frame
 !
 !  Licensing:
 !
@@ -1539,7 +1283,7 @@ subroutine Boost_frame(e_f, mass_1, mass_2, theta_0, phi_0,                   &
    end do
 !---------------------------   Kinetic energies in COM frame
    T_1 = p_1(0) - mass_1                                 !   Kinetic energy of emitted particle
-   T_2 = p_2(0) - mass_2                                 !   Kinetic energy of emitted particle
+   T_2 = p_2(0) - mass_2                                 !   Kinetic energy of residual nucleus
    pp = 0.0d0
    do i = 1, 3
       pp = pp + p_1(i)**2                                !  magnitude of vector momentum

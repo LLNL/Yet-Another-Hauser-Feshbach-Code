@@ -4,7 +4,7 @@
 subroutine Moldauer_WF(icomp,                                       &
                        k_a,l_a,xj_a,istate_a,xI_a,trans_a,          &
                        k_b,l_b,xj_b,istate_b,xI_b,                  &
-                       ibin,ip,xI,delta_e,energy,E_in,              &
+                       ibin,ip,xI,energy,                           &
                        exp_gamma,HF_den,F_trans,CHnorm,WF)
 !
 !*******************************************************************************
@@ -46,7 +46,7 @@ subroutine Moldauer_WF(icomp,                                       &
    real(kind=8), intent(in) :: xj_b, xI_b
    integer(kind=4), intent(in) :: ibin, ip
    real(kind=8), intent(in) :: xI
-   real(kind=8), intent(in) :: delta_e, energy, E_in, exp_gamma, HF_den, F_trans(4)
+   real(kind=8), intent(in) :: energy, exp_gamma, HF_den, F_trans(4)
    real(kind=8), intent(in) :: CHnorm
    real(kind=8), intent(out) :: WF
 !-------------------------------------------------------------------------+
@@ -101,7 +101,7 @@ subroutine Moldauer_WF(icomp,                                       &
       call Moldauer_product(icomp,                                       &
                             k_a,l_a,xj_a,istate_a,                       &
                             k_b,l_b,xj_b,istate_b,xI_b,                  &
-                            ibin,ip,xI,delta_e,energy,E_in,              &
+                            ibin,ip,xI,energy,                           &
                             HF_den,F_trans,x,CHnorm,Product_p)
       Product_g = exp(-exp_gamma*x)
       Product = Product_p*Product_g*factor
@@ -118,7 +118,7 @@ subroutine Moldauer_WF(icomp,                                       &
       call Moldauer_product(icomp,                                       &
                             k_a,l_a,xj_a,istate_a,                       &
                             k_b,l_b,xj_b,istate_b,xI_b,                  &
-                            ibin,ip,xI,delta_e,energy,E_in,              &
+                            ibin,ip,xI,energy,                           &
                             HF_den,F_trans,x,CHnorm,Product_p)
       Product_g = exp(-exp_gamma*x)
       Product = Product_p*Product_g*factor
@@ -172,7 +172,7 @@ end function xnu
 subroutine Moldauer_product(icomp,                               &
                             k_a,l_a,xj_a,istate_a,               &
                             k_b,l_b,xj_b,istate_b,xI_b,          &
-                            ibin,ip,xI,delta_e,energy,E_in,      &
+                            ibin,ip,xI,energy,                   &
                             HF_den,F_trans,x,CHnorm,Product)
 !
 !*******************************************************************************
@@ -213,7 +213,7 @@ subroutine Moldauer_product(icomp,                               &
    real(kind=8), intent(in) :: xj_b,xI_b
    integer(kind=4), intent(in) :: ibin,ip
    real(kind=8), intent(in) :: xI
-   real(kind=8), intent(in) :: delta_e,energy,E_in,HF_den, F_trans(4)
+   real(kind=8), intent(in) :: energy, HF_den, F_trans(4)
    real(kind=8), intent(in) :: x
    real(kind=8), intent(in) :: CHnorm
    real(kind=8), intent(out) :: Product
@@ -224,7 +224,7 @@ subroutine Moldauer_product(icomp,                               &
    integer(kind=4) j
    integer(kind=4) j_max
    integer(kind=4) l_c_min,l_c_max
-   integer(kind=4) nbin,jbin, num_j
+   integer(kind=4) nbin, num_j
    integer(kind=4) if1, i_c, n_c, ip_c
    integer(kind=4) k_c,l_c,EM_c
    real(kind=8) :: xj_c,xj_c_min,xj_c_max,xj_c_min1,xj_c_max1
@@ -298,15 +298,9 @@ subroutine Moldauer_product(icomp,                               &
             xj_c_max = real(l_c,kind=8) + p_spin
             isc = nint(xj_c_max - xj_c_min)
             do iss = 0, isc
-
-               if(E_in >= delta_e)then
-                  jbin = nucleus(i_c)%nbin - ibin - n_c + 1              !  index for transmission coeff array
-                  trans = particle(k_c)%trans(iss,l_c,jbin)                    !   on the grid
-               else
-                  trans = tco_interpolate(e_f,particle(k_c)%nume,                         &
-                                          particle(k_c)%e_grid,                           &
-                                          particle(k_c)%trans_read(1,iss,l_c))
-               end if
+               trans = tco_interpolate(e_f,particle(k_c)%nume,                            &
+                                       particle(k_c)%e_grid,                              &
+                                       particle(k_c)%trans_read(1,iss,l_c))
                if(trans < trans_p_cut)cycle
                xj_c = xj_c_min + real(iss,kind=8)
                xI_c_min = abs(xI - xj_c)
@@ -315,13 +309,11 @@ subroutine Moldauer_product(icomp,                               &
                Ix_c_max = min(nint(xI_c_max - nucleus(i_c)%jshift),nucleus(i_c)%j_max)
                do Ix_c = Ix_c_min, Ix_c_max                    !  loop over final j
                   xI_c = real(Ix_c,kind=8) + nucleus(i_c)%jshift
-                  N_eff = nucleus(i_c)%bins(Ix_c,ip_c,n_c)%rho*delta_e
+                  N_eff = nucleus(i_c)%bins(Ix_c,ip_c,n_c)%rho*   &
+                          nucleus(i_c)%delta_e(n_c)
                   trans_eff = trans*N_eff
                   if(trans_eff/CHnorm < prob_cut)cycle
                   exp_2 = 0.0d0
-!                  if(k_a == k_c .and. l_a == l_c .and. istate_a == -n_c .and.             &
-!                     abs(xj_a - xj_c) < 1.0d-3 .and. abs(xI_c - xI_a) < 1.0d-3)           &
-!                     exp_2 = exp2 + 1.0d0
                   if(k_b == k_c .and. l_b == l_c .and. istate_b == -n_c .and.             &
                      abs(xj_b - xj_c) < 1.0d-3 .and. abs(xI_c - xI_b) < 1.0d-3)           &
                      exp_2 = exp_2 + 1.0d0

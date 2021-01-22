@@ -34,9 +34,9 @@ subroutine set_up_decay_chain(Z_p, A_p, Z_t, A_t, num_comp)
    integer(kind=4), intent(in) :: Z_p, A_p, Z_t, A_t
    integer(kind=4), intent(out) :: num_comp
 !-------------------------------------------------------
-   integer(kind=4) :: inuc, inucp
+   integer(kind=4) :: inuc, inucp, num_nuc
    integer(kind=4) :: Z_i,A_i
-   integer(kind=4) :: i, k
+   integer(kind=4) :: i, k, n
    integer(kind=4) :: ia,ih,it,id,ip,in
    integer(kind=4) :: Z_f,N_f, A_f
    integer(kind=4) :: Z_pp, N_pp, A_pp
@@ -47,7 +47,7 @@ subroutine set_up_decay_chain(Z_p, A_p, Z_t, A_t, num_comp)
    integer(kind=4) ::  N_i,d_i,alpha_i
    integer(kind=4) ::  NZ
    real(kind=8) :: e_rel
-   integer, parameter :: max_nuc = 200
+   integer, parameter :: max_nuc = 500
    integer(kind=4) :: storeZA(2,max_nuc)                 !  Temporary storage array for compound nuclei
    real(kind=8) ::  store_exmax(max_nuc)                 !  Temporary storage array for compound nuclei
    real(kind=8) :: exmax
@@ -63,9 +63,10 @@ subroutine set_up_decay_chain(Z_p, A_p, Z_t, A_t, num_comp)
    integer(kind=4) :: nump(6)
    integer(kind=4) :: ichannel
    real(kind=8) :: max_e
+   integer(kind=8) :: istart, ifinish
 !-------------------------------------------------------
-   Z_i=Z_p+Z_t
-   A_i=A_p+A_t
+   Z_i = Z_p + Z_t
+   A_i = A_p + A_t
  
    N_i = A_i - Z_i
    NZ = min(Z_i,N_i)
@@ -164,8 +165,12 @@ subroutine set_up_decay_chain(Z_p, A_p, Z_t, A_t, num_comp)
                         storeZA(2,num_comp) = A_f
                         store_exmax(num_comp) = exmax
                      end if
-                     num_paths = num_paths + nint(factorial(npart)/(factorial(in)*factorial(ip)*factorial(id)*    &
-                                 factorial(it)*factorial(ih)*factorial(ia)))
+                     if(explicit_channels)then
+                        num_paths = num_paths + nint(factorial(npart)/(factorial(in)*factorial(ip)*factorial(id)*    &
+                                    factorial(it)*factorial(ih)*factorial(ia)))
+                     else
+                        num_paths = num_paths + 1
+                     end if
                      num = in + ip + id + it + ih + ia
                      if(num > max_num) max_num = num
                   end do
@@ -196,6 +201,7 @@ subroutine set_up_decay_chain(Z_p, A_p, Z_t, A_t, num_comp)
 !-----    Set up compound nuclei       !
 !-----    use same algorithm as above  !
 !--------------------------------------!
+   num_nuc = 0
    inuc = 0
    max_num = 0
    ichannel = 0
@@ -237,82 +243,115 @@ subroutine set_up_decay_chain(Z_p, A_p, Z_t, A_t, num_comp)
                      exmax = emax - sep_tot
                      found = .false.
 !----   Check if already made
-                     do i = 1, inuc
+                     do i = 1, num_nuc
                         if(Z_f == nucleus(i)%Z .and. A_f == nucleus(i)%A)then
                            if(exmax > store_exmax(i))store_exmax(i) = exmax
                            found=.true.
 !----   Found, but check if exmax is greater than current, if so, use this instead
                            if(exmax > nucleus(i)%Ex_max)nucleus(i)%Ex_max = exmax
+                           inuc = i
                            exit
                         end if
                      end do
 !----   Not made previously, so add to list and fill data arrays
                      if(.not.found)then
-                        inuc = inuc + 1
-                        if(inuc > num_comp) stop "inuc > num_comp"
-                        nucleus(inuc)%Z = Z_f
-                        nucleus(inuc)%A = A_f
-                        nucleus(inuc)%D0exp=-1.0d0
-                        nucleus(inuc)%dD0exp=-1.0d0
-                        nucleus(inuc)%D1exp=-1.0d0
-                        nucleus(inuc)%dD1exp=-1.0d0
-                        nucleus(inuc)%Gamma_g = -1.0d0
-                        nucleus(inuc)%Gamma_g_exp = -1.0d0
-                        nucleus(inuc)%dGamma_g_exp = -1.0d0
-                        nucleus(inuc)%Gamma_g_1 = -1.0d0
-                        nucleus(inuc)%Gamma_g_1_exp = -1.0d0
-                        nucleus(inuc)%dGamma_g_1_exp = -1.0d0
-                        nucleus(inuc)%beta(2) = 0.0d0
-                        nucleus(inuc)%beta(3) = 0.0d0
-                        nucleus(inuc)%beta(4) = 0.0d0
-                        nucleus(inuc)%beta(5) = 0.0d0
-                        nucleus(inuc)%beta(6) = 0.0d0
+                        num_nuc = num_nuc + 1
+                        inuc = num_nuc
+                        if(num_nuc > num_comp) stop "inuc > num_comp"
+                        nucleus(num_nuc)%Z = Z_f
+                        nucleus(num_nuc)%A = A_f
+                        nucleus(num_nuc)%D0exp = -1.0d0
+                        nucleus(num_nuc)%dD0exp = -1.0d0
+                        nucleus(num_nuc)%D1exp = -1.0d0
+                        nucleus(num_nuc)%dD1exp = -1.0d0
+                        nucleus(num_nuc)%Gamma_g = -1.0d0
+                        nucleus(num_nuc)%Gamma_g_exp = -1.0d0
+                        nucleus(num_nuc)%dGamma_g_exp = -1.0d0
+                        nucleus(num_nuc)%Gamma_g_1 = -1.0d0
+                        nucleus(num_nuc)%Gamma_g_1_exp = -1.0d0
+                        nucleus(num_nuc)%dGamma_g_1_exp = -1.0d0
+                        nucleus(num_nuc)%beta(2) = 0.0d0
+                        nucleus(num_nuc)%beta(3) = 0.0d0
+                        nucleus(num_nuc)%beta(4) = 0.0d0
+                        nucleus(num_nuc)%beta(5) = 0.0d0
+                        nucleus(num_nuc)%beta(6) = 0.0d0
 			
 
                         if(A_f > 20)then
-                           nucleus(inuc)%lev_option = 1
-                           if(A_f > 130) nucleus(inuc)%lev_option = 2
-                           nucleus(inuc)%fit_aparam=.false.   !   When fitting to D0 do we adjust a-parameter
+                           nucleus(num_nuc)%lev_option = 1
+                           if(A_f > 130) nucleus(num_nuc)%lev_option = 2
+                           nucleus(num_nuc)%fit_aparam=.false.   !   When fitting to D0 do we adjust a-parameter
                                                               !   or shell correction 
                         else
-                           nucleus(inuc)%lev_option = 0
-                           nucleus(inuc)%fit_aparam=.true.    !   When fitting to D0 do we adjust a-parameter
+                           nucleus(num_nuc)%lev_option = 0
+                           nucleus(num_nuc)%fit_aparam = .true.    !   When fitting to D0 do we adjust a-parameter
                                                               !   or shell correction 
                         end if
-                        nucleus(inuc)%pair_model = 1
-                        nucleus(inuc)%level_param(1:11)=0.0d0
-                        nucleus(inuc)%fit_D0=.true.       !   Fit to D0 (if known)  
-                        nucleus(inuc)%fit_ematch=.true.   !   Fit ematch to cummlative level density
+                        nucleus(num_nuc)%pair_model = 1
+                        nucleus(num_nuc)%level_param(1:11) = 0.0d0
+                        nucleus(num_nuc)%fit_D0 = .true.       !   Fit to D0 (if known)  
+                        nucleus(num_nuc)%fit_ematch = .true.   !   Fit ematch to cummlative level density
                                                        !----------   Now set up connections in the primary array nucleus so that
                                                        !----------   the HF denominators can be calculated
                                                        !             to overide set to false with 
                                                        !             option lev_fit_ematch for each nucleus
                                                        !             or globally with fit_ematch; 0 for false, 1 for true
-                        nucleus(inuc)%fission_read=.false.       !  Set true once fission parameters from default are read  
-                        nucleus(inuc)%atomic_symbol=symb(Z_f)
-                        nucleus(inuc)%BE = be_f
-                        nucleus(inuc)%ME = me_f
-                        nucleus(inuc)%Mass = real(A_f, kind=8)*mass_u + me_f
-                        nucleus(inuc)%Ex_max = exmax
-                        nucleus(inuc)%Kinetic_energy = 0.0
-                        nucleus(inuc)%dKinetic_energy = 0.0
-                        nucleus(inuc)%nump(1:6) = 0
-                        nucleus(inuc)%num_part_decay = 0
+                        nucleus(num_nuc)%fission_read = .false.       !  Set true once fission parameters from default are read  
+                        nucleus(num_nuc)%atomic_symbol = symb(Z_f)
+                        nucleus(num_nuc)%BE = be_f
+                        nucleus(num_nuc)%ME = me_f
+                        nucleus(num_nuc)%Mass = real(A_f, kind=8)*mass_u + me_f
+                        nucleus(num_nuc)%Ex_max = exmax
+                        nucleus(num_nuc)%Kinetic_energy = 0.0
+                        nucleus(num_nuc)%dKinetic_energy = 0.0
+                        nucleus(num_nuc)%nump(1:6) = 0
+                        nucleus(num_nuc)%num_part_decay = 0
                         if(iand(A_f,1) == 0)then
-                           nucleus(inuc)%jshift=0.0                       !   j-shift for level densities
+                           nucleus(num_nuc)%jshift = 0.0                       !   j-shift for level densities
                         else                                              !   =0.5 for odd-A nuclei
-                           nucleus(inuc)%jshift=0.5                       !   =0 for even-A nuclei
+                           nucleus(num_nuc)%jshift = 0.5                       !   =0 for even-A nuclei
                         end if
-                        nucleus(inuc)%sep_e(0:6)=0.0d0
-                        do i=1,6
-                           nucleus(inuc)%sep_e(i)=sep_f(i)            !  separation energy neutron to alpha
+                        nucleus(num_nuc)%sep_e(0:6) = 0.0d0
+                        do i = 1, 6
+                           nucleus(num_nuc)%sep_e(i) = sep_f(i)            !  separation energy neutron to alpha
                         end do
                      end if
 
                      num = in + ip + id + it + ih + ia
                      if(num > max_num) max_num = num
 !----  Set up all the channels for this final compound nucleus - note ichannel is incremented in make_channels
-                     call make_channels(num, nump, inuc, ichannel)
+                     if(explicit_channels)then
+                        if(num > 21)stop 'Too many exit particles for option "explicit_channels", num > 21'
+                        call make_channels(num, nump, inuc, ichannel)
+                     else
+                        ichannel = ichannel + 1
+                        Exit_channel(ichannel)%Channel_code = -1
+                        Exit_channel(ichannel)%Final_nucleus = inuc
+                        Exit_channel(ichannel)%Channel_Label(1:100) = ' '
+                        istart = 1
+                        ifinish = istart
+                        Exit_channel(ichannel)%Channel_Label(1:1) = 'g'
+                        Exit_Channel(ichannel)%num_part(1:6) = 0
+                        do k = 1, 6
+                           Exit_Channel(ichannel)%num_part(k) = nump(k)
+                           if(nump(k) == 0)cycle
+                           if(nump(k) > 9)then
+                              ifinish = istart + 1
+                              write(Exit_channel(ichannel)%Channel_Label(istart:ifinish),           &
+                                    '(i2)')nump(k)
+                              istart = ifinish + 1
+                           elseif(nump(k) > 1)then
+                              ifinish = istart
+                              write(Exit_channel(ichannel)%Channel_Label(istart:ifinish),           &
+                                    '(i1)')nump(k)
+                              istart = ifinish + 1
+                           end if
+                           ifinish = istart
+                           Exit_channel(ichannel)%Channel_Label(istart:ifinish) = particle(k)%label
+                           istart = istart + 1
+                        end do
+!           write(6,*)ichannel,Exit_channel(ichannel)%Channel_Label(1:ifinish)
+                     end if
                   end do
                end do
             end do
@@ -320,7 +359,19 @@ subroutine set_up_decay_chain(Z_p, A_p, Z_t, A_t, num_comp)
       end do
    end do
 
+!  stop
 
+!----    Reset max_particle to reflect those actually encountered in the decay chains
+   do i = 1, num_channels
+      nump(1:6) = 0
+      do n = 1, Exit_channel(ichannel)%num_particles
+         k = Exit_channel(ichannel)%decay_particles(n)
+         nump(k) = nump(k) + 1
+      end do
+      do k = 1, 6
+         max_particle(k) = max(nump(k),max_particle(k))
+      end do
+   end do
 
    do inuc = 1, num_comp
 !-----   First allow gammas - always allowed
@@ -451,7 +502,7 @@ subroutine set_up_decay_chain(Z_p, A_p, Z_t, A_t, num_comp)
       if(iand(Z_f,1) == 0 .and. iand(N_f,1) == 0)nucleus(inuc)%Delta_exp = (D_p + D_n)
       if(iand(Z_f,1) == 1 .and. iand(N_f,1) == 0 .or.             &
          iand(Z_f,1) == 0 .and. iand(N_f,1) == 1)nucleus(inuc)%Delta_exp = 0.5d0*(D_p + D_n)
-     if(iand(Z_f,1) == 1 .and. iand(N_f,1) == 1)nucleus(inuc)%Delta_exp = 0.0d0
+      if(iand(Z_f,1) == 1 .and. iand(N_f,1) == 1)nucleus(inuc)%Delta_exp = 0.0d0
 
 
    end do
@@ -497,40 +548,41 @@ subroutine make_channels(num_part_tot, num_part, inuc, ichannel)
    integer(kind=4), intent(in) :: num_part_tot
    integer(kind=4), intent(in) :: num_part(6)
    integer(kind=4), intent(in) :: inuc
-   integer(kind=4), intent(out) :: ichannel
+   integer(kind=4), intent(inout) :: ichannel
 !---------------------------------------------------
    integer(kind=4) :: sum(6)
    logical too_many
-   integer(kind=4) :: k, n, nloops, low(16), hi(16), idex(16)
+   integer(kind=4) :: k, n, nloops
+   integer(kind=4), allocatable :: low(:), hi(:), idex(:)
 
-   integer(kind=4) :: channel_code
+   integer(kind=8) :: channel_code
+!   integer(kind=4) :: channel_code
 
    nloops = num_part_tot 
 
-   low(1:nloops) = 1
-   hi(1:nloops) = 6
 
    if(nloops == 0)then
       ichannel = ichannel + 1
       channel_code = 0
       Exit_channel(ichannel)%Channel_code = channel_code
       Exit_channel(ichannel)%num_particles = num_part_tot
-      Exit_channel(ichannel)%Channel_Label(1:20) = ' '
+      Exit_channel(ichannel)%Channel_Label(1:100) = ' '
       Exit_channel(ichannel)%Channel_Label(1:1) = 'g'   
-      do n = 1, nloops
-         Exit_channel(ichannel)%decay_particles(n) = idex(n)
-         Exit_Channel(ichannel)%Channel_Label(n:n) = particle(idex(n))%label            
-      end do
       Exit_channel(ichannel)%Final_nucleus = inuc
       return
    end if
 
+   if(.not.allocated(low))allocate(low(1:num_part_tot))
+   if(.not.allocated(hi))allocate(hi(1:num_part_tot))
+   if(.not.allocated(idex))allocate(idex(1:num_part_tot))
+
+   low(1:nloops) = 1
+   hi(1:nloops) = 6
 
    do n = 1, nloops
       idex(n) = min(low(n), hi(n))
       if(idex(n) < low(n)) return       !      didn't do anything
    end do
-
 
    do while(idex(1) <= hi(1))
 
@@ -542,17 +594,19 @@ subroutine make_channels(num_part_tot, num_part, inuc, ichannel)
       do k = 1, 6
          if(sum(k) > num_part(k))too_many = .true.
       end do
-
       if(.not. too_many)then
          ichannel = ichannel + 1
+         do k = 1, 6
+            Exit_channel(ichannel)%num_part(k) = num_part(k)
+         end do
          channel_code = 0
          do n = 1, nloops
             channel_code = ior(channel_code,ishft(idex(n),(n-1)*3))
          end do
          Exit_channel(ichannel)%Channel_code = channel_code
          Exit_channel(ichannel)%num_particles = num_part_tot
-         Exit_channel(ichannel)%Channel_Label(1:20) = ' '
-         allocate(Exit_channel(ichannel)%decay_particles(nloops))
+         Exit_channel(ichannel)%Channel_Label(1:100) = ' '
+         allocate(Exit_channel(ichannel)%decay_particles(num_part_tot))
          do n = 1, nloops
             Exit_channel(ichannel)%decay_particles(n) = idex(n)
             Exit_Channel(ichannel)%Channel_Label(n:n) = particle(idex(n))%label
@@ -567,6 +621,10 @@ subroutine make_channels(num_part_tot, num_part, inuc, ichannel)
          end if
       end do
    end do
+
+   if(allocated(low))deallocate(low)
+   if(allocated(hi))deallocate(hi)
+   if(allocated(idex))deallocate(idex)
 
    return
 end subroutine make_channels

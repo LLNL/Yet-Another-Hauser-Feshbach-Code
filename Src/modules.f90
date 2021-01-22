@@ -32,7 +32,7 @@ module options
 !
    use variable_kinds
    character(len=132) version
-   parameter (version = 'MC-3.13')
+   parameter (version = 'MC-3.15')
    integer(kind=int_64) :: iseed
    logical ran_setup
    integer(kind=4) PREEQ_Model
@@ -42,6 +42,14 @@ module options
    logical dump_events
    logical binary_event_file
    logical track_gammas, track_primary_gammas
+   logical pop_calc
+   logical j_pop_calc
+   logical fit_Gamma_gamma
+   logical All_gammas
+   logical Out_gammas_vs_E
+   logical :: explicit_channels
+   logical Preeq_g_a
+!-------------------------------------------
    integer(kind=4) :: output_mode
    integer(kind=4) :: preeq_pair_model
    real(kind=8) :: preeq_delta
@@ -58,11 +66,6 @@ module options
    integer(kind=4) :: E1_model
    integer(kind=4)  e_l_max,m_l_max
    character(len=50) ex_pop_file
-   logical pop_calc
-   logical j_pop_calc
-   logical fit_Gamma_gamma
-   logical All_gammas
-   logical Out_gammas_vs_E
    integer(kind=4) :: num_pop_e,num_pop
    real(kind=8) :: rho_cut
    type Pop_type
@@ -78,9 +81,7 @@ module options
 
    integer(kind=4) :: pair_model
    real(kind=8) :: Preeq_V, Preeq_V1, Preeq_K
-!   real(kind=8) :: Preeq_V, Preeq_V_part(2)
    real(kind=8) :: Preeq_g_div
-   logical Preeq_g_a
 !------   Scale factor for cross sections - b vs mb
    real(kind=8) :: cs_scale
    character(len = 2) :: cs_units
@@ -97,16 +98,13 @@ module options
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !-----   Optical Model
    character(len=6)  optical
-!   character(len=20) :: OM_pot
-!   logical :: OM_pot_set
-!   integer(kind=4) :: OM_option
    integer(kind=4) :: ifresco_shape
    character(len=132) :: local_cc_file
    logical exist_cc_file
    real(kind=8) :: cc_scale
-   logical :: scale_elastic
    logical :: do_dwba
 
+   logical :: scale_elastic
    real(kind=8) :: elastic_scale, elastic_shift, elastic_damp
    real(kind=8) :: Fiss_Max_J
 
@@ -122,7 +120,6 @@ module options
    integer(kind=4) :: re_baseline
 
    real(kind=8) :: Init_Kinetic_Energy, dInit_Kinetic_Energy
-
 
 end module options
 !
@@ -247,8 +244,10 @@ module Channel_info
       real(kind=8) :: Q_value
       integer(kind=4) :: num_particles
       integer(kind=4), allocatable, dimension(:) :: decay_particles
-      integer(kind=4) :: Channel_code
-      character(len=20) :: Channel_Label
+      integer(kind=4), dimension(1:6) :: num_part
+      integer(kind=8) :: Channel_code
+!      integer(kind=4) :: Channel_code
+      character(len=100) :: Channel_Label
       integer(kind=4) :: Final_nucleus
       integer(kind=4) :: num_cs
       integer(kind=4) :: num_event
@@ -333,7 +332,8 @@ module nuclei
       integer(kind=4), allocatable, dimension (:) :: decay_to
       integer(kind=4), allocatable, dimension (:) :: decay_particle
       real(kind=8), allocatable, dimension (:) :: HF_prob
-      real(kind=8), allocatable, dimension (:) :: HF_prob2
+!      real(kind=8), allocatable, dimension (:) :: HF_prob2
+!      real(kind=8), allocatable, dimension (:) :: HF_prob3
       real(kind=8), allocatable, dimension (:) :: HF_trans
       type(bin_decay), allocatable, dimension (:) :: nuke_decay
    end type bin_data
@@ -401,18 +401,19 @@ module nuclei
       integer(kind=4) :: pair_model
       real(kind=8) :: Ex_max                                          !  maximum excitation energy
       real(kind=8) :: Kinetic_energy                                  !  Lab kinetic energy of nucleus
-      real(kind=8) :: dKinetic_energy                                  !  Lab kinetic energy of nucleus
+      real(kind=8) :: dKinetic_energy                                 !  Lab kinetic energy of nucleus
       logical PREEQ
 !-----  Info definging bin structure
       integer(kind=4) :: nbin                                         !  number of excitation energy bins
       real(kind=8) :: jshift                                          !  = 0.5 of odd A = 0 for even A
       integer(kind=4) :: j_max                                        !  number of angular momentum bins
-      real(kind=8), allocatable, dimension (:) :: e_grid               !  Energies for the level density grid
-      real(kind=8), allocatable, dimension (:,:,:) :: pop              !  Populations (E,J,pi)
-      real(kind=8), allocatable, dimension (:,:) :: PREEQ_pop          !  Populations removed from compound due to pree-equilibirum for J,pi states
-      real(kind=8), allocatable, dimension (:,:,:) :: rho              !  level densities (E,J,pi)
-      real(kind=8), allocatable, dimension (:,:,:) :: HF_den           !  Hauser-Feshbach denominators for each bin
-      real(kind=8), allocatable, dimension (:,:,:,:) :: HF_prob           !  Hauser-Feshbach decay prob for particle type
+      real(kind=8), allocatable, dimension (:) :: e_grid              !  Energies for the level density grid
+      real(kind=8), allocatable, dimension (:) :: delta_e             !  Energy spacing for the grid point - useful for unequal bins
+      real(kind=8), allocatable, dimension (:,:,:) :: pop             !  Populations (E,J,pi)
+      real(kind=8), allocatable, dimension (:,:) :: PREEQ_pop         !  Populations removed from compound due to pree-equilibirum for J,pi states
+      real(kind=8), allocatable, dimension (:,:,:) :: rho             !  level densities (E,J,pi)
+      real(kind=8), allocatable, dimension (:,:,:) :: HF_den          !  Hauser-Feshbach denominators for each bin
+      real(kind=8), allocatable, dimension (:,:,:,:) :: HF_prob       !  Hauser-Feshbach decay prob for particle type
       type(bin_data), allocatable, dimension(:,:,:) :: bins
 
 !------  Data structures holding cross section data

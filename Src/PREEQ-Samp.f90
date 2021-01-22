@@ -4,9 +4,9 @@
 subroutine PREEQ_sample(iproj, in, itarget, istate, e_in, ex_tot,      &
                         l_i, is_i, Ix_i, ip_i, icomp_i, icomp_f,       &
                         Ix_f, l_f, ip_f, nbin_f, idb,                  &
-                        n_dat, dim_part, num_part, part_data,          &
-                        Ang_L_max, part_Ang_data, x_Ang,               &
-                        Boost_Lab, Boost_COM)
+                        n_dat, dim_part, num_part_type, part_fact,     &
+                        num_part, part_data,                           &
+                        Ang_L_max, part_Ang_data, x_Ang)
 !
 !*******************************************************************************
 !
@@ -45,12 +45,13 @@ subroutine PREEQ_sample(iproj, in, itarget, istate, e_in, ex_tot,      &
    integer(kind=4), intent(in) :: l_i, is_i, Ix_i, ip_i, icomp_i
    integer(kind=4), intent(out) :: icomp_f, Ix_f, l_f, ip_f, nbin_f, idb
    integer(kind=4), intent(in) :: n_dat, dim_part
+   integer(kind=4), intent(inout) :: num_part_type(6)
+   real(kind=8), intent(inout) :: part_fact(0:7)
    integer(kind=4), intent(out) :: num_part
    real(kind=8), intent(out) :: part_data(n_dat,dim_part)
    integer(kind=4), intent(in) :: Ang_L_max
    real(kind=8), intent(out) :: part_Ang_data(0:Ang_L_max,dim_part)
    real(kind=8), intent(out) :: x_Ang
-   real(kind=8), intent(out) :: Boost_lab(0:3,0:3), Boost_COM(0:3,0:3)
 !--------------------------------    Internal data
    real(kind=8) :: preeq_cs, preeq_cs_k
    integer(kind=4) :: i, k, kk, m
@@ -68,16 +69,13 @@ subroutine PREEQ_sample(iproj, in, itarget, istate, e_in, ex_tot,      &
 
 
    real(kind=8) :: dee
+   real(kind=8) :: e_grid, delta_e
 
    real(kind=8) :: costhp, sinthp, theta_0, phi_0
-   real(kind=8) :: T_1, T_2, mass_1, mass_2, theta, phi
-   real(kind=8) :: T_L, theta_L, phi_L
 
    real(kind=8) :: prob_part(0:6)
    real(kind=8) :: sum_prob
    real(kind=8) :: tally_prob
-
-   real(kind=8) :: shift
 
 !--------------------------------    External functions
    real(kind=8) :: random_64
@@ -114,7 +112,7 @@ subroutine PREEQ_sample(iproj, in, itarget, istate, e_in, ex_tot,      &
 
      tally_prob =1.0d0
 
-     dee = de/2.0d0
+!     dee = de/2.0d0
      cpar = particle(iproj)%par*nucleus(itarget)%state(istate)%parity
      par = cpar*(-1.0d0)**l_i
      xj_i = abs(real(l_i,kind=8) - particle(iproj)%spin) + real(is_i,kind=8) 
@@ -161,6 +159,13 @@ subroutine PREEQ_sample(iproj, in, itarget, istate, e_in, ex_tot,      &
 
 
      if(k == -1)stop 'k not set properly in PREEQ_Samp'
+
+     if(k > 0 .and. k <= 6)then
+        num_part_type(k) = num_part_type(k) + 1
+        if(num_part_type(k) >= max_particle(k))part_fact(k) = 0.0d0
+     end if
+
+
      ran = random_64(iseed)
      preeq_cs_k = nucleus(icomp_i)%PREEQ_part_cs(kk,in)
      e_max = max(ex_tot - nucleus(icomp_i)%sep_e(k),0.0d0)
@@ -185,37 +190,43 @@ subroutine PREEQ_sample(iproj, in, itarget, istate, e_in, ex_tot,      &
 !------   Finds angle based Kalbach-Mann statistics for pre-equilibrium
 !------   emission
 !
-
      call PREEQ_Angular(icomp_i, icomp_f, iproj, e_in, k, energy,            &
                         dim_part, num_part, Ang_L_max, part_Ang_data, x_Ang)
 
-
-!     x_ang = 2.0d0*random_64(iseed) - 1.0d0       !   test to make it isotropic
      if(abs(x_Ang) > 1.0d0)stop 'cos(theta) wrong in PREEQ_sample'
      theta_0 = acos(x_Ang)
-!     write(20,*)x_Ang, theta_0
 
 !-----------------------------------------  Find energy bin, or discrete state
-     ex_min_bin = nucleus(icomp_f)%e_grid(1) - de/2.0d0
+!     ex_min_bin = nucleus(icomp_f)%e_grid(1) - de/2.0d0
+     ex_min_bin = nucleus(icomp_f)%e_grid(1) - 0.5d0*nucleus(icomp_f)%delta_e(1)
 
 !------
-!------   Decay to a continuos energy bin, defined by nbin_f
+!------   Decay to a continuous energy bin, defined by nbin_f
 !------
 
      if(ex_final > e_cut .and. ex_final > ex_min_bin)then     !  energy bin
-        nbin_f = int((ex_final - ex_min_bin)/de) + 1
+!        nbin_f = int((ex_final - ex_min_bin)/de) + 1
+!----   find nbin_f
+!----   Now, must search e_grid since we are allowing for the possibility of 
+!----   unequal bins
+!----   start from the bottom
+        nbin_f = 0
+        do i = 1, nucleus(icomp_f)%nbin
+           e_grid = nucleus(icomp_f)%e_grid(i)
+           delta_e = nucleus(icomp_f)%delta_e(i)
+           if((ex_final >= e_grid - 0.5d0*delta_e) .and.                    &
+              (ex_final < e_grid + 0.5d0*delta_e))then
+              nbin_f = i
+              exit
+           end if
+        end do
 !-------
         if(nbin_f <= 0) nbin_f = 1
         idb = 0
 
-        if(energy <= de)then
-           energy = de*random_64(iseed)
-           ex_final = ex_tot - energy - nucleus(icomp_i)%sep_e(k)
-        else           
-           shift = de*(random_64(iseed) - 0.5d0)
-           energy = energy + shift
-           ex_final = ex_tot - energy - nucleus(icomp_i)%sep_e(k)
-        end if
+        ex_final = nucleus(icomp_f)%e_grid(nbin_f)
+        energy = ex_tot - ex_final - nucleus(icomp_i)%sep_e(k)
+
         mass_e = particle(k)%mass
 
 !------
@@ -264,7 +275,6 @@ subroutine PREEQ_sample(iproj, in, itarget, istate, e_in, ex_tot,      &
 !----
         if(rho_sum >= 1.0d-6)then
            ran = random_64(iseed)
-!           ran = ran3(iseed)
            prob = 0.0d0
            do Ix_f = ixI_f_min, ixI_f_max
               prob = prob + nucleus(icomp_f)%bins(Ix_f, ip_f, nbin_f)%rho/rho_sum
@@ -273,7 +283,7 @@ subroutine PREEQ_sample(iproj, in, itarget, istate, e_in, ex_tot,      &
         else
 !
 !---- If rho_sum = 0.0, then this decay can't happen due to no states
-!---- being in the angular momentum window. Generlaly rare, but possible
+!---- being in the angular momentum window. Generally rare, but possible
 !---- for lighter nuclei with lower level densities, high emission energy,
 !---- and higher initial angular momentum. In this case, reduce spin to
 !---- first angular momentum bin with non-zero level density. If, for some
@@ -289,8 +299,10 @@ subroutine PREEQ_sample(iproj, in, itarget, istate, e_in, ex_tot,      &
 
      else                         ! Discrete state
 !----- Trap that ex_final is actually greater than e_cut
-        if(ex_final > e_cut)ex_final = e_cut - de*random_64(iseed)
+!        if(ex_final > e_cut)ex_final = e_cut - de*random_64(iseed)
+        if(ex_final > e_cut)ex_final = e_cut - nucleus(icomp_f)%delta_e(1)*random_64(iseed)
 
+        dee = 0.5d0*nucleus(icomp_f)%delta_e(1)
         idb = 1
         nbin_f = 0
         frac = 0
@@ -320,7 +332,7 @@ subroutine PREEQ_sample(iproj, in, itarget, istate, e_in, ex_tot,      &
                  exit
               end if
            end do
-!------------   Lastly it is possible due to roundoff error that the energy could fall just below the 
+!------------   Lastly, it is possible due to roundoff error that the energy could fall just below the 
 !------------   tolerance for the ground-state, returning nbin_f = 0, which will cause a seg fault
 !------------   force decay to ground state
            if(nbin_f == 0) nbin_f = 2                !   lowest state has to be first excited state
@@ -351,9 +363,9 @@ subroutine PREEQ_sample(iproj, in, itarget, istate, e_in, ex_tot,      &
         end if
 
      end if
-
+!
 !----   Store date for decay in part_data, specifying all aspects of this decay
-
+!
      part_data(1,num_part) = real(icomp_f,kind=8)
      part_data(2,num_part) = real(k,kind=8)
      part_data(3,num_part) = xI_f
@@ -373,33 +385,36 @@ subroutine PREEQ_sample(iproj, in, itarget, istate, e_in, ex_tot,      &
      sinthp = sqrt(1.0-costhp**2)
      phi_0 = two_pi*random_64(iseed)
 
-     mass_1 = particle(k)%Mass
-     if(idb == 0)then
-        mass_2 = nucleus(icomp_f)%Mass + nucleus(icomp_f)%e_grid(nbin_f)
-     else
-        mass_2 = nucleus(icomp_f)%Mass + nucleus(icomp_f)%state(nbin_f)%energy
-     end if
+!     mass_1 = particle(k)%Mass
+!     if(idb == 0)then
+!        mass_2 = nucleus(icomp_f)%Mass + nucleus(icomp_f)%e_grid(nbin_f)
+!     else
+!        mass_2 = nucleus(icomp_f)%Mass + nucleus(icomp_f)%state(nbin_f)%energy
+!     end if
 !
 !----   Compute energy, angles, all decay data in original COM frame and
 !----   Lab frame. 
 
-     call Boost_frame(energy, mass_1, mass_2, theta_0, phi_0,                   &
-                      Boost_Lab, Boost_COM, T_1, theta, phi,                    &
-                      T_2, T_L, theta_L, phi_L)
+!     call Boost_frame(energy, mass_1, mass_2, theta_0, phi_0,                   &
+!                      Boost_Lab, Boost_COM, T_1, theta, phi,                    &
+!                      T_2, T_L, theta_L, phi_L)
 
      part_data(10,num_part) = theta_0
      part_data(11,num_part) = phi_0
-     part_data(12,num_part) = T_1
-     part_data(13,num_part) = theta
-     part_data(14,num_part) = phi
-     part_data(15,num_part) = T_L
-     part_data(16,num_part) = theta_L
-     part_data(17,num_part) = phi_L
-     part_data(18,num_part) = T_2
+!     part_data(12,num_part) = T_1
+!     part_data(13,num_part) = theta
+!     part_data(14,num_part) = phi
+!     part_data(15,num_part) = T_L
+!     part_data(16,num_part) = theta_L
+!     part_data(17,num_part) = phi_L
+!     part_data(18,num_part) = T_2
      part_data(19,num_part) = tally_prob
      part_data(20,num_part) = ex_final
      part_data(21,num_part) = icomp_i
-     nucleus(icomp_f)%Kinetic_Energy = T_2
+     part_data(22,num_part) = nucleus(itarget)%state(istate)%spin
+     part_data(23,num_part) = nucleus(itarget)%state(istate)%parity
+     part_data(24,num_part) = istate
+!     nucleus(icomp_f)%Kinetic_Energy = T_2
 
    return
 end subroutine PREEQ_Sample

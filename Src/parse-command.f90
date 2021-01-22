@@ -64,6 +64,7 @@ subroutine parse_command(num_comp,icommand,command,finish)
    real(kind=8) :: xnorm
    integer(kind=int_64) :: one_int_64
 !-----------------   External functions ------------------------------
+   integer particle_index
 !---------------------------------------------------------------------
    interact=.false.
    if(command(1:1) == '#' .or. command(1:1) == '!')return
@@ -177,8 +178,28 @@ subroutine parse_command(num_comp,icommand,command,finish)
 !
    if(command(startw(1):stopw(1)) == 'projectile')then
       icommand = icommand + 1
-      if(numw < 3)then
-         write(6,*)'Error in input for option "projectile"'
+      if(numw == 2)then
+         i = particle_index(command(startw(2):stopw(2)))
+         if(i < 1)stop 'Particle misidentified in command "projectile"'
+         projectile%particle_type = i
+         projectile%Z = particle(i)%Z
+         projectile%A = particle(i)%A
+         projectile%specified = .true.
+!-----    Set values for pree-equilibrium model for incident neutrons and protons
+         if(i == 1)then
+            Preeq_V = 38.0d0
+            Preeq_V1 = 12.0d0
+            Preeq_K = 245.0d0
+         elseif(i == 2)then
+            Preeq_V = 38.0d0
+            Preeq_V1 = 22.0d0
+            Preeq_K = 450.0d0
+         end if
+!
+!------   Make sure max_particle(iproj) >= 1
+!
+!              if(max_particle(i) >= 0)max_particle(i) = max(max_particle(i),1)
+         if(max_particle(i) >= 0)max_particle(i) = -1
          return
       end if
       read(command(startw(2):stopw(2)),*)projectile%Z
@@ -202,7 +223,8 @@ subroutine parse_command(num_comp,icommand,command,finish)
 !
 !------   Make sure max_particle(iproj) >= 1
 !
-              if(max_particle(i) >= 0)max_particle(i) = max(max_particle(i),1)
+!              if(max_particle(i) >= 0)max_particle(i) = max(max_particle(i),1)
+              if(max_particle(i) >= 0)max_particle(i) = -1
               return
          end if
       end do
@@ -315,7 +337,9 @@ subroutine parse_command(num_comp,icommand,command,finish)
          write(6,*)'Error in input for option "max_particle"'
          return
       end if
-      read(command(startw(2):stopw(2)),*)k
+!      read(command(startw(2):stopw(2)),*)k
+      k = particle_index(command(startw(2):stopw(2)))
+      if(k < 1)stop 'Particle misidentified in command "max_particle"'
       read(command(startw(3):stopw(3)),*)i
 !---   set max_particle(k). Note if k == iproj, max_particle >=1
 !---   namely, it can't be zero, so prevent user from making an error
@@ -2099,12 +2123,9 @@ subroutine parse_command(num_comp,icommand,command,finish)
 !----   particle type is in 2nd word
       istart = startw(2)
       istop = stopw(2)
-      read(command(istart:istop),*)k
-      if(k <= 0 .or. k > 6)then
-         write(6,*)'Error in input for option "optical_potential"'
-         write(6,*)'Illegal particle type to set optical potential'
-         return
-      end if
+!      read(command(istart:istop),*)k
+      k = particle_index(command(startw(2):stopw(2)))
+      if(k < 1)stop 'Particle misidentified in command "optical_potential"'
 !----   optical potential type is in 3rd word
       istart = startw(3)
       istop = stopw(3)
@@ -2172,6 +2193,34 @@ subroutine parse_command(num_comp,icommand,command,finish)
       end if
       if(iproc == 0)write(6,*)'Improper input for command "track_primary_gammas", no changes'
       write(6,*)'track_primary_gammas = ',track_primary_gammas
+      return
+   end if
+!
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!
+   if(command(startw(1):stopw(1)) == 'explicit_channels')then
+      icommand = icommand + 1
+      if(numw < 2)then
+         write(6,*)'Error in input for option "track_primary_gammas"'
+         return
+      end if
+      explicit_channels = .true.
+      nchar = stopw(2) - startw(2) + 1
+      call lower_case_word(nchar,command(startw(2):stopw(2)))
+      if(command(startw(2):stopw(2)) == 'y' .or.         &
+         command(startw(2):stopw(2)) == 't' .or.         &
+         command(startw(2):stopw(2)) == '1')then
+         explicit_channels = .true.
+         return
+      elseif(command(startw(2):stopw(2)) == 'n' .or.     &
+         command(startw(2):stopw(2)) == 'f' .or.         &
+         command(startw(2):stopw(2)) == '0')then
+         explicit_channels = .false.
+         return
+      end if
+      if(iproc == 0)write(6,*)'Improper input for command "explicit_channels", no changes'
+      write(6,*)'explicit_channels = ', explicit_channels
       return
    end if
 !
@@ -2801,6 +2850,14 @@ integer(kind=4) function rank_commands(command)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
+   if(command(startw(1):stopw(1)) == 'explicit_channels')then
+      rank_commands = 0 
+      return
+   end if
+!
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!
    if(command(startw(1):stopw(1)) == 'projectile')then
       rank_commands = 1
       return
@@ -3147,3 +3204,17 @@ integer(kind=4) function rank_commands(command)
 !
    return
 end function rank_commands
+!
+integer function particle_index(char)
+   implicit none
+   character(len=1) char
+   particle_index = -1
+   if(char == '1' .or. char == 'n')particle_index = 1 
+   if(char == '2' .or. char == 'p')particle_index = 2 
+   if(char == '3' .or. char == 'd')particle_index = 3 
+   if(char == '4' .or. char == 't')particle_index = 4 
+   if(char == '5' .or. char == 'h')particle_index = 5 
+   if(char == '6' .or. char == 'a')particle_index = 6 
+   return
+end function particle_index
+

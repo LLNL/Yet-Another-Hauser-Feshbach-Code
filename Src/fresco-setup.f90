@@ -135,7 +135,7 @@ subroutine make_fresco_tco(data_path, len_path, tco_file, len_tco,       &
   integer(kind=4)ie
   real(kind=8) :: tco_data
   real(kind=8), allocatable :: energy(:)
-  real(kind=8) :: e_rel, e_lab
+  real(kind=8) :: e_lab
   real(kind=8), allocatable :: optical_cs(:,:)
   real(kind=8), allocatable :: optical_leg(:,:,:)
 
@@ -1063,9 +1063,7 @@ subroutine make_fresco_tco(data_path, len_path, tco_file, len_tco,       &
 !------------------------------------------------------------------------------------------
 !------------   Angular distributions for elastic and direct parts    -------------------
 !------------------------------------------------------------------------------------------
-!   write(6,*)' pindex = ',pindex,' iproj = ',iproj
      if(pindex == iproj)then
-!   write(560,*)
         do n = 1, nex
            read(20,*)itar, ichan, num_th, th_inc, th_min, cross
               optical_cs(ie,n) = cross/1000.0d0
@@ -1087,11 +1085,9 @@ subroutine make_fresco_tco(data_path, len_path, tco_file, len_tco,       &
               ang_theta = acos(x_gleg2(ix))*180.0d0/pi
               value = interp(ang_theta, num_ang, theta, ang_dist(1,n,ie))
               xnorm = xnorm + w_gleg2(ix)*value
-!     write(560,*)ix,value,w_gleg2(ix)
            end do
            if(iproj > 1)optical_cs(ie,n) = xnorm
 
-!     write(560,*)ie,n,xnorm
            do L = 0, Ang_L_max
               optical_leg(ie,l,n) = 0.0d0
               alf = 0.0d0
@@ -1104,7 +1100,6 @@ subroutine make_fresco_tco(data_path, len_path, tco_file, len_tco,       &
               end do
               if(xnorm > 1.0d-20)optical_leg(ie,L,n) = sum*0.5d0*(2.0d0*real(L,kind=8)+1.0d0)/xnorm
               optical_leg(ie,L,n) = sum*0.5d0*(2.0d0*real(L,kind=8)+1.0d0)
-!      write(560,*)L, optical_leg(ie,L,n)
            end do
            do it = 1, num_th
               ang_rad = theta(it)*pi/180.0d0
@@ -1114,10 +1109,8 @@ subroutine make_fresco_tco(data_path, len_path, tco_file, len_tco,       &
                  sum = sum + optical_leg(ie,L,n)*poly(L,1,alf,bet,x)
               end do
               sum = sum
-!              write(560,*)theta(it),x,ang_dist(it,n,ie), sum
            end do
         end do
-!        flush(560)
         close(unit=20)
      end if
 !-----    Delete fort.* files, which will ensure that it is not possible

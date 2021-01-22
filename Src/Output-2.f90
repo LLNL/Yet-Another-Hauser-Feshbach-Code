@@ -156,6 +156,7 @@ subroutine start_IO(num_comp)
    write(13,*)'num_mc_samp = ', num_mc_samp
    write(13,*)'biased_sampling = ', biased_sampling
    write(13,*)'trans_avg_l = ', trans_avg_l
+   write(13,*)'explicit_channels = ', explicit_channels
    write(13,*)
    write(13,*)'*******************************************************'
    write(13,*)
@@ -249,11 +250,11 @@ subroutine output_trans_coef
             write(13,'(''For j = l +'',f4.1)')xj+xi
          end if
          write(13,'(''       T         l='',i3,5x,50(8x,i3,5x))')   &
-            (l,l=0,particle(k)%lmax)
-         do j=1,particle(k)%nbin
-            energy=dfloat(j)*de
+            (l,l = 0, particle(k)%lmax)
+         do j = 1, particle(k)%nbin
+            energy = real(j,kind=8)*de
             write(13,'(1x,f10.5,(40(1x,e15.7)))')                   &
-                  energy,(particle(k)%trans(i,l,j),l=0,particle(k)%lmax)
+                  energy, (particle(k)%trans(i,l,j),l = 0, particle(k)%lmax)
       end do
       end do
    end do
@@ -1120,45 +1121,18 @@ subroutine output_nucleus_data(num_comp, j_max, itarget)
       do if1 = 1, nucleus(i)%num_decay
          k = nucleus(i)%decay_particle(if1)
          write(13,*)
-         write(13,*)'Particle type = ',k
-         do n=1,nucleus(i)%nbin
-            energy=nucleus(i)%e_grid(n)
+         if(k < 7)write(13,*)'Particle type = ',particle(k)%name
+         if(k == 7)write(13,*)'Decay type = Fission'
+         do n = 1,nucleus(i)%nbin
+            energy = nucleus(i)%e_grid(n)
             do j = 0, min(j_max,60)
-               if(if1 == 1)then
-                  prob1(j) = nucleus(i)%bins(j,0,n)%HF_prob2(if1)
-                  prob2(j) = nucleus(i)%bins(j,1,n)%HF_prob(if1)
-               else
-                  prob1(j) = nucleus(i)%bins(j,0,n)%HF_prob2(if1) -                  &
-                           nucleus(i)%bins(j,0,n)%HF_prob2(if1-1)
-                  prob2(j) = nucleus(i)%bins(j,1,n)%HF_prob2(if1) -                  &
-                           nucleus(i)%bins(j,1,n)%HF_prob2(if1-1)
-               end if
+               prob1(j) = nucleus(i)%bins(j,0,n)%HF_prob(if1)
+               prob2(j) = nucleus(i)%bins(j,1,n)%HF_prob(if1)
             end do
             write(13,'(f10.6,60(1x,e15.7))')                                         &
               energy,(prob1(j),prob2(j),j = 0, min(j_max,60))
          end do
       end do
-      if(nucleus(i)%Fission)then
-         if1 = nucleus(i)%num_decay + 1
-         write(13,*)
-         write(13,*)'Decay type = Fission'
-         do n=1,nucleus(i)%nbin
-            energy=nucleus(i)%e_grid(n)
-            do j = 0, min(j_max,60)
-               if(if1 == 1)then
-                  prob1(j) = nucleus(i)%bins(j,0,n)%HF_prob2(if1)
-                  prob2(j) = nucleus(i)%bins(j,1,n)%HF_prob2(if1)
-               else
-                  prob1(j) = nucleus(i)%bins(j,0,n)%HF_prob2(if1) -                  &
-                           nucleus(i)%bins(j,0,n)%HF_prob2(if1-1)
-                  prob2(j) = nucleus(i)%bins(j,1,n)%HF_prob2(if1) -                  &
-                           nucleus(i)%bins(j,1,n)%HF_prob2(if1-1)
-               end if
-            end do
-            write(13,'(f10.6,60(1x,e15.7))')                                         &
-              energy,(prob1(j),prob2(j),j = 0, min(j_max,60))
-         end do
-      end if
    end do
    flush(13)
    return

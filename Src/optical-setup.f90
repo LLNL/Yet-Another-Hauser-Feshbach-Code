@@ -191,6 +191,8 @@ subroutine optical_setup(data_path, len_path, iproj, itarget,                  &
          maxl = min(nume,minl+9)
          read(50,'(10(1x,1pe15.9))')(particle(k)%e_grid(i),i = minl, maxl)
       end do
+
+
       if(particle(k)%e_grid(nume) < particle(k)%max_e)then        ! Needs in calculation are incompatible 
          write(6,*)'Warning requested maximum energy is ',     &  ! with data file, need to remake
                    'greater than the maximum energy in'
@@ -527,6 +529,7 @@ subroutine optical_setup(data_path, len_path, iproj, itarget,                  &
 
 end subroutine optical_setup
 !
+!
 !*******************************************************************************
 !
 real(kind=8) function tco_interpolate(e,nume,e_grid,tco)
@@ -539,6 +542,9 @@ real(kind=8) function tco_interpolate(e,nume,e_grid,tco)
 !    specific energy e by interpolating from a list of nume values 
 !    in the array tco on a energy grid defined by e_grid 
 !    Interpolate using a log-log linear approximation
+!    
+!    Improved 6 Jan 2021 making use of the constant grid in log(e) to
+!    find mid points. Sped up by 6x.
 !
 !  Licensing:
 !
@@ -560,36 +566,32 @@ real(kind=8) function tco_interpolate(e,nume,e_grid,tco)
    integer(kind=4), intent(in) :: nume
    real(kind=8), intent(in) :: e_grid(nume),tco(nume)
 !-----------------------------------------------------------------------------
-   integer(kind=4) :: i, i1, i2 
+   integer(kind=4) :: i1, i2 
    real(kind=8) :: tco_1,tco_2
    real(kind=8) :: x1, x2, y1, y2, x, y, a, b 
-   real(kind=8) :: tolerance
+   real(kind=8), parameter :: tolerance = 1.0d-5
 
-!---------  If energy less than or equal to zero return transmission coefficient = 0.0
-   tolerance = 1.0d-3
+   real(kind=8) :: delta
+!-----------------------------------------------------------------------------
    tco_interpolate = 1.0d-9
    if(e <= 0.0d0)return
-!---------   First sandwich the energy within the grid
-   if(e < e_grid(1))then                 !  smaller than first point
+   if(e <= e_grid(1))then                 !  smaller than first point
       tco_interpolate = tco(1)
       return
    end if
-   i1 = 0
-   do i = 1, nume - 1                            !  start from the bottom of the grid
-      if(abs(log(e) - log(e_grid(i))) <= tolerance)then              !  it is exactly on a grid point
-         tco_interpolate = tco(i)
-         return
-      elseif(e > e_grid(i) .and. e < e_grid(i+1))then          ! e_grid(i) <= e <= e_grid(i+1)
-         i1 = i
-         i2 = i + 1
-         exit
-      end if
-   end do
 
-   if(i1 == 0)then
-      write(6,*)'Error in tco_interpolate i1 = 0'
-      stop
+   delta = log(e_grid(2)) - log(e_grid(1))
+
+   i1 = int((log(e) - log(e_grid(1)))/delta) + 1
+   if(abs(log(e) - log(e_grid(i1))) <= tolerance)then              !  it is exactly on a grid point
+      tco_interpolate = tco(i1)
+      return
+   else                                   ! e_grid(i1) <= e <= e_grid(i1+1)
+      i2 = i1 + 1
    end if
+
+   if(i1 >= nume)stop 'Error in log_tco_interpolate e > egrid(nume)'
+
 
    x1 = log(e_grid(i1))
    x2 = log(e_grid(i2))
@@ -605,6 +607,11 @@ real(kind=8) function tco_interpolate(e,nume,e_grid,tco)
    b = y1 - a*x1
    y = a*x + b
    tco_interpolate = exp(y)
+
+!  write(6,*)'LOG'
+!  write(6,*)i1,i2
+!  write(6,*)x,x1,x2,y1,y2
+!  write(6,*)a,b,y
 
   return
 end function tco_interpolate

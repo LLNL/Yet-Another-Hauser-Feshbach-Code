@@ -29,7 +29,6 @@ Gauss-quadrature.o         \
 Legendre-expand.o          \
 GDR.o                      \
 HF-denominator.o           \
-HF-interpolate.o           \
 HF-decay-MC.o              \
 HF-primary-decay-setup.o   \
 interp.o                   \
