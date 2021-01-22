@@ -184,42 +184,46 @@ Version 3.14 - never an official release
    outgoing particles not involving neutrons.
 2. Made improvements to zero-energy transitions, i.e., transitions to bins 
    whose centroids are the same. Allow transitions within the bin. Probably
-   doesn't affect the thrshold behavior that much.
-3. Improved performance of the interpolating routne to find the transmission
+   doesn't affect the threshold behavior that much.
+3. Improved performance of the interpolating routine to find the transmission
    coefficients for a given energy on the computed grid - 6x speed up.
 
 Version 3.15
-1. Fairly major reorganization in the structure of how decays are selected.
-   a. Correctly imposed max_particle(k) limit during the decay sequence. 
-      Changed array HF_prob from cummulative sum of probabilities to
-      just the probability for that decay type and added mechanism
-      to skip and renormalize if attempting to decay particle type k that 
-      violates max_particle(k). This fixed several potential array out
-      of bounds errors.
-   b. Changed "noise" in the energies of emitted particles. Returned to 
-      sampling decays explicitly from center of bins and adding "noise" after
-      the decays. Previously, the "noise" was added at the point of sampling,
-      which caused problems with energy conservation for later decays, which
-      had to be rebaselined. Much cleaner with better energy conservation.
-2. Added feature with command "explicit_channels". If true, each
-   decay sequence, including order, is a distinct channel; i.e., outgoing
-   channels npd, ndp, dnp, pnd, pdn, dpn are distinct channels. If false, 
-   they are the treated as the same channel and printed in directories
-   by the number of particles, e.g.,  2npd.
-3. Moved printed preequilbrium and direct spectra to the "Spectra" directory.
-4. Added printing of the preequilibrium cross section into the main reaction
-   directory along with "Total", "Absorption", etc.
-5. Added ability in commands that need a particle identifier to use the labels
-   n, p, d, t, h, a in addition to the internal number 1, 2, 3, 4, 5, 6.
-6. Extended integer encoding data to define channels based on the particle
-   types to kind=8. This increases the number of allowed particles defining
-   a channel from 10 to 20.
-7. Cleaned up several arrays and subroutines to remove data that wasn't needed.
-8. Fixed a small error in HF-primary-decay.f90 that offset the looping over
-   bins. Didn't have much of an effect.
-9. Laid foundation for non-equal excitation energy bins. In addition to energy
-   for each bin, also added width of the bin. Made changes internally to use
-   this value instead of the global de variable (hopefully everywhere). Nonequal
-   bins will likely be based on a multiplicative factor of a base bin size
-   at lower excitation energies that later increases. Unfortunatley, this also
-   means that it is a bit more difficult to find a bin based on the energy.
+1.  Fairly major reorganization in the structure of how decays are selected.
+    a. Correctly imposed max_particle(k) limit during the decay sequence. 
+       Changed array HF_prob from cumulative sum of probabilities to
+       just the probability for that decay type and added mechanism
+       to skip and renormalize if attempting to decay particle type k that 
+       violates max_particle(k). This fixed several potential array out
+       of bounds errors.
+    b. Changed "noise" in the energies of emitted particles. Returned to 
+       sampling decays explicitly from center of bins and adding "noise" after
+       the decays. Previously, the "noise" was added at the point of sampling,
+       which caused problems with energy conservation for later decays, which
+       had to be rebaselined. Much cleaner with better energy conservation.
+2.  Added feature with command "explicit_channels". If true, each
+    decay sequence, including order, is a distinct channel; i.e., outgoing
+    channels npd, ndp, dnp, pnd, pdn, dpn are distinct channels. If false, 
+    they are the treated as the same channel and printed in directories
+    by the number of particles, e.g.,  2npd.
+3.  Moved printed preequilbrium and direct spectra to the "Spectra" directory.
+4.  Added printing of the preequilibrium cross section into the main reaction
+    directory along with "Total", "Absorption", etc.
+5.  Added ability in commands that need a particle identifier to use the labels
+    n, p, d, t, h, a in addition to the internal number 1, 2, 3, 4, 5, 6.
+6.  Extended integer encoding data to define channels based on the particle
+    types to kind=8. This increases the number of allowed particles defining
+    a channel from 10 to 20.
+7.  Cleaned up several arrays and subroutines to remove data that wasn't needed.
+8.  Fixed a small error in HF-primary-decay-setup.f90 that offset the looping 
+    over bins. Didn't have much of an effect.
+9.  Laid foundation for non-equal excitation energy bins. In addition to energy
+    for each bin, also added width of the bin. Made changes internally to use
+    this value instead of the global de variable (hopefully everywhere). Nonequal
+    bins will likely be based on a multiplicative factor of a base bin size
+    at lower excitation energies that later increases. Unfortunatlely, this also
+    means that it is a bit more difficult to find a bin based on the energy.
+10. Removed interpolation subroutine for EM transmission coefficients used to 
+    sum the HF denominators in HF-primary-decay-setup.f90 to make it conform 
+    with other calculations of the HF denominators and probabilities. As a 
+    consequence, the file HF-interpolate.f90 is no longer used, and can be removed.
