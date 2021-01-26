@@ -188,7 +188,7 @@
 
    if(icomp_f < 1)then
       write(6,*)xnnn, base_prob
-      do k = 0,7
+      do k = 1,6
          write(6,*)num_part_type(k),max_particle(k)
          write(6,*)k,part_fact(k)
       end do

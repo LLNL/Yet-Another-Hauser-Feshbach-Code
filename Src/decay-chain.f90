@@ -36,7 +36,7 @@ subroutine set_up_decay_chain(Z_p, A_p, Z_t, A_t, num_comp)
 !-------------------------------------------------------
    integer(kind=4) :: inuc, inucp, num_nuc
    integer(kind=4) :: Z_i,A_i
-   integer(kind=4) :: i, k, n
+   integer(kind=4) :: i, k
    integer(kind=4) :: ia,ih,it,id,ip,in
    integer(kind=4) :: Z_f,N_f, A_f
    integer(kind=4) :: Z_pp, N_pp, A_pp
@@ -63,7 +63,8 @@ subroutine set_up_decay_chain(Z_p, A_p, Z_t, A_t, num_comp)
    integer(kind=4) :: nump(6)
    integer(kind=4) :: ichannel
    real(kind=8) :: max_e
-   integer(kind=8) :: istart, ifinish
+   integer(kind=4) :: istart, ifinish
+   integer(kind=8) :: channel_code
 !-------------------------------------------------------
    Z_i = Z_p + Z_t
    A_i = A_p + A_t
@@ -321,7 +322,7 @@ subroutine set_up_decay_chain(Z_p, A_p, Z_t, A_t, num_comp)
                      if(num > max_num) max_num = num
 !----  Set up all the channels for this final compound nucleus - note ichannel is incremented in make_channels
                      if(explicit_channels)then
-                        if(num > 21)stop 'Too many exit particles for option "explicit_channels", num > 21'
+                        if(num > 20)stop 'Too many exit particles for option "explicit_channels", num > 21'
                         call make_channels(num, nump, inuc, ichannel)
                      else
                         ichannel = ichannel + 1
@@ -332,8 +333,11 @@ subroutine set_up_decay_chain(Z_p, A_p, Z_t, A_t, num_comp)
                         ifinish = istart
                         Exit_channel(ichannel)%Channel_Label(1:1) = 'g'
                         Exit_Channel(ichannel)%num_part(1:6) = 0
+                        channel_code = 0
                         do k = 1, 6
                            Exit_Channel(ichannel)%num_part(k) = nump(k)
+                           Exit_channel(ichannel)%num_particles = Exit_channel(ichannel)%num_particles + &
+                               nump(k)
                            if(nump(k) == 0)cycle
                            if(nump(k) > 9)then
                               ifinish = istart + 1
@@ -349,7 +353,9 @@ subroutine set_up_decay_chain(Z_p, A_p, Z_t, A_t, num_comp)
                            ifinish = istart
                            Exit_channel(ichannel)%Channel_Label(istart:ifinish) = particle(k)%label
                            istart = istart + 1
+                           channel_code = ior(channel_code,ishft(int(nump(k),kind=8),(k-1)*5))
                         end do
+                        Exit_channel(ichannel)%Channel_code = channel_code
 !           write(6,*)ichannel,Exit_channel(ichannel)%Channel_Label(1:ifinish)
                      end if
                   end do
@@ -363,13 +369,8 @@ subroutine set_up_decay_chain(Z_p, A_p, Z_t, A_t, num_comp)
 
 !----    Reset max_particle to reflect those actually encountered in the decay chains
    do i = 1, num_channels
-      nump(1:6) = 0
-      do n = 1, Exit_channel(ichannel)%num_particles
-         k = Exit_channel(ichannel)%decay_particles(n)
-         nump(k) = nump(k) + 1
-      end do
       do k = 1, 6
-         max_particle(k) = max(nump(k),max_particle(k))
+         max_particle(k) = max(Exit_channel(i)%num_part(k),max_particle(k))
       end do
    end do
 
@@ -554,6 +555,7 @@ subroutine make_channels(num_part_tot, num_part, inuc, ichannel)
    logical too_many
    integer(kind=4) :: k, n, nloops
    integer(kind=4), allocatable :: low(:), hi(:), idex(:)
+!   integer(kind=8) :: itemp
 
    integer(kind=8) :: channel_code
 !   integer(kind=4) :: channel_code
@@ -601,7 +603,7 @@ subroutine make_channels(num_part_tot, num_part, inuc, ichannel)
          end do
          channel_code = 0
          do n = 1, nloops
-            channel_code = ior(channel_code,ishft(idex(n),(n-1)*3))
+            channel_code = ior(channel_code,ishft(int(idex(n),kind=8),(n-1)*3))
          end do
          Exit_channel(ichannel)%Channel_code = channel_code
          Exit_channel(ichannel)%num_particles = num_part_tot

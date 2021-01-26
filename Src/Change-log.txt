@@ -184,8 +184,8 @@ Version 3.14 - never an official release
    outgoing particles not involving neutrons.
 2. Made improvements to zero-energy transitions, i.e., transitions to bins 
    whose centroids are the same. Allow transitions within the bin. Probably
-   doesn't affect the threshold behavior that much.
-3. Improved performance of the interpolating routine to find the transmission
+   doesn't affect the thrshold behavior that much.
+3. Improved performance of the interpolating routne to find the transmission
    coefficients for a given energy on the computed grid - 6x speed up.
 
 Version 3.15
@@ -219,11 +219,32 @@ Version 3.15
     over bins. Didn't have much of an effect.
 9.  Laid foundation for non-equal excitation energy bins. In addition to energy
     for each bin, also added width of the bin. Made changes internally to use
-    this value instead of the global de variable (hopefully everywhere). Nonequal
-    bins will likely be based on a multiplicative factor of a base bin size
-    at lower excitation energies that later increases. Unfortunatlely, this also
-    means that it is a bit more difficult to find a bin based on the energy.
+    this value instead of the global de variable (hopefully everywhere). 
+    Nonequal bins will likely be based on a multiplicative factor of a 
+    base bin size at lower excitation energies that later increases. 
+    Unfortunatlely, this also means that it is a bit more difficult to 
+    find a bin based on the energy.
 10. Removed interpolation subroutine for EM transmission coefficients used to 
-    sum the HF denominators in HF-primary-decay-setup.f90 to make it conform 
-    with other calculations of the HF denominators and probabilities. As a 
-    consequence, the file HF-interpolate.f90 is no longer used, and can be removed.
+    sum the HF denominators in HF-primary-decay-setup.f90 to make it 
+    conform with other calculations of the HF denominators and probabilities. 
+    As a consequence, the file HF-interpolate.f90 is no longer used, and can 
+    be removed.
+
+Version 3.16
+1.  Fixed error in subroutine Fission_transmission that caused a subscript
+    out of bounds CTD. Added blank line before the Q value for readibility. 
+2.  Fixed bad Q value for exit channels when explicit_channels = .false.
+3.  Fixed not printing mass of emitted particles when 
+    explicit_channels = .false.
+4.  Made explicit_channels = .false. the default. 
+5.  Fixed error in function compound_cs.
+6.  Implemented dynamic setting of max_J_allowed based on maximum 
+    angular momentum in the compound nucleus as computed from the tranmission
+    coefficients. Also, checked spins of discrete states to ensure max_J_allowed
+    is greater. Still capped at max_J_allowed = 40 for now.
+7.  Further clean up of energy width de to transition towards bin widths 
+    defined for each bin.
+8.  Set smearing width for x-particle spectra and preequilibirum and direct
+    spectra to .2 MeV.
+9.  Fixed error introduced in 3.14 while collecting elastic events for neutrons.
+10. Disabled option to scale elastic for charged particle projectiles. 

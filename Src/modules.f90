@@ -32,7 +32,7 @@ module options
 !
    use variable_kinds
    character(len=132) version
-   parameter (version = 'MC-3.15')
+   parameter (version = 'MC-3.16')
    integer(kind=int_64) :: iseed
    logical ran_setup
    integer(kind=4) PREEQ_Model
@@ -102,7 +102,6 @@ module options
    character(len=132) :: local_cc_file
    logical exist_cc_file
    real(kind=8) :: cc_scale
-   logical :: do_dwba
 
    logical :: scale_elastic
    real(kind=8) :: elastic_scale, elastic_shift, elastic_damp
@@ -610,6 +609,7 @@ module particles_def
       integer(kind=4) :: max_opt_pot
       integer(kind=4) :: om_option
       logical :: opt_pot_set
+      logical :: do_dwba
       real(kind=8), allocatable:: e_grid(:)
       real(kind=8), allocatable, dimension (:,:,:) :: trans_read
       integer(kind=4) :: nbin

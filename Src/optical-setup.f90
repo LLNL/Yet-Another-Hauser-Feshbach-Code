@@ -68,11 +68,14 @@ subroutine optical_setup(data_path, len_path, iproj, itarget,                  &
    real(kind=8) :: xdummy
    real(kind=8) :: xj, spin
 
+   real(kind=8) :: ee
+
    real(kind=8) :: J_gs, J_state, K_state
    real(kind=8) :: J_min, J_max
    real(kind=8) :: K_band
    integer(kind=4) :: Ix_min, Ix_max, Ix
    real(kind=8) :: zzero, sum, xk_factor
+   logical :: check_dwba
 
    integer(kind=4) :: n_elastic
 
@@ -144,9 +147,9 @@ subroutine optical_setup(data_path, len_path, iproj, itarget,                  &
          len_tco=len_tco+3
       end if
 
-   write(6,*)jtarget
-   write(6,*)k,nucleus(jtarget)%Z, nucleus(jtarget)%A
-   write(6,*)tco_file(1:len_tco)
+!   write(6,*)jtarget
+!   write(6,*)k,nucleus(jtarget)%Z, nucleus(jtarget)%A
+!   write(6,*)tco_file(1:len_tco)
       tco_exist = .false.
       inquire(file=tco_file(1:len_tco)//'.tcoef',exist=tco_exist)
 !----    Only need Ang_exist for k=iproj
@@ -161,8 +164,10 @@ subroutine optical_setup(data_path, len_path, iproj, itarget,                  &
 !-------------------------------------------------------------------------+
 !------  Set up optical model calculation                                 +
 !-------------------------------------------------------------------------+
+!         call make_fresco_tco(data_path,len_path,tco_file,len_tco,      &
+!                              de,k,iproj,jtarget,jstate,Ang_L_max)
          call make_fresco_tco(data_path,len_path,tco_file,len_tco,      &
-                              de,k,iproj,jtarget,jstate,Ang_L_max)
+                              k,iproj,jtarget,jstate,Ang_L_max)
       end if
 !***********************************************************************
 !-----   Transmission coefficient file exists, read in needed info
@@ -304,14 +309,26 @@ subroutine optical_setup(data_path, len_path, iproj, itarget,                  &
 !----   then DWBA calculation was not performed, and there is no need to check if excitation energy 
 !----   grid was the same.
 
-         ex_min = nucleus(itarget)%e_grid(1) - de/2.0d0
+!         ex_min = nucleus(itarget)%e_grid(1) - de/2.0d0
+         ex_min = nucleus(jtarget)%e_grid(1) - nucleus(jtarget)%delta_e(1)/2.0d0
 
-         do_dwba = .false.
+!         particle(iproj)%do_dwba = .false.
+         check_dwba = .false.
          do i = 1, OpticalCS%numcc
             read(50,*)idummy, cc_index(i), OpticalCS%state(i)%spin,OpticalCS%state(i)%parity,    &
                       OpticalCS%state(i)%K, OpticalCS%state(i)%energy, OpticalCS%state(i)%state_type
-            if(OpticalCS%state(i)%state_type < 1)do_dwba = .true.
+!            if(OpticalCS%state(i)%state_type < 1)particle(k)%do_dwba = .true.
+            if(OpticalCS%state(i)%state_type < 1)check_dwba = .true.
          end do
+
+         if(particle(iproj)%do_dwba .and. .not. check_dwba)then
+            write(6,*)'ERROR!!!  -  do_dwba = .true. but Optical Model calculation was performed without DWBA states'
+            stop
+         else if(.not. particle(iproj)%do_dwba .and. check_dwba)then
+            write(6,*)'ERROR!!!  -  do_dwba = .fale. but Optical Model calculation was performed with DWBA states'
+            stop
+         end if
+
 
          rewind(50)
          read(50,*)
@@ -332,7 +349,12 @@ subroutine optical_setup(data_path, len_path, iproj, itarget,                  &
 !----   Before cc_index was setup in fresco-setup and was defined as an energy bin. Now, the state is computed
 !----   as a state with a defined energy. We need the energy bin for this state in this calculation.
             if(cc_index(i) <= 0)then
-               ibin = int((OpticalCS%state(i)%energy - ex_min)/de) + 1
+               do ibin = 1, nucleus(jtarget)%nbin
+                  ee = OpticalCS%state(i)%energy
+                  if(ee >= nucleus(jtarget)%e_grid(ibin) - 0.5d0*nucleus(jtarget)%delta_e(ibin) .and.   &
+                     ee < nucleus(jtarget)%e_grid(ibin) + 0.5d0*nucleus(jtarget)%delta_e(ibin))exit
+               end do              
+!               ibin = int((OpticalCS%state(i)%energy - ex_min)/de) + 1
                cc_index(i) = ibin
             end if
             if(OpticalCS%state(i)%state_type > 0 .and. OpticalCS%state(i)%spin < K_band)     &
@@ -396,7 +418,9 @@ subroutine optical_setup(data_path, len_path, iproj, itarget,                  &
                         OpticalCS%state(in)%E_min = OpticalCS%state(in)%energy -               &
                                                     OpticalCS%state(in)%Delta_E/2.0d0
                      else
-                        OpticalCS%state(in)%Delta_E = de
+                        OpticalCS%state(in)%Delta_E = OpticalCS%state(in+1)%energy -             &
+                                                      OpticalCS%state(in)%energy
+!                        OpticalCS%state(in)%Delta_E = de
                         OpticalCS%state(in)%E_min = OpticalCS%state(in)%energy -               &
                                                     OpticalCS%state(in)%Delta_E/2.0d0
                      end if

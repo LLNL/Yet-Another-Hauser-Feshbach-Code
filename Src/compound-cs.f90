@@ -42,33 +42,29 @@ subroutine compound_xs(e_in,itarget,istate,iproj,sigma,    &
    real(kind=8) :: xj
    real(kind=8) :: xI, xI_min, xI_max
    integer(kind=4) :: Ix, Ix_min, Ix_max
-   real(kind=8) :: mass_i,mass_t,mass_rel,e_rel
-   real(kind=8) :: momentum,wave_number
-   real(kind=8) :: spin_proj,spin_target
-   real(kind=8) sp1,sp2
+   real(kind=8) :: mass_i, mass_t, mass_rel, e_rel
+   real(kind=8) :: momentum, wave_number
+   real(kind=8) :: spin_proj, spin_target
    integer(kind=4) isp
    integer(kind=4) nume
    real(kind=8) sum,sum1
-   integer(kind=4) i,l,nn
-   integer(kind=4) cpar,par
+   integer(kind=4) i, l, nn
+   integer(kind=4) cpar, par
    real(kind=8) :: tcoef
-   real(kind=8) :: mass_target
+!   real(kind=8) :: mass_target
 !----------   External functions
-   real(kind=8) :: jhat,tco_interpolate
+   real(kind=8) :: jhat, tco_interpolate
 !-----------------------------------------------------------
-   mass_target = nucleus(itarget)%mass + nucleus(itarget)%state(istate)%energy
-   e_rel = e_in*mass_target/(mass_target + particle(iproj)%mass)
    spin_target = nucleus(itarget)%state(istate)%spin
    spin_proj = particle(iproj)%spin
    mass_i = particle(iproj)%Mass
    mass_t = nucleus(itarget)%Mass + nucleus(itarget)%state(istate)%energy
-   mass_rel = mass_i*mass_t/(mass_t+mass_i)
+   e_rel = e_in*mass_t/(mass_t + mass_i)
+   mass_rel = mass_i*mass_t/(mass_t + mass_i)
    momentum = dsqrt(2.0d0*e_rel*mass_rel)
    wave_number = momentum/hbar_c
    cs = pi/wave_number**2*fmsq_eq_barn
    cpar = nint(particle(iproj)%par*nucleus(itarget)%state(istate)%parity)
-   sp1 = abs(spin_target-spin_proj)
-   sp2 = spin_target+spin_proj
    isp = nint(2*spin_proj)
    nume = particle(iproj)%nume
    sum1 = 0.0d0
@@ -93,6 +89,7 @@ subroutine compound_xs(e_in,itarget,istate,iproj,sigma,    &
                                     particle(iproj)%trans_read(1,i,l))
 
             channel_xs = cs*cs_fac*tcoef
+
             if(channel_xs < 1.0d-6)cycle
             sum = sum + channel_xs
             num_channel = num_channel + 1
@@ -135,7 +132,7 @@ subroutine compound_xs(e_in,itarget,istate,iproj,sigma,    &
       end do
    end do
 
-
+   return
 
 end subroutine compound_xs
 !
@@ -182,7 +179,6 @@ real(kind=8) function comp_cs(ie,itarget,istate,k)
    real(kind=8) :: mass_i,mass_t,mass_rel,e_rel
    real(kind=8) :: momentum,wave_number
    real(kind=8) :: spin_proj,spin_target
-   real(kind=8) sp1,sp2
    integer(kind=4) isp
 !   integer(kind=4) nume
    real(kind=8) sum,sum1
@@ -207,8 +203,6 @@ real(kind=8) function comp_cs(ie,itarget,istate,k)
    cs = pi/wave_number**2*fmsq_eq_barn
 
    cpar = particle(k)%par*nucleus(itarget)%state(istate)%parity
-   sp1 = abs(spin_target-spin_proj)
-   sp2 = spin_target+spin_proj
    isp = nint(2*spin_proj)
    sum1 = 0.0d0
 
@@ -234,12 +228,12 @@ real(kind=8) function comp_cs(ie,itarget,istate,k)
    end do
    sigma = sum
    comp_cs = sigma
-
+   return
 end function comp_cs
 !
 !*******************************************************************************
 !
-real(kind=8) function compound_cs(e_in,ipar,xj,itarget,istate,iproj)
+real(kind=8) function compound_cs(e_in,ipar,xI,itarget,istate,iproj)
 !
 !*******************************************************************************
 !
@@ -270,57 +264,62 @@ real(kind=8) function compound_cs(e_in,ipar,xj,itarget,istate,iproj)
    implicit none
    real(kind=8), intent(in) :: e_in
    integer(kind=4), intent(in) :: ipar
-   real(kind=8) xj
+   real(kind=8) xI
    integer(kind=4), intent(in) :: itarget,istate,iproj
 !----------------------------------------------------------
    real(kind=8) :: cs,cs_fac
-   real(kind=8) :: mass_i,mass_t,mass_rel,e_rel
-   real(kind=8) :: momentum,wave_number
-   real(kind=8) :: spin_proj,spin_target
-   real(kind=8) sp1,sp2
+   real(kind=8) :: mass_i, mass_t, mass_rel, e_rel
+   real(kind=8) :: momentum, wave_number
+   real(kind=8) :: spin_proj, spin_target
    integer(kind=4) isp
    integer(kind=4) nume
    real(kind=8) sum
-   real(kind=8) S
-   integer(kind=4) i,l,lmin,lmax
-   integer(kind=4) cpar,par
+   integer(kind=4) i, l
+   integer(kind=4) cpar, par
    real(kind=8) :: tcoef
+   real(kind=8) :: xj
+   real(kind=8) :: channel_xs
 !----------   External functions
-   real(kind=8) :: jhat,tco_interpolate
+   real(kind=8) :: jhat, tco_interpolate
 !-----------------------------------------------------------
-   e_rel = e_in*dfloat(nucleus(itarget)%A)/           &
-         dfloat(nucleus(itarget)%A+projectile%A)
-   cpar = 2*ipar-1
+   compound_cs = 0.0d0
+   par = 2*ipar - 1
    spin_target = nucleus(itarget)%state(istate)%spin
    spin_proj = particle(iproj)%spin
    mass_i = particle(iproj)%Mass
    mass_t = nucleus(itarget)%Mass + nucleus(itarget)%state(istate)%energy
-   mass_rel = mass_i*mass_t/(mass_t+mass_i)
+   e_rel = e_in*mass_t/(mass_t + mass_i)
+   mass_rel = mass_i*mass_t/(mass_t + mass_i)
    momentum = dsqrt(2.0d0*e_rel*mass_rel)
    wave_number = momentum/hbar_c
    cs = pi/wave_number**2*fmsq_eq_barn
-   par = nint(particle(iproj)%par*nucleus(itarget)%state(istate)%parity)
-   cs_fac = jhat(xj)/(jhat(spin_target)*jhat(spin_proj))
-   sp1 = abs(spin_target-spin_proj)
-   sp2 = spin_target+spin_proj
-   isp = int(sp2-sp1)
+   cpar = nint(particle(iproj)%par*nucleus(itarget)%state(istate)%parity)
+   isp = nint(2*spin_proj)
    nume = particle(iproj)%nume
+   cs_fac = jhat(xI)/(jhat(spin_target)*jhat(spin_proj))
+
    sum = 0.0d0
-   do i=0,isp                                         !   loop over channel spins
-      S=dfloat(i)+sp1                                 !   Channel spin
-      lmin = abs(nint(xj-S))
-      lmax = nint(xj+S)
-      lmin = min(lmin,particle(iproj)%lmax)        !   min and max l-values
-      lmax = min(lmax,particle(iproj)%lmax)
-      do l=lmin,lmax,1                                !   loop over angular momentum
-         if(par*(-1)**l.ne.cpar)cycle
+   do l = 0, particle(iproj)%lmax                                !   loop over angular momentum
+      if(nint(cpar*(-1.0d0)**l) /= par)cycle
+      xj = real(l,kind=8) - spin_proj
+      do i = 0, isp                                         !   loop over channel spins
+         xj = xj + real(i,kind=8)
+         if(xj < 0.0d0)cycle
+         if(xI < abs(xj - spin_target) .or. xI > xj + spin_target)cycle    
          tcoef = tco_interpolate(e_rel,nume,                      &
                                  particle(iproj)%e_grid,          &
                                  particle(iproj)%trans_read(1,i,l))
-         sum = sum + tcoef
+
+         channel_xs = cs*cs_fac*tcoef
+
+         if(channel_xs < 1.0d-6)cycle
+         sum = sum + channel_xs
       end do
    end do
-   compound_cs = cs*cs_fac*sum
+
+   compound_cs = sum
+
+   return
 end function compound_cs
 
 

@@ -185,6 +185,7 @@ subroutine parse_command(num_comp,icommand,command,finish)
          projectile%Z = particle(i)%Z
          projectile%A = particle(i)%A
          projectile%specified = .true.
+         particle(i)%do_dwba = .true.
 !-----    Set values for pree-equilibrium model for incident neutrons and protons
          if(i == 1)then
             Preeq_V = 38.0d0
@@ -398,8 +399,8 @@ subroutine parse_command(num_comp,icommand,command,finish)
             if(projectile%energy(i) > e_max) &
             e_max=projectile%energy(i)
       end do
-      projectile%e_min=e_min
-      projectile%e_max=e_max
+      projectile%e_min = e_min
+      projectile%e_max = e_max
       ex_set = .true.    
       return
    end if
@@ -1097,7 +1098,7 @@ subroutine parse_command(num_comp,icommand,command,finish)
                nucleus(i)%level_param(10) = 1.0
                nucleus(i)%level_param(11) = 1.0
             end if
-            call get_lev_den(data_path,len_path,               &
+            call get_lev_den(data_path,len_path,                         &
                              symb(iZ),iZ,iA,i)
             if(nucleus(i)%fission .and. .not. nucleus(i)%fission_read)   &
                call init_barrier_data(i)
@@ -2328,18 +2329,18 @@ subroutine parse_command(num_comp,icommand,command,finish)
          write(6,*)'Error in input for option "do_dwba"'
          return
       end if
-      fit_Gamma_gamma = .false.
       nchar = stopw(2) - startw(2) + 1
       call lower_case_word(nchar,command(startw(2):stopw(2)))
+      k = projectile%particle_type
       if(command(startw(2):stopw(2)) == 'y' .or.         &
          command(startw(2):stopw(2)) == 't' .or.         &
          command(startw(2):stopw(2)) == '1')then
-         do_dwba = .true.
+         particle(k)%do_dwba = .true.
          return
       elseif(command(startw(2):stopw(2)) == 'n' .or.     &
          command(startw(2):stopw(2)) == 'f' .or.         &
          command(startw(2):stopw(2)) == '0')then
-         do_dwba = .false.
+         particle(k)%do_dwba = .false.
          return
       end if
       if(iproc == 0)write(6,*)'Improper input for command "fit_gamma_gamma", no changes'
@@ -2494,6 +2495,19 @@ subroutine parse_command(num_comp,icommand,command,finish)
 !
    if(command(startw(1):stopw(1)) == 'scale_elastic')then
       icommand = icommand + 1
+      if(projectile%particle_type /= 1)then
+         scale_elastic = .false.
+         write(6,*)'*********************************************************'
+         write(6,*)'* ---- WARNING!!! WARNING!!! WARNING!!! WARNING!!! ---- *'
+         write(6,*)'* Attempting to scale elastic cross section for an      *'
+         write(6,*)'* incident particle with electric charge. This is ill   *'
+         write(6,*)'* defined and will automatically be overriden.          *'
+         write(6,*)'* Elastic scattering will not be rescaled.              *'
+         write(6,*)'* You should remove command "scale_elastic" from run    *'
+         write(6,*)'* file for charged particles to remove this warning     *'
+         write(6,*)'*********************************************************'
+         return
+      end if
       if(numw < 4)then
          write(6,*)'Error in input for option "scale_elastic"'
          return

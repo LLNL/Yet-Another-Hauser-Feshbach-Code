@@ -61,6 +61,7 @@ program YAHFC_MASTER
 !-----------------------------------------------------------------------
 !----------   Temporary storage for state data if we need to remove discrete states
 
+      real(kind=8) :: test_sigma, xji
       real(kind=8) :: E_in, e_rel, e_x, e_in2, E_out
       real(kind=8) :: E_f, Ex_f, e_shift
       real(kind=8) :: rel_factor
@@ -217,6 +218,7 @@ program YAHFC_MASTER
       integer(kind=4) :: n, n_f, if1, i_f
       real(kind=8) :: xj_min, xj_max
       real(kind=8) :: xI_min, xI_max
+      integer(kind=4) :: max_J
       integer(kind=4) :: j_max
       real(kind=8) :: xj, xI
       integer(kind=4) :: Ix, Ix_min, Ix_max
@@ -258,12 +260,6 @@ program YAHFC_MASTER
 !--------   Data to reconstruct angular distributions
       integer(kind=4) :: ixx_max
       real(kind=8) :: delta_ix
-!      integer(kind=4) :: jxx_max
-!      real(kind=8) :: delta_jx
-!      integer(kind=4) :: jjxx_max
-!      real(kind=8) :: delta_jjx
-!      integer(kind=4) :: jjxxx_max
-!      real(kind=8) :: delta_jjxxx
       integer(kind=4) :: max_jx_10
       real(kind=8) :: delta_jx_10
       integer(kind=4) :: max_jx_20
@@ -276,7 +272,6 @@ program YAHFC_MASTER
       real(kind=8), allocatable, dimension(:,:,:) :: Temp_Ang_dist
       real(kind=8) :: Temp
       real(kind=8) :: avg, avg_diff, expected_diff
-!      real(kind=8), allocatable :: Shape_ang(:)
       integer(kind=4) :: jx
 !--------   Used to compute Rutherford Crossection
 
@@ -291,12 +286,8 @@ program YAHFC_MASTER
 !------------------------------------------------------------------
 !--------    Gauss-Legendre integration useful to construct "smooth"
 !--------    angular distributions
-!      integer(kind=4) :: n_gleg1
-!      integer(kind=4) :: Ang_L_max1
       integer(kind=4) :: LL_max
       real(kind=8), allocatable :: xvalue(:)
-!      real(kind=8), allocatable :: x_gleg1(:), w_gleg1(:) 
-
 
 !--------   Total Inelastic Scattering
       logical direct, compound, preeq_decay,cc_decay, dwba_decay
@@ -319,23 +310,14 @@ program YAHFC_MASTER
       real(kind=8), allocatable :: Inelastic_g_mult(:)
       real(kind=8), allocatable :: Inelastic_g_mult_var(:)
       real(kind=8) :: event_g_mult
-!-------    Compound Inelastic scattering
-!      real(kind=8), allocatable :: CIE_cs(:,:)
-!      real(kind=8), allocatable :: CIE_Spectrum(:,:)
-!      real(kind=8), allocatable :: CIE_Ang(:,:)
 !-------   Direct Inelastic Scattering
       real(kind=8) :: tot_direct, sum_d
-!      real(kind=8), allocatable :: direct_cs(:,:)
       real(kind=8), allocatable :: direct_cs(:)
       real(kind=8), allocatable :: direct_Ang(:,:)
       real(kind=8), allocatable :: direct_prob(:,:)
       real(kind=8), allocatable :: direct_tot(:)
       real(kind=8), allocatable :: direct_cc(:)
       real(kind=8), allocatable :: direct_dwba(:)
-!      real(kind=8), allocatable :: DIE_cs(:,:)
-!      real(kind=8), allocatable :: DIE_Spectrum(:,:)
-!      real(kind=8), allocatable :: DIE_Ang(:,:)
-!-------    Total Elastic Scattering
       real(kind=8), allocatable :: SE_prob(:)
       real(kind=8), allocatable :: Elastic_cs(:)
       real(kind=8), allocatable :: Elastic_Ang(:,:)
@@ -375,7 +357,6 @@ program YAHFC_MASTER
 
 !
 !--------     Avg particles when using pop_calc = .true.
-!      integer(kind=4) :: num_type(0:6)
       real(kind=8) :: avg_part(0:6), avg_part_e(0:6)
       real(kind=8) :: var_part(0:6), var_part_e(0:6)
 !
@@ -387,24 +368,14 @@ program YAHFC_MASTER
 
       character(len=20) e_char
 
-!      real(kind=8) :: Kinetic_Energy
-
       integer(kind=4) :: num_compound, num_pre_equilibrium, num_fission
       real(kind=8) :: test_count
-
-
-!      integer, allocatable :: num_Photons_E(:,:), num_Photons_M(:,:)
-!      integer, allocatable :: num_Photons_E_c(:,:), num_Photons_M_c(:,:)
-!      integer, allocatable :: num_Photons_E_d(:,:), num_Photons_M_d(:,:)
 
 !--------   yrast  ---------------------------------
       real(kind=8) :: yrast(0:100,0:1)
       real(kind=8) :: yrast_actual(0:40,0:1)
       character(len=9) yrast_file
 
-!
-!      integer(kind=4), allocatable :: target_index(:)
-!
       real(kind=8) :: x, x1, theta
 
       real(kind=8) :: pmode, pe1, bb
@@ -444,8 +415,6 @@ program YAHFC_MASTER
 !--------   Data needed to output data libraries
       character(len=14) iso_label
       real(kind=8), allocatable :: Ang_dis(:,:)
-!--rem      real(kind=8), allocatable :: E_spec(:,:)
-!--rem      real(kind=8), allocatable :: E_norm(:), Ang_norm(:)
       integer(kind=4) :: icc_max
 
 !-------------------- Memory variables
@@ -454,13 +423,14 @@ program YAHFC_MASTER
     interface
        subroutine compound_xs(e_in,itarget,istate,iproj,sigma,   &
                               num_channel,channel_prob,ichannel)
+          use variable_kinds
           use options
           use nuclei
           use particles_def
           use constants 
           use nodeinfo
           implicit none
-          real(kind=8) :: e_in, de
+          real(kind=8) :: e_in
           integer(kind=4) :: itarget, istate, iproj
           real(kind=8) :: sigma
           integer(kind=4) :: num_channel
@@ -486,7 +456,6 @@ program YAHFC_MASTER
       real(kind=8) :: parity_fac
       real(kind=8) :: random_64
       real(kind=8) :: poly
-!      real(kind=8) :: Legendre
       real(kind=8) :: clebr
       real(kind=8) :: interpolate
       real(kind=8) :: Gauss_var
@@ -494,8 +463,8 @@ program YAHFC_MASTER
       real(kind=8) :: EL_trans
       real(kind=8) :: ML_f
       real(kind=8) :: ML_trans
-!      real(kind=8) :: lev_space
       integer(kind=4) :: rank_commands
+      real(kind=8) :: compound_cs
 
 !-----------------   Start Main body of calculation     ----------------
 
@@ -541,12 +510,12 @@ program YAHFC_MASTER
       Preeq_g_a = .false.
       biased_sampling = .false.
       optical = 'fresco'
-      explicit_channels = .true.
-!      len_ecis = 0
+      explicit_channels = .false.
+!
 !----   Start with no optical potentials being set
 !----   later they may be set with a choice of an option
 !----   but if not set with an option, they will be set to default
-
+!
       spin_proj = 0.0d0
       tot_direct = 0.0d0
 
@@ -556,12 +525,9 @@ program YAHFC_MASTER
       local_cc_file(1:132)=' '
       exist_cc_file = .false.
       cc_scale = 1.0d0
-      do_dwba = .true.
 
       trans_avg_l = .false.
       scale_elastic = .false.
-
-!      OM_option = 0
 
       ch_par(0) = '-'
       ch_par(1) = '+'
@@ -721,12 +687,13 @@ program YAHFC_MASTER
          write(6,*)'Program exiting'
          stop
       end if
-      KE=0.0d0
+      KE = 0.0d0
 
       call particle_data
 
-      do k=1,6
+      do k = 1, 6
          particle(k)%lmax = part_lmax
+         particle(k)%do_dwba = .false.
       end do
 
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -800,13 +767,11 @@ program YAHFC_MASTER
          end if
          if(command(1:1) == '#' .or. command(1:1) == '!')cycle
          call parse_string(command,numw,startw,stopw)
-!         nchar = stopw(1) - startw(1) + 1
          nchar = stopw(numw)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !---------    Convert string to lower case
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
          call lower_case_word(nchar,command(1:stopw(numw)))
-!         call lower_case_word(nchar,command(startw(1):stopw(1)))
          if(command(startw(1):stopw(1)) == 'end')then
              finish = .true.
              cycle
@@ -882,8 +847,8 @@ program YAHFC_MASTER
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
             overide = 'c'                             !   use discrete states marked with 'u' in RIPL-2 file
             do icomp = 1, num_comp
-               Z_f=nucleus(icomp)%Z
-               A_f=nucleus(icomp)%A
+               Z_f = nucleus(icomp)%Z
+               A_f = nucleus(icomp)%A
                if(Z_f == target%Z .and. A_f == target%A)target%icomp = icomp
                itarget = target%icomp
                call get_spectrum(data_path,len_path,               &
@@ -893,7 +858,7 @@ program YAHFC_MASTER
 !----------   Find E1 strength function parameters
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
                nucleus(icomp)%E1_model = E1_model
-               nucleus(icomp)%E1_default=.true.
+               nucleus(icomp)%E1_default = .true.
                nucleus(icomp)%er_E1(1:4) = 0.0d0
                nucleus(icomp)%gr_E1(1:4) = 0.0d0
                nucleus(icomp)%sr_E1(1:4) = 0.0d0
@@ -927,7 +892,7 @@ program YAHFC_MASTER
             compound_setup=.true.
          end if
       end do
-!------  After everything is set up, alos check if preequilibrium model parameters
+!------  After everything is set up, also check if preequilibrium model parameters
 !------  makes sense. In particular, the finite well parameter, can't have
 !------  Preq_V1 > Preeq_V
       if(preeq_V <= Preeq_V1)then
@@ -996,24 +961,6 @@ program YAHFC_MASTER
       end do
 
 
-!      if(.not.OM_pot_set)then
-!         if(nucleus(itarget)%Z >= 90 .and. nucleus(itarget)%Z <= 96)then
-!             OM_pot(1:4) = 'souk'
-!             OM_option = 0
-!             OM_pot_set = .true.
-!         else
-!            OM_pot(1:2) = 'kd'
-!            OM_pot_set = .true.
-!         end if
-!      end if
-
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!-----   Add later to allow target to be any state in the target nucleus
-!-----   for now, set to itarget, which == 1
-!      target%istate = istate
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !---------    Check if we have sufficient data to proceed
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -1029,13 +976,13 @@ program YAHFC_MASTER
 !-------    Check to see if we need to overide fission
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
       if(.not.fission)then 
-         do icomp=1,num_comp
-            if(nucleus(icomp)%fission)fission=.false.
+         do icomp = 1,num_comp
+            if(nucleus(icomp)%fission)fission = .false.
          end do
       else
-         fission=.false.
-         do icomp=1,num_comp
-            if(nucleus(icomp)%fission)fission=.true.
+         fission = .false.
+         do icomp = 1,num_comp
+            if(nucleus(icomp)%fission)fission = .true.
          end do         
       end if
 
@@ -1076,10 +1023,17 @@ program YAHFC_MASTER
 !--------   Calculate Q-value
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
          mass_exit = 0.0d0
-         do n = 1, Exit_channel(i)%num_particles
-            k = Exit_channel(i)%decay_particles(n)
-            mass_exit = mass_exit + particle(k)%mass
-         end do
+         if(explicit_channels)then
+            do n = 1, Exit_channel(i)%num_particles
+               k = Exit_channel(i)%decay_particles(n)
+               mass_exit = mass_exit + particle(k)%mass
+            end do
+         else
+            do k = 1, 6
+               mass_exit = mass_exit + particle(k)%mass*Exit_channel(i)%num_part(k)
+            end do
+         end if
+
          Q = mass_target + particle(iproj)%mass - nucleus(inuc)%mass - mass_exit
          if(abs(Q) < 1.0d-6)Q = 0.0d0
 
@@ -1326,8 +1280,8 @@ program YAHFC_MASTER
 !--------------------------------------------------------------------------+
 
 !      Ef=(4.0d0/dfloat(nucleus(num_comp)%A))*nucleus(1)%Kinetic_Energy
-      Ef=(4.0d0/real(nucleus(num_comp)%A,kind=8))*Init_Kinetic_Energy
-      Ex=(sqrt(nucleus(1)%Ex_max)+sqrt(Ef))**2
+      Ef = (4.0d0/real(nucleus(num_comp)%A,kind=8))*Init_Kinetic_Energy
+      Ex = (sqrt(nucleus(1)%Ex_max)+sqrt(Ef))**2
 
       do k=0,6
          particle(k)%nbin_spectrum = int(particle(k)%max_e/de) + 1
@@ -1342,27 +1296,34 @@ program YAHFC_MASTER
          do in = 1, num_energies
             if(projectile%energy(in) < min_e) min_e = projectile%energy(in)
          end do
-         particle(iproj)%min_e  = max(min_e, 1.0d-5)
          do k = 1, 6
-            if(k == iproj)cycle
             if(particle(k)%in_decay)then
                if(k == 1)particle(k)%min_e = 1.0d-5
-               if(k == 2)particle(k)%min_e = 1.0d-3
+               if(k == 2)particle(k)%min_e = 1.0d-2
                if(k == 3)particle(k)%min_e = 1.0d-2
                if(k == 4)particle(k)%min_e = 1.0d-2
-               if(k == 5)particle(k)%min_e = 1.0d-2
-               if(k == 6)particle(k)%min_e = 1.0d-2
+               if(k == 5)particle(k)%min_e = 1.0d-1
+               if(k == 6)particle(k)%min_e = 1.0d-1
             end if
          end do
+         if(min_e < particle(iproj)%min_e)then
+            write(6,'(''*********************************************'')')
+            write(6,'(''*  WARNING!WARNING!WARNING!WARNING!WARNING  *'')')
+            write(6,'(''*  Minimum energy projectile is below what  *'')')
+            write(6,'(''*  safe value. Restart with                 *'')')
+            write(6,'(''*  e_min >= '',1pe15.7,''               *'')')particle(iproj)%min_e
+            write(6,'(''*********************************************'')')
+            stop
+         end if
       else
          do k = 1, 6
             if(particle(k)%in_decay)then
                if(k == 1)particle(k)%min_e = 1.0d-4
-               if(k == 2)particle(k)%min_e = 1.0d-3
+               if(k == 2)particle(k)%min_e = 1.0d-2
                if(k == 3)particle(k)%min_e = 1.0d-2
                if(k == 4)particle(k)%min_e = 1.0d-2
-               if(k == 5)particle(k)%min_e = 1.0d-2
-               if(k == 6)particle(k)%min_e = 1.0d-2
+               if(k == 5)particle(k)%min_e = 1.0d-1
+               if(k == 6)particle(k)%min_e = 1.0d-1
             end if
          end do
       end if
@@ -1373,9 +1334,56 @@ program YAHFC_MASTER
 !------    Set up transmission coefficients for particle emission         +
 !------                                                                   +
 !-------------------------------------------------------------------------+
-!------  Uses input files that were originally set up for stapre, i.e., *.tco file
 
       call optical_setup(data_path, len_path, iproj, itarget, istate, de, num_comp, Ang_L_max)
+
+!
+!----   Check for maximum angular momentum from the reaction dynamics
+!
+      if(.not. pop_calc)then
+         e_in = projectile%energy(num_energies)
+  
+         xJ_max = real(particle(iproj)%lmax,kind=8) + particle(iproj)%spin + nucleus(1)%state(istate)%spin
+         max_J = nint(xJ_max - nucleus(1)%jshift)
+
+         test_sigma = 0.0d0
+         do j = 0, max_J                                          !   loop over J values
+            do ipar = 0, 1                                              !   parity of compound nucleus
+               xji = real(j,kind=8) + nucleus(1)%jshift
+               test_sigma = test_sigma + compound_cs(e_in,ipar,xji,itarget,istate,iproj)
+            end do
+         end do
+
+         sum = 0.0d0
+         do j = 0, max_J                                          !   loop over J values
+            do ipar = 0, 1                                              !   parity of compound nucleus
+               xji = real(j,kind=8) + nucleus(1)%jshift
+               sum = sum + compound_cs(e_in,ipar,xji,itarget,istate,iproj)
+            end do
+            if(abs(sum - test_sigma) < 1.d-5)exit
+!            if(sum/test_sigma > 0.9999d0)exit
+         end do
+         max_J = J
+!----
+         max_J_allowed = min(max_J,40)
+      end if        
+
+!
+!-----  Now check if any discrete are higher, and set to maximum spin of discrete states
+!
+      do i = 1, num_comp
+         do n = 1, nucleus(i)%num_discrete
+            J = nint(nucleus(i)%state(n)%spin - nucleus(i)%jshift)
+            if(J > max_J_allowed)max_J_allowed = J
+         end do
+      end do
+
+
+      write(6,*)'Maximum J-value set to ',max_J_allowed
+      do i = 1, num_comp
+         nucleus(i)%j_max = max_J_allowed
+      end do
+
 
 !-------------------------------------------------------------------------+
 !------                                                                   +
@@ -1390,13 +1398,13 @@ program YAHFC_MASTER
 !-----  set up and initialze arrays for starting populations
       if(.not.allocated(target%pop_xjpi))allocate(target%pop_xjpi(0:j_max,0:1))
 
-      sp1=abs(spin_target-spin_proj)
-      sp2=spin_target+spin_proj
-      isp=int(sp2-sp1)
+      sp1 = abs(spin_target-spin_proj)
+      sp2 = spin_target+spin_proj
+      isp = int(sp2-sp1)
 
-         call start_IO(num_comp)
+      call start_IO(num_comp)
 
-         call output_trans_coef
+      call output_trans_coef
 
 
 !-------------------------------------------------------------------------+
@@ -1526,7 +1534,6 @@ program YAHFC_MASTER
                end do
             end do
          end if
-!     flush(89)
 
          write(99,'(''#               Negative Parity          Positive Parity'')')
          write(99,'(''#  J           Yrast  Yrast-lev          Yrast  Yrast-lev'')')
@@ -1539,7 +1546,6 @@ program YAHFC_MASTER
          close(unit=99)
       end do
 
-!    stop 
 
       do i = 1, num_comp
          nucleus(i)%lmax_E=e_l_max                     !   maximum Electro-magnetic multipole 
@@ -1659,9 +1665,7 @@ program YAHFC_MASTER
          if(Gamma_g_exp > 0.0d0)diff = abs(Gamma_g - Gamma_g_exp)                 !  current difference
 
          num_res_old = nucleus(icomp)%num_res
-!
-!   write(6,*)diff,tolerance
-!
+
          if(diff > tolerance .and. fit_Gamma_gamma)then
             nucleus(icomp)%num_res = nucleus(icomp)%num_res + 1
             num_res = nucleus(icomp)%num_res
@@ -1709,13 +1713,6 @@ program YAHFC_MASTER
             else
                write(6,'(5x,i3,a2)')iA,nucleus(icomp)%atomic_symbol(ich:2)
             end if
-!            if(iA < 10)then
-!               write(6,'(5x,i1,a2)')iA,nucleus(icomp)%atomic_symbol(ich:2)
-!            elseif(iA < 100)then 
-!               write(6,'(5x,i2,a2)')iA,nucleus(icomp)%atomic_symbol(ich:2)
-!            else
-!               write(6,'(5x,i3,a2)')iA,nucleus(icomp)%atomic_symbol(ich:2)
-!            end if
 	 
             if(Gamma_g > 0.0d0)then
                if(nucleus(icomp)%Gamma_g_exp > 0.0d0)then
@@ -2026,10 +2023,6 @@ program YAHFC_MASTER
          if(.not.allocated(Exit_Channel(i)%part_mult))                                             &
                  allocate(Exit_Channel(i)%part_mult(0:6,-1:num_s,1:num_energies))
          Exit_Channel(i)%part_mult(0:6,-1:num_s,1:num_energies) = 0.0d0
-!         if(.not.allocated(Exit_Channel(i)%Spectrum))                                              &
-!                 allocate(Exit_Channel(i)%Spectrum(0:max_jx_10,0:num_e,                            &
-!                        0:6,-1:num_s,1:num_energies))
-!         Exit_Channel(i)%Spectrum(0:max_jx_10,0:num_e,0:6,-1:num_s,1:num_energies) = 0.0d0
          if(.not.allocated(Exit_Channel(i)%Ang_L))                                                 &
                  allocate(Exit_Channel(i)%Ang_L(0:Ang_L_max,0:num_e,                               &
                         0:6,-1:num_s,1:num_energies))
@@ -2300,6 +2293,7 @@ program YAHFC_MASTER
 !---------   Set up loop over incident energies                           +
 !---------                                                                +
 !-------------------------------------------------------------------------+
+!----   removing fission check to make warning that stride might be initialized
       if(fission)then
          if(.not. allocated(Fiss_J_avg))allocate(Fiss_J_avg(num_comp,num_energies))
          Fiss_J_avg(1:num_comp,1:num_energies) = 0.0d0
@@ -2361,39 +2355,6 @@ program YAHFC_MASTER
             Boost_Lab(1,0) = Boost_Lab(0,1)
             Boost_Lab(1,1) = 1.0d0 + (gamma - 1.0d0)*v_res(1)**2/beta**2
 
-!         else                                               ! excitation energies are stored in projectile energies
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!------   Set up process to boost emitted particles to the correct frame
-!------   This is a population calculation, so we measure energies
-!------   in the rest frame of the decaying system. In principle, this 
-!------   could be extended to include the reaction dynamics of the case 
-!------   in question. This would need to be specified by the user. Likely to
-!------   be doable by inputing the kinetic energy of the emitting nucleus
-!------   much like one would do for the decay of a fission fragment.
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!            ex_tot = E_in
-!            nucleus(1)%Kinetic_Energy = Kinetic_Energy
-!            KE = nucleus(1)%Kinetic_Energy
-!            mass_2 = nucleus(1)%Mass
-!            pp_res = sqrt(2.0d0*mass_2*KE)
-!            p_res(0) = mass_2 + KE
-!            pp_res = sqrt(abs(p_res(0)**2 - mass_2**2))
-!            p_res(1) = pp_res
-!            p_res(2) = 0.0d0
-!            p_res(3) = 0.0d0
-!            do i = 1, 3
-!               v_res(i) = p_res(i)/mass_2
-!            end do
-!            beta = pp_res/mass_2
-!            gamma = 1.0d0/sqrt(1.0d0 - beta**2)
-!            Boost_Lab(0:3,0:3) = 0.0d0
-!            do i = 0, 3
-!               Boost_Lab(i,i) = 1.0d0
-!            end do
-!            Boost_Lab(0,0) = gamma
-!            Boost_Lab(0,1) = -gamma*v_res(1)
-!            Boost_Lab(1,0) = Boost_Lab(0,1)
-!            if(beta > 1.0d-16)Boost_Lab(1,1) = 1.0d0 + (gamma - 1.0d0)*v_res(1)**2/beta**2
          end if
 !-------------------------------------------------
             write(6,*)
@@ -2444,7 +2405,6 @@ program YAHFC_MASTER
             absorption_cs(in) = 0.0d0
             call compound_xs(e_in,itarget,istate,iproj,absorption_cs(in),  &
                              num_channel,channel_prob,ichannel)
-!            if(absorption_cs(in) < 1.0d-6)cycle
 
             write(6,'(''Reaction cross section = '',1x,1pe15.7,1x,a2)')absorption_cs(in)*cs_scale,cs_units
             write(13,'(''Initial populations for incident energy = '',1pe15.7,''MeV'')')e_in
@@ -3517,27 +3477,19 @@ program YAHFC_MASTER
                   Exit_Channel(ichann)%num_event = Exit_Channel(ichann)%num_event + 1
                   do nn = 1, num_part
                      k = nint(part_data(2,nn))
-!                     icc = nint(part_data(15,nn)/de_spec)
 !------    If it is a discrete state, add a bit of smear to avoid accidental collision with boundary of spectrum
 !------    bin
                         e_shift = 0.0d0
                         if(idb == 1)shift = (2.0d0*random_64(iseed) - 1.0d0)*de_spec*0.5d0
-!                        icc = int((part_data(12,nn) + e_shift)/de_spec) + 1
                         icc = int(part_data(12,nn)/de_spec) + 1
-!                     if(icc < 0) icc = 0
                      if(k >= 0 .and. icc >= 0 .and. icc <= num_e)then
-!                        theta = part_data(16,nn)
                         theta = part_data(13,nn)
                         x = cos(theta)
-!                        jx = nint((x+0.999d0)/delta_jx_10)
                         jx = nint((x+1.0d0)/delta_jx_10)
                         if(jx < 0)jx = 0
                         if(jx > max_jx_10)jx = max_jx_10
                         Exit_Channel(ichann)%part_mult(k,ictype,in) =                              &
                              Exit_Channel(ichann)%part_mult(k,ictype,in) + tally_weight
-!                        Exit_Channel(ichann)%Spectrum(jx,icc,k,ictype,in) =                        &
-!                            Exit_Channel(ichann)%Spectrum(jx,icc,k,ictype,in) + tally_weight
-
                         Exit_Channel(ichann)%Spect(k,ictype,in)%E_Ang_Dist(jx,icc) =               &
                             Exit_Channel(ichann)%Spect(k,ictype,in)%E_Ang_Dist(jx,icc) +           &
                             tally_weight/(delta_jx_10*de_spec)
@@ -3557,7 +3509,7 @@ program YAHFC_MASTER
             if(.not. fission_decay)then
                do i = 1, num_part
                   k = nint(part_data(2,i))
-                  if(k >= 0)then                      !  k < 0 is internal conversion
+                  if(k >= 0 .and. k <= 6)then                      !  k < 0 is internal conversion
                      icc = int(part_data(15,i)/de_spec2)
                      if(icc >= 0 .and. icc <= num_e)then
                         x_particle_spectrum(icc,k) = x_particle_spectrum(icc,k) + tally_weight
@@ -3580,14 +3532,16 @@ program YAHFC_MASTER
 
             if(preeq_decay)then
                k = nint(part_data(2,1))
-               preeq_css(k,in) = preeq_css(k,in) + tally_weight
-               icc = int(part_data(15,1)/de_spec2)
-               if(icc >= 0 .and. icc <= num_e)then
-                  preeq_spect_full(k,icc) = preeq_spect_full(k,icc) + tally_weight
-                  if(.not. fission_decay)                                                          &
-                     preeq_spect(k,icc) = preeq_spect(k,icc) + tally_weight
-                     preeq_test_cs = preeq_test_cs + tally_weight
-                     test_count = test_count + tally_weight
+               if(k >= 0 .and. k <= 7)then
+                  preeq_css(k,in) = preeq_css(k,in) + tally_weight
+                  icc = int(part_data(15,1)/de_spec2)
+                  if(icc >= 0 .and. icc <= num_e)then
+                     preeq_spect_full(k,icc) = preeq_spect_full(k,icc) + tally_weight
+                     if(.not. fission_decay)                                                          &
+                        preeq_spect(k,icc) = preeq_spect(k,icc) + tally_weight
+                        preeq_test_cs = preeq_test_cs + tally_weight
+                        test_count = test_count + tally_weight
+                  end if
                end if
             end if
             if(direct .and. cc_decay)then
@@ -3610,13 +3564,16 @@ program YAHFC_MASTER
 !---------    Finished Monte Carlo Sampling Loop     -----------------+
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
-         smear(0) = 1.5d0*de_spec2
-         smear(1) = 1.5d0*de_spec2
-         smear(2) = 1.5d0*de_spec2
-         smear(3) = 1.5d0*de_spec2
-         smear(4) = 1.5d0*de_spec2
-         smear(5) = 1.5d0*de_spec2
-         smear(6) = 1.5d0*de_spec2
+         do k = 0, 6
+            smear(k) = 0.2d0
+         end do
+!         smear(0) = 1.5d0*de_spec2
+!         smear(1) = 1.5d0*de_spec2
+!         smear(2) = 1.5d0*de_spec2
+!         smear(3) = 1.5d0*de_spec2
+!         smear(4) = 1.5d0*de_spec2
+!         smear(5) = 1.5d0*de_spec2
+!         smear(6) = 1.5d0*de_spec2
 
          ifile = core_file
          file_name(ifile:ifile+4) = '_Ein_'
@@ -3727,7 +3684,7 @@ program YAHFC_MASTER
                open(unit=24,file=                                                                        &
                    directory(1:idir)//file_name(1:ifile)//'-Preeq-Spectrum.dat',status='unknown')
                write(24,'(''#Pre-equilibirum spectrum for each particle type '')')
-               write(24,'(''#Normalized to unity '')')
+               write(24,'(''#Calculated as barns/MeV '')')
                write(24,'(''#Incident energy = '',f10.4)')e_in
                if(fission)then
                   write(24,'(''#First set includes fission events, second set excludes fission events'')')
@@ -3816,6 +3773,7 @@ program YAHFC_MASTER
                open(unit=24,file=                                                                        &
                    directory(1:idir)//file_name(1:ifile)//'-Direct-Spectrum.dat',status='unknown')
                write(24,'(''#Outgoing spectra for direct and DWBA reactions '')')
+               write(24,'(''#Calculated as barns/MeV '')')
                write(24,'(''#Incident energy = '',f10.4)')e_in
                write(24,'(''#'',10x,10x,''Direct'',12x,''DWBA'')')
                do i = 0, max_num
@@ -3864,7 +3822,7 @@ program YAHFC_MASTER
                   end do
                   nsamp = nsamp + 1
                   num_part = 1
-                  E_f = e_rel
+                  E_f = E_in*mass_target/(mass_target + mass_proj)
                   part_data(1,num_part) = real(icomp_f,kind=8)
                   part_data(2,num_part) = real(iproj,kind=8)
                   part_data(3,num_part) = nucleus(itarget)%state(istate)%spin
@@ -3962,7 +3920,9 @@ program YAHFC_MASTER
               directory(1:idir)//file_name(1:ifile)//'-xParticle-Spectrum.dat',status='unknown')
          write(24,'(''#Outgoing spectra for each particle type '')')
          write(24,'(''#Incident energy = '',f10.4)')e_in
-         write(24,'(''#k='',8x,7(10x,i2))')(k, k = 0, 6)
+         write(24,'(''#Calculated as barns/MeV '')')
+         write(24,'(''#k='',8x,7(10x,i2,4x))')(k, k = 0, 6)
+         write(24,'(''#'',10x,7(3x,''----------------''))')
          x_particle_Spectrum_res(0:num_e,0:6) = 0.0d0 
          x_particle_Spectrum_res_dist(0:num_e,0:6) = 0.0d0 
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -4143,20 +4103,6 @@ program YAHFC_MASTER
                  if(Inelastic_count(j,in) < 1000)Inelastic_L_max(j,in) = 0
                  call Legendre_expand(max_jx_10+1,xvalue(0),Inelastic_Ang_Dist(0,j,in),            &
                                       Inelastic_L_max(j,in),Inelastic_Ang_L(0,j,in))
-!                 write(6,*)'state = ',j,'Sum = ',sum
-!                 do L = 0, Inelastic_L_max(j,in)
-!                    write(6,*)L, Inelastic_Ang_L(L,j,in)
-!                 end do
-
-!                 alf = 0.0d0
-!                 bet = 0.0d0
-!                 do jx = 0, max_jx_10
-!                    sum = 0
-!                    do L = 0, Inelastic_L_max(j,in)
-!                       sum = sum + Inelastic_Ang_L(L,j,in)*poly(L,1,alf,bet,xvalue(jx))
-!                    end do
-!                    write(6,*)jx,xvalue(jx),Inelastic_Ang_Dist(jx,j,in), sum
-!                 end do
               end if
           end do
           if(allocated(xvalue))deallocate(xvalue)
@@ -4203,7 +4149,6 @@ program YAHFC_MASTER
                        end do
                     end if
 
-!                    write(56,*)'Norm check ',icc,sum,Exit_Channel(i)%Spect(k,n,in)%E_spec(icc)*de_spec
                     sum = Exit_Channel(i)%Spect(k,n,in)%E_count(icc)
 !-----   Set max L based on number of counts in energy bin
                     Exit_Channel(i)%Spect(k,n,in)%E_Ang_L_max(icc) = 6
@@ -4331,7 +4276,6 @@ program YAHFC_MASTER
                ilast = index(Exit_Channel(i)%Channel_Label,' ')-1
                file_lab2(ilab2:ilab2+ilast) = Exit_Channel(i)%Channel_Label(1:ilast)
                ilab2 = ilab2 + ilast
-!               ilab2 = ilab2 + 1
                file_lab2(ilab2:ilab2) = ')'
                write(100,'(''# '',a20)')file_lab2
 !-----------------------------------
@@ -4346,13 +4290,27 @@ program YAHFC_MASTER
                write(100,'(''# Mass of residual = '',1pe23.16,'' amu'')')nucleus(inuc)%mass/mass_u
                write(100,'(''#'')')
                if(Exit_channel(i)%num_particles > 0)then
-                  write(100,'(''# Mass of emitted particles '')')
-                  do m = 1, Exit_channel(i)%num_particles
-                     k = Exit_channel(i)%decay_particles(m)
-                     write(100,'(''# Particle # '',i5,'' = '',a1)')m,particle(k)%label
-                     write(100,'(''# Mass particle # '',i5,'' = '',1pe23.16,'' amu'')')m, particle(k)%mass/mass_u
-                  end do
+                  if(explicit_channels)then
+                     write(100,'(''# Mass of emitted particles '')')
+                     do m = 1, Exit_channel(i)%num_particles
+                        k = Exit_channel(i)%decay_particles(m)
+                        write(100,'(''# Particle # '',i5,'' = '',a1)')m,particle(k)%label
+                        write(100,'(''# Mass particle # '',i5,'' = '',1pe23.16,'' amu'')')m, particle(k)%mass/mass_u
+                     end do
+                  else
+                     write(100,'(''# Mass of emitted particles '')')
+                     m = 0
+                     do k = 1, 6
+                        do nn = 1, Exit_channel(i)%num_part(k)
+                           m = m + 1
+                           write(100,'(''# Particle # '',i5,'' = '',a1)')m,particle(k)%label
+                           write(100,'(''# Mass particle # '',i5,'' = '',1pe23.16,'' amu'')')m,particle(k)%mass/mass_u
+                        end do
+                     end do
+                  end if
                end if
+
+               write(100,'(''#'')')
                write(100,'(''# Q-value = '',f15.8,'' MeV'')')Q
                write(100,'(''#'')')
                write(100,'(''# Listing discrete gammas observed in this particle decay channel'')')
@@ -5257,7 +5215,7 @@ program YAHFC_MASTER
          end do
 
          Elastic_cs(1:num_energies) = 0.0d0
-  
+         sig_C = 0.0d0  
          do in = 1, num_energies
             e_in = projectile%energy(in)
 !-------   Shape + Compound Elastic
@@ -5709,13 +5667,26 @@ program YAHFC_MASTER
                   j-1,nucleus(inuc)%state(j)%spin, ch_par(ipf), nucleus(inuc)%state(j)%energy
             write(100,'(''#'')')
             if(Exit_channel(i)%num_particles > 0)then
-               write(100,'(''# Mass of emitted particles '')')
-               do m = 1, Exit_channel(i)%num_particles
-                  k = Exit_channel(i)%decay_particles(m)
-                  write(100,'(''# Particle # '',i5,'' = '',a1)')m,particle(k)%label
-                  write(100,'(''# Mass particle # '',i5,'' = '',1pe23.16,'' amu'')')m, particle(k)%mass/mass_u
-               end do
+               if(explicit_channels)then
+                  write(100,'(''# Mass of emitted particles '')')
+                  do m = 1, Exit_channel(i)%num_particles
+                     k = Exit_channel(i)%decay_particles(m)
+                     write(100,'(''# Particle # '',i5,'' = '',a1)')m,particle(k)%label
+                     write(100,'(''# Mass particle # '',i5,'' = '',1pe23.16,'' amu'')')m, particle(k)%mass/mass_u
+                  end do
+               else
+                  write(100,'(''# Mass of emitted particles '')')
+                  m = 0
+                  do k = 1, 6
+                     do nn = 1, Exit_channel(i)%num_part(k)
+                        m = m + 1
+                        write(100,'(''# Particle # '',i5,'' = '',a1)')m,particle(k)%label
+                        write(100,'(''# Mass particle # '',i5,'' = '',1pe23.16,'' amu'')')m,particle(k)%mass/mass_u
+                     end do
+                  end do
+               end if
             end if
+            write(100,'(''#'')')
             write(100,'(''# Q-value = '',f15.8,'' MeV'')')Q
             write(100,'(''#'')')
             write(100,'(''# Cross section data '')')
@@ -5780,14 +5751,28 @@ program YAHFC_MASTER
             write(100,'(''# Xs collected in Final state = '',i3,3x,''J = '',f4.1,a1,3x,''Ex = '',1pe15.7,'' MeV'')')  &
                   j-1,nucleus(inuc)%state(j)%spin, ch_par(ipf), nucleus(inuc)%state(j)%energy
             write(100,'(''#'')')
+
             if(Exit_channel(i)%num_particles > 0)then
-               write(100,'(''# Mass of emitted particles '')')
-               do m = 1, Exit_channel(i)%num_particles
-                  k = Exit_channel(i)%decay_particles(m)
-                  write(100,'(''# Particle # '',i5,'' = '',a1)')m,particle(k)%label
-                  write(100,'(''# Mass particle # '',i5,'' = '',1pe23.16,'' amu'')')m, particle(k)%mass/mass_u
-               end do
+               if(explicit_channels)then
+                  write(100,'(''# Mass of emitted particles '')')
+                  do m = 1, Exit_channel(i)%num_particles
+                     k = Exit_channel(i)%decay_particles(m)
+                     write(100,'(''# Particle # '',i5,'' = '',a1)')m,particle(k)%label
+                     write(100,'(''# Mass particle # '',i5,'' = '',1pe23.16,'' amu'')')m, particle(k)%mass/mass_u
+                  end do
+               else
+                  write(100,'(''# Mass of emitted particles '')')
+                  m = 0
+                  do k = 1, 6
+                     do nn = 1, Exit_channel(i)%num_part(k)
+                        m = m + 1
+                        write(100,'(''# Particle # '',i5,'' = '',a1)')m,particle(k)%label
+                        write(100,'(''# Mass particle # '',i5,'' = '',1pe23.16,'' amu'')')m,particle(k)%mass/mass_u
+                     end do
+                   end do
+               end if
             end if
+            write(100,'(''#'')')
             write(100,'(''# Q-value = '',f15.8,'' MeV'')')Q
             write(100,'(''#'')')
             write(100,'(''# Angular Distribution data  P(x,Eout|Ein) '')')
@@ -5943,13 +5928,26 @@ program YAHFC_MASTER
                   j-1,nucleus(inuc)%state(j)%spin, ch_par(ipf), nucleus(inuc)%state(j)%energy
             write(100,'(''#'')')
             if(Exit_channel(i)%num_particles > 0)then
-               write(100,'(''# Mass of emitted particles '')')
-               do m = 1, Exit_channel(i)%num_particles
-                  k = Exit_channel(i)%decay_particles(m)
-                  write(100,'(''# Particle # '',i5,'' = '',a1)')m,particle(k)%label
-                  write(100,'(''# Mass particle # '',i5,'' = '',1pe23.16,'' amu'')')m, particle(k)%mass/mass_u
-               end do
+               if(explicit_channels)then
+                  write(100,'(''# Mass of emitted particles '')')
+                  do m = 1, Exit_channel(i)%num_particles
+                     k = Exit_channel(i)%decay_particles(m)
+                     write(100,'(''# Particle # '',i5,'' = '',a1)')m,particle(k)%label
+                     write(100,'(''# Mass particle # '',i5,'' = '',1pe23.16,'' amu'')')m, particle(k)%mass/mass_u
+                  end do
+               else
+                  write(100,'(''# Mass of emitted particles '')')
+                  m = 0
+                  do k = 1, 6
+                     do nn = 1, Exit_channel(i)%num_part(k)
+                        m = m + 1
+                        write(100,'(''# Particle # '',i5,'' = '',a1)')m,particle(k)%label
+                        write(100,'(''# Mass particle # '',i5,'' = '',1pe23.16,'' amu'')')m,particle(k)%mass/mass_u
+                     end do
+                   end do
+               end if
             end if
+            write(100,'(''#'')')
             write(100,'(''# Q-value = '',f15.8,'' MeV'')')Q
             write(100,'(''#'')')
             write(100,'(''# Angular Distribution data  P(x,Eout|Ein) '')')
@@ -6047,14 +6045,26 @@ program YAHFC_MASTER
                   j-1,nucleus(inuc)%state(j)%spin, ch_par(ipf), nucleus(inuc)%state(j)%energy
             write(100,'(''#'')')
             if(Exit_channel(i)%num_particles > 0)then
-               write(100,'(''# Mass of emitted particles '')')
-               do m = 1, Exit_channel(i)%num_particles
-                  k = Exit_channel(i)%decay_particles(m)
-                  write(100,'(''# Particle # '',i5,'' = '',a1)')m,particle(k)%label
-                  write(100,'(''# Mass particle # '',i5,'' = '',1pe23.16,'' amu'')')m,              &
-                        particle(k)%mass/mass_u
-               end do
+               if(explicit_channels)then
+                  write(100,'(''# Mass of emitted particles '')')
+                  do m = 1, Exit_channel(i)%num_particles
+                     k = Exit_channel(i)%decay_particles(m)
+                     write(100,'(''# Particle # '',i5,'' = '',a1)')m,particle(k)%label
+                     write(100,'(''# Mass particle # '',i5,'' = '',1pe23.16,'' amu'')')m, particle(k)%mass/mass_u
+                  end do
+               else
+                  write(100,'(''# Mass of emitted particles '')')
+                  m = 0
+                  do k = 1, 6
+                     do nn = 1, Exit_channel(i)%num_part(k)
+                        m = m + 1
+                        write(100,'(''# Particle # '',i5,'' = '',a1)')m,particle(k)%label
+                        write(100,'(''# Mass particle # '',i5,'' = '',1pe23.16,'' amu'')')m,particle(k)%mass/mass_u
+                     end do
+                   end do
+               end if
             end if
+            write(100,'(''#'')')
             write(100,'(''# Q-value = '',f15.8,'' MeV'')')Q
             write(100,'(''#'')')
             write(100,'(''# Angular Distribution data  P(x|Ein) '')')
@@ -6159,13 +6169,26 @@ program YAHFC_MASTER
                   j-1,nucleus(inuc)%state(j)%spin, ch_par(ipf), nucleus(inuc)%state(j)%energy
             write(100,'(''#'')')
             if(Exit_channel(i)%num_particles > 0)then
-               write(100,'(''# Mass of emitted particles '')')
-               do m = 1, Exit_channel(i)%num_particles
-                  k = Exit_channel(i)%decay_particles(m)
-                  write(100,'(''# Particle # '',i5,'' = '',a1)')m,particle(k)%label
-                  write(100,'(''# Mass particle # '',i5,'' = '',1pe23.16,'' amu'')')m, particle(k)%mass/mass_u
-               end do
+               if(explicit_channels)then
+                  write(100,'(''# Mass of emitted particles '')')
+                  do m = 1, Exit_channel(i)%num_particles
+                     k = Exit_channel(i)%decay_particles(m)
+                     write(100,'(''# Particle # '',i5,'' = '',a1)')m,particle(k)%label
+                     write(100,'(''# Mass particle # '',i5,'' = '',1pe23.16,'' amu'')')m, particle(k)%mass/mass_u
+                  end do
+               else
+                  write(100,'(''# Mass of emitted particles '')')
+                  m = 0
+                  do k = 1, 6
+                     do nn = 1, Exit_channel(i)%num_part(k)
+                        m = m + 1
+                        write(100,'(''# Particle # '',i5,'' = '',a1)')m,particle(k)%label
+                        write(100,'(''# Mass particle # '',i5,'' = '',1pe23.16,'' amu'')')m,particle(k)%mass/mass_u
+                     end do
+                   end do
+               end if
             end if
+            write(100,'(''#'')')
             write(100,'(''# Q-value = '',f15.8,'' MeV'')')Q
             write(100,'(''#'')')
             write(100,'(''# Emission Spectrum data  P(Eout|Ein) '')')
@@ -6298,13 +6321,26 @@ program YAHFC_MASTER
             write(100,'(''# Mass of residual = '',1pe23.16,'' amu'')')nucleus(inuc)%mass/mass_u
             write(100,'(''#'')')
             if(Exit_channel(i)%num_particles > 0)then
-               write(100,'(''# Mass of emitted particles '')')
-               do m = 1, Exit_channel(i)%num_particles
-                  k = Exit_channel(i)%decay_particles(m)
-                  write(100,'(''# Particle # '',i5,'' = '',a1)')m,particle(k)%label
-                  write(100,'(''# Mass particle # '',i5,'' = '',1pe23.16,'' amu'')')m, particle(k)%mass/mass_u
-               end do
+               if(explicit_channels)then
+                  write(100,'(''# Mass of emitted particles '')')
+                  do m = 1, Exit_channel(i)%num_particles
+                     k = Exit_channel(i)%decay_particles(m)
+                     write(100,'(''# Particle # '',i5,'' = '',a1)')m,particle(k)%label
+                     write(100,'(''# Mass particle # '',i5,'' = '',1pe23.16,'' amu'')')m, particle(k)%mass/mass_u
+                  end do
+               else
+                  write(100,'(''# Mass of emitted particles '')')
+                  m = 0
+                  do k = 1, 6
+                     do nn = 1, Exit_channel(i)%num_part(k)
+                        m = m + 1
+                        write(100,'(''# Particle # '',i5,'' = '',a1)')m,particle(k)%label
+                        write(100,'(''# Mass particle # '',i5,'' = '',1pe23.16,'' amu'')')m,particle(k)%mass/mass_u
+                     end do
+                   end do
+               end if
             end if
+            write(100,'(''#'')')
             write(100,'(''# Q-value = '',f15.8,'' MeV'')')Q
             write(100,'(''#'')')
             if(.not. pop_calc)then
@@ -6704,11 +6740,9 @@ integer(kind=4) function find_channel(n_dat, dim_part, num_part, part_data, num_
    integer(kind=4), intent(in) :: num_part_type(6)
 !----------------------------------------------------------------------------------
    integer(kind=8) :: channel_code
-!   integer(kind=4) :: channel_code
    integer(kind=4) :: iparticle
    integer(kind=4) :: i, n, k
    integer(kind=4) :: ichannel
-   logical :: found
    
 ! -----    Set up code to determine channel - based on emitted particles, order does matter
 
@@ -6719,51 +6753,27 @@ integer(kind=4) function find_channel(n_dat, dim_part, num_part, part_data, num_
          iparticle = nint(part_data(2,i))
          if(iparticle > 0 .and. iparticle <= 6)then
             n = n + 1
-            channel_code = ior(channel_code,ishft(iparticle,(n-1)*3))
+            channel_code = ior(channel_code,ishft(int(iparticle,kind=8),(n-1)*3))
          end if
       end do
+   else
+      channel_code = 0
+      do k = 1, 6
+         channel_code = ior(channel_code,ishft(int(num_part_type(k),kind=8),(k-1)*5))
+      end do
+   end if
 ! 
 ! ------   Find it in the list of channels
 !
-     ichannel = 0
-      do i = 1, num_channels
-         if(channel_code == Exit_channel(i)%Channel_code)then
-            ichannel = i
-            exit
-         end if
-      end do
-      find_channel = ichannel
-      if(ichannel == 0)then
-          write(6,*)channel_code
-          do i = 1, num_channels
-             write(6,*)i,Exit_channel(i)%Channel_code, Exit_channel(i)%Channel_Label
-             if(channel_code == Exit_channel(i)%Channel_code)ichannel = i
-          end do
-          stop 'ichannel = 0'
+  ichannel = 0
+   do i = 1, num_channels
+      if(channel_code == Exit_channel(i)%Channel_code)then
+         ichannel = i
+         exit
       end if
-   else
-      ichannel = 0
-      do i = 1, num_channels
-         found = .true.
-         do k = 1, 6
-            if(num_part_type(k) /= Exit_channel(i)%num_part(k))found = .false.
-         end do
-         if(found)then
-            ichannel = i
-            exit
-         end if
-      end do
-      find_channel = ichannel
-      if(ichannel == 0)then
-          do i = 1, num_channels
-             write(6,*)i, Exit_channel(i)%Channel_Label
-             do k = 1, 6
-                write(6,*)k,num_part_type(k),Exit_channel(i)%num_part(k)
-             end do
-          end do
-          stop 'ichannel = 0'
-      end if
-   end if
+   end do
+
+   find_channel = ichannel
 
   return
 end function find_channel

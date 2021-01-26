@@ -1,8 +1,10 @@
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
+!subroutine make_fresco_tco(data_path, len_path, tco_file, len_tco,       &
+!                           de, pindex, iproj, itarget, istate, Ang_L_max)
 subroutine make_fresco_tco(data_path, len_path, tco_file, len_tco,       &
-                           de, pindex,iproj, itarget, istate, Ang_L_max)
+                           pindex, iproj, itarget, istate, Ang_L_max)
 !
 !*******************************************************************************
 !
@@ -39,7 +41,7 @@ subroutine make_fresco_tco(data_path, len_path, tco_file, len_tco,       &
   integer(kind=4), intent(in) :: len_path
   character(len=80), intent(in) :: tco_file
   integer(kind=4), intent(in) ::  len_tco
-  real(kind=8), intent(in) :: de
+!  real(kind=8), intent(in) :: de
   integer(kind=4), intent(in) :: pindex, iproj, itarget, istate, Ang_L_max
 !-----------------------------------------------------------------------
   integer(kind=4) iztarget,iatarget
@@ -79,7 +81,6 @@ subroutine make_fresco_tco(data_path, len_path, tco_file, len_tco,       &
   real(kind=8), allocatable :: cc_state_str(:)
 !-rem  integer(kind=4) :: ibin
   integer(kind=4) :: if_state
-  real(kind=8) :: ex_min
   real(kind=8) :: e_cut
 
   integer(kind=4) :: num_states
@@ -231,6 +232,7 @@ subroutine make_fresco_tco(data_path, len_path, tco_file, len_tco,       &
   symb = nucleus(itarget)%atomic_symbol
   label = particle(pindex)%label
   partname = particle(pindex)%name
+!---------    e_min and e_max need to be in the COM frame
   e_min = particle(pindex)%min_e
   e_max = particle(pindex)%max_e
   zpart = particle(pindex)%Z
@@ -288,11 +290,14 @@ subroutine make_fresco_tco(data_path, len_path, tco_file, len_tco,       &
   Ap = Apart
   if(pindex <= 2) Ap = 0.0d0
 
-  ebin_min = nucleus(itarget)%e_grid(1) - de/2.0d0
+  ebin_min = nucleus(itarget)%e_grid(1) - 0.5d0*nucleus(itarget)%delta_e(1)
 
   nex = 0
   nccba = 0
   ncc = 0
+
+  write(6,*)'Check ',particle(pindex)%do_dwba
+
 
   cc_found = .false.
 !----   check for coupled channels ONLY in protons and neutrons
@@ -311,7 +316,6 @@ subroutine make_fresco_tco(data_path, len_path, tco_file, len_tco,       &
 
      num_states = nucleus(itarget)%ncut
      if(All_gammas)num_states = nucleus(itarget)%num_discrete
-
 
   do while(.not. cc_found)      !   - loop is on iz and ia nuclei not on lines in file
      read(21,'(a)')line
@@ -342,7 +346,7 @@ subroutine make_fresco_tco(data_path, len_path, tco_file, len_tco,       &
            num_tot = num_cc_read
         end if
 !------    Don't do DWBA if do_dwba = .false.
-        if(.not. do_dwba)then
+        if(.not. particle(pindex)%do_dwba)then
            num_read = num_cc_read
            num_tot = num_cc_read
         end if
@@ -500,7 +504,7 @@ subroutine make_fresco_tco(data_path, len_path, tco_file, len_tco,       &
               read(line(startw(5):stopw(5)),*)STR
 !-------    Make sure that energy of DWBA state is above lowest continuous
 !-------    energy bin
-              if(ener >= nucleus(itarget)%e_grid(1) - de/2.0d0)then
+              if(ener >= ebin_min)then
                  if(xJ >= 0.0d0)then
                     ncount = ncount + 1
                     cc_index(ncount) = jndex
@@ -541,7 +545,7 @@ subroutine make_fresco_tco(data_path, len_path, tco_file, len_tco,       &
               read(line(startw(5):stopw(5)),*)STR
 !-------    Make sure that energy of DWBA state is above lowest continuous
 !-------    energy bin
-              if(ener >= nucleus(itarget)%e_grid(1) - de/2.0d0)then
+              if(ener >= ebin_min)then
                  ncount = ncount + 1
                  cc_index(ncount) = jndex
                  cc_state_e(ncount) = ener
@@ -555,25 +559,6 @@ subroutine make_fresco_tco(data_path, len_path, tco_file, len_tco,       &
               end if
            end if
         end do
-!
-!-----    Changed 5-21-2020   ------------------------------
-!-----    Before the DWBA tates were matched to an energy bin and palced in the
-!-----    middle and then degeneracies were removed. This led to the problem that
-!-----    the DWBA calculation was dependent on the energy grid and if it
-!-----    was changed, the DWBA calculation would have to be done again.
-!-----    Plus, it might have underestimated the effect of the states, so 
-!-----    calculations with different energy grids would be inconsistent.
-!
-!        if(num_cc /= num_tot)then
-!           ex_min = nucleus(itarget)%e_grid(1) - de/2.0d0
-!           do i = num_cc + 1, num_tot
-!              if(cc_index(i) <= 0)then
-!                 ibin = int((cc_state_e(i) - ex_min)/de) + 1
-!                 cc_index(i) = ibin
-!                 cc_state_e(i) = nucleus(itarget)%e_grid(ibin)
-!              end if
-!           end do
-!        end if
         ncc = num_cc
         nex = num_tot
      else
@@ -587,10 +572,10 @@ subroutine make_fresco_tco(data_path, len_path, tco_file, len_tco,       &
      end do
      close(unit=21)
   end if
-!------     Nucleus not found in coupled channels file so perform spherical optical model
+!------     Nucleus not found in coupled channels file, so perform spherical optical model
 !------     set do_dwba = .false.
   if(.not. cc_found)then
-     do_dwba = .false.
+     particle(pindex)%do_dwba = .false.
      num_cc = 1
      num_tot = num_cc
      nex = num_tot
@@ -647,46 +632,13 @@ subroutine make_fresco_tco(data_path, len_path, tco_file, len_tco,       &
            nex = nex - 1
            remove = .true.
         end if
-!
-!-----   See above comment about not putting DWBA states on the grid. Now, each DWBA state
-!-----   will be treated separately and placed in the appropriate energy grid when the
-!-----   reaction occurs.
-!
-!     else
-!        do i = ncc + 1, n - 1
-!           if(cc_index(i) == cc_index(n) .and.                    &
-!              abs(cc_state_e(i) - cc_state_e(n)) < 1.0d-3 .and.   &     ! remove from the list, push others down
-!              abs(cc_state_j(i) - cc_state_j(n)) < 1.0d-3 .and.   &     ! remove from the list, push others down
-!              cc_state_par(i) == cc_state_par(n))then
-!              do j = n + 1,nex
-!                 cc_index(j-1) = cc_index(j)
-!                 cc_state_e(j-1) = cc_state_e(j)
-!                 cc_state_j(j-1) = cc_state_j(j)
-!                 cc_state_par(j-1) = cc_state_par(j)
-!                 cc_state_type(j-1) = cc_state_type(j)
-!                 cc_state_kpp(j-1) = cc_state_kpp(j)
-!                 cc_state_k(j-1) = cc_state_k(j)
-!                 cc_state_str(j-1) = cc_state_str(j)
-!              end do
-!              cc_index(nex) = 0
-!              cc_state_e(nex) = 0.0d0
-!              cc_state_j(nex) = 0.0d0
-!              cc_state_par(nex) = 0
-!              cc_state_type(nex) = -1
-!              cc_state_kpp(nex) = 0
-!              cc_state_k(nex) = 0
-!              cc_state_str(nex) = 0.0d0
-!              nex = nex - 1
-!              remove = .true.
-!           end if
-!        end do
      end if
      if(.not. remove) n = n + 1
   end do
 
 !---   We have all the states read in and set up to do DWBA, but check if DWBA is
 !---   wanted. If not, set nex = ncc
-  if(.not. do_dwba)nex = ncc
+  if(.not. particle(pindex)%do_dwba)nex = ncc
 
 
 !---    Find K of the coupled-channels band, smallest J 
@@ -704,22 +656,22 @@ subroutine make_fresco_tco(data_path, len_path, tco_file, len_tco,       &
 
   nume = 200
   xnume = real(nume,kind=8)
-  emin = min(1.0d-4,e_min)
-  emax = 25.0d0
+  emin = e_min
+  emax = 1.5d0*e_max
   factor = (log(emax)-log(emin))/xnume
   factor = exp(factor)
-  if(pindex == 2)then
-     emin = 0.05d0
-  elseif(pindex == 3)then
-     emin = 0.020d0
-  elseif(pindex == 4)then
-     emin = 0.020d0
-  elseif(pindex == 5)then
-     emin = 0.100d0
-  elseif(pindex == 6)then
-     emin = 0.100d0
-  end if             
-  factor = (log(30.0d0)-log(emin))/xnume
+!  if(pindex == 2)then
+!     emin = 0.05d0
+!  elseif(pindex == 3)then
+!     emin = 0.020d0
+!  elseif(pindex == 4)then
+!     emin = 0.020d0
+!  elseif(pindex == 5)then
+!     emin = 0.100d0
+!  elseif(pindex == 6)then
+!     emin = 0.100d0
+!  end if             
+  factor = (log(emax)-log(emin))/xnume
   factor = exp(factor)
 
   ener = emin/factor
@@ -749,9 +701,10 @@ subroutine make_fresco_tco(data_path, len_path, tco_file, len_tco,       &
   do ie = 1, nume
      ener = ener*factor
 !     energy(ie) = ener
-     particle(pindex)%e_grid(ie) = ener                  !   COM frame
+     particle(pindex)%e_grid(ie) = ener*mass_target/(mass_target + mass_proj)                  !   COM frame
 !     e_rel = ener*mass_target/(mass_target + mass_proj)
-     e_lab = ener*(mass_target + mass_proj)/mass_target
+!     e_lab = ener*(mass_target + mass_proj)/mass_target
+     e_lab = ener
      energy(ie) = e_lab                                  !   Lab frame
      write(6,*)ie, energy(ie), particle(pindex)%e_grid(ie)
   end do
@@ -1162,9 +1115,6 @@ subroutine make_fresco_tco(data_path, len_path, tco_file, len_tco,       &
      open(unit = 12, file = tco_file(1:len_tco)//'-CC.data', status = 'unknown')
 
      write(12,'(3(1x,i5),1x,f10.4)')nume, nex, Ang_L_max
-!     write(12,'(3(1x,i5),1x,f10.4)')nume, nex, Ang_L_max, de
-
-     ex_min = nucleus(itarget)%e_grid(1) - de/2.0d0
 
      do n = 1, nex
         write(12,'(2(1x,i5),1x,f4.1,1x,f4.1,1x,f4.1,1x,f8.4,1x,i6)')                &

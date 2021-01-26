@@ -67,7 +67,6 @@ subroutine pre_equilibrium_1(icomp,istate,in,E_inc,    &
    real(kind=8) :: mass_i,mass_t,mass_rel
    real(kind=8) :: factor,factor1
    real(kind=8) :: Msq
-!   real(kind=8) :: R_pp,R_nn,R_pn,R_np
    real(kind=8) :: xA
    real(kind=8) :: xAp
    real(kind=8) :: ratio
@@ -125,10 +124,6 @@ subroutine pre_equilibrium_1(icomp,istate,in,E_inc,    &
    Ap=projectile%A
    xAp=dfloat(Ap)
    N=A-Z
-!   R_pp = 1.0d0
-!   R_nn = 1.0d0
-!   R_pn = 1.5d0
-!   R_np = 1.5d0
    if(Preeq_g_a)then
       g = nucleus(icomp)%a_Sn*pi**2/6.0d0
       Preeq_g_div = xA/g
@@ -179,17 +174,11 @@ subroutine pre_equilibrium_1(icomp,istate,in,E_inc,    &
    W(0:pn_max+1,0:pp_max+1) = 0.0d0
    outfile(1:3) = 'dWn'
    ifile=50
-!write(52,*)Ex_tot
-!   do pn=pn_min,pn_max
-!      do pp=pp_min,pp_max
-!   shell = nucleus(icomp)%level_param(4)
-!   gamma = nucleus(icomp)%level_param(5)
    shell = 0.0d0
    gamma = 0.0d0
    gp = aparam_u(Ex_tot,gpp,shell,gamma)
    gn = aparam_u(Ex_tot,gnn,shell,gamma)
    g = gp + gn
-!   V1 = Preeq_V_part(iproj)
    V1 = Preeq_V1
    V3 = Preeq_V
    xK = Preeq_K
@@ -198,11 +187,8 @@ subroutine pre_equilibrium_1(icomp,istate,in,E_inc,    &
       if(preeq_fwell == 0 .or. preeq_fwell == 2)Vwell(h) = Well(h,A,E_inc,V1,V3,xK)
       if(preeq_fwell == 1)Vwell(h) = V3
    end do
-!   do i = p0(1) + p0(2), max(pn_max,pp_max)
-!      do pn = p0(1), min(i,pn_max)
    do pn = p0(1), pn_max
       do pp = p0(2), pp_max
-!         pp = i - pn
          hn = pn - p0(1)
          hp = pp - p0(2)
          pn_tot = pn + hn
@@ -210,29 +196,19 @@ subroutine pre_equilibrium_1(icomp,istate,in,E_inc,    &
          p_tot = pn + pp
          h_tot = hn + hp
          n_tot = p_tot + h_tot
-!         if(preeq_fwell == 0 .or. preeq_fwell == 2)V_well=Well(h_tot,A,E_inc,V1,V3)
-!         if(preeq_fwell == 1)V_well = V3
-!         if(preeq_fwell == 1)V_well = 38.0d0
-         Lamb_p_p(pn,pp) = 0.0d0
+        Lamb_p_p(pn,pp) = 0.0d0
          Lamb_p_n(pn,pp) = 0.0d0
          Lamb_0_pn(pn,pp) = 0.0d0
          Lamb_0_np(pn,pp) = 0.0d0
 
          Delta = Delta_pre(pn,hn,pp,hp,Z,A,gp,gn,Ex_tot)
-!         U = max(Ex_tot - Delta,1.0d-1)
-!         U = Ex_tot - Delta
-!         if(U <= 0.0d0)cycle
 
          omdenom = omega2(pn,hn,pp,hp,Z,A,gp,gn,Ex_tot,Delta,H_max,Vwell)
-!         omdenom = omega2(pn,hn,pp,hp,Z,A,gp,gn,Ex_tot,Delta,E_inc,H_max,Vwell)
-!         omdenom = omega(pn,hn,pp,hp,Z,A,gp,gn,Ex_tot,E_inc,V1,V3)
 
-!    write(60,'(''ph'',4(1x,i5),1x,e15.7)')pn,pp,hn,hp,omdenom
          if(omdenom <= 1.0d-10)cycle
          xn = dfloat(n_tot)
          Msq = (M2_C1*xAp/xA**3)*(7.48d0*M2_C2+4.62d5/(Ex_tot/(xn*xAp)+10.7*M2_C3)**3)
          if(analytic_preeq)Msq=1.2*Msq
-!   write(31,'(1x,f10.3,1x,e15.7)')Ex_tot,Msq
          Msq_pp = M2_Rpp*Msq
          Msq_pn = M2_Rpn*Msq
          Msq_nn = M2_Rnn*Msq
@@ -242,10 +218,6 @@ subroutine pre_equilibrium_1(icomp,istate,in,E_inc,    &
                                 Msq_nn,Msq_pp,Msq_pn,Msq_np,                         &
                                 Lamb_p_p(pn,pp),Lamb_p_n(pn,pp),                     &
                                 Lamb_0_pn(pn,pp),Lamb_0_np(pn,pp))
-!            call int_trans_rate(pn,hn,pp,hp,pn_max,pp_max,Z,A,gp,gn,Ex_tot,Delta,E_inc,h_max,Vwell,   &
-!                                Msq_nn,Msq_pp,Msq_pn,Msq_np,                                          &
-!                                Lamb_p_p(pn,pp),Lamb_p_n(pn,pp),                                      &
-!                                Lamb_0_pn(pn,pp),Lamb_0_np(pn,pp))
          else
             Lamb_p_p(pn,pp) = 0.0d0
             Lamb_p_n(pn,pp) = 0.0d0
@@ -260,65 +232,30 @@ subroutine pre_equilibrium_1(icomp,istate,in,E_inc,    &
             L_p_n_an = 0.0d0
 
             Delta = Delta_pre(pn,hn,pp,hp,Z,A,gp,gn,Ex_tot)
-!            U = max(Ex_tot - Delta,1.0d-1)
             U = Ex_tot - Delta
             if(U <= 0.0d0)cycle
 
-!            write(6,*)V_well,finite_well(p_tot+1,h_tot+1,Ex_tot,V_well)
 
 
             L_p_p_an=2.0d0*pi*gp**2/(2.0d0*xn*(xn+1.0d0))*((Ex_tot-Pauli(pn,hn,pp+1,hp+1,gp,gn))**(n_tot+1)/           & 
                                                            (Ex_tot-Pauli(pn,hn,pp,hp,gp,gn))**(n_tot-1))*              &
                                                            (dfloat(pp+hp)*gp*Msq_pp+2.0d0*dfloat(pn+hn)*gn*Msq_pn)*    &
                                                            finite_well(p_tot+1,h_tot+1,Ex_tot,h_max,Vwell)
-!                                                           finite_well(p_tot+1,h_tot+1,Ex_tot,A,E_inc,h_max,Vwell)
             L_p_n_an=2.0d0*pi*gn**2/(2.0d0*xn*(xn+1.0d0))*((Ex_tot-Pauli(pn+1,hn+1,pp,hp,gp,gn))**(n_tot+1)/           &
                                                            (Ex_tot-Pauli(pn,hn,pp,hp,gp,gn))**(n_tot-1))*              &
                                                            (dfloat(pn+hn)*gn*Msq_nn+2.0d0*dfloat(pp+hp)*gp*Msq_np)*    &
                                                            finite_well(p_tot+1,h_tot+1,Ex_tot,h_max,Vwell)
-!                                                           finite_well(p_tot+1,h_tot+1,Ex_tot,A,E_inc,h_max,Vwell)
             A_Pauli = Pauli(pn,hn,pp,hp,gp,gn)
             B_Pauli = max(Pauli(pn,hn,pp,hp,gp,gn),Pauli(pn+1,hn+1,pp-1,hp-1,gp,gn))
             L_0_pn_an = 2.0d0*pi*Msq_pn*(dfloat(pp)*dfloat(hp)/xn)*gn**2*                                              &
                         finite_well(p_tot,h_tot,Ex_tot,h_max,Vwell)*                                           &
-!                        finite_well(p_tot,h_tot,Ex_tot,A,E_inc,h_max,Vwell)*                                           &
                         (2.0d0*(Ex_tot-B_Pauli)+xn*dabs(A_Pauli-Pauli(pn+1,hn+1,pp-1,hp-1,gp,gn)))*                    &
                          ((Ex_tot-B_Pauli)/(Ex_tot-A_Pauli))**(n_tot-1)
             B_Pauli = max(Pauli(pn,hn,pp,hp,gp,gn),Pauli(pn-1,hn-1,pp+1,hp+1,gp,gn))
             L_0_np_an = 2.0d0*pi*Msq_np*(dfloat(pn)*dfloat(hn)/xn)*gp**2*                                              &
                         finite_well(p_tot,h_tot,Ex_tot,h_max,Vwell)*                                           &
-!                        finite_well(p_tot,h_tot,Ex_tot,A,E_inc,h_max,Vwell)*                                           &
                         (2.0d0*(Ex_tot-B_Pauli)+xn*dabs(A_Pauli-Pauli(pn-1,hn-1,pp+1,hp+1,gp,gn)))*                    &
                         ((Ex_tot-B_Pauli)/(Ex_tot-A_Pauli))**(n_tot-1)
-
-
-!            L_p_p_an = 0.0d0
-!            if(U-Pauli(pn,hn,pp+1,hp+1,gp,gn) > 0.0d0 .and.           &
-!               U-Pauli(pn,hn,pp,hp,gp,gn) > 0.0d0)then
-!               L_p_p_an=2.0d0*pi*gp**2/(2.0d0*xn*(xn+1.0d0))*((U-Pauli(pn,hn,pp+1,hp+1,gp,gn))**(n_tot+1)/                & 
-!                                                              (U-Pauli(pn,hn,pp,hp,gp,gn))**(n_tot-1))*                   &
-!                                                              (dfloat(pp+hp)*gp*Msq_pp+2.0d0*dfloat(pn+hn)*gn*Msq_pn)*    &
-!                                                              finite_well(p_tot+1,h_tot+1,Ex_tot,V_well)
-!            end if
-!            L_p_n_an = 0.0d0
-!            if(Ex_tot-Pauli(pn+1,hn+1,pp,hp,gp,gn) > 0.0d0 .and.           &
-!               Ex_tot-Pauli(pn,hn,pp,hp,gp,gn) > 0.0d0)then
-!               L_p_n_an=2.0d0*pi*gn**2/(2.0d0*xn*(xn+1.0d0))*((U-Pauli(pn+1,hn+1,pp,hp,gp,gn))**(n_tot+1)/                &
-!                                                              (U-Pauli(pn,hn,pp,hp,gp,gn))**(n_tot-1))*                   &
-!                                                              (dfloat(pn+hn)*gn*Msq_nn+2.0d0*dfloat(pp+hp)*gp*Msq_np)*    &
-!                                                              finite_well(p_tot+1,h_tot+1,Ex_tot,V_well)
-!!            end if
-!            A_Pauli = Pauli(pn,hn,pp,hp,gp,gn)
-!            B_Pauli = max(Pauli(pn,hn,pp,hp,gp,gn),Pauli(pn+1,hn+1,pp-1,hp-1,gp,gn))
-!            if(U-B_Pauli > 0.0d0 .and. U-A_Pauli > 0.0d0)                                                              &
-!               L_0_pn_an=2.0d0*pi*Msq_pn*(dfloat(pp)*dfloat(hp)/xn)*gn**2*finite_well(p_tot,h_tot,Ex_tot,V_well)*      &
-!                         (2.0d0*(U-B_Pauli)+xn*dabs(A_Pauli-Pauli(pn+1,hn+1,pp-1,hp-1,gp,gn)))*                        &
-!                         ((U-B_Pauli)/(U-A_Pauli))**(n_tot-1)
-!            B_Pauli = max(Pauli(pn,hn,pp,hp,gp,gn),Pauli(pn-1,hn-1,pp+1,hp+1,gp,gn))
-!            if(U-B_Pauli > 0.0d0 .and. U-A_Pauli > 0.0d0)                                                              &
-!               L_0_np_an=2.0d0*pi*Msq_np*(dfloat(pn)*dfloat(hn)/xn)*gp**2*finite_well(p_tot,h_tot,Ex_tot,V_well)*      &
-!                         (2.0d0*(U-B_Pauli)+xn*dabs(A_Pauli-Pauli(pn-1,hn-1,pp+1,hp+1,gp,gn)))*                        &
-!                         ((U-B_Pauli)/(U-A_Pauli))**(n_tot-1)
 
 
 
@@ -328,19 +265,6 @@ subroutine pre_equilibrium_1(icomp,istate,in,E_inc,    &
             Lamb_0_np(pn,pp) = L_0_np_an/hbar
          end if
 
-!write(50,'(4(1x,i2),4(1x,e15.7))')pp,hp,pn,hn,Lamb_p_p(pn,pp),Lamb_p_n(pn,pp),Lamb_0_pn(pn,pp),Lamb_0_np(pn,pp)
-!   if(pn == 1 .and. pp == 0)then
-!      write(32,'(1x,f10.3,4(1x,e15.7))')Ex_tot,Lamb_p_p(pn,pp),Lamb_p_n(pn,pp),     &
-!                                               L_p_p_an,L_p_n_an
-!      write(6,'(1x,f10.3,4(1x,e15.7))')Ex_tot,Lamb_p_p(pn,pp),Lamb_p_n(pn,pp),      &
-!                                               L_p_p_an,L_p_n_an
-!   end if
-!   if(pn == 2 .and. pp == 0)then
-!      write(32,'(1x,f10.3,4(1x,e15.7))')Ex_tot,Lamb_p_p(pn,pp),Lamb_p_n(pn,pp),     &
-!                                               L_p_p_an,L_p_n_an
-!   end if
-!-------------------   Calculate dWk and W for each particle type
-!    write(60,'(4(1x,i4),1xf10.4,1x,e15.7)')pn,pp,hn,hp,Ex_tot,omdenom
      
          do kk=1,nucleus(icomp)%num_decay                       !   Loop over particle allowed to decay from this nucleus
             k=nucleus(icomp)%decay_particle(kk)
@@ -348,22 +272,17 @@ subroutine pre_equilibrium_1(icomp,istate,in,E_inc,    &
             if(k > 0 .and. pn == p0(1) .and. pp == p0(2))cycle        !  only photons as there are no hole states, and thus emission 
                                                                    ! from here is just elastic scattering
             ifinal = nucleus(icomp)%decay_to(kk)
-!            e_cut=nucleus(icomp)%state(nucleus(icomp)%num_discrete)%energy
             z_k=particle(k)%Z
             n_k=particle(k)%A-z_k
             if(pn < max(p0(1),n_k))cycle                                  !  not enough excitons - cycle
             if(pp < max(p0(2),z_k))cycle
             Sep=nucleus(icomp)%sep_e(k)
-!            Zf=nucleus(icomp)%Z-z_k
-!            Af=nucleus(icomp)%A-(z_k+n_k)
             Zf=nucleus(ifinal)%Z
             Af=nucleus(ifinal)%A
             Nf = Af - Zf
             gnnf = dfloat(Nf)/Preeq_g_div
             gppf = dfloat(Zf)/Preeq_g_div
             ggf = gnnf + gppf
-!            shell = nucleus(ifinal)%level_param(4)
-!            gamma = nucleus(ifinal)%level_param(5)
             spin_target = nucleus(ifinal)%state(istate)%spin
             spin_proj = particle(k)%spin
             sp1 = max((spin_target+spin_proj),abs(spin_target-spin_proj))
@@ -371,7 +290,6 @@ subroutine pre_equilibrium_1(icomp,istate,in,E_inc,    &
             j_max = nint(sp2-nucleus(1)%jshift)
             if(j_max > nucleus(ifinal)%j_max)j_max = nucleus(ifinal)%j_max
             mass_i = particle(k)%Mass
-!            mass_i = (particle(k)%ME + particle(k)%A*mass_u)/mass_u
             e_max = ex_tot - nucleus(icomp)%sep_e(k)
 
             e_cut = nucleus(ifinal)%level_param(7)
@@ -384,20 +302,15 @@ subroutine pre_equilibrium_1(icomp,istate,in,E_inc,    &
                Ex_final = Ex_tot - energy - Sep
                if(energy > Ex_tot - nucleus(icomp)%sep_e(k)+de/2.0)exit         !  Check if there is enough energy to emit this particle
                Delta = Delta_pre(pn_res,hn,pp_res,hp,Zf,Af,gpf,gnf,Ex_final)
-!               U = Ex_final - Delta
-!               if(U <= 0.0d0)cycle
                gnf = aparam_u(Ex_final, gnnf, shell, gamma)
                gpf = aparam_u(Ex_final, gppf, shell, gamma)
                gf = gnf + gpf
                mass_t = nucleus(ifinal)%Mass + ex_final
-!               mass_t=(nucleus(ifinal)%ME+nucleus(ifinal)%A*mass_u+ex_final)/mass_u
                mass_rel=mass_i*mass_t/(mass_t+mass_i)
-!               mass_rel=mass_i*mass_t/(mass_t+mass_i)
-!               mass_rel=mass_rel*mass_u
-               sig_inv=0.0d0
-               do ipar=0,1                                              !   parity of compound nucleus
-                  do j=0,j_max                                          !   loop over J values
-                     xji=dfloat(j)+nucleus(icomp)%jshift
+               sig_inv = 0.0d0
+               do ipar = 0,1                                              !   parity of compound nucleus
+                  do j = 0,j_max                                          !   loop over J values
+                     xji = real(j,kind=8) + nucleus(icomp)%jshift
                      sig_inv = sig_inv + compound_cs(energy,ipar,xji,ifinal,1,k)
                   end do
                end do
@@ -405,23 +318,10 @@ subroutine pre_equilibrium_1(icomp,istate,in,E_inc,    &
                factor = factor1*energy*sig_inv
                pn_res = pn - n_k
                pp_res = pp - z_k
-!               U = Ex_final - Delta
                om = omega2(pn_res,hn,pp_res,hp,Zf,Af,gpf,gnf,Ex_final,Delta,h_max,Vwell)
-!               om = omega2(pn_res,hn,pp_res,hp,Zf,Af,gpf,gnf,Ex_final,Delta,E_inc,h_max,Vwell)
-!               om = omega(pn_res,hn,pp_res,hp,Zf,Af,gpf,gnf,Ex_final,E_inc,V1,V3)
-!           om = omega(pn_res,hn,pp_res,hp,Zf,Af,gpf,gnf,Ex_tot - energy,V_well)
 
                ratio = om/omdenom
                dWk(pn,pp,m,k) = factor*ratio                                      !   decay rate for each particle type and energy
-!     if(hn + hp == 2)write(12,'(3(1x,f8.4),5(1x,e15.7))')energy,Ex_final,Vwell(hn+hp),om,ratio,factor,factor*ratio
-
-!      n_tot2 = pn_res + pp_res + hn + hp
-!      write(60,'(4(1x,f10.3),7(1x,i5),2(1x,e15.7),6(1x,i5),4(1x,e15.7))')                       &
-!               energy,Ex_tot,Ex_final,Delta,m,k,pn,hn,pp,hp,n_tot,Vwell(h_tot),omdenom,               &
-!               pn_res,hn,pp_res,hp,h_tot,n_tot2,Vwell(h_tot),om,ratio,dWk(pn,pp,m,k)
-
-!      write(60,'(4(1x,f10.3),9(1x,i5),4(1x,e15.7))')energy,Ex_tot,Ex_final,Delta,m,k,pn,pp,pn_res,pp_res,hn,hp,h_tot,      &
-!               Vwell(h),dWK(pn,pp,m,k),ratio,om
               Wk(pn,pp,k) = Wk(pn,pp,k) + dWk(pn,pp,m,k)*de                          !   its integral
             end do
             W(pn,pp) = W(pn,pp) + Wk(pn,pp,k)
@@ -458,45 +358,16 @@ subroutine pre_equilibrium_1(icomp,istate,in,E_inc,    &
 !-------   Surviving pre-equilibrium flux
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    Pre_Prob(p0(1),p0(2)) = 1.0d0
-!   do i = p0(1) + p0(2) + 1, max(pn_max,pp_max)
-!      do pn = p0(1), min(i,pn_max)
    do pn=p0(1), pn_calc
       do pp=p0(2), pp_calc
          hn = pn - p0(1)
-!         pp = i - pn
-!         if(pn+pp > 6)cycle
          if((pn == p0(1) .and. pp == p0(2)) .or. pp < p0(2) .or. pp > pp_max .or. pn > pn_max)cycle
          hp = pp - p0(2)
-!         Pre_Prob(pn,pp) = Prob_func(pn,hn,pp,hp,p0(1),p0(2),pn_max,pp_max,      &
-!                                     Gam_n,Gam_p,Gam_pn,Gam_pp,                  &
-!                                     Gam_0_pn,Gam_0_np,Pre_Prob)
          Pre_Prob(pn,pp) = Prob_func(pn,pp,pn_max,pp_max,                 &
                                      Gam_n,Gam_p,Gam_pn,Gam_pp,           &
                                      Gam_0_pn,Gam_0_np,Pre_Prob)
       end do
    end do
-!   j=60
-!   outfile(1:4)='Cont'
-!   do i=p0(1)+p0(2),max(pn_max,pp_max)
-!      do pn=p0(1),min(i,pn_max)
-!   do pn=p0(1), pn_calc
-!      do pp=p0(2), pp_calc
-!         pp=i-pn
-!         hn=pn-p0(1)
-!         hp=pp-p0(2)
-!         n_tot=pn+hn+pp+hp
-!         if( pn == p0(1) .and. pp == p0(2))cycle                       !  Particle emission only for n_tot >= 3
-         
-!         write(outfile(5:5),'(i1)')pn
-!         write(outfile(6:6),'(i1)')hn
-!         write(outfile(7:7),'(i1)')pp
-!         write(outfile(8:8),'(i1)')hp
-!         j=j+1
-!         open(unit=j,file=outfile(1:8)//'.dat',status='unknown')
-!      end do
-!   end do
-!   j = j + 1
-!   open(unit=j,file = outfile(1:4)//'-total.dat',status='unknown')
 
    nucleus(icomp)%PREEQ_cs(in)=0.0d0
    nucleus(icomp)%PREEQ_part_cs(1:nucleus(icomp)%num_decay,in)=0.0d0
@@ -510,13 +381,11 @@ subroutine pre_equilibrium_1(icomp,istate,in,E_inc,    &
       z_k=particle(k)%Z
       n_k=particle(k)%A-z_k
       ifinal=nucleus(icomp)%decay_to(kk)
-!      e_cut=nucleus(ifinal)%state(nucleus(ifinal)%num_discrete)%energy
       if(k == 0)cycle                                     !  We don't do photons yet
       e_max = ex_tot-nucleus(icomp)%sep_e(k)
       e_cut = nucleus(ifinal)%level_param(7)
       e_bin = e_max
       nbin_end = min(int(e_bin/de),nucleus(icomp)%nbin_part)
-!   write(6,*)ifinal,e_cut,nucleus(ifinal)%num_discrete
       do m = 0, nbin_end                           !  loop over output energies
          energy = dfloat(m)*de
          if(energy > ex_tot - nucleus(icomp)%sep_e(k)+de/2.0) exit
@@ -525,25 +394,15 @@ subroutine pre_equilibrium_1(icomp,istate,in,E_inc,    &
          pp_min = max(p0(2),z_k)
          nucleus(icomp)%PREEQ_part_spectrum(kk,m)=0.0d0
          sum = 0.0d0
-!         j = 60
-!         do i = p0(1) + p0(2), max(pn_max,pp_max)
-!            do pn = p0(1), min(i,pn_max)
          do pn = p0(1), pn_calc
             do pp = p0(2), pp_calc
-!               pp = i - pn
                hn = pn - p0(1)
                hp = pp - p0(2)
                n_tot = pn + hn + pp + hp
                if(k > 0 .and. pn == p0(1) .and. pp == p0(2))cycle                       !  Particle emission only for n_tot >= 3
                sum = sum + dWk(pn,pp,m,k)*tau(pn,pp)*Pre_Prob(pn,pp)
-!               j = j + 1
-!               if(k ==1)write(j,'(1x,f10.5,4(1x,e15.7),5(1x,i3))')            &
-!                  energy,reac_cs*dWk(pn,pp,m,k)*tau(pn,pp)*Pre_Prob(pn,pp),   &
-!                  reac_cs*dWk(pn,pp,m,k),tau(pn,pp),Pre_Prob(pn,pp),pn,hn,pp,hp,m
            end do
          end do
-!         j = j + 1
-!         if(k == 1)write(j,'(1x,f10.5,1x,e15.7)')energy,reac_cs*sum
          if(ex_final > e_cut)then
             nbin_f = nint((ex_final-nucleus(ifinal)%e_grid(1))/de)
             nucleus(icomp)%PREEQ_part_spectrum(kk,m) = reac_cs*sum
@@ -551,17 +410,12 @@ subroutine pre_equilibrium_1(icomp,istate,in,E_inc,    &
          else
             frac = 0.0d0
             do i = 1, nucleus(ifinal)%num_discrete
-!               if(i == istate)cycle
-!          write(6,'(2i5,3(1x,f10.5))')                                       &
-!            m,i,nucleus(ifinal)%state(i)%energy,ex_final,ex_final+de
                if(nucleus(ifinal)%state(i)%energy >= ex_final .and.                     &
                   nucleus(ifinal)%state(i)%energy <= ex_final + de)frac = frac + 1.0d0
             end do
-!   write(6,*)'frac',frac,sum
             if(frac > 0.0d0)then
                frac = 1.0d0/frac
                do i = 1, nucleus(ifinal)%num_discrete
-!                  if(i == istate)cycle
                   if(nucleus(ifinal)%state(i)%energy >= ex_final .and.                  &
                      nucleus(ifinal)%state(i)%energy < ex_final + de )then
                         nucleus(icomp)%PREEQ_part_spectrum(kk,m) =                      &
@@ -573,80 +427,21 @@ subroutine pre_equilibrium_1(icomp,istate,in,E_inc,    &
          end if
       end do
 
-!   j=60
-!   do i=p0(1)+p0(2),max(pn_max,pp_max)
-!      do pn=p0(1),min(i,pn_max)
-!         close(unit=j)
-!      end do
-!   end do
 
       sum = 0.0d0
       do m = 0, nbin_end
          sum = sum + nucleus(icomp)%PREEQ_part_spectrum(kk,m)*de
       end do
       if(sum > 0.0d0)then
-!   prob = 0.0d0
-!   write(6,*)'kk = ',kk
-         do m = 0, nbin_end
+        do m = 0, nbin_end
             nucleus(icomp)%PREEQ_part_spectrum(kk,m) =                            &
               nucleus(icomp)%PREEQ_part_spectrum(kk,m)/sum
-!   prob = prob + nucleus(icomp)%PREEQ_part_spectrum(kk,m)*de
-!   write(60+kk,'(1x,f10.4,1x,1pe15.7)')dfloat(m)*de,prob
          end do
       end if
-!      write(6,*)'preeq',kk,pre_eq_cs(k)
       nucleus(icomp)%PREEQ_part_cs(kk,in) = pre_eq_cs(k)
       nucleus(icomp)%PREEQ_cs(in) = nucleus(icomp)%PREEQ_cs(in) + pre_eq_cs(k)
    end do
 
-!-------   Now we need to remove the pre-equilibrium cross section from the
-!-------   initial compound-nucleus cross section. This is done by assuming
-!-------   a J-distribution according to the level density, in pops(j,ip).
-!-------   This is then removed from each entrance channel according to the
-!-------   fractional amount of the J,ip cross section in that S, l channel.
-
-!   itarget = target%icomp
-!   spin_target=nucleus(itarget)%state(istate)%spin
-!   spin_proj=particle(iproj)%spin
-!   sp1=abs(spin_target-spin_proj)
-!   sp2=spin_target+spin_proj
-!   isp=int(sp2-sp1)
-!   par=particle(iproj)%par*nucleus(itarget)%state(istate)%parity
-!   stest2=0.0d0
-!   do ip=0,1
-!      cpar=2*ip-1
-!      do j=0,nucleus(icomp)%j_max
-!         xj = real(j,kind=8) + nucleus(icomp)%jshift
-!         nucleus(icomp)%PREEQ_pop(j,ip)=              &
-!              nucleus(icomp)%PREEQ_cs(in)*pops(j,ip)/de
-!!         nucleus(icomp)%pop(j,ip,nbin_i)=nucleus(icomp)%pop(j,ip,nbin_i)-   &
-!!               nucleus(icomp)%PREEQ_cs(in)*pops(j,ip)/de
-!         preeq_pop = nucleus(icomp)%PREEQ_cs(in)*pops(j,ip)/de
-!         do i=0,isp                                         !   loop over channel spins
-!            S=dfloat(i)+sp1                                 !   Channel spin
-!            lmin=abs(xj-S)
-!            lmax=xj+S
-!            lmin=min(lmin,particle(iproj)%lmax)        !   min and max l-values
-!            lmax=min(lmax,particle(iproj)%lmax)
-!            do l=lmin,lmax,1                                !   loop over angular momentum
-!               if(par*(-1)**l.ne.cpar .or. target%pop_xjpi(j,ip) < 1.0d-15)cycle
-!                  frac_ch = target%pop_channel(j,ip,i,l)/target%pop_xjpi(j,ip)!
-!                  target%pop_channel(j,ip,i,l) = target%pop_channel(j,ip,i,l) - &
-!                      preeq_pop*frac_ch
-!!   write(28,'(2(1x,i4),1x,f4.1,1x,i4,3(1x,f10.6))')j,ip,S,l,preeq_pop,frac_ch,target%pop_channel(j,ip,i,l)
-!            end do
-!         end do
-!         target%pop_xjpi(j,ip) = target%pop_xjpi(j,ip) - preeq_pop
-!!         stest2=stest2+nucleus(icomp)%pop(j,ip,nbin_i)
-!      end do
-!   end do
-!write(6,*)stest,stest2,stest+stest2
-!write(6,*)stest,nucleus(icomp)%PREEQ_cs(in)
-!write(6,*)'check',stest2+nucleus(icomp)%PREEQ_cs(in),reac_cs
-
-!   write(6,*)'FINISHED PRREQ'
-
-!   deallocate(pops)
 
    deallocate(dWk)
    deallocate(Wk)
@@ -707,11 +502,9 @@ real(kind=8) function Well(h,A,energy,V1,V3,K)
    V2 = V3 - V1
    if(h <= 1)then
       Well = V1 + V2*energy**4/(energy**4 + (K/xA)**4)
-!      Well = V1 + V2*energy**4/(energy**4 + (245.0d0/xA)**4)
    else
       Well = V3
    end if
-!   write(21,*)k,h,energy,Well
    return
 end function Well
 !
@@ -853,7 +646,6 @@ real(kind=8) function Delta_pre(pn,hn,pp,hp,Z,A,gp,gn,Ex)
    Delta_ex = 0.0d0
    if(xdelta <= 1.0d0)Delta_ex = Delta*xdelta
    Delta_pre = Delta - Delta_ex
-!   write(20,'(4(1x,f10.5))')Ex,Delta,Delta_ex,Delta_pre
    return
 end function Delta_pre
 !
@@ -961,23 +753,7 @@ real(kind=8) function finite_well(p,h,Ex,h_max,Vwell)
       if(Ux > 0.0d0)Step = 1.0d0
       sum = sum + (-1.0d0)**i*factorial(h)/(factorial(i)*factorial(h-i))*                   &
                   (Ux/Ex)**(n-1)*Step
-!      V0 = real(i,kind=8)*V
-!      if(n > 1)then
-!         VV = Ex
-!         X0 = V0 + (sqrt(2.0d0) - 1.0d0)*R
-!         if(Ex > (X0 - R/sqrt(2.0d0)) .and. Ex < X0 )then
-!            VV = V0 - R + sqrt(R**2 - (Ex - V0 + (1.0d0 - sqrt(2.0d0))*R)**2)
-!         elseif(Ex >= X0)then
-!            VV = V0
-!         end if
-!         Ux = Ex - VV
-!         sum = sum + (-1.0d0)**i*factorial(h)/(factorial(i)*factorial(h-i))*    &
-!                     (Ux/Ex)**(n-1)
-!      else
-!         if((Ex - V0) > 0.0d0)sum = sum + (-1.0d0)**i*factorial(h)/(factorial(i)*factorial(h-i))
-!      end if
    end do
-!   finite_well = finite_well + sum
    finite_well = 1.0d0 + sum
    return
 end function finite_well

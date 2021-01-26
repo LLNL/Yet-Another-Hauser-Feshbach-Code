@@ -54,6 +54,7 @@ subroutine Fission_data(data_path,len_path,icomp)
 
    ia = nucleus(icomp)%A
 
+   nucleus(icomp)%fission = .false.
 
 !----    First set up fission parameters based on data in 'Fission-barrier.dat'
 !----    Then check for data in 'Fission-Parameters.txt', which contains
@@ -71,6 +72,7 @@ subroutine Fission_data(data_path,len_path,icomp)
       nucleus(icomp)%fission = .true.
       nucleus(icomp)%F_n_barr = 2
       if(Ea <= 0.001)then
+         nucleus(icomp)%fission = .true.
          nucleus(icomp)%F_n_barr = 1
          if(.not.allocated(nucleus(icomp)%F_Barrier))allocate(nucleus(icomp)%F_Barrier(1))
          nucleus(icomp)%F_barrier(1)%barrier = Eb
@@ -87,18 +89,19 @@ subroutine Fission_data(data_path,len_path,icomp)
 
          if(iand(iaa,1) == 0)then
             if(iand(izz,1) == 0)then
-               nucleus(icomp)%F_Barrier(1)%hbw=0.9d0
+               nucleus(icomp)%F_Barrier(1)%hbw = 0.9d0
             else
-               nucleus(icomp)%F_Barrier(1)%hbw=0.6d0
+               nucleus(icomp)%F_Barrier(1)%hbw = 0.6d0
             end if
          else
-            nucleus(icomp)%F_Barrier(1)%hbw=0.8d0
+            nucleus(icomp)%F_Barrier(1)%hbw = 0.8d0
          end if
       else
+         nucleus(icomp)%fission = .true.
          nucleus(icomp)%F_n_barr = 2
          if(.not.allocated(nucleus(icomp)%F_Barrier))allocate(nucleus(icomp)%F_Barrier(2))
-         nucleus(icomp)%F_Barrier(1)%barrier=Ea
-         nucleus(icomp)%F_Barrier(2)%barrier=Eb
+         nucleus(icomp)%F_Barrier(1)%barrier = Ea
+         nucleus(icomp)%F_Barrier(2)%barrier = Eb
          if(symma == 'S ')then
              nucleus(icomp)%F_barrier(1)%symmetry = 1
          elseif(symma == 'GA')then
@@ -115,15 +118,15 @@ subroutine Fission_data(data_path,len_path,icomp)
          end if
          if(iand(iaa,1) == 0)then
             if(iand(izz,1) == 0)then
-               nucleus(icomp)%F_Barrier(1)%hbw=0.9d0
-               nucleus(icomp)%F_Barrier(2)%hbw=0.6d0
+               nucleus(icomp)%F_Barrier(1)%hbw = 0.9d0
+               nucleus(icomp)%F_Barrier(2)%hbw = 0.6d0
             else
-               nucleus(icomp)%F_Barrier(1)%hbw=0.6d0
-               nucleus(icomp)%F_Barrier(2)%hbw=0.4d0
+               nucleus(icomp)%F_Barrier(1)%hbw = 0.6d0
+               nucleus(icomp)%F_Barrier(2)%hbw = 0.4d0
             end if
          else
-            nucleus(icomp)%F_Barrier(1)%hbw=0.8d0
-            nucleus(icomp)%F_Barrier(2)%hbw=0.5d0
+            nucleus(icomp)%F_Barrier(1)%hbw = 0.8d0
+            nucleus(icomp)%F_Barrier(2)%hbw = 0.5d0
          end if
       end if
 
@@ -133,6 +136,7 @@ subroutine Fission_data(data_path,len_path,icomp)
    goto 1
  2 continue
    close(unit=53)
+
 
 !------   Now check the file 'Fission-Parameters.txt'
    open(unit=53,file=data_path(1:len_path)//'Fission-Parameters.txt',status='old')
@@ -253,15 +257,15 @@ subroutine Fission_levels(icomp)
       if(num > 0)nucleus(icomp)%F_Barrier(i)%ecut = nucleus(icomp)%F_Barrier(i)%state_e(num) + 0.001
       nucleus(icomp)%F_Barrier(i)%level_param(7) = nucleus(icomp)%F_Barrier(i)%ecut
       nfit = nucleus(icomp)%F_Barrier(i)%num_discrete
-      if(nfit <= 5)cycle                           !  There are so few discrete states, no point in fitting to the cumulative level density
-      if(.not.allocated(elv))allocate(elv(nfit))     !  allocate cumulative density array
-      if(.not.allocated(cum_rho))allocate(cum_rho(nfit))     !  allocate cumulative density array
+      if(nfit <= 5)cycle                                           !  There are so few discrete states, no point in fitting to the cumulative level density
+      if(.not.allocated(elv))allocate(elv(nfit))                   !  allocate cumulative density array
+      if(.not.allocated(cum_rho))allocate(cum_rho(nfit))           !  allocate cumulative density array
       if(.not.allocated(dcum_rho))allocate(dcum_rho(nfit))
-      if(.not.allocated(cum_fit))allocate(cum_fit(nfit))     !  allocate cumulative density array
-      do j = 1, nfit                                    !  Make cumulative rho array
+      if(.not.allocated(cum_fit))allocate(cum_fit(nfit))           !  allocate cumulative density array
+      do j = 1, nfit                                               !  Make cumulative rho array
          elv(j) = nucleus(icomp)%F_Barrier(i)%state_e(j)
          cum_rho(j)=real(j,kind=8)
-         dcum_rho(j)=1.0d0/sqrt(cum_rho(j))           !  assume error 1/sqrt
+         dcum_rho(j)=1.0d0/sqrt(cum_rho(j))                        !  assume error 1/sqrt
       end do
 
       ematch = 8.0
@@ -380,19 +384,19 @@ subroutine Fission_transmission(icomp,Ex,xji,ipar,F_trans)
    real(kind=8) :: spin_fac,parity_fac
 !-----------------------------------------------------
 
-   par=1.0d0
-   if(ipar == 0)par=-1.0d0
+   par = 1.0d0
+   if(ipar == 0)par = -1.0d0
 
-   de=0.005
-   ia=nucleus(icomp)%A
+   de = 0.005
+   ia = nucleus(icomp)%A
    do i = 1, nucleus(icomp)%F_n_barr
-      apar=nucleus(icomp)%F_barrier(i)%level_param(1)
-      spin_cut=nucleus(icomp)%F_barrier(i)%level_param(2)
-      delta=nucleus(icomp)%F_barrier(i)%level_param(3)
-      ecut=nucleus(icomp)%F_Barrier(i)%ecut
-      sg2cut=nucleus(icomp)%F_barrier(i)%level_param(8)
-      sig_mod=nucleus(icomp)%F_barrier(i)%level_param(9)
-      ematch=nucleus(icomp)%F_barrier(i)%level_param(6)
+      apar = nucleus(icomp)%F_barrier(i)%level_param(1)
+      spin_cut = nucleus(icomp)%F_barrier(i)%level_param(2)
+      delta = nucleus(icomp)%F_barrier(i)%level_param(3)
+      ecut = nucleus(icomp)%F_Barrier(i)%ecut
+      sg2cut = nucleus(icomp)%F_barrier(i)%level_param(8)
+      sig_mod = nucleus(icomp)%F_barrier(i)%level_param(9)
+      ematch = nucleus(icomp)%F_barrier(i)%level_param(6)
       E0 = nucleus(icomp)%F_barrier(i)%level_param(15)
       T = nucleus(icomp)%F_barrier(i)%level_param(14)
       if(E0 < 0.0d0)then
@@ -433,9 +437,9 @@ subroutine Fission_transmission(icomp,Ex,xji,ipar,F_trans)
          end if
       end do
 
-      pmode = nucleus(i)%F_barrier(i)%level_param(16)
-      pe1 = nucleus(i)%F_barrier(i)%level_param(17)
-      pbb = nucleus(i)%F_barrier(i)%level_param(18)
+      pmode = nucleus(icomp)%F_barrier(i)%level_param(16)
+      pe1 = nucleus(icomp)%F_barrier(i)%level_param(17)
+      pbb = nucleus(icomp)%F_barrier(i)%level_param(18)
 
 
       T_f = 0.0d0
@@ -569,8 +573,9 @@ subroutine init_barrier_data(i)
       else
          nucleus(i)%F_Barrier(j)%Max_J = 0.0d0
       end if 
-      nucleus(i)%F_Barrier(j)%barrier = 6.0d0
-      nucleus(i)%F_Barrier(j)%hbw = 0.6d0
+!---- Don't reset barrier heights and widths if already set
+      if(nucleus(i)%F_Barrier(j)%barrier < 1.0d-1)nucleus(i)%F_Barrier(j)%barrier = 6.0d0
+      if(nucleus(i)%F_Barrier(j)%hbw < 1.0d-1)nucleus(i)%F_Barrier(j)%hbw = 0.6d0
       nucleus(i)%F_Barrier(j)%ecut = 0.0d0
 !----   If barrier symmetry has not been defined, then make guess for barrier symmetries.
 !----   If barrier symmetry is not defined for this call, it is because user has 
