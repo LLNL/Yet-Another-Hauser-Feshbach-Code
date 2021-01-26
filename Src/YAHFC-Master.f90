@@ -572,12 +572,6 @@ program YAHFC_MASTER
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
       ixx_max = 100
       delta_ix = 2.0d0/real(ixx_max,kind=8)
-!      jxx_max = 10
-!      delta_jx = 2.0d0/real(jxx_max,kind=8)
-!      jjxx_max = 100
-!      delta_jjx = 2.0d0/real(jjxx_max,kind=8)
-!      jjxxx_max = 50
-!      delta_jjxxx = 2.0d0/real(jjxxx_max,kind=8)
 
       max_jx_10 = 10
       delta_jx_10 = 2.0d0/real(max_jx_10,kind=8)
@@ -608,8 +602,6 @@ program YAHFC_MASTER
          lfactorial(i) = lfactorial(i-1) + dlog(dfloat(i))
       end do
 
-!      OM_pot(1:20) = ' '
-!      OM_pot(1:2) = 'KD'
       ifresco_shape = 13
 
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -648,7 +640,6 @@ program YAHFC_MASTER
       call system_clock(COUNT = cnt, COUNT_RATE = cnt_r, COUNT_MAX = cnt_m)
       cnt = max(mod(cnt,100000),1)
       iseed = iseed + cnt
-!      one_int_64 = 1_int_64
       if(iand(iseed,1_int_64) /= 1_int_64)iseed = iseed + 1_int_64
 
       iseed = -iseed
@@ -1005,15 +996,6 @@ program YAHFC_MASTER
 
       cum_fit=2
 
-
-!      do icomp = 1, num_comp
-!         call finish_lev_den(icomp)
-!         if(nucleus(icomp)%fit_ematch)call fit_lev_den(icomp)
-!         if(nucleus(icomp)%fission)call Fission_levels(icomp)
-!      end do
-
-
-
       mass_proj = particle(iproj)%mass
       mass_target = nucleus(itarget)%mass + nucleus(itarget)%state(target%istate)%energy
       write(6,*)'Q-values for each channel'
@@ -1155,13 +1137,11 @@ program YAHFC_MASTER
 !---------   all nuclei involved in the decay chain                       +
 !---------                                                                +
 !-------------------------------------------------------------------------+
-!      nucleus(1)%Kinetic_energy=KE
 !----------------------    Allocate arrays for particle spectra
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
       do icomp = 1, num_comp
          Ef = (4.0d0/real(nucleus(icomp)%A,kind=8))*Init_Kinetic_Energy
-!         Ef = (4.0d0/dfloat(nucleus(icomp)%A))*nucleus(1)%Kinetic_Energy
          Ex = (sqrt(nucleus(icomp)%Ex_max)+sqrt(Ef))**2
          nucleus(icomp)%nbin_part = int(Ex/de) + 1
          if(nucleus(icomp)%PREEQ .and. PREEQ_Model > 0)then
@@ -1176,7 +1156,7 @@ program YAHFC_MASTER
                         nucleus(i)%level_param(7))/de+0.5)     ! energy difference level_param(7)=E_cut
             nbin = max(nbin,1)
          else
-            nbin = 1         !  Ex_max is less than the highest discrete state - no bins needed
+            nbin = 1                      !  Ex_max is less than the highest discrete state - no bins needed
          end if
          nucleus(i)%j_max = Max_J_allowed
          nucleus(i)%nbin = nbin
@@ -1196,7 +1176,6 @@ program YAHFC_MASTER
               nucleus(i)%delta_e(j) = de
            end do
       end do
-!      stop
 
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !------                                                                   +
@@ -1279,7 +1258,6 @@ program YAHFC_MASTER
 !------    Now allocate arrays to track fission                            +
 !--------------------------------------------------------------------------+
 
-!      Ef=(4.0d0/dfloat(nucleus(num_comp)%A))*nucleus(1)%Kinetic_Energy
       Ef = (4.0d0/real(nucleus(num_comp)%A,kind=8))*Init_Kinetic_Energy
       Ex = (sqrt(nucleus(1)%Ex_max)+sqrt(Ef))**2
 
@@ -2698,7 +2676,6 @@ program YAHFC_MASTER
                  status='unknown')
             write(6,*)'Events written to formatted file ', file_name(1:ifile)//'E-'//E_char(1:ile)//'.Events.txt'
          end if           
-!         kinetic_Energy = nucleus(1)%Kinetic_Energy
         
          num_events = 0
          num_inelastic = 0
@@ -3567,13 +3544,6 @@ program YAHFC_MASTER
          do k = 0, 6
             smear(k) = 0.2d0
          end do
-!         smear(0) = 1.5d0*de_spec2
-!         smear(1) = 1.5d0*de_spec2
-!         smear(2) = 1.5d0*de_spec2
-!         smear(3) = 1.5d0*de_spec2
-!         smear(4) = 1.5d0*de_spec2
-!         smear(5) = 1.5d0*de_spec2
-!         smear(6) = 1.5d0*de_spec2
 
          ifile = core_file
          file_name(ifile:ifile+4) = '_Ein_'
@@ -4128,7 +4098,6 @@ program YAHFC_MASTER
                       Exit_Channel(i)%part_mult(k,n,in)/Exit_Channel(i)%Channel_cs(in,n) 
                  end if
 !-----   New approach to Spectrum and Angular Distributions
-!                 write(56,*)'Channel = ',i,'particle = ',k,'sub_channel = ',n,'energy ',in
                  do icc = 0, num_e
                     if(Exit_Channel(i)%Spect(k,n,in)%E_count(icc) == 0)cycle
                     Exit_Channel(i)%Spect(k,n,in)%E_Ang_Dist(0,icc) =                               &
