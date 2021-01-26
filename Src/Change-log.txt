@@ -232,7 +232,7 @@ Version 3.15
 
 Version 3.16
 1.  Fixed error in subroutine Fission_transmission that caused a subscript
-    out of bounds CTD. Added blank line before the Q value for readibility. 
+    out of bounds CTD. Added blank line before the Q value for readability. 
 2.  Fixed bad Q value for exit channels when explicit_channels = .false.
 3.  Fixed not printing mass of emitted particles when 
     explicit_channels = .false.
@@ -244,7 +244,7 @@ Version 3.16
     is greater. Still capped at max_J_allowed = 40 for now.
 7.  Further clean up of energy width de to transition towards bin widths 
     defined for each bin.
-8.  Set smearing width for x-particle spectra and preequilibirum and direct
+8.  Set smearing width for x-particle spectra and preequilibrium and direct
     spectra to .2 MeV.
 9.  Fixed error introduced in 3.14 while collecting elastic events for neutrons.
 10. Disabled option to scale elastic for charged particle projectiles. 
