@@ -1019,10 +1019,14 @@ subroutine make_fresco_tco(data_path, len_path, tco_file, len_tco,       &
      if(pindex == iproj)then
         do n = 1, nex
            read(20,*)itar, ichan, num_th, th_inc, th_min, cross
+              if(cross < 1.0d-9)cross = 0.0d0
+              if(isnan(cross))cross = 0.0d0
+              if(ichan .ne. itar .and. cross > 1.0d4)cross = 0.0d0
               optical_cs(ie,n) = cross/1000.0d0
               do it = 1, num_th
                  read(20,*)x, y
                  theta(it) = x
+                 if(cross < 1.0d-9)y = 0.0d0
                  ang_dist(it,n,ie) = y/1000.0d0
                  if(pindex > 1)then
                     sig_C = 0.0d0

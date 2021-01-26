@@ -32,7 +32,7 @@ module options
 !
    use variable_kinds
    character(len=132) version
-   parameter (version = 'MC-3.16')
+   parameter (version = 'MC-3.17')
    integer(kind=int_64) :: iseed
    logical ran_setup
    integer(kind=4) PREEQ_Model
@@ -78,6 +78,8 @@ module options
    end type Pop_type
 
    type(Pop_type), allocatable, dimension(:) :: Pop_data
+
+   real(kind=8) :: Pop_max_J
 
    integer(kind=4) :: pair_model
    real(kind=8) :: Preeq_V, Preeq_V1, Preeq_K

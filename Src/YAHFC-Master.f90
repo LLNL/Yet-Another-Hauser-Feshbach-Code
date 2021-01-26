@@ -2448,7 +2448,7 @@ program YAHFC_MASTER
 !-----    Call pre-equilibrium model                                               +
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-            call pre_equilibrium_1(1,itarget,in,e_in,ex_tot,de,absorption_cs(in))
+            call pre_equilibrium_1(1,istate,in,e_in,ex_tot,de,absorption_cs(in))
 
             preeq_prob = nucleus(1)%PREEQ_cs(in)/absorption_cs(in)
 

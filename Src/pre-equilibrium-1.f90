@@ -1,8 +1,8 @@
 !
 !*******************************************************************************
 !
-subroutine pre_equilibrium_1(icomp,istate,in,E_inc,    &
-                             Ex_tot,de,reac_cs)
+subroutine pre_equilibrium_1(icomp, istate, in, E_inc,    &
+                             Ex_tot, de, reac_cs)
 !
 !*******************************************************************************
 !
@@ -49,12 +49,12 @@ subroutine pre_equilibrium_1(icomp,istate,in,E_inc,    &
    integer(kind=4) :: iproj
    integer(kind=4) :: i,j,k,m,kk
    integer(kind=4) :: h
-   integer(kind=4) :: pn,pp,hn,hp,pn_tot,pp_tot
-   integer(kind=4) :: pn_res,pp_res
+   integer(kind=4) :: pn, pp, hn, hp, pn_tot, pp_tot
+   integer(kind=4) :: pn_res, pp_res
    integer(kind=4) :: pn_calc, pp_calc
-   integer(kind=4) :: p_tot,h_tot,n_tot
-   integer(kind=4) :: pn_min,pp_min
-   integer(kind=4) :: z_k,n_k,Z,N,A,Ap,Zf,Nf,Af
+   integer(kind=4) :: p_tot, h_tot, n_tot
+   integer(kind=4) :: pn_min, pp_min
+   integer(kind=4) :: z_k, n_k, Z, N, A, Ap, Zf, Nf, Af
    integer(kind=4) :: j_max
    integer(kind=4) :: ipar
    real(kind=8) :: pre_eq_cs(0:6)
@@ -62,25 +62,25 @@ subroutine pre_equilibrium_1(icomp,istate,in,E_inc,    &
    real(kind=8) :: xn
    real(kind=8) :: energy, U
    real(kind=8) :: sig_inv
-   real(kind=8) :: sp1,sp2
-   real(kind=8) :: spin_target,spin_proj
-   real(kind=8) :: mass_i,mass_t,mass_rel
-   real(kind=8) :: factor,factor1
+   real(kind=8) :: sp1, sp2
+   real(kind=8) :: spin_target, spin_proj
+   real(kind=8) :: mass_i, mass_t, mass_rel
+   real(kind=8) :: factor, factor1
    real(kind=8) :: Msq
    real(kind=8) :: xA
    real(kind=8) :: xAp
    real(kind=8) :: ratio
-   real(kind=8) :: Msq_pp,Msq_pn,Msq_np,Msq_nn
+   real(kind=8) :: Msq_pp, Msq_pn, Msq_np, Msq_nn
    real(kind=8) :: sum,sum2
-   real(kind=8) :: L_p_p_an,L_p_n_an,L_0_pn_an,L_0_np_an
-   real(kind=8) :: A_Pauli,B_Pauli
+   real(kind=8) :: L_p_p_an, L_p_n_an, L_0_pn_an, L_0_np_an
+   real(kind=8) :: A_Pauli, B_Pauli
    real(kind=8) :: denom
-   real(kind=8) :: omdenom,om
+   real(kind=8) :: omdenom, om
    real(kind=8) :: Sep
-   real(kind=8) :: gp,gn,g
-   real(kind=8) :: gpp,gnn,gg
-   real(kind=8) :: gpf,gnf,gf
-   real(kind=8) :: gppf,gnnf,ggf
+   real(kind=8) :: gp,gn, g
+   real(kind=8) :: gpp, gnn, gg
+   real(kind=8) :: gpf, gnf, gf
+   real(kind=8) :: gppf, gnnf, ggf
    real(kind=8) :: Delta
 
    real(kind=8) :: V1, V3, xK
@@ -89,7 +89,7 @@ subroutine pre_equilibrium_1(icomp,istate,in,E_inc,    &
    real(kind=8) :: stest,stest2
 
    integer(kind=4) :: nbin_f,nbin_end
-   real(kind=8)    :: ex_final,e_max,e_bin
+   real(kind=8)    :: ex_final, e_max, e_bin
    real(kind=8)    :: xji
    integer(kind=4) :: h_max
 
@@ -116,14 +116,14 @@ subroutine pre_equilibrium_1(icomp,istate,in,E_inc,    &
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !---------------------------    Calculate internal transition rates
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   j_max=nucleus(icomp)%j_max
-   iproj=projectile%particle_type
-   Z=nucleus(icomp)%Z
-   A=nucleus(icomp)%A
-   xA=dfloat(A)
-   Ap=projectile%A
-   xAp=dfloat(Ap)
-   N=A-Z
+   j_max = nucleus(icomp)%j_max
+   iproj = projectile%particle_type
+   Z = nucleus(icomp)%Z
+   A = nucleus(icomp)%A
+   xA = dfloat(A)
+   Ap = projectile%A
+   xAp = dfloat(Ap)
+   N = A - Z
    if(Preeq_g_a)then
       g = nucleus(icomp)%a_Sn*pi**2/6.0d0
       Preeq_g_div = xA/g
@@ -266,8 +266,8 @@ subroutine pre_equilibrium_1(icomp,istate,in,E_inc,    &
          end if
 
      
-         do kk=1,nucleus(icomp)%num_decay                       !   Loop over particle allowed to decay from this nucleus
-            k=nucleus(icomp)%decay_particle(kk)
+         do kk = 1, nucleus(icomp)%num_decay                       !   Loop over particle allowed to decay from this nucleus
+            k = nucleus(icomp)%decay_particle(kk)
             if(k == 0)cycle
             if(k > 0 .and. pn == p0(1) .and. pp == p0(2))cycle        !  only photons as there are no hole states, and thus emission 
                                                                    ! from here is just elastic scattering
@@ -276,14 +276,18 @@ subroutine pre_equilibrium_1(icomp,istate,in,E_inc,    &
             n_k=particle(k)%A-z_k
             if(pn < max(p0(1),n_k))cycle                                  !  not enough excitons - cycle
             if(pp < max(p0(2),z_k))cycle
-            Sep=nucleus(icomp)%sep_e(k)
-            Zf=nucleus(ifinal)%Z
-            Af=nucleus(ifinal)%A
+            Sep = nucleus(icomp)%sep_e(k)
+            Zf = nucleus(ifinal)%Z
+            Af = nucleus(ifinal)%A
             Nf = Af - Zf
             gnnf = dfloat(Nf)/Preeq_g_div
             gppf = dfloat(Zf)/Preeq_g_div
             ggf = gnnf + gppf
-            spin_target = nucleus(ifinal)%state(istate)%spin
+            if(k == iproj)then
+               spin_target = nucleus(ifinal)%state(istate)%spin
+            else
+               spin_target = nucleus(ifinal)%state(1)%spin
+            end if
             spin_proj = particle(k)%spin
             sp1 = max((spin_target+spin_proj),abs(spin_target-spin_proj))
             sp2 = max(particle(k)%lmax+sp1,abs(particle(k)%lmax-sp1))
@@ -300,7 +304,7 @@ subroutine pre_equilibrium_1(icomp,istate,in,E_inc,    &
             do m = 1, nbin_end                        !  loop over output energies
                energy = dfloat(m)*de
                Ex_final = Ex_tot - energy - Sep
-               if(energy > Ex_tot - nucleus(icomp)%sep_e(k)+de/2.0)exit         !  Check if there is enough energy to emit this particle
+               if(energy > Ex_tot - nucleus(icomp)%sep_e(k)+0.5d0*de)exit         !  Check if there is enough energy to emit this particle
                Delta = Delta_pre(pn_res,hn,pp_res,hp,Zf,Af,gpf,gnf,Ex_final)
                gnf = aparam_u(Ex_final, gnnf, shell, gamma)
                gpf = aparam_u(Ex_final, gppf, shell, gamma)
@@ -308,8 +312,8 @@ subroutine pre_equilibrium_1(icomp,istate,in,E_inc,    &
                mass_t = nucleus(ifinal)%Mass + ex_final
                mass_rel=mass_i*mass_t/(mass_t+mass_i)
                sig_inv = 0.0d0
-               do ipar = 0,1                                              !   parity of compound nucleus
-                  do j = 0,j_max                                          !   loop over J values
+               do ipar = 0, 1                                              !   parity of compound nucleus
+                  do j = 0, j_max                                          !   loop over J values
                      xji = real(j,kind=8) + nucleus(icomp)%jshift
                      sig_inv = sig_inv + compound_cs(energy,ipar,xji,ifinal,1,k)
                   end do

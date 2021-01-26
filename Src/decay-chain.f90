@@ -97,7 +97,7 @@ subroutine set_up_decay_chain(Z_p, A_p, Z_t, A_t, num_comp)
       emax = e_rel + sep(projectile%particle_type)
    else
       emax = 0.0
-      do i=1, num_pop_e
+      do i = 1, num_pop_e
          if(Pop_data(i)%Ex_pop + 3.5*Pop_data(i)%dEx_pop > emax) then
             emax = Pop_data(i)%Ex_pop + 3.0*Pop_data(i)%dEx_pop
          end if
@@ -365,7 +365,12 @@ subroutine set_up_decay_chain(Z_p, A_p, Z_t, A_t, num_comp)
       end do
    end do
 
-!  stop
+!-----   Adjust max_J_allowed for population calculations to ensure that everything fits
+   if(pop_calc)then
+       max_J_allowed = nint(Pop_max_J - nucleus(1)%jshift)
+       max_J_allowed = min(max_J_allowed,20)
+   end if
+
 
 !----    Reset max_particle to reflect those actually encountered in the decay chains
    do i = 1, num_channels

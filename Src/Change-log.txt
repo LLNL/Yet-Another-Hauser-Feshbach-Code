@@ -242,9 +242,9 @@ Version 3.16
     angular momentum in the compound nucleus as computed from the tranmission
     coefficients. Also, checked spins of discrete states to ensure max_J_allowed
     is greater. Still capped at max_J_allowed = 40 for now.
-7.  Further clean up of energy width de to transition towards bin widths 
+7.  Further cleanup of energy width de to transition towards bin widths 
     defined for each bin.
-8.  Set smearing width for x-particle spectra and preequilibirum and direct
+8.  Set smearing width for x-particle spectra and pre-equilibrium and direct
     spectra to .2 MeV.
 9.  Fixed error introduced in 3.14 while collecting elastic events for neutrons.
 10. Disabled option to scale elastic for charged particle projectiles.

@@ -48,7 +48,7 @@ subroutine parse_command(num_comp,icommand,command,finish)
    logical finish
    character(len=50) :: read_file
 !---------------------------------------------------------------------
-   integer(kind=4) i, j, k, n, num
+   integer(kind=4) i, j, k, n, num, itemp_read
    integer(kind=4) :: nread
    integer(kind=4) istart, istop, ilast
    integer(kind=4) :: ibegin, iend
@@ -243,6 +243,7 @@ subroutine parse_command(num_comp,icommand,command,finish)
          open(unit=8, file = ex_pop_file(1:ilast), status='old')
 !----   First do some counting to make sure there is proper input
 !----   Remove energies with no populations - just as a fail safe
+         Pop_max_J = 0.0d0
          k = 0
          read(8,*)nread
          do j = 1, nread
@@ -274,6 +275,7 @@ subroutine parse_command(num_comp,icommand,command,finish)
                   do i = 1, Pop_data(k)%num_pop
                      read(8,*)Pop_data(k)%j_pop(i), Pop_data(k)%par_pop(i), Pop_data(k)%bin_pop(i)
                      xnorm = xnorm + Pop_data(k)%bin_pop(i)
+                     if(Pop_data(k)%j_pop(i) > Pop_max_J)Pop_max_J = Pop_data(k)%j_pop(i)
                   end do
                   if(xnorm < 1.0d-6)stop 'Error!! The total population is too small < 1.0d-6'
                   do i = 1, num_pop
@@ -2032,7 +2034,12 @@ subroutine parse_command(num_comp,icommand,command,finish)
          write(6,*)'Error in input for option "max_j_allowed"'
          return
       end if
-      read(command(startw(2):stopw(2)),*)Max_J_allowed
+      read(command(startw(2):stopw(2)),*)itemp_read
+      if(pop_calc)then
+         if(itemp_read > max_J_allowed)max_J_allowed = itemp_read
+      else
+         max_J_allowed = itemp_read
+      end if
       return
    end if
 !
@@ -2756,8 +2763,8 @@ subroutine lower_case_word(nchar,word)
 !
 !  Discussion:
 !
-!    This subroutine changes all upper case characters in a string 
-!    to lower case
+!    This subroutine changes all lower case characters in a string 
+!    to upper case
 !
 !  Licensing:
 !
@@ -2776,39 +2783,128 @@ subroutine lower_case_word(nchar,word)
    use variable_kinds
    implicit none
    integer(kind=4), intent(in) :: nchar
-   character, intent(inout) :: word(nchar)
-!-----------------------------------------------------------------------------
-   integer(kind=4) i
+   character(len=nchar), intent(inout) :: word
+!-------------------------------------------------------------
+   integer(kind=4) :: i, j
    do i = 1, nchar
-      if(word(i) == 'A')word(i) = 'a'
-      if(word(i) == 'B')word(i) = 'b'
-      if(word(i) == 'C')word(i) = 'c'
-      if(word(i) == 'D')word(i) = 'd'
-      if(word(i) == 'E')word(i) = 'e'
-      if(word(i) == 'F')word(i) = 'f'
-      if(word(i) == 'G')word(i) = 'g'
-      if(word(i) == 'H')word(i) = 'h'
-      if(word(i) == 'I')word(i) = 'i'
-      if(word(i) == 'J')word(i) = 'j'
-      if(word(i) == 'K')word(i) = 'k'
-      if(word(i) == 'L')word(i) = 'l'
-      if(word(i) == 'M')word(i) = 'm'
-      if(word(i) == 'N')word(i) = 'n'
-      if(word(i) == 'O')word(i) = 'o'
-      if(word(i) == 'P')word(i) = 'p'
-      if(word(i) == 'Q')word(i) = 'q'
-      if(word(i) == 'R')word(i) = 'r'
-      if(word(i) == 'S')word(i) = 's'
-      if(word(i) == 'T')word(i) = 't'
-      if(word(i) == 'U')word(i) = 'u'
-      if(word(i) == 'V')word(i) = 'v'
-      if(word(i) == 'W')word(i) = 'w'
-      if(word(i) == 'X')word(i) = 'x'
-      if(word(i) == 'Y')word(i) = 'y'
-      if(word(i) == 'Z')word(i) = 'z'
+      j = iachar(word(i:i))
+      if(j >= 65 .and. j <= 90)then       !  Upper case: 65-90
+         j = j + 32                       !  Lower case: 97-122
+         word(i:i) = achar(j)
+      end if
    end do
    return
 end subroutine lower_case_word
+!
+!*******************************************************************************
+!
+subroutine upper_case_word(nchar,word)
+!
+!*******************************************************************************
+!
+!  Discussion:
+!
+!    This subroutine changes all lower case characters in a string 
+!    to upper case
+!
+!  Licensing:
+!
+!    This code is distributed under the GNU LGPL version 2 license. 
+!
+!  Date:
+!
+!    25 September 2019
+!
+!  Author:
+!
+!      Erich Ormand, LLNL
+!
+!*******************************************************************************
+!
+   implicit none
+   integer(kind=4), intent(in) :: nchar
+   character(len=nchar), intent(inout) :: word
+!-------------------------------------------------------------
+   integer(kind=4) :: i, j
+   do i = 1, nchar
+      j = iachar(word(i:i))
+      if(j >= 97 .and. j <= 122)then      !  Lower case: 97-122
+         j = j - 32                       !  Upper case: 65-90
+         word(i:i) = achar(j)
+      end if
+   end do
+   return
+end subroutine upper_case_word
+!
+!*******************************************************************************
+!
+logical function is_char_number(char)
+!
+!*******************************************************************************
+!
+!  Discussion:
+!
+!    This function checks if a character variable is a number
+!
+!  Licensing:
+!
+!    This code is distributed under the GNU LGPL version 2 license. 
+!
+!  Date:
+!
+!    25 September 2019
+!
+!  Author:
+!
+!      Erich Ormand, LLNL
+!
+!*******************************************************************************
+!
+   implicit none
+   character(len=1), intent(in) :: char
+!------------------------------------------------
+   integer(kind=4) :: i
+   i = iachar(char)
+   is_char_number = .false.
+   if(i >= 48 .and. i <= 57)is_char_number = .true.
+   return
+end function is_char_number
+!
+!*******************************************************************************
+!
+logical function is_char_letter(char)
+!
+!*******************************************************************************
+!
+!  Discussion:
+!
+!    This function checks if a character variable is a letter - upper or 
+!    lower case
+!
+!  Licensing:
+!
+!    This code is distributed under the GNU LGPL version 2 license. 
+!
+!  Date:
+!
+!    25 September 2019
+!
+!  Author:
+!
+!      Erich Ormand, LLNL
+!
+!*******************************************************************************
+!
+   implicit none
+   character(len=1), intent(in) :: char
+!------------------------------------------------
+   integer(kind=4) :: i
+   i = iachar(char)
+   is_char_letter = .false.
+   if(i >= 60 .and. i <= 90)is_char_letter = .true.
+   if(i >= 97 .and. i <= 122)is_char_letter = .true.
+   return
+end function is_char_letter
 !
 !*******************************************************************************
 !
