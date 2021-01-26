@@ -249,3 +249,16 @@ Version 3.16
 9.  Fixed error introduced in 3.14 while collecting elastic events for neutrons.
 10. Disabled option to scale elastic for charged particle projectiles.
 11. Fixed bug where protons weren't computing DWBA excitations.
+
+Version 3.17
+1.  Fixed bug in subroutine pre_equilibirum_1 that caused a subscript out of
+    bounds.
+2.  Put in traps on results from fresco calculations to try and avoid small
+    negative cross sections or errors caused by lack of convergence for 
+    charged particles with low energy - best if Ian Thompson addresses
+    this in fresco.
+3.  Added check on maximum angular momentum used in population calculations
+    so that bounds on continuous energy bins won't be violated.
+4.  Improved and simplified some functions and subroutines to change case in
+    a string and to check if a character is a number or a letter.
+
