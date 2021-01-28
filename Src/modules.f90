@@ -34,7 +34,6 @@ module options
    character(len=132) version
    parameter (version = 'MC-3.17')
    integer(kind=int_64) :: iseed
-   logical ran_setup
    integer(kind=4) PREEQ_Model
    logical analytic_preeq
    logical fission
@@ -163,7 +162,8 @@ module useful_data
    real(kind=8) :: test_spectrum(0:10000)
 
 !.. names of stable isotopes, H-Es
-   character(len=2) symb(99)                 !   moved to module useful_data
+   integer(kind=4), parameter :: num_elements = 99
+   character(len=2) symb(num_elements)                 !   moved to module useful_data
 !.. mixed case
    data symb/    &
           ' H','He','Li','Be',' B',' C',' N',' O',' F','Ne','Na', &

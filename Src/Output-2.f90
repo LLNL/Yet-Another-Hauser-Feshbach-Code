@@ -542,6 +542,13 @@ subroutine output_nucleus_data(num_comp, j_max, itarget)
       write(13,*)'E1 defined as the energy so that int(E1,0)rho(E)dE = 1'
       write(13,*)'Generally, E1 < 0 if E0 < 0'
       write(13,*)'Otherwise E1 undefined as int(-infty,0)rho(E)DE < 1'
+      if(nucleus(i)%fit_D0 .and. nucleus(i)%fit_aparam)then
+         write(13,*)'Fitting to D0 by adjusting the a-parameter'
+      elseif(nucleus(i)%fit_D0 .and. .not. nucleus(i)%fit_aparam)then
+         write(13,*)'Fitting to D0 by adjusting the shell correction'
+      elseif(.not. nucleus(i)%fit_D0)then
+         write(13,*)'No fit to D0 is performed'
+      end if 
       if(nucleus(i)%D0exp > 0.0d0)then
          write(13,'('' Experimental D0 ='',f10.3,'' +/- '',f10.3,'' eV'')')    &
                      nucleus(i)%D0exp,nucleus(i)%dD0exp
@@ -1066,11 +1073,18 @@ subroutine output_nucleus_data(num_comp, j_max, itarget)
 !--------------   HF-denominators
       write(13,*)
       write(13,*)'Hauser-Feshbach denominators'
-      do n=1,nucleus(i)%nbin
+      write(13,*)'Positive Parity'
+      do n = 1, nucleus(i)%nbin
          energy=nucleus(i)%e_grid(n)
          write(13,'(f10.6,60(1x,e15.7))')                                            &
-           energy,(nucleus(i)%bins(j,0,n)%HF_den,                                    &
-                   nucleus(i)%bins(j,1,n)%HF_den,j=0,j_max)
+           energy,(nucleus(i)%bins(j,0,n)%HF_den,j=0,j_max)
+      end do
+      write(13,*)
+      write(13,*)'Negative Parity'
+      do n = 1, nucleus(i)%nbin
+         energy=nucleus(i)%e_grid(n)
+         write(13,'(f10.6,60(1x,e15.7))')                                            &
+           energy,(nucleus(i)%bins(j,1,n)%HF_den,j=0,j_max)
       end do
       write(13,*)
       write(13,*)'Summed decay transmission coefficients for each channel'
@@ -1078,41 +1092,70 @@ subroutine output_nucleus_data(num_comp, j_max, itarget)
          k = nucleus(i)%decay_particle(if1)
          write(13,*)
          write(13,*)'Particle type = ',k
+         write(13,*)'Positive Parity'
          do n=1,nucleus(i)%nbin
             energy=nucleus(i)%e_grid(n)
             do j = 0, min(j_max,60)
                prob1(j) = nucleus(i)%bins(j,0,n)%HF_trans(if1)
+            end do
+            write(13,'(f10.6,60(1x,e15.7))')                                         &
+              energy,(prob1(j),j = 0, j_max)
+         end do
+         write(13,*)
+         write(13,*)'Negative Parity'
+         do n = 1, nucleus(i)%nbin
+            energy=nucleus(i)%e_grid(n)
+            do j = 0, min(j_max,60)
                prob2(j) = nucleus(i)%bins(j,1,n)%HF_trans(if1)
             end do
             write(13,'(f10.6,60(1x,e15.7))')                                         &
-              energy,(prob1(j),prob2(j),j = 0, min(j_max,60))
+              energy,(prob2(j),j = 0, j_max)
          end do
       end do
       
       if(nucleus(i)%Fission)then
          if1 = nucleus(i)%num_decay + 1
          write(13,*)
-         write(13,*)'Decay type = Fission'
-         do n=1,nucleus(i)%nbin
-            energy=nucleus(i)%e_grid(n)
+         write(13,*)'Positive Parity: Decay type = Fission'
+         do n = 1, nucleus(i)%nbin
+            energy = nucleus(i)%e_grid(n)
             do j = 0, min(j_max,60)
                prob1(j) = nucleus(i)%bins(j,0,n)%HF_trans(if1)
+            end do
+            write(13,'(f10.6,60(1x,e15.7))')                                         &
+              energy,(prob1(j),j = 0, min(j_max,60))
+         end do
+         write(13,*)
+         write(13,*)'Negative Parity: Decay type = Fission'
+         do n = 1, nucleus(i)%nbin
+            energy = nucleus(i)%e_grid(n)
+            do j = 0, min(j_max,60)
                prob2(j) = nucleus(i)%bins(j,1,n)%HF_trans(if1)
             end do
             write(13,'(f10.6,60(1x,e15.7))')                                         &
-              energy,(prob1(j),prob2(j),j = 0, min(j_max,60))
+              energy,(prob2(j),j = 0, min(j_max,60))
          end do
 
-         do ii=1,nucleus(i)%F_n_barr
-            write(13,*)'Trans-Coef for Fission Barrier #', ii
-            do n=1,nucleus(i)%nbin
-               energy=nucleus(i)%e_grid(n)
+         do ii = 1, nucleus(i)%F_n_barr
+            write(13,*)
+            write(13,*)'Positive Parity: Trans-Coef for Fission Barrier #', ii
+            do n = 1, nucleus(i)%nbin
+               energy = nucleus(i)%e_grid(n)
                do j = 0, min(j_max,60)
                   prob1(j) = nucleus(i)%bins(j,0,n)%HF_trans(if1+ii)
+               end do
+               write(13,'(f10.6,60(1x,e15.7))')                                      &
+                 energy,(prob1(j),j = 0, min(j_max,60))
+            end do
+            write(13,*)
+            write(13,*)'Negative Parity: Trans-Coef for Fission Barrier #', ii
+            do n = 1, nucleus(i)%nbin
+               energy = nucleus(i)%e_grid(n)
+               do j = 0, min(j_max,60)
                   prob2(j) = nucleus(i)%bins(j,1,n)%HF_trans(if1+ii)
                end do
                write(13,'(f10.6,60(1x,e15.7))')                                      &
-                 energy,(prob1(j),prob2(j),j = 0, min(j_max,60))
+                 energy,(prob2(j),j = 0, min(j_max,60))
             end do
          end do
       end if
@@ -1123,14 +1166,23 @@ subroutine output_nucleus_data(num_comp, j_max, itarget)
          write(13,*)
          if(k < 7)write(13,*)'Particle type = ',particle(k)%name
          if(k == 7)write(13,*)'Decay type = Fission'
+         write(13,*)'Positive Parity'
          do n = 1,nucleus(i)%nbin
             energy = nucleus(i)%e_grid(n)
             do j = 0, min(j_max,60)
                prob1(j) = nucleus(i)%bins(j,0,n)%HF_prob(if1)
+            end do
+            write(13,'(f10.6,60(1x,e15.7))')                                         &
+              energy,(prob1(j),j = 0, min(j_max,60))
+         end do
+         write(13,*)'Negative Parity'
+         do n = 1,nucleus(i)%nbin
+            energy = nucleus(i)%e_grid(n)
+            do j = 0, min(j_max,60)
                prob2(j) = nucleus(i)%bins(j,1,n)%HF_prob(if1)
             end do
             write(13,'(f10.6,60(1x,e15.7))')                                         &
-              energy,(prob1(j),prob2(j),j = 0, min(j_max,60))
+              energy,(prob2(j),j = 0, min(j_max,60))
          end do
       end do
    end do

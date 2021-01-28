@@ -511,6 +511,7 @@ program YAHFC_MASTER
       biased_sampling = .false.
       optical = 'fresco'
       explicit_channels = .false.
+      target%istate = 1
 !
 !----   Start with no optical potentials being set
 !----   later they may be set with a choice of an option
@@ -645,7 +646,6 @@ program YAHFC_MASTER
       iseed = -iseed
 
 
-      ran_setup = .true.
 !----------------------------------------------------------------------
       do i=1,80
          bigblank(i:i)=' '
@@ -704,7 +704,6 @@ program YAHFC_MASTER
       preeq_fwell = 0 
       analytic_preeq = .false.
       WF_model = 1
-      istate = 1
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !---------   projectile data
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -762,7 +761,8 @@ program YAHFC_MASTER
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !---------    Convert string to lower case
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-         call lower_case_word(nchar,command(1:stopw(numw)))
+         nchar = stopw(1) - startw(1) + 1
+         call lower_case_word(nchar,command(startw(1):stopw(1)))
          if(command(startw(1):stopw(1)) == 'end')then
              finish = .true.
              cycle

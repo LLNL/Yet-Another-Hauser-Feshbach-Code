@@ -252,7 +252,7 @@ subroutine Moldauer_product(icomp,                               &
    real(kind=8) :: Max_J
    real(kind=8) :: e1, b, bbb, mode
    real(kind=8) :: E0, T, E11,ecut
-   integer(kind=4) :: j_min
+!   integer(kind=4) :: j_min
 
 !-------------------------------------------------------------------------+
 !------     Function declarations
@@ -440,7 +440,8 @@ subroutine Moldauer_product(icomp,                               &
 !-----   12/16/17 WEO ----   Had to replace to conform to level denbsity usage
 !-----   in subroutine Fission_transmission. Namely we are no longer using 
 !-----   subroutine Fiss_lev. All subroutines now use rhoe found in level-density.f
-         ecut=nucleus(icomp)%F_Barrier(ib)%ecut
+         de = 0.01
+         ecut = nucleus(icomp)%F_Barrier(ib)%ecut
          E0 = nucleus(icomp)%F_barrier(ib)%level_param(15)
          T = nucleus(icomp)%F_barrier(ib)%level_param(14)
          if(E0 < 0.0d0)then
@@ -448,14 +449,13 @@ subroutine Moldauer_product(icomp,                               &
          else
             E11 = -5.0d0
          end if
-         j_min = nint(E11/de)
-         if(ecut > 0.0d0)then
-            j = 0
-         else
-            j = j_min
-         end if
+!         j_min = nint(E11/de)
+!         if(ecut > 0.0d0)then
+!            j = 0
+!         else
+!            j = j_min
+!         end if
          T_f = 0.0d0
-         de=0.01
          j = 0
          converged = .false.
          do while (.not. converged)
