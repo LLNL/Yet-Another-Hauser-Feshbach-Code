@@ -7,7 +7,7 @@ subroutine PREEQ_sample(iproj, in, itarget, istate, e_in, ex_tot,      &
                         n_dat, dim_part, num_part_type, part_fact,     &
                         num_part, part_data,                           &
                         Ang_L_max, part_Ang_data,                      &
-                        nextra_ang, extra_angle_data)
+                        num_theta, extra_angle_data)
 !
 !*******************************************************************************
 !
@@ -52,8 +52,8 @@ subroutine PREEQ_sample(iproj, in, itarget, istate, e_in, ex_tot,      &
    real(kind=8), intent(out) :: part_data(n_dat,dim_part)
    integer(kind=4), intent(in) :: Ang_L_max
    real(kind=8), intent(out) :: part_Ang_data(0:Ang_L_max,dim_part)
-   integer(kind=4), intent(in) :: nextra_ang
-   real(kind=8), intent(inout) :: extra_angle_data(3*(nextra_ang+1),dim_part)
+   integer(kind=4), intent(in) :: num_theta
+   real(kind=8), intent(inout) :: extra_angle_data(3*num_theta,dim_part)
 !--------------------------------    Internal data
    real(kind=8) :: preeq_cs, preeq_cs_k
    integer(kind=4) :: i, k, kk, m
@@ -196,7 +196,7 @@ subroutine PREEQ_sample(iproj, in, itarget, istate, e_in, ex_tot,      &
 !
      part_Ang_data(0:Ang_L_max,num_part) = 0.0d0
 
-     do nang = 1, nextra_ang + 1
+     do nang = 1, num_theta
         call PREEQ_Angular(icomp_i, icomp_f, iproj, e_in, k, energy,            &
                            dim_part, num_part, Ang_L_max, part_Ang_data, x_Ang)
         if(abs(x_Ang) > 1.0d0)stop 'cos(theta) wrong in PREEQ_sample'

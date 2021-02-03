@@ -114,7 +114,7 @@ module options
    integer(kind=4) :: nsamp, num_mc_samp
    logical :: biased_sampling
 
-   integer(kind=4) :: nextra_angles
+   integer(kind=4) :: num_theta_angles
 
    logical :: trans_avg_l
 

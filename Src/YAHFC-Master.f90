@@ -115,7 +115,7 @@ program YAHFC_MASTER
 
       real(kind=8), allocatable :: part_data(:,:)
       real(kind=8), allocatable :: extra_angle_data(:,:)
-      integer(kind=4) :: nextra_ang, nang, nang_tot
+      integer(kind=4) :: num_theta, nang, nang_tot
       integer(kind=4) :: Ang_L_max
       integer(kind=4) :: L_max
       real(kind=8), allocatable :: part_Ang_data(:,:)
@@ -515,7 +515,7 @@ program YAHFC_MASTER
       biased_sampling = .false.
       optical = 'fresco'
       explicit_channels = .false.
-      nextra_angles = 9
+      num_theta_angles = 10
       target%istate = 1
 !
 !----   Start with no optical potentials being set
@@ -889,7 +889,7 @@ program YAHFC_MASTER
          end if
       end do
 
-      nextra_ang = nextra_angles
+      num_theta = num_theta_angles
 
 !------  After everything is set up, also check if preequilibrium model parameters
 !------  makes sense. In particular, the finite well parameter, can't have
@@ -1951,10 +1951,10 @@ program YAHFC_MASTER
       end do
       dim_part = nucleus(1)%nbin + max_gammas*2
 
-      nang_tot = nextra_ang + 1      
+      nang_tot = num_theta      
       if(.not. allocated(part_data))allocate(part_data(n_dat,dim_part))
       if(.not. allocated(part_Ang_data))allocate(part_Ang_data(0:Ang_L_max,dim_part))
-      if(.not. allocated(extra_angle_data))allocate(extra_angle_data(3*nang_tot,dim_part))
+      if(.not. allocated(extra_angle_data))allocate(extra_angle_data(3*num_theta,dim_part))
       
 
 
@@ -2831,7 +2831,7 @@ program YAHFC_MASTER
             num_part = 0
             part_data(1:n_dat,1:dim_part) = 0.0
             if(.not.pop_calc)part_Ang_data(0:Ang_L_max,1:dim_part) = 0.0
-            extra_angle_data(3*nang_tot,1:dim_part) = 0.0d0
+            extra_angle_data(3*num_theta,1:dim_part) = 0.0d0
 !
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !-------   Determine first decay, including possibility of pre-equilibrium   +
@@ -2874,7 +2874,7 @@ program YAHFC_MASTER
                                        n_dat, dim_part, num_part_type, part_fact,        &
                                        num_part, part_data,                              &
                                        Ang_L_max, part_Ang_data,                         &
-                                       nextra_ang, extra_angle_data)
+                                       num_theta, extra_angle_data)
 
                      num_pre_equilibrium = num_pre_equilibrium + 1
                   else                                                                          !  Normal compound nucleus decay
@@ -2896,7 +2896,7 @@ program YAHFC_MASTER
                                            num_part, part_data,                          &
                                            Ang_L_max, part_Ang_data,                     &
                                            ixx_max, delta_ix,                            &
-                                           nextra_ang, extra_angle_data)
+                                           num_theta, extra_angle_data)
 
                      if(nbin_f < 0)fission_decay = .true.
                      if(fission_decay)goto 101
@@ -2990,7 +2990,7 @@ program YAHFC_MASTER
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !------------   get theta
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-                        do nang = 1, nang_tot
+                        do nang = 1, num_theta
                            ran = random_64(iseed)
                            do i = 1, ixx_max
                               x = real(i,kind=8)*delta_ix - 1.0d0 -                                   &
@@ -3060,7 +3060,7 @@ program YAHFC_MASTER
                                  n_dat, dim_part, num_part_type, part_fact,   &
                                  num_part, part_data,                         &
                                  Ang_L_max, part_Ang_data,                    &
-                                 nextra_ang, extra_angle_data)
+                                 num_theta, extra_angle_data)
 !
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !----------   Check if decay is hung up in a bin with no place to go. If so, force
@@ -3075,7 +3075,7 @@ program YAHFC_MASTER
                                    icomp_f, Ix_f, ip_f, nbin_f, idb,            &
                                    n_dat, dim_part, num_part, part_data,        &
                                    Ang_L_max, part_Ang_data,                    &
-                                   nextra_ang, extra_angle_data)
+                                   num_theta, extra_angle_data)
                end if
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !----------   Check if decay is fission. If so, collect separately and exit decay loop
@@ -3131,7 +3131,7 @@ program YAHFC_MASTER
                                  n_dat, dim_part, num_part_type, part_fact,     &
                                  num_part, part_data,                           &
                                  Ang_L_max, part_Ang_data,                      &
-                                 nextra_ang, extra_angle_data)
+                                 num_theta, extra_angle_data)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !------   Following is information relating to the number of times the decay "failed" due to
 !------   energy conservation. namely due to random noise put into emission energy, the excitation
@@ -3154,7 +3154,7 @@ program YAHFC_MASTER
                                    icomp_f, Ix_f, ip_f, nbin_f, idb,            &
                                    n_dat, dim_part, num_part, part_data,        &
                                    Ang_L_max, part_Ang_data,                    &
-                                   nextra_ang, extra_angle_data)
+                                   num_theta, extra_angle_data)
               end if
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !----------   Check if decay is fission. If so, collect separately and exit decay loop   +
@@ -3201,7 +3201,7 @@ program YAHFC_MASTER
             call MC_decay_state(icomp_i, nbin_i,                             &
                                 n_dat,dim_part,num_part,part_data,           & 
                                 Ang_L_max, part_Ang_data,                    &
-                                nextra_ang, extra_angle_data, ichann, in)
+                                num_theta, extra_angle_data, ichann, in)
 
 101         continue
 
@@ -3315,8 +3315,8 @@ program YAHFC_MASTER
                part_data(18,nn) = T_2
                nucleus(icomp_f)%Kinetic_Energy = T_2
                
-               extra_angle_data(nang_tot+1,nn) = theta               !   COM frame
-               extra_angle_data(2*nang_tot+1,nn) = theta_L           !   Lab frame
+               extra_angle_data(num_theta+1,nn) = theta               !   COM frame
+               extra_angle_data(2*num_theta+1,nn) = theta_L           !   Lab frame
 !
 !----    Sum energy from the Rest reference frames and check if "conserved"
 !
@@ -3328,7 +3328,7 @@ program YAHFC_MASTER
                   end if
             end do
 
-            do nang = 2, nang_tot
+            do nang = 2, num_theta
                do nn = 1, num_part
                   k = nint(part_data(2,nn))
                   if(k == 7) cycle                     !   Fission event, essentially finished here
@@ -3348,8 +3348,8 @@ program YAHFC_MASTER
                   call Boost_frame(e_rel, mass_1, mass_2, theta_0, phi_0,                 &
                                    Boost_Lab, Boost_COM, T_1, theta, phi,                 &
                                    T_2, T_L, theta_L, phi_L)
-                  extra_angle_data(nang_tot+1,nn) = theta               !   COM frame
-                  extra_angle_data(2*nang_tot+1,nn) = theta_L           !   Lab frame
+                  extra_angle_data(num_theta+1,nn) = theta               !   COM frame
+                  extra_angle_data(2*num_theta+1,nn) = theta_L           !   Lab frame
                end do 
             end do
 
@@ -3454,14 +3454,14 @@ program YAHFC_MASTER
                      Inelastic_cs(jstate,in) = Inelastic_cs(jstate,in) + tally_weight
                      Inelastic_count(jstate,in) = Inelastic_count(jstate,in) + 1
                      Inelastic_total(in) = Inelastic_total(in) + tally_weight
-                     do nang = 1, nextra_ang
+                     do nang = 1, num_theta
                         theta = extra_angle_data(nang+1,nn)
                         x = cos(theta)
                         jx = nint((x+1.0d0)/delta_jx_10)
                         if(jx < 0)jx = 0
                         if(jx > max_jx_10)jx = max_jx_10
                         Inelastic_Ang_Dist(jx,jstate,in) = Inelastic_Ang_Dist(jx,jstate,in) +      &
-                                                           tally_weight/real(nang_tot,kind=8)
+                                                           tally_weight/real(num_theta,kind=8)
                      end do
                      do L = 0, Ang_L_max
                         Inelastic_Ang_L_avg(L,jstate,in) = Inelastic_Ang_L_avg(L,jstate,in) +      &
@@ -3494,18 +3494,18 @@ program YAHFC_MASTER
                                tally_weight/de_spec
                            Exit_Channel(ichann)%Spect(k,ictype,in)%E_count(icc) =                  &
                                Exit_Channel(ichann)%Spect(k,ictype,in)%E_count(icc) + 1
-                           do nang = 1, nang_tot
-                              theta = extra_angle_data(nang_tot+1,nn)
+                           do nang = 1, num_theta
+                              theta = extra_angle_data(num_theta+1,nn)
                               x = cos(theta)
                               jx = nint((x+1.0d0)/delta_jx_10)
                               if(jx < 0)jx = 0
                               if(jx > max_jx_10)jx = max_jx_10
                               Exit_Channel(ichann)%Spect(k,ictype,in)%E_Ang_Dist(jx,icc) =            &
                                   Exit_Channel(ichann)%Spect(k,ictype,in)%E_Ang_Dist(jx,icc) +        &
-                                  tally_weight/(delta_jx_10*de_spec)/real(nang_tot,kind=8)
+                                  tally_weight/(delta_jx_10*de_spec)/real(num_theta,kind=8)
                               Exit_Channel(ichann)%Spect(k,ictype,in)%Ang_Dist(jx) =                  &
                                   Exit_Channel(ichann)%Spect(k,ictype,in)%Ang_Dist(jx) +              &
-                                  tally_weight/delta_jx_10/real(nang_tot,kind=8)
+                                  tally_weight/delta_jx_10/real(num_theta,kind=8)
                            end do
                         end if
                      end do
@@ -3531,18 +3531,18 @@ program YAHFC_MASTER
                             tally_weight/de_spec
                         Exit_Channel(ichann)%Spect(k,ictype,in)%E_count(icc) =                     &
                             Exit_Channel(ichann)%Spect(k,ictype,in)%E_count(icc) + 1
-                        do nang = 1, nang_tot
-                           theta = extra_angle_data(nang_tot + 1,nn)
+                        do nang = 1, num_theta
+                           theta = extra_angle_data(num_theta + 1,nn)
                            x = cos(theta)
                            jx = nint((x+1.0d0)/delta_jx_10)
                            if(jx < 0)jx = 0
                            if(jx > max_jx_10)jx = max_jx_10
                            Exit_Channel(ichann)%Spect(k,ictype,in)%E_Ang_Dist(jx,icc) =               &
                                Exit_Channel(ichann)%Spect(k,ictype,in)%E_Ang_Dist(jx,icc) +           &
-                               tally_weight/(delta_jx_10*de_spec)/real(nang_tot,kind=8)
+                               tally_weight/(delta_jx_10*de_spec)/real(num_theta,kind=8)
                            Exit_Channel(ichann)%Spect(k,ictype,in)%Ang_Dist(jx) =                     &
                                Exit_Channel(ichann)%Spect(k,ictype,in)%Ang_Dist(jx) +                 &
-                               tally_weight/delta_jx_10/real(nang_tot,kind=8)
+                               tally_weight/delta_jx_10/real(num_theta,kind=8)
                         end do
                      end if
                   end do
@@ -4216,7 +4216,7 @@ program YAHFC_MASTER
                        avg_diff = avg_diff/avg
                        expected_diff = real(Exit_Channel(i)%Spect(k,n,in)%E_count(icc),kind=8)/     &
                                        real(max_jx_10 + 1,kind=8)
-                       expected_diff = sqrt(expected_diff)/expected_diff/sqrt(real(nang_tot,kind=8))
+                       expected_diff = sqrt(expected_diff)/expected_diff/sqrt(real(num_theta,kind=8))
                        if(avg_diff < 2.5d0*expected_diff)Exit_Channel(i)%Spect(k,n,in)%E_Ang_L_max(icc) = 4
                        if(avg_diff < 1.75d0*expected_diff)Exit_Channel(i)%Spect(k,n,in)%E_Ang_L_max(icc) = 2
                        if(avg_diff < expected_diff)Exit_Channel(i)%Spect(k,n,in)%E_Ang_L_max(icc) = 0
@@ -5407,7 +5407,7 @@ program YAHFC_MASTER
 !**********************************************************************************
             print_cs = .false.
             do in = 1, num_energies
-               thresh = 10.0d0*absorption_cs(in)/real(num_mc_samp,kind=8)
+               thresh = 20.0d0*absorption_cs(in)/real(num_mc_samp,kind=8)
                if(Inelastic_cs(j,in) > thresh)print_cs = .true.
             end do
             if(.not. print_cs)cycle

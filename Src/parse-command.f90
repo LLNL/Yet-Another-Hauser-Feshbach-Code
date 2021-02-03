@@ -2609,14 +2609,14 @@ subroutine parse_command(num_comp,icommand,command,finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
-   if(command(startw(1):stopw(1)) == 'extra_angles' )then
+   if(command(startw(1):stopw(1)) == 'num_theta_angles' )then
       icommand = icommand + 1
       if(numw < 2)then
-         write(6,*)'Error in input for option "trans_norm"'
+         write(6,*)'Error in input for option "num_theta_angles"'
          return
       end if
-      read(command(startw(2):stopw(2)),*)nextra_angles
-      if(nextra_angles < 0)nextra_angles = 0
+      read(command(startw(2):stopw(2)),*)num_theta_angles
+      if(num_theta_angles < 0)num_theta_angles = 1
       return
    end if
 !

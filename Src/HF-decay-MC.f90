@@ -6,7 +6,7 @@
                            n_dat, dim_part, num_part_type, part_fact,  &
                            num_part, part_data,                        &
                            Ang_L_max, part_Ang_data,                   &
-                           nextra_ang, extra_angle_data)
+                           num_theta, extra_angle_data)
 !
 !*******************************************************************************
 !
@@ -49,8 +49,8 @@
    real(kind=8), intent(inout) :: part_data(n_dat,dim_part)
    integer(kind=4), intent(in) :: Ang_L_max
    real(kind=8), intent(out) :: part_Ang_data(0:Ang_L_max,dim_part)
-   integer(kind=4), intent(in) :: nextra_ang
-   real(kind=8), intent(inout) :: extra_angle_data(3*(nextra_ang+1),dim_part)
+   integer(kind=4), intent(in) :: num_theta
+   real(kind=8), intent(inout) :: extra_angle_data(3*num_theta,dim_part)
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !----------   Internal Data
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ 
@@ -311,7 +311,7 @@
       part_data(8,num_part) = xj_f
    end if
 
-   do nang = 1, nextra_ang + 1
+   do nang = 1, num_theta
       costhp = 2.0d0*random_64(iseed) - 1.0d0
       if(abs(costhp) > 1.0d0)stop 'cos(theta) wrong in MC_decay_bin'
       extra_angle_data(nang,num_part) = acos(costhp)
@@ -346,7 +346,7 @@
    subroutine MC_decay_state(icomp_i, istate_i,                       &
                              n_dat,dim_part,num_part,part_data,       &
                              Ang_L_max,part_Ang_data,                 &
-                             nextra_ang, extra_angle_data, ichan, in)
+                             num_theta, extra_angle_data, ichan, in)
 !
 !*******************************************************************************
 !
@@ -387,8 +387,8 @@
    real(kind=8), intent(inout) :: part_data(n_dat,dim_part)
    integer(kind=4), intent(in) :: Ang_L_max
    real(kind=8), intent(out) :: part_Ang_data(0:Ang_L_max,dim_part)
-   integer(kind=4), intent(in) :: nextra_ang
-   real(kind=8), intent(inout) :: extra_angle_data(3*(nextra_ang+1),dim_part)
+   integer(kind=4), intent(in) :: num_theta
+   real(kind=8), intent(inout) :: extra_angle_data(3*num_theta,dim_part)
    integer(kind=4), intent(in) :: ichan, in
 
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -479,7 +479,7 @@
       part_data(7,num_part) = real(l,kind=8)
       part_data(8,num_part) = real(iss,kind=8)
 
-      do nang = 1, nextra_ang + 1
+      do nang = 1, num_theta
          costhp = 2.0d0*random_64(iseed) - 1.0d0
          if(abs(costhp) > 1.0d0)stop 'cos(theta) wrong in MC_decay_state'
          extra_angle_data(nang,num_part) = acos(costhp)
@@ -771,7 +771,7 @@
                                n_dat, dim_part, num_part_type, part_fact,  &
                                num_part, part_data,                        &
                                Ang_L_max, part_Ang_data,                   &
-                               ixx_max, delta_x, nextra_ang, extra_angle_data)
+                               ixx_max, delta_x, num_theta, extra_angle_data)
 !
 !*******************************************************************************
 !
@@ -822,8 +822,8 @@
    real(kind=8), intent(inout) :: part_Ang_data(0:Ang_L_max,dim_part)
    integer(kind=4), intent(in) :: ixx_max
    real(kind=8), intent(in) :: delta_x
-   integer(kind=4), intent(in) :: nextra_ang
-   real(kind=8), intent(inout) :: extra_angle_data(3*(nextra_ang+1),dim_part)
+   integer(kind=4), intent(in) :: num_theta
+   real(kind=8), intent(inout) :: extra_angle_data(3*num_theta,dim_part)
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !----------   Internal Data
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ 
@@ -1006,7 +1006,7 @@
       end do
    end if
 
-   do nang = 1, nextra_ang
+   do nang = 1, num_theta
       if(k == 0)then
          x = 2.0d0*random_64(iseed) - 1.0d0
       else
@@ -1081,7 +1081,7 @@ subroutine force_decay(icomp_i, nbin_i,                              &
                        icomp_f, Ix_f, ip_f, nbin_f, idb,             &
                        n_dat, dim_part, num_part, part_data,         &
                        Ang_L_max, part_Ang_data,                     &
-                       nextra_ang, extra_angle_data)
+                       num_theta, extra_angle_data)
 !
 !*******************************************************************************
 !
@@ -1127,8 +1127,8 @@ subroutine force_decay(icomp_i, nbin_i,                              &
    real(kind=8), intent(inout) :: part_data(n_dat,dim_part)
    integer(kind=4), intent(in) :: Ang_L_max
    real(kind=8), intent(inout) :: part_Ang_data(0:Ang_L_max,dim_part)
-   integer(kind=4), intent(in) :: nextra_ang
-   real(kind=8), intent(inout) :: extra_angle_data(3*(nextra_ang+1),dim_part)
+   integer(kind=4), intent(in) :: num_theta
+   real(kind=8), intent(inout) :: extra_angle_data(3*num_theta,dim_part)
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !----------   Internal Data
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ 
@@ -1183,7 +1183,7 @@ subroutine force_decay(icomp_i, nbin_i,                              &
 !   part_data(9,num_part) = t
 
 
-   do nang = 1, nextra_ang + 1
+   do nang = 1, num_theta
       costhp = 2.0d0*random_64(iseed) - 1.0d0
       extra_angle_data(nang,num_part) = acos(costhp)
    end do

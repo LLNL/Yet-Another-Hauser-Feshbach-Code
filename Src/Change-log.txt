@@ -271,21 +271,22 @@ Version 3.18
     "Fresco-files" to reduce clutter in the main execution directory. 
 4.  Added "cutoff" for writing data for inelastic excitations to discrete 
     states. If the largest cross section (as a function of incident energy) 
-    falls below a threshold of 10*absorption(in)/num_samp, the file will not be
+    falls below a threshold of 20*absorption(in)/num_samp, the file will not be
     opened and written too. Note that this is dynamic, in that the check is
     for each incident energy. For the most part, the smallest cross section that
     would be observable is with a single event to a channel, which would be
     of the order absorption/num_samp. This would eliminate files for discrete
     states with no cross section.
 5.  The statistics for the angular distributions is increased by "over sampling"
-    the angles for each emitted particle. An extra set of "nextra_ang" theta 
-    angles are sampled, for a total nextra_ang + 1 angles. The default is 
-    "nextra_ang = 9", giving 10 angles per particle. Each of these are
-    transformed to the COM and Lab frames, and then collected in the angular
-    distributions. At present, this increases the CPU time by ~ 2x, but
-    increases the angular statistics by 10x (improves uncertainty by 3x). 
-6.  Introduced command "nextra_angles N" to allow the user to specify the number
-    of extra angles.
+    the angles for each emitted particle. A total of num_theta values of the
+    angle theta are sampled for each particle. The default is num_theta = 10.
+    Each of these angles are transformed to the COM and Lab frames, and then 
+    collected in the angular distributions. Each set of angles, labeled nang,
+    are treated as a distinct set of samples. At present, this increases the 
+    CPU time by ~ 2x, but ncreases the angular statistics by 10x (improves uncertainty by 3x). 
+6.  Introduced command "num_theta_angles N" to allow the user to specify the 
+    num_theta. It is required that N >= 1. If a number less than 1 is entered, 
+    it is overriden and num_theta = 1.
 7.  Changed the default delta_e to 0.1 MeV.
 8.  Put in trap on obsolete command "fit_aparam" to warn user and effectively 
     call the commands "lev_fit_do y" and "lev_fit_aparam n", which is
