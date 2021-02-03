@@ -114,10 +114,11 @@ program YAHFC_MASTER
       parameter (n_dat = 24)
 
       real(kind=8), allocatable :: part_data(:,:)
+      real(kind=8), allocatable :: extra_angle_data(:,:)
+      integer(kind=4) :: nextra_ang, nang, nang_tot
       integer(kind=4) :: Ang_L_max
       integer(kind=4) :: L_max
       real(kind=8), allocatable :: part_Ang_data(:,:)
-      real(kind=8) :: x_Ang
 
       integer(kind=4) ::  L_Ang
       real(kind=8) :: xL_Ang, xl_i
@@ -206,7 +207,7 @@ program YAHFC_MASTER
       real(kind=8) :: apu
       real(kind=8) :: rho, sig
       real(kind=8) :: xa,xz
-      real(kind=8) :: ratio
+!      real(kind=8) :: ratio
       integer(kind=4) :: max_part
       real(kind=8) :: K_vib, K_rot
 !----------------------------------------------------------------------
@@ -305,6 +306,7 @@ program YAHFC_MASTER
       real(kind=8), allocatable :: Inelastic_cs(:,:)
       integer(kind=4), allocatable :: Inelastic_count(:,:)
       integer(kind=4), allocatable :: Inelastic_L_max(:,:)
+      real(kind=8), allocatable :: Inelastic_Ang_L_avg(:,:,:)
       real(kind=8), allocatable :: Inelastic_Ang_L(:,:,:)
       real(kind=8), allocatable :: Inelastic_Ang_dist(:,:,:)
       real(kind=8), allocatable :: Inelastic_g_mult(:)
@@ -402,7 +404,9 @@ program YAHFC_MASTER
 
       integer :: cnt, cnt_r, cnt_m
 
-
+      real(kind=8) :: ratio
+      real(kind=8) :: thresh
+      logical :: print_cs
 !-----------------------------------------------------
 !---------    Directory structure of Library outputs
       logical f_exist
@@ -511,6 +515,7 @@ program YAHFC_MASTER
       biased_sampling = .false.
       optical = 'fresco'
       explicit_channels = .false.
+      nextra_angles = 9
       target%istate = 1
 !
 !----   Start with no optical potentials being set
@@ -571,7 +576,7 @@ program YAHFC_MASTER
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !--------------    ixx_max and jxx_max need to be even
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-      ixx_max = 100
+      ixx_max = 50
       delta_ix = 2.0d0/real(ixx_max,kind=8)
 
       max_jx_10 = 10
@@ -630,7 +635,7 @@ program YAHFC_MASTER
 
       trans_p_cut = 1.0d-7
       trans_e_cut = 1.0d-18
-      prob_cut = 1.0d-7
+      prob_cut = 1.0d-6
 
       num_mc_samp = 1000000
 
@@ -731,7 +736,7 @@ program YAHFC_MASTER
 !-------------------------------------------------------------------  
       i_bind = 0
       compound_setup = .false.
-      de = 0.2d0
+      de = 0.1d0
       mass_file = 'aw'
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
@@ -883,6 +888,9 @@ program YAHFC_MASTER
             compound_setup=.true.
          end if
       end do
+
+      nextra_ang = nextra_angles
+
 !------  After everything is set up, also check if preequilibrium model parameters
 !------  makes sense. In particular, the finite well parameter, can't have
 !------  Preq_V1 > Preeq_V
@@ -1942,9 +1950,14 @@ program YAHFC_MASTER
          if(nucleus(icomp)%num_discrete > max_gammas) max_gammas = nucleus(icomp)%num_discrete
       end do
       dim_part = nucleus(1)%nbin + max_gammas*2
-      
+
+      nang_tot = nextra_ang + 1      
       if(.not. allocated(part_data))allocate(part_data(n_dat,dim_part))
       if(.not. allocated(part_Ang_data))allocate(part_Ang_data(0:Ang_L_max,dim_part))
+      if(.not. allocated(extra_angle_data))allocate(extra_angle_data(3*nang_tot,dim_part))
+      
+
+
       if(.not.pop_calc)then
          if(.not.allocated(clb_l))allocate(clb_l(0:Ang_L_max,0:particle(iproj)%lmax))
          do L_Ang = 0, Ang_L_max
@@ -2071,9 +2084,12 @@ program YAHFC_MASTER
          if(.not.allocated(Inelastic_L_max))                                                       &
              allocate(Inelastic_L_max(0:nucleus(itarget)%num_discrete,1:num_energies))
          Inelastic_L_max(1:nucleus(itarget)%num_discrete,1:num_energies) = 0
-         if(.not.allocated(Inelastic_Ang_L))                                                         &
+         if(.not.allocated(Inelastic_Ang_L))                                                       &
             allocate(Inelastic_Ang_L(0:Ang_L_max,0:nucleus(itarget)%num_discrete,1:num_energies))
          Inelastic_Ang_L(0:Ang_L_max,0:nucleus(itarget)%num_discrete,1:num_energies) = 0.0d0
+         if(.not.allocated(Inelastic_Ang_L_avg))                                                   &
+            allocate(Inelastic_Ang_L_avg(0:Ang_L_max,0:nucleus(itarget)%num_discrete,1:num_energies))
+         Inelastic_Ang_L_avg(0:Ang_L_max,0:nucleus(itarget)%num_discrete,1:num_energies) = 0.0d0
          if(.not.allocated(Inelastic_Ang_dist))                                                    &
              allocate(Inelastic_Ang_dist(0:max_jx_10,1:nucleus(itarget)%num_discrete,1:num_energies))
          Inelastic_Ang_dist(0:max_jx_10,1:nucleus(itarget)%num_discrete,1:num_energies) = 0.0d0
@@ -2598,6 +2614,9 @@ program YAHFC_MASTER
                do i = 0, ixx_max
                   direct_prob(i,n) = direct_prob(i,n)/direct_prob(ixx_max,n)
                end do
+               do L = 0, Ang_L_max
+                  direct_Ang(L,n) = direct_Ang(L,n)/direct_prob(ixx_max,n)
+               end do
             end do
 !---   Elastic scattering angle probability
             SE_prob(0:ixx_max) = 0.0d0
@@ -2812,6 +2831,7 @@ program YAHFC_MASTER
             num_part = 0
             part_data(1:n_dat,1:dim_part) = 0.0
             if(.not.pop_calc)part_Ang_data(0:Ang_L_max,1:dim_part) = 0.0
+            extra_angle_data(3*nang_tot,1:dim_part) = 0.0d0
 !
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !-------   Determine first decay, including possibility of pre-equilibrium   +
@@ -2853,7 +2873,9 @@ program YAHFC_MASTER
                                        Ix_f, l_f, ip_f, nbin_f, idb,                     &
                                        n_dat, dim_part, num_part_type, part_fact,        &
                                        num_part, part_data,                              &
-                                       Ang_L_max, part_Ang_data, x_Ang)
+                                       Ang_L_max, part_Ang_data,                         &
+                                       nextra_ang, extra_angle_data)
+
                      num_pre_equilibrium = num_pre_equilibrium + 1
                   else                                                                          !  Normal compound nucleus decay
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -2873,7 +2895,9 @@ program YAHFC_MASTER
                                            n_dat, dim_part, num_part_type, part_fact,    &
                                            num_part, part_data,                          &
                                            Ang_L_max, part_Ang_data,                     &
-                                           ixx_max, delta_ix)
+                                           ixx_max, delta_ix,                            &
+                                           nextra_ang, extra_angle_data)
+
                      if(nbin_f < 0)fission_decay = .true.
                      if(fission_decay)goto 101
                   end if
@@ -2961,25 +2985,28 @@ program YAHFC_MASTER
                         part_data(8,num_part) = 1.0d0
                         part_data(9,num_part) = E_f
                         num_part_type(iproj) = num_part_type(iproj) + 1
-                       if(num_part_type(iproj) >= max_particle(iproj))part_fact(iproj) = 0.0d0
+                        if(num_part_type(iproj) >= max_particle(iproj))part_fact(iproj) = 0.0d0
 
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !------------   get theta
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-                        ran = random_64(iseed)
-                        do i = 1, ixx_max
-                           x = real(i,kind=8)*delta_ix - 1.0d0 -                                   &
-                               random_64(iseed)*delta_ix*0.999999d0
-                           if(direct_prob(i,n) > ran)exit
+                        do nang = 1, nang_tot
+                           ran = random_64(iseed)
+                           do i = 1, ixx_max
+                              x = real(i,kind=8)*delta_ix - 1.0d0 -                                   &
+                                  random_64(iseed)*delta_ix*0.999999d0
+                              if(direct_prob(i,n) > ran)exit
+                           end do
+                           extra_angle_data(nang,num_part) = acos(x)
                         end do
-                        theta_0 = acos(x)
+                        
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !------------   Now phi
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
                         ran = random_64(iseed)
                         phi_0 = ran*2.0d0*pi
 
-                        part_data(10,num_part) = theta_0
+                        part_data(10,num_part) = extra_angle_data(1,num_part)
                         part_data(11,num_part) = phi_0
 !                        part_data(12,num_part) = T_1
 !                        part_data(13,num_part) = theta
@@ -3032,7 +3059,8 @@ program YAHFC_MASTER
                                  icomp_f, Ix_f, ip_f, nbin_f, idb,            &
                                  n_dat, dim_part, num_part_type, part_fact,   &
                                  num_part, part_data,                         &
-                                 Ang_L_max, part_Ang_data)
+                                 Ang_L_max, part_Ang_data,                    &
+                                 nextra_ang, extra_angle_data)
 !
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !----------   Check if decay is hung up in a bin with no place to go. If so, force
@@ -3046,7 +3074,8 @@ program YAHFC_MASTER
                   call force_decay(icomp_i, nbin_i,                             &
                                    icomp_f, Ix_f, ip_f, nbin_f, idb,            &
                                    n_dat, dim_part, num_part, part_data,        &
-                                   Ang_L_max, part_Ang_data)
+                                   Ang_L_max, part_Ang_data,                    &
+                                   nextra_ang, extra_angle_data)
                end if
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !----------   Check if decay is fission. If so, collect separately and exit decay loop
@@ -3101,7 +3130,8 @@ program YAHFC_MASTER
                                  icomp_f, Ix_f, ip_f, nbin_f, idb,              &
                                  n_dat, dim_part, num_part_type, part_fact,     &
                                  num_part, part_data,                           &
-                                 Ang_L_max, part_Ang_data)
+                                 Ang_L_max, part_Ang_data,                      &
+                                 nextra_ang, extra_angle_data)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !------   Following is information relating to the number of times the decay "failed" due to
 !------   energy conservation. namely due to random noise put into emission energy, the excitation
@@ -3123,7 +3153,8 @@ program YAHFC_MASTER
                   call force_decay(icomp_i, nbin_i,                             &
                                    icomp_f, Ix_f, ip_f, nbin_f, idb,            &
                                    n_dat, dim_part, num_part, part_data,        &
-                                   Ang_L_max, part_Ang_data)
+                                   Ang_L_max, part_Ang_data,                    &
+                                   nextra_ang, extra_angle_data)
               end if
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !----------   Check if decay is fission. If so, collect separately and exit decay loop   +
@@ -3169,7 +3200,8 @@ program YAHFC_MASTER
 !
             call MC_decay_state(icomp_i, nbin_i,                             &
                                 n_dat,dim_part,num_part,part_data,           & 
-                                Ang_L_max, part_Ang_data, ichann, in)
+                                Ang_L_max, part_Ang_data,                    &
+                                nextra_ang, extra_angle_data, ichann, in)
 
 101         continue
 
@@ -3282,6 +3314,9 @@ program YAHFC_MASTER
                part_data(17,nn) = phi_L
                part_data(18,nn) = T_2
                nucleus(icomp_f)%Kinetic_Energy = T_2
+               
+               extra_angle_data(nang_tot+1,nn) = theta               !   COM frame
+               extra_angle_data(2*nang_tot+1,nn) = theta_L           !   Lab frame
 !
 !----    Sum energy from the Rest reference frames and check if "conserved"
 !
@@ -3292,6 +3327,32 @@ program YAHFC_MASTER
                          nucleus(icomp_f)%state(nbin_f)%energy
                   end if
             end do
+
+            do nang = 2, nang_tot
+               do nn = 1, num_part
+                  k = nint(part_data(2,nn))
+                  if(k == 7) cycle                     !   Fission event, essentially finished here
+                  theta_0 = extra_angle_data(nang,nn)
+                  phi_0 = part_data(11,nn)
+                  idb = nint(part_data(6,nn))
+                  icomp_f = nint(part_data(1,nn))
+                  nbin_f = nint(part_data(5,nn))
+                  e_rel = part_data(9,nn)
+                  mass_1 = particle(k)%Mass
+                  if(idb == 0)then
+                     mass_2 = nucleus(icomp_f)%Mass + nucleus(icomp_f)%e_grid(nbin_f)
+                  else
+                     mass_2 = nucleus(icomp_f)%Mass + nucleus(icomp_f)%state(nbin_f)%energy
+                  end if
+   
+                  call Boost_frame(e_rel, mass_1, mass_2, theta_0, phi_0,                 &
+                                   Boost_Lab, Boost_COM, T_1, theta, phi,                 &
+                                   T_2, T_L, theta_L, phi_L)
+                  extra_angle_data(nang_tot+1,nn) = theta               !   COM frame
+                  extra_angle_data(2*nang_tot+1,nn) = theta_L           !   Lab frame
+               end do 
+            end do
+
 !
 !----   if difference exceeds 1.0d-4 MeV write out to unit 400
 !----   Count number of events and warn user at the end
@@ -3390,15 +3451,22 @@ program YAHFC_MASTER
                   jproj = nint(part_data(2,nn))
                   if(jproj == iproj .and. idb == 1)then           !  Inelastic transition directly to discrete states
                      icc = int(part_data(12,nn)/de_spec) + 1
-                     theta = part_data(13,nn)
-                     x = cos(theta)
-                     jx = nint((x+1.0d0)/delta_jx_10)
-                     if(jx < 0)jx = 0
-                     if(jx > max_jx_10)jx = max_jx_10
                      Inelastic_cs(jstate,in) = Inelastic_cs(jstate,in) + tally_weight
                      Inelastic_count(jstate,in) = Inelastic_count(jstate,in) + 1
-                     Inelastic_Ang_Dist(jx,jstate,in) = Inelastic_Ang_Dist(jx,jstate,in) + tally_weight
                      Inelastic_total(in) = Inelastic_total(in) + tally_weight
+                     do nang = 1, nextra_ang
+                        theta = extra_angle_data(nang+1,nn)
+                        x = cos(theta)
+                        jx = nint((x+1.0d0)/delta_jx_10)
+                        if(jx < 0)jx = 0
+                        if(jx > max_jx_10)jx = max_jx_10
+                        Inelastic_Ang_Dist(jx,jstate,in) = Inelastic_Ang_Dist(jx,jstate,in) +      &
+                                                           tally_weight/real(nang_tot,kind=8)
+                     end do
+                     do L = 0, Ang_L_max
+                        Inelastic_Ang_L_avg(L,jstate,in) = Inelastic_Ang_L_avg(L,jstate,in) +      &
+                                                           part_Ang_data(L,nn)*tally_weight
+                     end do
                   else                                          !  Inelastic in some other fashion
                      Inelastic_cs(0,in) = Inelastic_cs(0,in) + tally_weight
                      Inelastic_count(0,in) = Inelastic_count(0,in) + 1
@@ -3418,29 +3486,27 @@ program YAHFC_MASTER
                         if(idb == 1)e_shift = (2.0d0*random_64(iseed) - 1.0d0)*de_spec*0.5d0
                         icc = int((part_data(12,nn) + e_shift)/de_spec) + 1
 !                        theta = part_data(16,nn)
-                        theta = part_data(13,nn)
-                        x = cos(theta)
-!                        jx = nint((x+0.99999d0)/delta_jx_10)
-                        jx = nint((x+1.0d0)/delta_jx_10)
-                        if(jx < 0)jx = 0
-                        if(jx > max_jx_10)jx = max_jx_10
                         if(k >= 0 .and. icc >= 0 .and. icc <= num_e)then
                            Exit_Channel(ichann)%part_mult(k,ictype,in) =                           &
                                 Exit_Channel(ichann)%part_mult(k,ictype,in) + tally_weight
-!                           Exit_Channel(ichann)%Spectrum(jx,icc,k,ictype,in) =                     &
-!                               Exit_Channel(ichann)%Spectrum(jx,icc,k,ictype,in) + tally_weight
-
-                           Exit_Channel(ichann)%Spect(k,ictype,in)%E_Ang_Dist(jx,icc) =            &
-                               Exit_Channel(ichann)%Spect(k,ictype,in)%E_Ang_Dist(jx,icc) +        &
-                               tally_weight/(delta_jx_10*de_spec)
                            Exit_Channel(ichann)%Spect(k,ictype,in)%E_spec(icc) =                   &
                                Exit_Channel(ichann)%Spect(k,ictype,in)%E_spec(icc) +               &
                                tally_weight/de_spec
-                           Exit_Channel(ichann)%Spect(k,ictype,in)%Ang_Dist(jx) =                  &
-                               Exit_Channel(ichann)%Spect(k,ictype,in)%Ang_Dist(jx) +              &
-                               tally_weight/delta_jx_10
                            Exit_Channel(ichann)%Spect(k,ictype,in)%E_count(icc) =                  &
                                Exit_Channel(ichann)%Spect(k,ictype,in)%E_count(icc) + 1
+                           do nang = 1, nang_tot
+                              theta = extra_angle_data(nang_tot+1,nn)
+                              x = cos(theta)
+                              jx = nint((x+1.0d0)/delta_jx_10)
+                              if(jx < 0)jx = 0
+                              if(jx > max_jx_10)jx = max_jx_10
+                              Exit_Channel(ichann)%Spect(k,ictype,in)%E_Ang_Dist(jx,icc) =            &
+                                  Exit_Channel(ichann)%Spect(k,ictype,in)%E_Ang_Dist(jx,icc) +        &
+                                  tally_weight/(delta_jx_10*de_spec)/real(nang_tot,kind=8)
+                              Exit_Channel(ichann)%Spect(k,ictype,in)%Ang_Dist(jx) =                  &
+                                  Exit_Channel(ichann)%Spect(k,ictype,in)%Ang_Dist(jx) +              &
+                                  tally_weight/delta_jx_10/real(nang_tot,kind=8)
+                           end do
                         end if
                      end do
 
@@ -3456,28 +3522,28 @@ program YAHFC_MASTER
                      k = nint(part_data(2,nn))
 !------    If it is a discrete state, add a bit of smear to avoid accidental collision with boundary of spectrum
 !------    bin
-                        e_shift = 0.0d0
-                        if(idb == 1)shift = (2.0d0*random_64(iseed) - 1.0d0)*de_spec*0.5d0
-                        icc = int(part_data(12,nn)/de_spec) + 1
+                     icc = int(part_data(12,nn)/de_spec) + 1
                      if(k >= 0 .and. icc >= 0 .and. icc <= num_e)then
-                        theta = part_data(13,nn)
-                        x = cos(theta)
-                        jx = nint((x+1.0d0)/delta_jx_10)
-                        if(jx < 0)jx = 0
-                        if(jx > max_jx_10)jx = max_jx_10
                         Exit_Channel(ichann)%part_mult(k,ictype,in) =                              &
                              Exit_Channel(ichann)%part_mult(k,ictype,in) + tally_weight
-                        Exit_Channel(ichann)%Spect(k,ictype,in)%E_Ang_Dist(jx,icc) =               &
-                            Exit_Channel(ichann)%Spect(k,ictype,in)%E_Ang_Dist(jx,icc) +           &
-                            tally_weight/(delta_jx_10*de_spec)
                         Exit_Channel(ichann)%Spect(k,ictype,in)%E_spec(icc) =                      &
                             Exit_Channel(ichann)%Spect(k,ictype,in)%E_spec(icc) +                  &
                             tally_weight/de_spec
-                        Exit_Channel(ichann)%Spect(k,ictype,in)%Ang_Dist(jx) =                     &
-                            Exit_Channel(ichann)%Spect(k,ictype,in)%Ang_Dist(jx) +                 &
-                            tally_weight/delta_jx_10
                         Exit_Channel(ichann)%Spect(k,ictype,in)%E_count(icc) =                     &
                             Exit_Channel(ichann)%Spect(k,ictype,in)%E_count(icc) + 1
+                        do nang = 1, nang_tot
+                           theta = extra_angle_data(nang_tot + 1,nn)
+                           x = cos(theta)
+                           jx = nint((x+1.0d0)/delta_jx_10)
+                           if(jx < 0)jx = 0
+                           if(jx > max_jx_10)jx = max_jx_10
+                           Exit_Channel(ichann)%Spect(k,ictype,in)%E_Ang_Dist(jx,icc) =               &
+                               Exit_Channel(ichann)%Spect(k,ictype,in)%E_Ang_Dist(jx,icc) +           &
+                               tally_weight/(delta_jx_10*de_spec)/real(nang_tot,kind=8)
+                           Exit_Channel(ichann)%Spect(k,ictype,in)%Ang_Dist(jx) =                     &
+                               Exit_Channel(ichann)%Spect(k,ictype,in)%Ang_Dist(jx) +                 &
+                               tally_weight/delta_jx_10/real(nang_tot,kind=8)
+                        end do
                      end if
                   end do
                end if
@@ -3772,7 +3838,7 @@ program YAHFC_MASTER
          num_eff = int(xnum_eff)
          num_elastic = int(xnum_elastic)
 
-     write(6,*)'num ',xnum_eff, xnum_elastic, num_elastic
+!     write(6,*)'num ',xnum_eff, xnum_elastic, num_elastic
 
 !
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -4035,7 +4101,7 @@ program YAHFC_MASTER
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         sum_inelastic = 0.0d0
         if(.not. pop_calc)then
-          if(Inelastic_cs(0,in) >= 1.0d-8)then
+           if(Inelastic_cs(0,in) >= 1.0d-8)then
               Inelastic_g_mult(in) = Inelastic_g_mult(in)/Inelastic_cs(0,in)
               Inelastic_g_mult_var(in) = Inelastic_g_mult_var(in)/Inelastic_cs(0,in)
               Inelastic_g_mult_var(in) = sqrt(dabs(Inelastic_g_mult_var(in) - Inelastic_g_mult(in)**2))
@@ -4048,34 +4114,43 @@ program YAHFC_MASTER
            sum_inelastic = 0.0d0
            do j = 1, nucleus(itarget)%num_discrete
               sum_inelastic = sum_inelastic + Inelastic_cs(j,in)/tally_norm
+!-----   Normalize parameters for angular distributions for inelastic scattering to discrete states 
+              if(inelastic_cs(j,in) > 1.0d-6)then
+                 do L = 0, Ang_L_max
+                    Inelastic_Ang_L_avg(L,j,in) = Inelastic_Ang_L_avg(L,j,in)/Inelastic_cs(j,in)
+                 end do
+              end if
+!-----   Inelastic cross sections
               Inelastic_cs(j,in) = Inelastic_cs(j,in)*reaction_cs(in)/tally_norm
               Inelastic_Ang_Dist(0,j,in) = Inelastic_Ang_Dist(0,j,in)*2.0d0
               Inelastic_Ang_Dist(max_jx_10,j,in) = Inelastic_Ang_Dist(max_jx_10,j,in)*2.0d0
 
               sum = 0.0d0
               do jx = 0, max_jx_10 - 1
-                 sum = sum + (Inelastic_Ang_Dist(jx,j,in)+Inelastic_Ang_Dist(jx+1,j,in))*delta_jx_10*0.5d0
+                 sum = sum + (Inelastic_Ang_Dist(jx,j,in) + Inelastic_Ang_Dist(jx+1,j,in))*         &
+                              delta_jx_10*0.5d0
               end do
-              
+             
               Inelastic_L_max(j,in) = 0
               Inelastic_Ang_L(0:Ang_L_max,j,in) = 0.0d0
               Inelastic_Ang_L(0,j,in) = 0.5d0
-              
+             
               if(sum/tally_norm >= 1.0d-6)then
 
                  do jx = 0, max_jx_10
                     Inelastic_Ang_Dist(jx,j,in) = Inelastic_Ang_Dist(jx,j,in)/sum
                  end do
 
-                 Inelastic_L_max(j,in) = 6
-                 if(Inelastic_count(j,in) < 4000)Inelastic_L_max(j,in) = 4
-                 if(Inelastic_count(j,in) < 2000)Inelastic_L_max(j,in) = 2
-                 if(Inelastic_count(j,in) < 1000)Inelastic_L_max(j,in) = 0
+                 Inelastic_L_max(j,in) = 8
+                 if(Inelastic_count(j,in) < 4000)Inelastic_L_max(j,in) = 6
+                 if(Inelastic_count(j,in) < 2000)Inelastic_L_max(j,in) = 4
+                 if(Inelastic_count(j,in) < 1000)Inelastic_L_max(j,in) = 2
+                 if(Inelastic_count(j,in) < 500)Inelastic_L_max(j,in) = 0
                  call Legendre_expand(max_jx_10+1,xvalue(0),Inelastic_Ang_Dist(0,j,in),            &
                                       Inelastic_L_max(j,in),Inelastic_Ang_L(0,j,in))
               end if
-          end do
-          if(allocated(xvalue))deallocate(xvalue)
+           end do
+           if(allocated(xvalue))deallocate(xvalue)
         end if
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !-----------    Now the other Channels    -------------------------------------------------
@@ -4120,10 +4195,11 @@ program YAHFC_MASTER
 
                     sum = Exit_Channel(i)%Spect(k,n,in)%E_count(icc)
 !-----   Set max L based on number of counts in energy bin
-                    Exit_Channel(i)%Spect(k,n,in)%E_Ang_L_max(icc) = 6
-                    if(sum < 10000)Exit_Channel(i)%Spect(k,n,in)%E_Ang_L_max(icc) = 4
-                    if(sum < 6000)Exit_Channel(i)%Spect(k,n,in)%E_Ang_L_max(icc) = 2
-                    if(sum < 2500)Exit_Channel(i)%Spect(k,n,in)%E_Ang_L_max(icc) = 0
+                    Exit_Channel(i)%Spect(k,n,in)%E_Ang_L_max(icc) = 8
+                    if(sum < 8000)Exit_Channel(i)%Spect(k,n,in)%E_Ang_L_max(icc) = 6
+                    if(sum < 6000)Exit_Channel(i)%Spect(k,n,in)%E_Ang_L_max(icc) = 4
+                    if(sum < 4000)Exit_Channel(i)%Spect(k,n,in)%E_Ang_L_max(icc) = 2
+                    if(sum < 2000)Exit_Channel(i)%Spect(k,n,in)%E_Ang_L_max(icc) = 0
 !-----   Calculate average, avgerage difference from average, and expected difference
 !-----   Check if data have enough statistics to warrant more Legendre coefficients
                     if(Exit_Channel(i)%Spect(k,n,in)%E_Ang_L_max(icc) > 0)then
@@ -4138,8 +4214,9 @@ program YAHFC_MASTER
                        end do
                        avg_diff = avg_diff/real(max_jx_10+1,kind=8)
                        avg_diff = avg_diff/avg
-                       expected_diff = real(Exit_Channel(i)%Spect(k,n,in)%E_count(icc),kind=8)/real(max_jx_10 + 1,kind=8)
-                       expected_diff = sqrt(expected_diff)/expected_diff
+                       expected_diff = real(Exit_Channel(i)%Spect(k,n,in)%E_count(icc),kind=8)/     &
+                                       real(max_jx_10 + 1,kind=8)
+                       expected_diff = sqrt(expected_diff)/expected_diff/sqrt(real(nang_tot,kind=8))
                        if(avg_diff < 2.5d0*expected_diff)Exit_Channel(i)%Spect(k,n,in)%E_Ang_L_max(icc) = 4
                        if(avg_diff < 1.75d0*expected_diff)Exit_Channel(i)%Spect(k,n,in)%E_Ang_L_max(icc) = 2
                        if(avg_diff < expected_diff)Exit_Channel(i)%Spect(k,n,in)%E_Ang_L_max(icc) = 0
@@ -4781,7 +4858,6 @@ program YAHFC_MASTER
          ilab2 = ilab
          file_lab2(1:ilab2) = file_lab(1:ilab)
          ilab2 = ilab2 + 1
-!         file_lab2(ilab2:ilab2) = 'n'
          file_lab2(ilab2:ilab2) = particle(iproj)%label
          ilab2 = ilab2 + 1
          file_lab2(ilab2:ilab2) = ')'
@@ -4795,8 +4871,6 @@ program YAHFC_MASTER
          if(iproj == 1)write(100,'(''# Angular Distribution normalized to unity '')')
          if(iproj > 1)write(100,'(''# Elastic Scattering Angular Distribution data '')')
          if(iproj > 1)write(100,'(''# Calculated as ratio to Rutherford: OM/Rutherford '')')
-!         if(iproj > 1)write(100,'(''# Calculated as a ratio to Rutherford: OM/Rutherford '')')
-!         write(100,'(''# To Level # '',i3)')j
          write(100,'(''#'')')
          write(100,'(''# Mass amu = '',1pe23.16,'' MeV'')')mass_u
          write(100,'(''# Mass of target = '',1pe23.16,'' amu'')')nucleus(itarget)%mass/mass_u
@@ -4847,7 +4921,6 @@ program YAHFC_MASTER
                x = real(jx,kind=8)*delta_jx_100 - 1.0d0
                Temp = Ang_Dist(jx)
                if(iproj == 1 .and. xnorm > 1.0d-20)Temp = Temp/xnorm
-!               if(iproj > 1 )Temp = Temp*cs_scale
                write(100,'(1x,3(3x,1pe16.7))')e_in, x, Temp
             end do
          end do
@@ -4863,7 +4936,6 @@ program YAHFC_MASTER
          ilab2 = ilab
          file_lab2(1:ilab2) = file_lab(1:ilab)
          ilab2 = ilab2 + 1
-!         file_lab2(ilab2:ilab2) = 'n'
          file_lab2(ilab2:ilab2) = particle(iproj)%label
          ilab2 = ilab2 + 1
          file_lab2(ilab2:ilab2) = ')'
@@ -4880,7 +4952,6 @@ program YAHFC_MASTER
          if(iproj > 1)write(100,'(''# Calculated as ratio to Rutherford: OM/Rutherford '')')
          write(100,'(''# Coefficients of Legendre expansion'')')
          write(100,'(''# Ang_dist(x) = Sum_L a(L)*P(L,x)'')')
-!         write(100,'(''# To Level # '',i3)')j
          write(100,'(''#'')')
          write(100,'(''# Mass amu = '',1pe23.16,'' MeV'')')mass_u
          write(100,'(''# Mass of target = '',1pe23.16,'' amu'')')nucleus(itarget)%mass/mass_u
@@ -4898,7 +4969,6 @@ program YAHFC_MASTER
 
          do in = 1, num_energies
             e_in = projectile%energy(in)
-!            write(100,'(''#'')')
             if(iproj == 1)then
                write(100,'(''# E_in = '',1pe16.7,3x,''Cross Section = '',1pe16.7,1x,''('',a2,'')'')')  &
                           e_in,SE_cs(in),cs_units
@@ -4925,7 +4995,6 @@ program YAHFC_MASTER
          ilab2 = ilab
          file_lab2(1:ilab2) = file_lab(1:ilab)
          ilab2 = ilab2 + 1
-!         file_lab2(ilab2:ilab2) = 'n'
          file_lab2(ilab2:ilab2) = particle(iproj)%label
          ilab2 = ilab2 + 1
          file_lab2(ilab2:ilab2) = ')'
@@ -4936,7 +5005,6 @@ program YAHFC_MASTER
                istate-1,nucleus(itarget)%state(istate)%spin, ch_par(ipi),                         &
                nucleus(itarget)%state(istate)%energy
          write(100,'(''# Compound Elastic cross section data '')')
-!         write(100,'(''# To Level # '',i3)')j
          write(100,'(''#'')')
          write(100,'(''# Mass amu = '',1pe23.16,'' MeV'')')mass_u
          write(100,'(''# Mass of target = '',1pe23.16,'' amu'')')nucleus(itarget)%mass/mass_u
@@ -4968,7 +5036,6 @@ program YAHFC_MASTER
          ilab2 = ilab
          file_lab2(1:ilab2) = file_lab(1:ilab)
          ilab2 = ilab2 + 1
-!         file_lab2(ilab2:ilab2) = 'n'
          file_lab2(ilab2:ilab2) = particle(iproj)%label
          ilab2 = ilab2 + 1
          file_lab2(ilab2:ilab2) = ')'
@@ -5016,10 +5083,6 @@ program YAHFC_MASTER
                Ang_Dist(jx) = sum
                if(jx >= 1)xnorm = (Ang_Dist(jx-1) + Ang_Dist(jx))*delta_jx_100*0.5d0
             end do
-!            xnorm = 0.0d0
-!            do jx = 1, max_jx_100
-!               xnorm = xnorm + (Ang_Dist(jx-1) + Ang_Dist(jx))*delta_jx_100*0.5d0
-!            end do
             do jx = 0, max_jx_100
                x = real(jx,kind=8)*delta_jx_100 - 1.0d0
                Temp = Ang_Dist(jx)
@@ -5039,7 +5102,6 @@ program YAHFC_MASTER
          ilab2 = ilab
          file_lab2(1:ilab2) = file_lab(1:ilab)
          ilab2 = ilab2 + 1
-!         file_lab2(ilab2:ilab2) = 'n'
          file_lab2(ilab2:ilab2) = particle(iproj)%label
          ilab2 = ilab2 + 1
          file_lab2(ilab2:ilab2) = ')'
@@ -5053,7 +5115,6 @@ program YAHFC_MASTER
          if(iproj == 1)write(100,'(''# Angular Distribution normalized to unity '')')
          write(100,'(''# Coefficients of Legendre expansion'')')
          write(100,'(''# Ang_dist(x) = Sum_L a(L)*P(L,x)'')')
-!         write(100,'(''# To Level # '',i3)')j
          write(100,'(''#'')')
          write(100,'(''# Mass amu = '',1pe23.16,'' MeV'')')mass_u
          write(100,'(''# Mass of target = '',1pe23.16,'' amu'')')nucleus(itarget)%mass/mass_u
@@ -5089,53 +5150,9 @@ program YAHFC_MASTER
          end do
          close(unit=100)
 
-
-!         if(iproj == 1)then
-!            ifile = 10
-!            outfile(1:ifile) = 'Elastic_cs'
-!            open(unit=100, file = directory(1:idir)//outfile(1:ifile)//'.dat',status = 'unknown')
-!            file_lab2(1:20) = ' '
-!            ilab2 = ilab
-!            file_lab2(1:ilab2) = file_lab(1:ilab)
-!            ilab2 = ilab2 + 1
-!!            file_lab2(ilab2:ilab2) = 'n'
-!            file_lab2(ilab2:ilab2) = particle(iproj)%label
-!            ilab2 = ilab2 + 1
-!            file_lab2(ilab2:ilab2) = ')'
-!            j = istate
-!            write(100,'(''# '',a20)')file_lab2
-!            ipi = nint((nucleus(itarget)%state(istate)%parity + 1)/2.0d0)
-!            write(100,'(''# Target state = '',i3,3x,''J = '',f4.1,a1,3x,''Ex = '',1pe15.7,'' MeV'')')  &
-!                  istate-1,nucleus(itarget)%state(istate)%spin, ch_par(ipi),                         &
-!                  nucleus(itarget)%state(istate)%energy
-!            write(100,'(''# Total Elastic cross section data '')')
-!!            write(100,'(''# To Level # '',i3)')j
-!            write(100,'(''#'')')
-!            write(100,'(''# Mass amu = '',1pe23.16,'' MeV'')')mass_u
-!            write(100,'(''# Mass of target = '',1pe23.16,'' amu'')')nucleus(itarget)%mass/mass_u
-!            if(iproj > 0 .and. iproj < 7)then
-!               write(100,'(''# Mass of projectile = '',1pe23.16,'' amu'')')particle(iproj)%mass/mass_u
-!            else
-!               write(100,'(''# Population decay, no projectile'')')
-!            end if
-!            write(100,'(''# Mass of residual = '',1pe23.16,'' amu'')')nucleus(itarget)%mass/mass_u
-!            ipf = nint((nucleus(itarget)%state(j)%parity + 1)/2.0d0)
-!            write(100,'(''# Final state = '',i3,3x,''J = '',f4.1,a1,3x,''Ex = '',1pe15.7,'' MeV'')')  &
-!                  j-1,nucleus(itarget)%state(j)%spin, ch_par(ipf), nucleus(itarget)%state(j)%energy
-!            write(100,'(''#'')')
-!            write(100,'(''#         E_in              xs'',''('',a2,'')'')')cs_units
-!            write(100,'(''#'',2(''   ----------------''))')
-!            do in = 1, num_energies
-!               cs = (SE_cs(in) + Inelastic_cs(istate,in))
-!               e_in=projectile%energy(in)
-!               write(100,'(1x,4(3x,1pe16.7))')e_in, cs*cs_scale
-!            end do
-!            close(unit=100)
-!         end if
 !
 !----   Angular Distribution for Elastic
 !
-!         if(iproj == 1)then
          if(.not.allocated(Ang_Dist))allocate(Ang_Dist(0:max_jx_100))
          ifile = 11
          outfile(1:ifile) = 'Elastic_Ang'
@@ -5144,7 +5161,6 @@ program YAHFC_MASTER
          ilab2 = ilab
          file_lab2(1:ilab2) = file_lab(1:ilab)
          ilab2 = ilab2 + 1
-!         file_lab2(ilab2:ilab2) = 'n'
          file_lab2(ilab2:ilab2) = particle(iproj)%label
          ilab2 = ilab2 + 1
          file_lab2(ilab2:ilab2) = ')'
@@ -5157,7 +5173,6 @@ program YAHFC_MASTER
          write(100,'(''# Elastic Angular Distribution data '')')
          if(iproj ==1)write(100,'(''# Distribution normalized to unity'')')
          if(iproj > 1)write(100,'(''# Distribution given as Elastic/Rutherford'')')
-!         write(100,'(''# To Level # '',i3)')j
          write(100,'(''#'')')
          write(100,'(''# Mass amu = '',1pe23.16,'' MeV'')')mass_u
          write(100,'(''# Mass of target = '',1pe23.16,'' amu'')')nucleus(itarget)%mass/mass_u
@@ -5202,7 +5217,6 @@ program YAHFC_MASTER
                   shape = shape + SE_Ang(L,in)*P_L
                   comp = comp + Inelastic_Ang_L(L,istate,in)*P_L
                end do
-!    write(56,*)jx,shape,comp,Sig_C,comp/Sig_C
                shape = shape
                comp = comp*Inelastic_cs(istate,in)
                if(iproj > 1)comp = comp/Sig_C
@@ -5259,7 +5273,6 @@ program YAHFC_MASTER
          ilab2 = ilab
          file_lab2(1:ilab2) = file_lab(1:ilab)
          ilab2 = ilab2 + 1
-!         file_lab2(ilab2:ilab2) = 'n'
          file_lab2(ilab2:ilab2) = particle(iproj)%label
          ilab2 = ilab2 + 1
          file_lab2(ilab2:ilab2) = ')'
@@ -5385,13 +5398,26 @@ program YAHFC_MASTER
                write(6,*)'too many discrete states inelastic_cs ',l
                stop
             end if
+!**********************************************************************************
+!-----   Check if this state has appreciable cross section. If not, skip     -----*
+!-----   Threshold is based on the number of samples, and the smallest       -----*
+!-----   cross section observable with one sample, i.e., abs_cs/num_mc_samp  -----*
+!-----   We use 10 times this as a cut off. Cross ection below this will be  -----*
+!-----   unreliable due to limitations in Monte Carlo sampling               -----*
+!**********************************************************************************
+            print_cs = .false.
+            do in = 1, num_energies
+               thresh = 10.0d0*absorption_cs(in)/real(num_mc_samp,kind=8)
+               if(Inelastic_cs(j,in) > thresh)print_cs = .true.
+            end do
+            if(.not. print_cs)cycle
+!**********************************************************************************
 
             open(unit=100, file = directory(1:idir)//outfile(1:ifile)//'.dat',status = 'unknown')
             file_lab2(1:20) = ' '
             ilab2 = ilab
             file_lab2(1:ilab2) = file_lab(1:ilab)
             ilab2 = ilab2 + 1
-!            file_lab2(ilab2:ilab2) = 'n'
             file_lab2(ilab2:ilab2) = particle(iproj)%label
             ilab2 = ilab2 + 1
             file_lab2(ilab2:ilab2) = quote
@@ -5416,7 +5442,7 @@ program YAHFC_MASTER
             write(100,'(''#         E_in              xs'',''('',a2,'')'')')cs_units
             write(100,'(''#'',2(''   ----------------''))')
             do in = 1, num_energies
-               e_in=projectile%energy(in)
+               e_in = projectile%energy(in)
                write(100,'(1x,4(3x,1pe16.7))')e_in, Inelastic_cs(j,in)*cs_scale
             end do
             close(unit=100)
@@ -5441,7 +5467,6 @@ program YAHFC_MASTER
             ilab2 = ilab
             file_lab2(1:ilab2) = file_lab(1:ilab)
             ilab2 = ilab2 + 1
-!            file_lab2(ilab2:ilab2) = 'n'
             file_lab2(ilab2:ilab2) = particle(iproj)%label
             ilab2 = ilab2 + 1
             file_lab2(ilab2:ilab2) = quote
@@ -5471,7 +5496,6 @@ program YAHFC_MASTER
                if(Inelastic_cs(j,in) < cs_threshold)cycle
                write(100,'(''#         E_in            cos(theta)            Prob'')')
                write(100,'(''#'',3(''   ----------------''))')
-!               write(100,'(''# E_in = '',1pe16.7)')e_in
                xnorm = 0.0d0
                do jx = 0, max_jx_50
                   x = real(jx,kind=8)*delta_jx_50 - 1.0d0
@@ -5512,7 +5536,6 @@ program YAHFC_MASTER
             ilab2 = ilab
             file_lab2(1:ilab2) = file_lab(1:ilab)
             ilab2 = ilab2 + 1
-!            file_lab2(ilab2:ilab2) = 'n'
             file_lab2(ilab2:ilab2) = particle(iproj)%label
             ilab2 = ilab2 + 1
             file_lab2(ilab2:ilab2) = quote
@@ -5556,8 +5579,6 @@ program YAHFC_MASTER
 !------------------------------------------------------------------------------------
          end do
          if(allocated(Ang_Dist))deallocate(Ang_Dist)
-
-
       end if                    !!!!   Finished with printing out elastic & inelastic info
 
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

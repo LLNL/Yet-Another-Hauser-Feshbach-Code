@@ -252,9 +252,44 @@ Version 3.16
 
 Version 3.17
 1.  Added new feature where all inputs requiring Z A can be accessed with 
-    isotope label, e.g., instead of using 92 238, one input U238, or 238U, or
-    even U-238.
+    isotope label, e.g., instead of using 92 238, one input U238, or 238U.
 2.  Fixed error where fitting to a-parameter was incorrectly set, leading to
     a fit to D0 with the shell correction instead.
+
+Version 3.18
+1.  Put bypass in fresco-setup.f90 to address problems where FRESCO returns 
+    GARBAGE for low-energy charged particles. A check is made on the classical
+    turning radius. If this is greater than 5x the radius of the nuclear 
+    potential, then skip the call to FRESCO, set "elastic" to Rutherford and 
+    set all transmission coefficients and coupled-channels cross sections
+    to zero. Required modification with call to FRESCO being moved to a 
+    subroutine.
+2.  Moved FRESCO *.in, *.out, and *.err files to the sub-directory 
+    "Fresco-files" to reduce clutter in the main execution directory. 
+3.  Added "cutoff" for writing data for inelastic excitations to discrete 
+    states. If the largest cross section (as a function of incident energy) 
+    falls below a threshold of 10*absorption(in)/num_samp, the file will not be
+    opened and written too. Note that this is dynamic, in that the check is
+    for each incident energy. For the most part, the smallest cross section that
+    would be observable is with a single event to a channel, which would be
+    of the order absorption/num_samp. This would eliminate files for discrete
+    states with no cross section.
+4.  The statistics for the angular distributions is increased by "over sampling"
+    the angles for each emitted particle. An extra set of "nextra_ang" theta 
+    angles are sampled, for a total nextra_ang + 1 angles. The default is 
+    "nextra_ang = 9", giving 10 angles per particle. Each of these are
+    transformed to the COM and Lab frames, and then collected in the angular
+    distributions. At present, this increases the CPU time by ~ 2x, but
+    increases the angular statistics by 10x (improves uncertainty by 3x). 
+5.  Introduced command "nextra_angles N" to allow the user to specify the number
+    of extra angles.
+6.  Changed the default delta_e to 0.1 MeV.
+7.  Put in trap on obsolete command "fit_aparam" to warn user and effectively 
+    call the commands "lev_fit_do y" and "lev_fit_aparam n", which is
+    essentially the default to fit to D0 by adjusting the shell correction
+    parameter.
+    
+
+
 
 

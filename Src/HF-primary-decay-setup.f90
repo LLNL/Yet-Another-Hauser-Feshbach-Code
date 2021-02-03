@@ -200,7 +200,7 @@ subroutine HF_primary_decay_setup(e_in,iproj,itarget,icomp,istate,        &
   if(WF_model == 1 .and. WF_calc == 1)write(6,*)'*  Width fluctuation corrections are being applied                         *'
   if(WF_model == 0)then
      write(6,*)'*  Width fluctuation corrections are not being applied - option not active *'
-     write(6,*)'*  If desired use option WF_model 1 (default)                              *'
+     write(6,*)'*  If desired use option "wf_model 1" (default)                            *'
   end if
   write(6,*)'****************************************************************************'
 

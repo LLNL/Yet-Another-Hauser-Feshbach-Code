@@ -6,7 +6,8 @@ subroutine PREEQ_sample(iproj, in, itarget, istate, e_in, ex_tot,      &
                         Ix_f, l_f, ip_f, nbin_f, idb,                  &
                         n_dat, dim_part, num_part_type, part_fact,     &
                         num_part, part_data,                           &
-                        Ang_L_max, part_Ang_data, x_Ang)
+                        Ang_L_max, part_Ang_data,                      &
+                        nextra_ang, extra_angle_data)
 !
 !*******************************************************************************
 !
@@ -51,7 +52,8 @@ subroutine PREEQ_sample(iproj, in, itarget, istate, e_in, ex_tot,      &
    real(kind=8), intent(out) :: part_data(n_dat,dim_part)
    integer(kind=4), intent(in) :: Ang_L_max
    real(kind=8), intent(out) :: part_Ang_data(0:Ang_L_max,dim_part)
-   real(kind=8), intent(out) :: x_Ang
+   integer(kind=4), intent(in) :: nextra_ang
+   real(kind=8), intent(inout) :: extra_angle_data(3*(nextra_ang+1),dim_part)
 !--------------------------------    Internal data
    real(kind=8) :: preeq_cs, preeq_cs_k
    integer(kind=4) :: i, k, kk, m
@@ -66,6 +68,8 @@ subroutine PREEQ_sample(iproj, in, itarget, istate, e_in, ex_tot,      &
    integer(kind=4) :: ixI_f_min, ixI_f_max
    real(kind=8) :: cpar, cpar2, par, par_f
    real(kind=8) :: ex_min_bin
+   real(kind=8) :: x_Ang
+   integer(kind=4) :: nang
 
 
    real(kind=8) :: dee
@@ -190,11 +194,15 @@ subroutine PREEQ_sample(iproj, in, itarget, istate, e_in, ex_tot,      &
 !------   Finds angle based Kalbach-Mann statistics for pre-equilibrium
 !------   emission
 !
-     call PREEQ_Angular(icomp_i, icomp_f, iproj, e_in, k, energy,            &
-                        dim_part, num_part, Ang_L_max, part_Ang_data, x_Ang)
+     part_Ang_data(0:Ang_L_max,num_part) = 0.0d0
 
-     if(abs(x_Ang) > 1.0d0)stop 'cos(theta) wrong in PREEQ_sample'
-     theta_0 = acos(x_Ang)
+     do nang = 1, nextra_ang + 1
+        call PREEQ_Angular(icomp_i, icomp_f, iproj, e_in, k, energy,            &
+                           dim_part, num_part, Ang_L_max, part_Ang_data, x_Ang)
+        if(abs(x_Ang) > 1.0d0)stop 'cos(theta) wrong in PREEQ_sample'
+        extra_angle_data(nang,num_part) = acos(x_Ang)
+     end do
+     theta_0 = extra_angle_data(1,num_part)
 
 !-----------------------------------------  Find energy bin, or discrete state
 !     ex_min_bin = nucleus(icomp_f)%e_grid(1) - de/2.0d0
@@ -460,7 +468,7 @@ subroutine PREEQ_Angular(icomp_C, icomp_B, iproj, E_A, ieject, E_B,           &
    real(kind=8), intent(in) :: E_B
    integer(kind=4), intent(in) :: dim_part, num_part
    integer(kind=4), intent(in) :: Ang_L_max
-   real(kind=8), intent(out) :: part_Ang_data(0:Ang_L_max,dim_part)
+   real(kind=8), intent(inout) :: part_Ang_data(0:Ang_L_max,dim_part)
    real(kind=8), intent(out) :: x_Ang
 !-------------------   Internal data
    real(kind=8) :: a, E1, E3, eap, ebp, Sa, Sb
@@ -529,8 +537,8 @@ subroutine PREEQ_Angular(icomp_C, icomp_B, iproj, E_A, ieject, E_B,           &
    a = 0.04d0*E1*ebp/eap + 1.8d-6*(E1*ebp/eap)**3 +      &
        6.7d-7*Ma*mb*(E3*ebp/eap)**4
 
-   part_Ang_data(0,num_part) = 0.5d0
-   if(output_mode >= 1)then
+   if(part_Ang_data(0,num_part) < 1.0d-6)then
+      part_Ang_data(0,num_part) = 0.5d0
       do L = 1, Ang_L_max
          xL = real(L,kind=8)
          part_Ang_data(L,num_part) = exp_leg_int(L,a)*(2.0d0*xL+1.0d0)/2.0d0

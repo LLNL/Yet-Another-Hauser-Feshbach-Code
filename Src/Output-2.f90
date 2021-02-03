@@ -157,6 +157,7 @@ subroutine start_IO(num_comp)
    write(13,*)'biased_sampling = ', biased_sampling
    write(13,*)'trans_avg_l = ', trans_avg_l
    write(13,*)'explicit_channels = ', explicit_channels
+   write(13,*)'nextra_angles = ', nextra_angles
    write(13,*)
    write(13,*)'*******************************************************'
    write(13,*)

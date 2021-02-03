@@ -815,6 +815,33 @@ subroutine parse_command(num_comp,icommand,command,finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
+   if(command(startw(1):stopw(1)) == 'fit_aparam')then
+      icommand = icommand + 1
+      write(6,*)
+      write(6,*)'---------------------------------------------'
+      write(6,*)'---  The command fit_aparam is obsolete   ---'
+      write(6,*)'---- Use lev_fit_d0 or lev_fit_aparam     ---'
+      write(6,*)'---- See manual for input guidance        ---'
+      write(6,*)'---------------------------------------------'
+      write(6,*)'*********************************************'
+      write(6,*)'**** Continuing as if:                    ***'
+      write(6,*)'**** "lev_fit_d0 y"                       ***'
+      write(6,*)'**** "lev_fit_aparam n"                   ***'
+      write(6,*)'**** Fit to D0 for all nuclei by          ***'
+      write(6,*)'**** adjusting the shell correction       ***'
+      write(6,*)'**** parameter                            ***'
+      write(6,*)'*********************************************'
+      write(6,*)
+      do i = 1, num_comp
+         nucleus(i)%fit_D0 = .true.
+         nucleus(i)%fit_aparam = .false.
+      end do
+      return
+   end if
+!
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!
    if(command(startw(1):stopw(1)) == 'lev_fit_ematch')then
       icommand = icommand + 1
       if(numw /= 2)then
@@ -2582,6 +2609,20 @@ subroutine parse_command(num_comp,icommand,command,finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
+   if(command(startw(1):stopw(1)) == 'extra_angles' )then
+      icommand = icommand + 1
+      if(numw < 2)then
+         write(6,*)'Error in input for option "trans_norm"'
+         return
+      end if
+      read(command(startw(2):stopw(2)),*)nextra_angles
+      if(nextra_angles < 0)nextra_angles = 0
+      return
+   end if
+!
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!
    if(command(startw(1):stopw(1)) == 'trans_norm' )then
       icommand = icommand + 1
       if(numw < 2)then
@@ -3007,8 +3048,16 @@ integer(kind=4) function rank_commands(command)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
-   if(command(startw(1):stopw(1)) == 'lev_fit_d0')then
+   if(command(startw(1):stopw(1)) == 'lev_aparam')then
       rank_commands = 7
+      return
+   end if
+!
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!
+   if(command(startw(1):stopw(1)) == 'lev_fit_d0')then
+      rank_commands = 8
       return
    end if
 !
@@ -3016,7 +3065,7 @@ integer(kind=4) function rank_commands(command)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'lev_fit_aparam')then
-      rank_commands = 7
+      rank_commands = 8
       return
    end if
 !
@@ -3024,22 +3073,6 @@ integer(kind=4) function rank_commands(command)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'pair_model')then
-      rank_commands = 7 
-      return
-   end if
-!
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!
-   if(command(startw(1):stopw(1)) == 'pair_vib_enhance_mode')then
-      rank_commands = 7 
-      return
-   end if
-!
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!
-   if(command(startw(1):stopw(1)) == 'lev_nuc_option')then
       rank_commands = 8 
       return
    end if
@@ -3047,8 +3080,24 @@ integer(kind=4) function rank_commands(command)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
+   if(command(startw(1):stopw(1)) == 'pair_vib_enhance_mode')then
+      rank_commands = 8 
+      return
+   end if
+!
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!
+   if(command(startw(1):stopw(1)) == 'lev_nuc_option')then
+      rank_commands = 9 
+      return
+   end if
+!
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!
    if(command(startw(1):stopw(1)) == 'lev_nuc_fit_d0')then
-      rank_commands = 9
+      rank_commands = 10
       return
    end if
 !
@@ -3056,7 +3105,7 @@ integer(kind=4) function rank_commands(command)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'lev_nuc_fit_aparam')then
-      rank_commands = 9
+      rank_commands = 10
       return
    end if
 !
@@ -3064,7 +3113,7 @@ integer(kind=4) function rank_commands(command)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'lev_delta')then
-      rank_commands = 10
+      rank_commands = 11
       return
    end if
 !
@@ -3072,7 +3121,7 @@ integer(kind=4) function rank_commands(command)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'lev_shell')then
-      rank_commands = 10
+      rank_commands = 11
       return
    end if
 !
@@ -3080,7 +3129,7 @@ integer(kind=4) function rank_commands(command)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'lev_gamma')then
-      rank_commands = 10
+      rank_commands = 11
       return
    end if
 !
@@ -3088,7 +3137,7 @@ integer(kind=4) function rank_commands(command)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'lev_ematch')then
-      rank_commands = 10
+      rank_commands = 11
       return
    end if
 !
@@ -3096,7 +3145,7 @@ integer(kind=4) function rank_commands(command)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'lev_ecut')then
-      rank_commands = 10
+      rank_commands = 11
       return
    end if
 !
@@ -3104,7 +3153,7 @@ integer(kind=4) function rank_commands(command)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'lev_d0')then
-      rank_commands = 10
+      rank_commands = 11
       return
    end if
 !
@@ -3112,7 +3161,7 @@ integer(kind=4) function rank_commands(command)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'lev_spin_cut')then
-      rank_commands = 10
+      rank_commands = 11
       return
    end if
 !
@@ -3120,7 +3169,7 @@ integer(kind=4) function rank_commands(command)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'lev_sig_model')then
-      rank_commands = 10
+      rank_commands = 11
       return
    end if
 !
@@ -3128,7 +3177,7 @@ integer(kind=4) function rank_commands(command)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'lev_parity_fac')then
-      rank_commands = 10
+      rank_commands = 11
       return
    end if
 !
@@ -3136,7 +3185,15 @@ integer(kind=4) function rank_commands(command)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'lev_vib_enhance_mode')then
-      rank_commands = 11 
+      rank_commands = 12 
+      return
+   end if
+!
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!
+   if(command(startw(1):startw(1)+3) == 'extra_angles')then
+      rank_commands = 13
       return
    end if
 !
@@ -3144,7 +3201,7 @@ integer(kind=4) function rank_commands(command)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):startw(1)+3) == 'optical_potential')then
-      rank_commands = 12
+      rank_commands = 13
       return
    end if
 !
@@ -3152,7 +3209,7 @@ integer(kind=4) function rank_commands(command)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'preeq_model')then
-      rank_commands = 12 
+      rank_commands = 13 
       return
    end if
 !
@@ -3160,7 +3217,7 @@ integer(kind=4) function rank_commands(command)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'wf_model')then
-      rank_commands = 12 
+      rank_commands = 13 
       return
    end if
 !
@@ -3168,7 +3225,7 @@ integer(kind=4) function rank_commands(command)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'do_dwba')then
-      rank_commands = 12 
+      rank_commands = 13 
       return
    end if
 !
@@ -3176,7 +3233,7 @@ integer(kind=4) function rank_commands(command)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):startw(1)+3) == 'om_option')then
-      rank_commands = 10
+      rank_commands = 11
       return
    end if
 !
@@ -3184,14 +3241,6 @@ integer(kind=4) function rank_commands(command)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'f_num_barrier')then
-      rank_commands = 21
-      return
-   end if
-!
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!
-   if(command(startw(1):stopw(1)) == 'f_barrier')then
       rank_commands = 22
       return
    end if
@@ -3199,7 +3248,7 @@ integer(kind=4) function rank_commands(command)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
-   if(command(startw(1):stopw(1)) == 'f_lev_delta')then
+   if(command(startw(1):stopw(1)) == 'f_barrier')then
       rank_commands = 23
       return
    end if
@@ -3207,7 +3256,7 @@ integer(kind=4) function rank_commands(command)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
-   if(command(startw(1):stopw(1)) == 'f_lev_shell')then
+   if(command(startw(1):stopw(1)) == 'f_lev_delta')then
       rank_commands = 24
       return
    end if
@@ -3215,7 +3264,7 @@ integer(kind=4) function rank_commands(command)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
-   if(command(startw(1):stopw(1)) == 'f_lev_gamma')then
+   if(command(startw(1):stopw(1)) == 'f_lev_shell')then
       rank_commands = 25
       return
    end if
@@ -3223,7 +3272,7 @@ integer(kind=4) function rank_commands(command)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
-   if(command(startw(1):stopw(1)) == 'f_lev_spin')then
+   if(command(startw(1):stopw(1)) == 'f_lev_gamma')then
       rank_commands = 26
       return
    end if
@@ -3231,7 +3280,7 @@ integer(kind=4) function rank_commands(command)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
-   if(command(startw(1):stopw(1)) == 'f_lev_ematch')then
+   if(command(startw(1):stopw(1)) == 'f_lev_spin')then
       rank_commands = 27
       return
    end if
@@ -3239,7 +3288,7 @@ integer(kind=4) function rank_commands(command)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
-   if(command(startw(1):stopw(1)) == 'f_barrier_symmetry')then
+   if(command(startw(1):stopw(1)) == 'f_lev_ematch')then
       rank_commands = 28
       return
    end if
@@ -3247,8 +3296,16 @@ integer(kind=4) function rank_commands(command)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
-   if(command(startw(1):stopw(1)) == 'f_lev_rot_enhance')then
+   if(command(startw(1):stopw(1)) == 'f_barrier_symmetry')then
       rank_commands = 29
+      return
+   end if
+!
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!
+   if(command(startw(1):stopw(1)) == 'f_lev_rot_enhance')then
+      rank_commands = 30
       return
    end if
 !
@@ -3256,7 +3313,7 @@ integer(kind=4) function rank_commands(command)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'f_lev_vib_enhance')then
-      rank_commands = 29
+      rank_commands = 30
       return
    end if
 !
@@ -3264,7 +3321,7 @@ integer(kind=4) function rank_commands(command)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):startw(1)+1) == 'f_')then
-      rank_commands = 30
+      rank_commands = 31
       return
    end if
 !
@@ -3368,19 +3425,27 @@ subroutine find_ZA(nchar, word, iZ, iA)
 
    read(number(1:n),*)iA
 
-   nc = nchar - n
-   if(nc == 0)return
+   nc = 0
+   do i = 1, nchar
+      if(is_char_letter(word(i)))nc = nc + 1
+   end do
+
    Element(1:2) = '  '
+
    nn = 2 - nc
+   nc = 0
    do i = 1, nchar
       if(is_char_letter(word(i)))then
          nn = nn + 1
+         nc = nc + 1
          Element(nn:nn) = word(i)
+         if(nc == 1)then
+           call upper_case_word(1,Element(nn:nn))
+         else
+           call lower_case_word(1,Element(nn:nn))
+         end if
        end if
    end do
-
-   nn = 3 - nc
-   call upper_case_word(1,Element(nn:nn))
 
    do i = 1, num_elements
       if(Element == symb(i))then

@@ -114,6 +114,8 @@ module options
    integer(kind=4) :: nsamp, num_mc_samp
    logical :: biased_sampling
 
+   integer(kind=4) :: nextra_angles
+
    logical :: trans_avg_l
 
    integer(kind=4) :: tries, total_tries, passes, num_force_decay

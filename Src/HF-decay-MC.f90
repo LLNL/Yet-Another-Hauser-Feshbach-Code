@@ -5,7 +5,8 @@
                            icomp_f, Ix_f, ip_f, nbin_f, idb,           &
                            n_dat, dim_part, num_part_type, part_fact,  &
                            num_part, part_data,                        &
-                           Ang_L_max, part_Ang_data)
+                           Ang_L_max, part_Ang_data,                   &
+                           nextra_ang, extra_angle_data)
 !
 !*******************************************************************************
 !
@@ -48,6 +49,8 @@
    real(kind=8), intent(inout) :: part_data(n_dat,dim_part)
    integer(kind=4), intent(in) :: Ang_L_max
    real(kind=8), intent(out) :: part_Ang_data(0:Ang_L_max,dim_part)
+   integer(kind=4), intent(in) :: nextra_ang
+   real(kind=8), intent(inout) :: extra_angle_data(3*(nextra_ang+1),dim_part)
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !----------   Internal Data
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ 
@@ -64,7 +67,8 @@
    real(kind=8) :: base_prob, check_prob, tally_norm
 
 
-   real(kind=8) :: costhp, sinthp, theta_0, phi_0
+   real(kind=8) :: costhp, theta_0, phi_0
+   integer(kind=4) :: nang
 
 
    real(kind=8) :: tally_prob
@@ -307,10 +311,12 @@
       part_data(8,num_part) = xj_f
    end if
 
-   costhp = 2.0d0*random_64(iseed) - 1.0d0
-   if(abs(costhp) > 1.0d0)stop 'cos(theta) wrong in MC_decay_bin'
-   sinthp = sqrt(1.0d0-costhp**2)
-   theta_0 = acos(costhp)
+   do nang = 1, nextra_ang + 1
+      costhp = 2.0d0*random_64(iseed) - 1.0d0
+      if(abs(costhp) > 1.0d0)stop 'cos(theta) wrong in MC_decay_bin'
+      extra_angle_data(nang,num_part) = acos(costhp)
+   end do
+   theta_0 = extra_angle_data(1,num_part)
    phi_0 = two_pi*random_64(iseed)
 
    part_data(9,num_part)  = e_f
@@ -339,7 +345,8 @@
 !
    subroutine MC_decay_state(icomp_i, istate_i,                       &
                              n_dat,dim_part,num_part,part_data,       &
-                             Ang_L_max,part_Ang_data, ichan, in)
+                             Ang_L_max,part_Ang_data,                 &
+                             nextra_ang, extra_angle_data, ichan, in)
 !
 !*******************************************************************************
 !
@@ -380,6 +387,8 @@
    real(kind=8), intent(inout) :: part_data(n_dat,dim_part)
    integer(kind=4), intent(in) :: Ang_L_max
    real(kind=8), intent(out) :: part_Ang_data(0:Ang_L_max,dim_part)
+   integer(kind=4), intent(in) :: nextra_ang
+   real(kind=8), intent(inout) :: extra_angle_data(3*(nextra_ang+1),dim_part)
    integer(kind=4), intent(in) :: ichan, in
 
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -393,7 +402,8 @@
    real(kind=8) :: xj_f, xip_f, e_gamma
 
 
-   real(kind=8) :: costhp, sinthp, theta_0, phi_0
+   real(kind=8) :: costhp, theta_0, phi_0
+   integer(kind=4) :: nang
 
    real(kind=8) :: tally_prob, tally_weight
    integer(kind=4) :: n
@@ -469,10 +479,12 @@
       part_data(7,num_part) = real(l,kind=8)
       part_data(8,num_part) = real(iss,kind=8)
 
-      costhp = 2.0d0*random_64(iseed) - 1.0d0
-      if(abs(costhp) > 1.0d0)stop 'cos(theta) wrong in MC_decay_state'
-      sinthp = sqrt(1.0d0-costhp**2)
-      theta_0 = acos(costhp)
+      do nang = 1, nextra_ang + 1
+         costhp = 2.0d0*random_64(iseed) - 1.0d0
+         if(abs(costhp) > 1.0d0)stop 'cos(theta) wrong in MC_decay_state'
+         extra_angle_data(nang,num_part) = acos(costhp)
+      end do
+      theta_0 = extra_angle_data(1,num_part)
       phi_0 = two_pi*random_64(iseed)
 
       part_data(9,num_part) = e_gamma
@@ -494,7 +506,7 @@
 !      nucleus(icomp_f)%Kinetic_Energy = T_2
 
 
-      if(.not.pop_calc)part_Ang_data(0,num_part) = 0.5e0
+      if(.not.pop_calc)part_Ang_data(0,num_part) = 0.5d0
       return 
    end if
 
@@ -549,7 +561,6 @@
 
    costhp = 2.0d0*random_64(iseed) - 1.0d0
    if(abs(costhp) > 1.0d0)stop 'cos(theta) wrong in MC_decay_state #2'
-   sinthp = sqrt(1.0d0-costhp**2)
    theta_0 = acos(costhp)
    phi_0 = two_pi*random_64(iseed)
 
@@ -572,7 +583,7 @@
    part_data(24,num_part) = real(istate,kind=8)
 !   nucleus(icomp_f)%Kinetic_Energy = T_2
 
-   if(.not.pop_calc)part_Ang_data(0,num_part) = 0.5e0         !  Isotropic emission
+   if(.not.pop_calc)part_Ang_data(0,num_part) = 0.5d0         !  Isotropic emission
 
    istate = n_f
 
@@ -760,7 +771,7 @@
                                n_dat, dim_part, num_part_type, part_fact,  &
                                num_part, part_data,                        &
                                Ang_L_max, part_Ang_data,                   &
-                               ixx_max, delta_x)
+                               ixx_max, delta_x, nextra_ang, extra_angle_data)
 !
 !*******************************************************************************
 !
@@ -811,6 +822,8 @@
    real(kind=8), intent(inout) :: part_Ang_data(0:Ang_L_max,dim_part)
    integer(kind=4), intent(in) :: ixx_max
    real(kind=8), intent(in) :: delta_x
+   integer(kind=4), intent(in) :: nextra_ang
+   real(kind=8), intent(inout) :: extra_angle_data(3*(nextra_ang+1),dim_part)
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !----------   Internal Data
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ 
@@ -832,6 +845,7 @@
    real(kind=8) :: x, x1, check, sum, ran
 
    real(kind=8) :: theta_0, phi_0
+   integer(kind=4) :: nang
 
    real(kind=8) :: tally_prob
    real(kind=8) :: xnnn
@@ -972,9 +986,7 @@
    part_Ang_data(0,num_part) = 0.5d0
    ran = random_64(iseed)
 
-   if(k == 0)then
-      x = 2.0d0*ran - 1.0d0           !  Assume gammas to be isotropic (for now).
-   else                               !  particles - compute
+   if(k /= 0)then
       max_L = min(2*l_i, 2*l_f, Ang_L_max)
       spin_eject = real(particle(k)%spin,kind=8)
       factor = (-1.0d0)**(xI_f-spin_eject-spin_target_4+spin_proj)*      &
@@ -992,35 +1004,41 @@
             racahr(xI_i,xj_f,xI_i,xj_f,xI_f,xl_Ang)*                 &
             racahr(xj_f,xj_f,xl_f,xl_f,xl_Ang,spin_eject)
       end do
-
-      alf = 0.0d0
-      bet = 0.0d0
-      check = 0.0d0
-      x = -1.0d0
-      do i = 1, ixx_max
-         x = real(i,kind=8)*delta_x - 1.0d0
-         x1 = x - delta_x
-         sum = 0.5d0*(poly(0,1,alf,bet,x) + poly(0,1,alf,bet,x1))
-         do L_ang = 2, max_L,2
-            sum = sum + part_Ang_data(L_ang,num_part)*                          &
-                       (poly(L_ang,1,alf,bet,x) + poly(L_ang,1,alf,bet,x1))
-         end do
-         check = check + 0.5d0*sum*delta_x
-         x = x - random_64(iseed)*delta_x*0.9999999d0
-         if(check >= ran)exit
-      end do
-      if(abs(x) > 1.0d0)then
-         write(6,*) 'cos(theta) =',x,' wrong in primary decay'
-         stop
-      end if
-      if(abs(x) < -1.0d0)then
-         write(6,*) 'cos(theta) =',x,' wrong in primary decay'
-         stop
-      end if
    end if
 
+   do nang = 1, nextra_ang
+      if(k == 0)then
+         x = 2.0d0*random_64(iseed) - 1.0d0
+      else
+         alf = 0.0d0
+         bet = 0.0d0
+         check = 0.0d0
+         x = -1.0d0
+         do i = 1, ixx_max
+            x = real(i,kind=8)*delta_x - 1.0d0
+            x1 = x - delta_x
+            sum = 0.5d0*(poly(0,1,alf,bet,x) + poly(0,1,alf,bet,x1))
+            do L_ang = 2, max_L,2
+               sum = sum + part_Ang_data(L_ang,num_part)*                          &
+                          (poly(L_ang,1,alf,bet,x) + poly(L_ang,1,alf,bet,x1))
+            end do
+            check = check + 0.5d0*sum*delta_x
+            x = x - random_64(iseed)*delta_x*0.9999999d0
+            if(check >= ran)exit
+         end do
+         if(abs(x) > 1.0d0)then
+            write(6,*) 'cos(theta) =',x,' wrong in primary decay'
+            stop
+         end if
+         if(abs(x) < -1.0d0)then
+            write(6,*) 'cos(theta) =',x,' wrong in primary decay'
+            stop
+         end if
+      end if
+      extra_angle_data(nang,num_part) = acos(x)
+   end do
 
-   theta_0 = acos(x)
+   theta_0 = extra_angle_data(1,num_part)
 
    phi_0 = two_pi*random_64(iseed)
 
@@ -1062,7 +1080,8 @@
 subroutine force_decay(icomp_i, nbin_i,                              &
                        icomp_f, Ix_f, ip_f, nbin_f, idb,             &
                        n_dat, dim_part, num_part, part_data,         &
-                       Ang_L_max, part_Ang_data)
+                       Ang_L_max, part_Ang_data,                     &
+                       nextra_ang, extra_angle_data)
 !
 !*******************************************************************************
 !
@@ -1108,6 +1127,8 @@ subroutine force_decay(icomp_i, nbin_i,                              &
    real(kind=8), intent(inout) :: part_data(n_dat,dim_part)
    integer(kind=4), intent(in) :: Ang_L_max
    real(kind=8), intent(inout) :: part_Ang_data(0:Ang_L_max,dim_part)
+   integer(kind=4), intent(in) :: nextra_ang
+   real(kind=8), intent(inout) :: extra_angle_data(3*(nextra_ang+1),dim_part)
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !----------   Internal Data
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ 
@@ -1115,7 +1136,8 @@ subroutine force_decay(icomp_i, nbin_i,                              &
    real(kind=8) :: e_i, e_f, ex_i, ex_f
    real(kind=8) :: xnstate
 
-   real(kind=8) :: costhp, sinthp, theta_0, phi_0
+   real(kind=8) :: costhp, theta_0, phi_0
+   integer(kind=4) :: nang
 
    real(kind=8) :: tally_prob
 
@@ -1160,9 +1182,13 @@ subroutine force_decay(icomp_i, nbin_i,                              &
    part_data(8,num_part) = real(iss,kind=8)
 !   part_data(9,num_part) = t
 
-   costhp = 2.0d0*random_64(iseed) - 1.0d0
-   sinthp = sqrt(1.0d0-costhp**2)
-   theta_0 = acos(costhp)
+
+   do nang = 1, nextra_ang + 1
+      costhp = 2.0d0*random_64(iseed) - 1.0d0
+      extra_angle_data(nang,num_part) = acos(costhp)
+   end do
+
+   theta_0 = extra_angle_data(1,num_part)
    phi_0 = two_pi*random_64(iseed)
 
    part_data(9,num_part) = e_f
