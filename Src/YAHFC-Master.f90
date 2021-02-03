@@ -4548,7 +4548,6 @@ program YAHFC_MASTER
             write(100,'(''#      i --->   f            branch      prob_gamma         prob_ic'')')
             write(100,'(''#    ---      ---     -------------   -------------   -------------'')')
             do m = 1, nucleus(i)%state(k)%nbranch
-               prob = prob + nucleus(i)%state(k)%branch(m)
                write(100,'(4x,i4,'' --->'',i4,4(3x,1pe15.7))')k-1,nucleus(i)%state(k)%ibranch(m)-1, &
                                                               nucleus(i)%state(k)%branch(m),        &
                                                               nucleus(i)%state(k)%p_gamma(m),       &
