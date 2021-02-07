@@ -35,36 +35,62 @@ subroutine get_binding_energy(data_path, len_path,         &
   real(kind=8), intent(out) :: me, be, sep_e(6)
 !-------------------------------------------------------------------
   integer(kind=4) :: in1
-  integer(kind=4) :: istart(0:400)        !  starting position for A
-  integer(kind=4) :: num_nuc
-  integer(kind=4), parameter :: max_nuc=20000        ! accomodate up to 100000 nuclei
-  real(kind=8) :: mass_ex(max_nuc)
-  real(kind=8) binding_e(max_nuc)
-  integer(kind=4) :: iz(max_nuc),ia(max_nuc)
-  integer(kind=4) :: inn,izz,iaa,izb,iz2,in2,ia2
-  integer(kind=4) :: i,j,k
+  integer(kind=4), allocatable, dimension(:) :: istart    !  starting position for Z
+  integer(kind=4) :: num_nuc, max_z
+  integer(kind=4) :: max_nuc                              ! Number of nuclei in file
+  real(kind=8), allocatable :: mass_ex(:)
+  real(kind=8), allocatable :: binding_e(:)
+  integer(kind=4),allocatable :: iz(:), ia(:)
+  integer(kind=4) :: inn, izz, iaa, izb, iz2, in2, ia2
+  integer(kind=4) :: i, j, k
   real(kind=8) :: xtemp
-  real(kind=8) :: mass_ex_aw,mass_ex_mn
-  real(kind=8) :: u,mh,mn
+  real(kind=8) :: mass_ex_aw, mass_ex_mn
+!  real(kind=8) :: u,mh,mn
   integer(kind=4) :: eof
+  integer :: read_error
+  character(len=132) :: line
+
+
   save mass_ex, binding_e, istart, iz, ia
 !-------------------------------------------------------------------
-  u = 931.494013d0
-  mh = 938.782982d0
-  mn = 939.565336d0
-  istart(0) = 1
-  if(i_bind == 0)then
+
+!---   If arrays are not allocated, then subroutine hasn't been called before
+!---   Therefore, read in mass data
+!
+
+  if(.not. allocated(mass_ex))then
      open(unit=50,file=data_path(1:len_path)//'mass-frdm95.dat',status='old')
+!---   Count how many entries and allocate arrays
+     read_error = 0
+     max_nuc = 0
+     max_z = 0
+     do while(read_error == 0)
+        read(50,'(a)',iostat = read_error)line
+        if(line(1:1) == '#')cycle
+        max_nuc = max_nuc + 1
+        read(line,'(1x,i3)')izz
+        if(izz > max_z)max_z = izz
+     end do
+
+     if(.not. allocated(mass_ex))allocate(mass_ex(max_nuc))
+     if(.not. allocated(binding_e))allocate(binding_e(max_nuc))
+     if(.not. allocated(iz))allocate(iz(max_nuc))
+     if(.not. allocated(ia))allocate(ia(max_nuc))
+     if(.not. allocated(istart))allocate(istart(0:max_z+1))
+
+     rewind(50)
      izb=0
      num_nuc = 0
 !---   Read in file and store in array
-     do i = 1, 4
-        read(50,*)
-     end do
-     do i = 1, max_nuc
-        read(50,'(2(1x,i3),6x,f9.3,1x,f9.3)', iostat = eof)    &
+     read_error = 0
+     istart(0) = 0
+     i = 0
+     do while(read_error == 0)
+        read(50,'(a)',iostat = read_error)line
+        if(line(1:1) == '#')cycle
+        read(line,'(2(1x,i3),6x,f9.3,1x,f9.3)', iostat = eof)    &
              izz,iaa,mass_ex_aw,mass_ex_mn
-        if(eof == 1)exit
+        i = i + 1
         if(mass_file == 'aw')then
            if(abs(mass_ex_aw) > 1.0d-4)then   !  fail safe in case exp is not known
               mass_ex(i) = mass_ex_aw
@@ -88,10 +114,10 @@ subroutine get_binding_energy(data_path, len_path,         &
 !-----------------     Convert to binding energy
         binding_e(i) = real(izz,kind=8)*particle(2)%ME +       &
             real(iaa-izz,kind=8)*particle(1)%ME - mass_ex(i)
-        num_nuc = num_nuc+1
+        num_nuc = num_nuc + 1
      end do
      close(unit=50)
-     istart(iz(num_nuc)+1) = num_nuc+1     
+     istart(iz(num_nuc)+1) = num_nuc + 1     
   end if
   i_bind = 1
 !----  With binding energies, now compute separation energies

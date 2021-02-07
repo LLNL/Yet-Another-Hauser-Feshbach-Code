@@ -1,8 +1,8 @@
 
 #F77CFLAGS   = -Wall -fbounds-check -fcheck-array-temporaries -fcheck=all -g
 #F90CFLAGS   = -Wall -fbounds-check -fcheck-array-temporaries -fcheck=all -g
-F77CFLAGS   = -Wall -Wno-maybe-uninitialized -Ofast
-F90CFLAGS   = -Wall -Wno-maybe-uninitialized -Ofast
+F77CFLAGS   = -Wall -Ofast
+F90CFLAGS   = -Wall -Ofast
 #F77CFLAGS   = -Wall -O3
 #F90CFLAGS   = -Wall -O3
 

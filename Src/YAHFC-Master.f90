@@ -89,7 +89,6 @@ program YAHFC_MASTER
       real(kind=8) :: e1, e2
       real(kind=8) :: shift, shift_min, shift_max
       integer(kind=4) :: icc
-      integer(kind=4) :: ile
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !----   Information needed to parse a 132-length character string into
 !----   individual words (at most 66 possible words)
@@ -156,7 +155,6 @@ program YAHFC_MASTER
       integer(kind=4) :: ifind, ilast
       integer(kind=4) :: num_s
       integer(kind=4) :: ictype
-      real(kind=8) :: prob
       real(kind=8) :: xI_f
       real(kind=8) ::  par_i, xnbin_i
       integer(kind=4) :: iX_i, Ix_f
@@ -368,8 +366,6 @@ program YAHFC_MASTER
 !      real(kind=8), allocatable :: part_Lab_spectrum(:,:)
       real(kind=8) :: angle_dist(0:90)
 
-      character(len=20) e_char
-
       integer(kind=4) :: num_compound, num_pre_equilibrium, num_fission
       real(kind=8) :: test_count
 
@@ -500,8 +496,6 @@ program YAHFC_MASTER
       track_gammas = .false.
       Out_gammas_vs_E = .false.
       track_primary_gammas = .false.
-      dump_events = .false.
-      binary_event_file = .true.
       rho_cut = 0.25
       fit_Gamma_gamma = .false.
       Apply_Coulomb_Barrier = .true.
@@ -517,6 +511,9 @@ program YAHFC_MASTER
       explicit_channels = .false.
       num_theta_angles = 10
       target%istate = 1
+      dump_events = .false.
+      binary_event_file = .true.
+      event_generator = .false.
 !
 !----   Start with no optical potentials being set
 !----   later they may be set with a choice of an option
@@ -1024,17 +1021,20 @@ program YAHFC_MASTER
             end do
          end if
 
+!    write(6,*)mass_target
+!    write(6,*)particle(iproj)%mass
+!    write(6,*)inuc, nucleus(inuc)%mass
+!    write(6,*)mass_exit
+
          Q = mass_target + particle(iproj)%mass - nucleus(inuc)%mass - mass_exit
          if(abs(Q) < 1.0d-6)Q = 0.0d0
 
          ilast = index(Exit_Channel(i)%Channel_Label,' ')
-         write(6,*)'channel ',i, Exit_Channel(i)%Channel_Label,Q
+         write(6,'(''channel '',i4,1x,a20,f15.7)')i, Exit_Channel(i)%Channel_Label,Q
  
          Exit_Channel(i)%Q_value = Q
 
       end do
-
-
 
 
       if(pop_calc)then
@@ -1541,8 +1541,8 @@ program YAHFC_MASTER
          nucleus(i)%nbin_em = int(nucleus(i)%Ex_max/de) + 1
          allocate(nucleus(i)%str_E(0:nucleus(i)%nbin_em,nucleus(i)%lmax_E))
          allocate(nucleus(i)%f_E(0:nucleus(i)%nbin_em,nucleus(i)%lmax_E))
-         nucleus(i)%str_E(0:nucleus(i)%nbin_em,1:nucleus(i)%lmax_E)=0.0d0
-         nucleus(i)%f_E(0:nucleus(i)%nbin_em,1:nucleus(i)%lmax_E)=0.0d0
+         nucleus(i)%str_E(0:nucleus(i)%nbin_em,1:nucleus(i)%lmax_E) = 0.0d0
+         nucleus(i)%f_E(0:nucleus(i)%nbin_em,1:nucleus(i)%lmax_E) = 0.0d0
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !--------   Electric dipole strength function
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -1593,27 +1593,27 @@ program YAHFC_MASTER
             allocate(nucleus(i)%sr_E(2:e_l_max))
          end if
          if(e_l_max >= 2)then           !  Include electric quadrupole
-            nucleus(i)%er_E(2)=63.0d0/xa**(1.0d0/3.0d0)
-            nucleus(i)%gr_E(2)=6.11-0.012*xa
-            nucleus(i)%sr_E(2)=0.00014d0*xz**2*nucleus(i)%er_E(2)/        &
-                              (xa**(1.0d0/3.0d0)*nucleus(i)%gr_E(2))
+            nucleus(i)%er_E(2) = 63.0d0/xa**(1.0d0/3.0d0)
+            nucleus(i)%gr_E(2) = 6.11-0.012*xa
+            nucleus(i)%sr_E(2) = 0.00014d0*xz**2*nucleus(i)%er_E(2)/        &
+                                 (xa**(1.0d0/3.0d0)*nucleus(i)%gr_E(2))
 
          end if
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !----------    Electric multipoles above E2
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
          do l_radiation=3,e_l_max
-            nucleus(i)%er_E(l_radiation)=nucleus(i)%er_E(l_radiation-1)
-            nucleus(i)%gr_E(l_radiation)=nucleus(i)%gr_E(l_radiation-1)
-            nucleus(i)%sr_E(l_radiation)=8.0d-4*nucleus(i)%sr_E(l_radiation-1)
+            nucleus(i)%er_E(l_radiation) = nucleus(i)%er_E(l_radiation-1)
+            nucleus(i)%gr_E(l_radiation) = nucleus(i)%gr_E(l_radiation-1)
+            nucleus(i)%sr_E(l_radiation) = 8.0d-4*nucleus(i)%sr_E(l_radiation-1)
          end do
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !----------    Magnetic multipoles above M1
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
          do l_radiation=2,m_l_max
-            nucleus(i)%er_M(l_radiation)=nucleus(i)%er_M(l_radiation-1)
-            nucleus(i)%gr_M(l_radiation)=nucleus(i)%gr_M(l_radiation-1)
-            nucleus(i)%sr_M(l_radiation)=8.0d-4*nucleus(i)%sr_M(l_radiation-1)
+            nucleus(i)%er_M(l_radiation) = nucleus(i)%er_M(l_radiation-1)
+            nucleus(i)%gr_M(l_radiation) = nucleus(i)%gr_M(l_radiation-1)
+            nucleus(i)%sr_M(l_radiation) = 8.0d-4*nucleus(i)%sr_M(l_radiation-1)
          end do
       end do
 
@@ -2094,13 +2094,17 @@ program YAHFC_MASTER
              allocate(Inelastic_Ang_dist(0:max_jx_10,1:nucleus(itarget)%num_discrete,1:num_energies))
          Inelastic_Ang_dist(0:max_jx_10,1:nucleus(itarget)%num_discrete,1:num_energies) = 0.0d0
 !-------------
-         if(PREEQ_Model > 0 .and. .not.allocated(preeq_Spectrum))allocate(preeq_Spectrum(0:num_e))
          if(.not.allocated(direct_Spectrum))allocate(direct_Spectrum(0:num_e))
          if(.not.allocated(dwba_Spectrum))allocate(dwba_Spectrum(0:num_e))
+         dwba_Spectrum(0:num_e) = 0.0d0
          if(.not.allocated(res1))allocate(res1(0:num_e))
+         res1(0:num_e) = 0.0d0
          if(.not.allocated(res2))allocate(res2(0:num_e))
+         res2(0:num_e) = 0.0d0
          if(.not.allocated(resp))allocate(resp(0:6,0:num_e))
+         resp(0:6,0:num_e) = 0.0d0
          if(.not.allocated(resp2))allocate(resp2(0:6,0:num_e))
+         resp2(0:6,0:num_e) = 0.0d0
          if(quasi_elastic)then
             if(.not.allocated(QE_cs))allocate(QE_cs(1:num_energies))
             QE_cs(1:num_energies) = 0.0d0
@@ -2140,6 +2144,8 @@ program YAHFC_MASTER
          inelastic_P_Discrete(1:num_energies) = 0.0d0
          inelastic_Direct(1:num_energies) = 0.0d0
          if(PREEQ_Model > 0)then
+            if(.not.allocated(preeq_Spectrum))allocate(preeq_Spectrum(0:num_e))
+            preeq_Spectrum(0:num_e) = 0.0d0
             if(.not. allocated(Inelastic_Preeq))allocate(Inelastic_Preeq(1:num_energies))
             inelastic_Preeq(1:num_energies) = 0.0d0
          end if
@@ -2153,6 +2159,108 @@ program YAHFC_MASTER
          if(.not.allocated(direct_prob))allocate(direct_prob(0:ixx_max,1:OpticalCS%numcc))
          direct_cs(1:OpticalCS%numcc) = 0.0d0
          direct_Ang(0:Ang_L_max,OpticalCS%numcc) = 0.0d0
+         direct_prob(0:ixx_max,1:OpticalCS%numcc) = 0.0d0
+!
+!-----    Series of dummy allocations for variables only used for a reaction calculation
+!-----    allocated because the gfortran compiler gives "erroneous" warnings of uninitialized
+!-----    stride and offset for these variables later on. They are accessed within if blocks 
+!-----    specifying that it is NOT a population calculation (pop_calc = .false.), but this is 
+!-----    conditional check seems to be lost. Thus, allocating to size one, and initializing to zero.
+!-----    This eliminates the warnings, which will allow for other checks if a variable is not
+!-----    properly initialized.
+!
+      else
+         if(.not.allocated(Inelastic_cs))                                                          &
+             allocate(Inelastic_cs(1,1))
+         Inelastic_cs(1,1) = 0.0d0
+         if(.not.allocated(Inelastic_count))                                                       &
+             allocate(Inelastic_count(1,1))
+         Inelastic_count(1,1) = 0
+         if(.not.allocated(Inelastic_g_mult))                                                      &
+             allocate(Inelastic_g_mult(1))
+         Inelastic_g_mult(1) = 0.0d0
+         if(.not.allocated(Inelastic_g_mult_var))                                                  &
+             allocate(Inelastic_g_mult_var(1))
+         Inelastic_g_mult_var(1) = 0.0d0
+!-------------
+         if(.not.allocated(Inelastic_L_max))                                                       &
+             allocate(Inelastic_L_max(1,1))
+         Inelastic_L_max(1,1) = 0
+         if(.not.allocated(Inelastic_Ang_L))                                                       &
+            allocate(Inelastic_Ang_L(1,1,1))
+         Inelastic_Ang_L(1,1,1) = 0.0d0
+         if(.not.allocated(Inelastic_Ang_L_avg))                                                   &
+            allocate(Inelastic_Ang_L_avg(1,1,1))
+         Inelastic_Ang_L_avg(1,1,1) = 0.0d0
+         if(.not.allocated(Inelastic_Ang_dist))                                                    &
+             allocate(Inelastic_Ang_dist(1,1,1))
+         Inelastic_Ang_dist(1,1,1) = 0.0d0
+!-------------
+         if(.not.allocated(preeq_Spectrum))allocate(preeq_Spectrum(1))
+         preeq_Spectrum(1) = 0.0d0
+         if(.not.allocated(direct_Spectrum))allocate(direct_Spectrum(1))
+         direct_Spectrum(1) = 0.0d0
+         if(.not.allocated(dwba_Spectrum))allocate(dwba_Spectrum(1))
+         dwba_Spectrum(1) = 0.0d0
+         if(.not.allocated(res1))allocate(res1(1))
+         res1(1) = 0.0d0
+         if(.not.allocated(res2))allocate(res2(1))
+         res2(1) = 0.0d0
+         if(.not.allocated(resp))allocate(resp(1,1))
+         resp(1,1) = 0.0d0
+         if(.not.allocated(resp2))allocate(resp2(1,1))
+         resp2(1,1) = 0.0d0
+         if(.not.allocated(QE_cs))allocate(QE_cs(1:num_energies))
+         QE_cs(1:num_energies) = 0.0d0
+         if(.not.allocated(QE_Spectrum))allocate(QE_Spectrum(1))
+         if(.not.allocated(QE_Ang))allocate(QE_Ang(1,1))
+         QE_ang(1,1)=0.0d0
+         if(.not.allocated(Elastic_cs))allocate(Elastic_cs(1))
+         Elastic_cs(1) = 0.0d0
+         if(.not.allocated(Elastic_Ang))allocate(Elastic_ang(1,1))
+         Elastic_ang(1,1)=0.0d0
+
+         if(.not.allocated(CE_cs))allocate(CE_cs(1))
+         CE_cs(1) = 0.0d0
+         if(.not.allocated(CE_Ang))allocate(CE_ang(1,1))
+         CE_ang(1,1)=0.0d0
+
+         if(.not.allocated(SE_cs))allocate(SE_cs(1))
+         SE_cs(1) = 0.0d0
+         if(.not.allocated(SE_Ang))allocate(SE_ang(1,1))
+         SE_ang(1,1)=0.0d0
+         if(.not.allocated(SE_prob))allocate(SE_prob(1))
+         SE_prob(1) = 0.0d0
+!--------------------------------------------------------------------------------------------------
+!------   Arrays for storing results from inelasitic scattering   
+!--------------------------------------------------------------------------------------------------
+!------    First is total of inelastic as a function of incident energy for each type,
+!------    direct, compound to a discrete state, and compound through Continuous bins
+!--------------------------------------------------------------------------------------------------
+         if(.not.allocated(Inelastic_Total))allocate(Inelastic_Total(1)) 
+         if(.not.allocated(Inelastic_Continuous))allocate(Inelastic_Continuous(1)) 
+         if(.not.allocated(Inelastic_C_Discrete))allocate(Inelastic_C_Discrete(1))
+         if(.not.allocated(Inelastic_P_Discrete))allocate(Inelastic_P_Discrete(1))
+         if(.not.allocated(Inelastic_Direct))allocate(Inelastic_Direct(1))
+         inelastic_Total(1) = 0.0d0
+         inelastic_Continuous(1) = 0.0d0
+         inelastic_C_Discrete(1) = 0.0d0
+         inelastic_P_Discrete(1) = 0.0d0
+         inelastic_Direct(1) = 0.0d0
+         if(PREEQ_Model > 0)then
+            if(.not. allocated(Inelastic_Preeq))allocate(Inelastic_Preeq(1))
+            inelastic_Preeq(1) = 0.0d0
+         end if
+!--------------------------------------------------------------------------------------------------
+!------    Now arrays for excitations to each discrete state
+!--------------------------------------------------------------------------------------------------
+!------    Direct excitation
+!--------------------------------------------------------------------------------------------------
+         if(.not.allocated(direct_cs))allocate(direct_cs(1))
+         if(.not.allocated(direct_Ang))allocate(direct_Ang(1,1))
+         if(.not.allocated(direct_prob))allocate(direct_prob(1,1))
+         direct_cs(1) = 0.0d0
+         direct_Ang(1,1) = 0.0d0
       end if
 
 
@@ -2190,59 +2298,42 @@ program YAHFC_MASTER
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !-------------------   Set up directories for output libraries
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-         write(6,*)
-         write(6,*)'Checking on directory structure for Data Libraries'
-         f_exist = .false.
-         lib_dir(1:ntar) = target_label(1:ntar)
-         ilib_dir = ntar
-         inquire(file = lib_dir(1:ilib_dir), exist = f_exist)
-         if(.not. f_exist)then
-            icmd = 6
-            unix_cmd(1:icmd) = 'mkdir '
-            icmd = icmd + 1
-            unix_cmd(icmd:icmd + ilib_dir) = lib_dir(1:ilib_dir)
-            icmd = icmd + ilib_dir
-            write(6,*)unix_cmd(1:icmd)
-            call system(unix_cmd(1:icmd))
-         end if
+      write(6,*)
+      write(6,*)'Checking on directory structure for Data Libraries'
+      f_exist = .false.
+      lib_dir(1:ntar) = target_label(1:ntar)
+      ilib_dir = ntar
+      inquire(file = lib_dir(1:ilib_dir), exist = f_exist)
+      if(.not. f_exist)then
+         icmd = 6
+         unix_cmd(1:icmd) = 'mkdir '
+         icmd = icmd + 1
+         unix_cmd(icmd:icmd + ilib_dir) = lib_dir(1:ilib_dir)
+         icmd = icmd + ilib_dir
+         write(6,*)unix_cmd(1:icmd)
+         call system(unix_cmd(1:icmd))
+      end if
+      ilib_dir = ilib_dir + 1
+      lib_dir(ilib_dir:ilib_dir) = '/'
+      if(.not. pop_calc)then
          ilib_dir = ilib_dir + 1
-         lib_dir(ilib_dir:ilib_dir) = '/'
-         if(.not. pop_calc)then
-            ilib_dir = ilib_dir + 1
-            lib_dir(ilib_dir:ilib_dir) = particle(projectile%particle_type)%label
-         else
-            ilib_dir = ilib_dir + 1
-            lib_dir(ilib_dir:ilib_dir+2) = 'Pop'
-            ilib_dir = ilib_dir + 2
-         end if
-         inquire(file = lib_dir(1:ilib_dir), exist = f_exist)
-         if(.not. f_exist)then
-            icmd = 6
-            unix_cmd(1:icmd) = 'mkdir '
-            icmd = icmd + 1
-            unix_cmd(icmd:icmd + ilib_dir) = lib_dir(1:ilib_dir)
-            icmd = icmd + ilib_dir
-            write(6,*)unix_cmd(1:icmd)
-            call system(unix_cmd(1:icmd))
-         end if
-         if_check = ilib_dir
-         file_check(1:ilib_dir) = lib_dir
-         if_check = if_check + 1
-         file_check(if_check:if_check) = '/'
-         if_check = if_check + 1
-         ilast = 6
-         file_check(if_check:if_check+ilast) = 'Spectra'
-         if_check = if_check + ilast
-         inquire(file = file_check(1:if_check), exist = f_exist)
-         if(.not. f_exist)then
-            icmd = 6
-            unix_cmd(1:icmd) = 'mkdir '
-            icmd = icmd + 1
-            unix_cmd(icmd:icmd + if_check) = file_check(1:if_check)
-            icmd = icmd + if_check
-            write(6,*)unix_cmd(1:icmd)
-            call system(unix_cmd(1:icmd))
-         end if
+         lib_dir(ilib_dir:ilib_dir) = particle(projectile%particle_type)%label
+      else
+         ilib_dir = ilib_dir + 1
+         lib_dir(ilib_dir:ilib_dir+2) = 'Pop'
+         ilib_dir = ilib_dir + 2
+      end if
+      inquire(file = lib_dir(1:ilib_dir), exist = f_exist)
+      if(.not. f_exist)then
+         icmd = 6
+         unix_cmd(1:icmd) = 'mkdir '
+         icmd = icmd + 1
+         unix_cmd(icmd:icmd + ilib_dir) = lib_dir(1:ilib_dir)
+         icmd = icmd + ilib_dir
+         write(6,*)unix_cmd(1:icmd)
+         call system(unix_cmd(1:icmd))
+      end if
+      if(.not. event_generator)then
          if(fission)then
             if_check = ilib_dir
             file_check(1:ilib_dir) = lib_dir
@@ -2278,9 +2369,51 @@ program YAHFC_MASTER
                unix_cmd(icmd:icmd + if_check) = file_check(1:if_check)
                icmd = icmd + if_check
                write(6,*)unix_cmd(1:icmd)
-               call system(unix_cmd(1:icmd))
+                call system(unix_cmd(1:icmd))
             end if
          end do
+      end if
+      if_check = ilib_dir
+      file_check(1:ilib_dir) = lib_dir
+      if_check = if_check + 1
+      file_check(if_check:if_check) = '/'
+      if_check = if_check + 1
+      ilast = 6
+      file_check(if_check:if_check+ilast) = 'Spectra'
+      if_check = if_check + ilast
+      inquire(file = file_check(1:if_check), exist = f_exist)
+      if(.not. f_exist)then
+         icmd = 6
+         unix_cmd(1:icmd) = 'mkdir '
+         icmd = icmd + 1
+         unix_cmd(icmd:icmd + if_check) = file_check(1:if_check)
+         icmd = icmd + if_check
+         write(6,*)unix_cmd(1:icmd)
+         call system(unix_cmd(1:icmd))
+      end if
+!-----   Direct printing of event to their own directory
+
+
+      if(dump_events)then
+         if_check = ilib_dir
+         file_check(1:ilib_dir) = lib_dir
+         if_check = if_check + 1
+         file_check(if_check:if_check) = '/'
+         if_check = if_check + 1
+         ilast = 10
+         file_check(if_check:if_check+ilast) = 'Event-files'
+         if_check = if_check + ilast
+         inquire(file = file_check(1:if_check), exist = f_exist)
+         if(.not. f_exist)then
+            icmd = 6
+            unix_cmd(1:icmd) = 'mkdir '
+            icmd = icmd + 1
+            unix_cmd(icmd:icmd + if_check) = file_check(1:if_check)
+            icmd = icmd + if_check
+            write(6,*)unix_cmd(1:icmd)
+            call system(unix_cmd(1:icmd))
+         end if
+      end if
 
 !-------------------------------------------------------------------------+
 !---------                                                                +
@@ -2295,6 +2428,13 @@ program YAHFC_MASTER
          Fiss_J_var(1:num_comp,1:num_energies) = 0.0d0
          if(.not. allocated(Fiss_tally))allocate(Fiss_tally(num_comp,num_energies))
          Fiss_tally(1:num_comp,1:num_energies) = 0.0d0
+      else
+         if(.not. allocated(Fiss_J_avg))allocate(Fiss_J_avg(1,1))
+         Fiss_J_avg(1,1) = 0.0d0
+         if(.not. allocated(Fiss_J_var))allocate(Fiss_J_var(1,1))
+         Fiss_J_var(1,1) = 0.0d0
+         if(.not. allocated(Fiss_tally))allocate(Fiss_tally(1,1))
+         Fiss_tally(1,1) = 0.0d0
       end if
 
 
@@ -2671,29 +2811,48 @@ program YAHFC_MASTER
             var_part_e(0:6) = 0.0d0
          end if
 
+
+
+
          ifile = core_file
-         if(in >= 100)then
-            ile = 3
-            write(E_char(1:ile),'(i3)')in
-         elseif(in >= 10)then
-            ile = 2
-            write(E_char(1:ile),'(i2)')in
-         else
-            ile = 1
-            write(E_char(1:ile),'(i1)')in
-         end if        
+         file_name(ifile:ifile+4) = '_Ein_'
+         ifile =ifile + 4
+         if(e_in < 10.0)then
+            file_name(ifile+1:ifile+2)='00'
+            ifile=ifile+2
+            write(file_name(ifile+1:ifile+6),'(f6.4)')e_in
+            ifile=ifile+6
+         elseif(e_in < 100.0)then
+            file_name(ifile+1:ifile+2)='0'
+            ifile=ifile+1
+            write(file_name(ifile+1:ifile+7),'(f7.4)')e_in
+            ifile=ifile+7
+         elseif(e_in < 1000.0)then
+            write(file_name(ifile+1:ifile+7),'(f8.4)')e_in
+            ifile=ifile+8
+         end if
+
+
+         directory(1:ilib_dir) = lib_dir(1:ilib_dir)
+         idir = ilib_dir + 1
+         directory(idir:idir) = '/'
+         idir = idir + 1
+         directory(idir:idir+10) = 'Event-files'
+         idir = idir + 11
+         directory(idir:idir) = '/'
+
 
          if(dump_events .and. binary_event_file)then
-            open(unit=88,file=                                             &
-                 file_name(1:ifile)//'E-'//E_char(1:ile)//'.Events',       &
+            open(unit=88,file=                                                                     &
+                 directory(1:idir)//file_name(1:ifile)//'.Events.bin',                        &
                  form='unformatted',status='unknown')
-            write(6,*)'Events written to binary file ', file_name(1:ifile)//'E-'//E_char(1:ile)//'.Events'
+            write(6,*)'Events written to binary file ', directory(1:idir)//file_name(1:ifile)//'.Events.bin'
          end if
          if(dump_events .and. .not. binary_event_file)then
-            open(unit=88,file=                                             &
-                 file_name(1:ifile)//'E-'//E_char(1:ile)//'.Events.txt',   &
+            open(unit=88,file=                                                                     &
+                 directory(1:idir)//file_name(1:ifile)//'.Events.txt',                        &
                  status='unknown')
-            write(6,*)'Events written to formatted file ', file_name(1:ifile)//'E-'//E_char(1:ile)//'.Events.txt'
+            write(6,*)'Events written to formatted file ', directory(1:idir)//file_name(1:ifile)//'.Events.txt'
          end if           
         
          num_events = 0
@@ -2720,7 +2879,6 @@ program YAHFC_MASTER
          tally_norm = 0.0d0
          max_e_diff = 0.0d0
          avg_e_diff = 0.0d0
-         test_spectrum(0:10000) = 0.0d0
          re_baseline = 0
 !
 !---------------------------------------------------------------------------------------
@@ -2830,7 +2988,8 @@ program YAHFC_MASTER
 !
             num_part = 0
             part_data(1:n_dat,1:dim_part) = 0.0
-            if(.not.pop_calc)part_Ang_data(0:Ang_L_max,1:dim_part) = 0.0
+            part_Ang_data(0:Ang_L_max,1:dim_part) = 0.0
+!            if(.not.pop_calc)part_Ang_data(0:Ang_L_max,1:dim_part) = 0.0
             extra_angle_data(3*num_theta,1:dim_part) = 0.0d0
 !
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -3211,7 +3370,7 @@ program YAHFC_MASTER
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!-----------    Determine the weight of this event     --------------------------------------+
+!--------Channel_cs---    Determine the weight of this event     --------------------------------------+
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
             tally_weight = 1.0d0
@@ -4101,6 +4260,11 @@ program YAHFC_MASTER
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         sum_inelastic = 0.0d0
         if(.not. pop_calc)then
+           do j = 1, nucleus(itarget)%num_discrete
+              sum_inelastic = sum_inelastic + Inelastic_cs(j,in)/tally_norm
+           end do
+        end if
+        if(.not. pop_calc .and. .not. event_generator)then
            if(Inelastic_cs(0,in) >= 1.0d-8)then
               Inelastic_g_mult(in) = Inelastic_g_mult(in)/Inelastic_cs(0,in)
               Inelastic_g_mult_var(in) = Inelastic_g_mult_var(in)/Inelastic_cs(0,in)
@@ -4111,9 +4275,7 @@ program YAHFC_MASTER
               xvalue(jx) = real(jx,kind=8)*delta_jx_10 - 1.0d0
            end do
            LL_max = max_jx_10 - 2
-           sum_inelastic = 0.0d0
            do j = 1, nucleus(itarget)%num_discrete
-              sum_inelastic = sum_inelastic + Inelastic_cs(j,in)/tally_norm
 !-----   Normalize parameters for angular distributions for inelastic scattering to discrete states 
               if(inelastic_cs(j,in) > 1.0d-6)then
                  do L = 0, Ang_L_max
@@ -4157,97 +4319,110 @@ program YAHFC_MASTER
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         check_sum = 0.0d0
 !
-        if(.not.allocated(xvalue))allocate(xvalue(0:max_jx_10))
-        do jx = 0, max_jx_10
-           xvalue(jx) = real(jx,kind=8)*delta_jx_10 - 1.0d0
-        end do
+        if( .not. event_generator)then
+           if(.not.allocated(xvalue))allocate(xvalue(0:max_jx_10))
+           do jx = 0, max_jx_10
+              xvalue(jx) = real(jx,kind=8)*delta_jx_10 - 1.0d0
+           end do
 !
+           do i = 1, num_channels
+              inuc = Exit_Channel(i)%Final_nucleus
+              n_min = 1
+              if(fission)n_min = 0
+              do n = n_min, Exit_Channel(i)%num_cs
+                 do k = 0, 6                                  !   Loop over particle types
+                    if(Exit_Channel(i)%Channel_cs(in,n) >= 1.0d-8)then
+                       Exit_Channel(i)%part_mult(k,n,in) =                                          &
+                          Exit_Channel(i)%part_mult(k,n,in)/Exit_Channel(i)%Channel_cs(in,n) 
+                    end if
+!-----   New approach to Spectrum and Angular Distributions
+                    do icc = 0, num_e
+                       if(Exit_Channel(i)%Spect(k,n,in)%E_count(icc) == 0)cycle
+                       Exit_Channel(i)%Spect(k,n,in)%E_Ang_Dist(0,icc) =                            &
+                          Exit_Channel(i)%Spect(k,n,in)%E_Ang_Dist(0,icc)*2.0d0
+                       Exit_Channel(i)%Spect(k,n,in)%E_Ang_Dist(max_jx_10,icc) =                    &
+                          Exit_Channel(i)%Spect(k,n,in)%E_Ang_Dist(max_jx_10,icc)*2.0d0
+                       sum = 0.0d0
+!------    Normalize for each energy
+                       do jx = 1, max_jx_10
+                          sum = sum + (Exit_Channel(i)%Spect(k,n,in)%E_Ang_Dist(jx,icc) +           &
+                                       Exit_Channel(i)%Spect(k,n,in)%E_Ang_Dist(jx-1,icc))*         &
+                                      delta_jx_10*0.5d0
+                       end do
+                       if(sum > 1.0d-8)then
+                          do jx = 0, max_jx_10
+                             Exit_Channel(i)%Spect(k,n,in)%E_Ang_Dist(jx,icc) =                     &
+                                  Exit_Channel(i)%Spect(k,n,in)%E_Ang_Dist(jx,icc)/sum
+                          end do
+                       end if
+
+                       sum = Exit_Channel(i)%Spect(k,n,in)%E_count(icc)
+!-----   Set max L based on number of counts in energy bin
+                       Exit_Channel(i)%Spect(k,n,in)%E_Ang_L_max(icc) = 8
+                       if(sum < 8000)Exit_Channel(i)%Spect(k,n,in)%E_Ang_L_max(icc) = 6
+                       if(sum < 6000)Exit_Channel(i)%Spect(k,n,in)%E_Ang_L_max(icc) = 4
+                       if(sum < 4000)Exit_Channel(i)%Spect(k,n,in)%E_Ang_L_max(icc) = 2
+                       if(sum < 2000)Exit_Channel(i)%Spect(k,n,in)%E_Ang_L_max(icc) = 0
+!-----   Calculate average, avgerage difference from average, and expected difference
+!-----   Check if data have enough statistics to warrant more Legendre coefficients
+                       if(Exit_Channel(i)%Spect(k,n,in)%E_Ang_L_max(icc) > 0)then
+                          avg = 0.0d0
+                          do jx = 0, max_jx_10
+                             avg = avg + Exit_Channel(i)%Spect(k,n,in)%E_Ang_Dist(jx,icc)
+                          end do
+                          avg = avg/real(max_jx_10 + 1,kind=8)
+                          avg_diff = 0.0d0
+                          do jx = 0, max_jx_10
+                             avg_diff = avg_diff + abs(Exit_Channel(i)%Spect(k,n,in)%E_Ang_Dist(jx,icc) - avg)
+                          end do
+                          avg_diff = avg_diff/real(max_jx_10+1,kind=8)
+                          avg_diff = avg_diff/avg
+                          expected_diff = real(Exit_Channel(i)%Spect(k,n,in)%E_count(icc),kind=8)/    &
+                                          real(max_jx_10 + 1,kind=8)
+                          expected_diff = sqrt(expected_diff)/expected_diff/sqrt(real(num_theta,kind=8))
+                          if(avg_diff < 2.5d0*expected_diff)Exit_Channel(i)%Spect(k,n,in)%E_Ang_L_max(icc) = 4
+                          if(avg_diff < 1.75d0*expected_diff)Exit_Channel(i)%Spect(k,n,in)%E_Ang_L_max(icc) = 2
+                          if(avg_diff < expected_diff)Exit_Channel(i)%Spect(k,n,in)%E_Ang_L_max(icc) = 0
+                       end if
+
+                       call Legendre_expand(max_jx_10+1,xvalue(0),                                    &
+                                            Exit_Channel(i)%Spect(k,n,in)%E_Ang_Dist(0,icc),          &
+                                            Exit_Channel(i)%Spect(k,n,in)%E_Ang_L_max(icc),           &
+                                            Exit_Channel(i)%Spect(k,n,in)%E_Ang_L(0,icc))
+
+!----------------------------------------------------------------------------------------------------
+                    end do                       !  End of Loop over icc (outgoing energies
+                 end do                          !  End of Loop over k, particles
+
+              end do
+              if(track_gammas)then
+                 do n = 1, nucleus(inuc)%num_discrete
+                    do j = 1, nucleus(inuc)%state(n)%nbranch
+                       Exit_channel(i)%state(n)%cs(j,in) =                                            &
+                          Exit_channel(i)%state(n)%cs(j,in)/tally_norm
+                   end do
+                 end do
+             end if                               
+           end do
+!------    Deallocate temporary array with x-values
+           if(allocated(xvalue))deallocate(xvalue)
+        end if
+!
+
+!-----   Normalize the Channel cross sections and collect check_sum to make sure all
+!-----   events are accounted for
         do i = 1, num_channels
-           inuc = Exit_Channel(i)%Final_nucleus
            n_min = 1
            if(fission)n_min = 0
            do n = n_min, Exit_Channel(i)%num_cs
-              do k = 0, 6                                  !   Loop over particle types
-                 if(Exit_Channel(i)%Channel_cs(in,n) >= 1.0d-8)then
-                    Exit_Channel(i)%part_mult(k,n,in) =                                            &
-                      Exit_Channel(i)%part_mult(k,n,in)/Exit_Channel(i)%Channel_cs(in,n) 
-                 end if
-!-----   New approach to Spectrum and Angular Distributions
-                 do icc = 0, num_e
-                    if(Exit_Channel(i)%Spect(k,n,in)%E_count(icc) == 0)cycle
-                    Exit_Channel(i)%Spect(k,n,in)%E_Ang_Dist(0,icc) =                               &
-                       Exit_Channel(i)%Spect(k,n,in)%E_Ang_Dist(0,icc)*2.0d0
-                    Exit_Channel(i)%Spect(k,n,in)%E_Ang_Dist(max_jx_10,icc) =                       &
-                       Exit_Channel(i)%Spect(k,n,in)%E_Ang_Dist(max_jx_10,icc)*2.0d0
-                    sum = 0.0d0
-!------    Normalize for each energy
-                    do jx = 1, max_jx_10
-                       sum = sum + (Exit_Channel(i)%Spect(k,n,in)%E_Ang_Dist(jx,icc) +              &
-                                    Exit_Channel(i)%Spect(k,n,in)%E_Ang_Dist(jx-1,icc))*            &
-                                   delta_jx_10*0.5d0
-                    end do
-                    if(sum > 1.0d-8)then
-                       do jx = 0, max_jx_10
-                          Exit_Channel(i)%Spect(k,n,in)%E_Ang_Dist(jx,icc) =                        &
-                               Exit_Channel(i)%Spect(k,n,in)%E_Ang_Dist(jx,icc)/sum
-                       end do
-                    end if
-
-                    sum = Exit_Channel(i)%Spect(k,n,in)%E_count(icc)
-!-----   Set max L based on number of counts in energy bin
-                    Exit_Channel(i)%Spect(k,n,in)%E_Ang_L_max(icc) = 8
-                    if(sum < 8000)Exit_Channel(i)%Spect(k,n,in)%E_Ang_L_max(icc) = 6
-                    if(sum < 6000)Exit_Channel(i)%Spect(k,n,in)%E_Ang_L_max(icc) = 4
-                    if(sum < 4000)Exit_Channel(i)%Spect(k,n,in)%E_Ang_L_max(icc) = 2
-                    if(sum < 2000)Exit_Channel(i)%Spect(k,n,in)%E_Ang_L_max(icc) = 0
-!-----   Calculate average, avgerage difference from average, and expected difference
-!-----   Check if data have enough statistics to warrant more Legendre coefficients
-                    if(Exit_Channel(i)%Spect(k,n,in)%E_Ang_L_max(icc) > 0)then
-                       avg = 0.0d0
-                       do jx = 0, max_jx_10
-                          avg = avg + Exit_Channel(i)%Spect(k,n,in)%E_Ang_Dist(jx,icc)
-                       end do
-                       avg = avg/real(max_jx_10 + 1,kind=8)
-                       avg_diff = 0.0d0
-                       do jx = 0, max_jx_10
-                          avg_diff = avg_diff + abs(Exit_Channel(i)%Spect(k,n,in)%E_Ang_Dist(jx,icc) - avg)
-                       end do
-                       avg_diff = avg_diff/real(max_jx_10+1,kind=8)
-                       avg_diff = avg_diff/avg
-                       expected_diff = real(Exit_Channel(i)%Spect(k,n,in)%E_count(icc),kind=8)/     &
-                                       real(max_jx_10 + 1,kind=8)
-                       expected_diff = sqrt(expected_diff)/expected_diff/sqrt(real(num_theta,kind=8))
-                       if(avg_diff < 2.5d0*expected_diff)Exit_Channel(i)%Spect(k,n,in)%E_Ang_L_max(icc) = 4
-                       if(avg_diff < 1.75d0*expected_diff)Exit_Channel(i)%Spect(k,n,in)%E_Ang_L_max(icc) = 2
-                       if(avg_diff < expected_diff)Exit_Channel(i)%Spect(k,n,in)%E_Ang_L_max(icc) = 0
-                    end if
-
-                    call Legendre_expand(max_jx_10+1,xvalue(0),                                     &
-                                         Exit_Channel(i)%Spect(k,n,in)%E_Ang_Dist(0,icc),           &
-                                         Exit_Channel(i)%Spect(k,n,in)%E_Ang_L_max(icc),            &
-                                         Exit_Channel(i)%Spect(k,n,in)%E_Ang_L(0,icc))
-
-!----------------------------------------------------------------------------------------------------
-                 end do                       !  End of Loop over icc (outgoing energies
-              end do                          !  End of Loop over k, particles
-
               Exit_Channel(i)%Channel_cs(in,n) =                                                   &
-                 Exit_Channel(i)%Channel_cs(in,n)/tally_norm
+                   Exit_Channel(i)%Channel_cs(in,n)/tally_norm
               if(n > 0)check_sum = check_sum +                                                     &
-                 Exit_Channel(i)%Channel_cs(in,n)
+                           Exit_Channel(i)%Channel_cs(in,n)
            end do
-           if(track_gammas)then
-              do n = 1, nucleus(inuc)%num_discrete
-                 do j = 1, nucleus(inuc)%state(n)%nbranch
-                    Exit_channel(i)%state(n)%cs(j,in) =                                            &
-                       Exit_channel(i)%state(n)%cs(j,in)/tally_norm
-                end do
-              end do
-           end if                               
         end do
-!------    Deallocate temporary array with x-values
-        if(allocated(xvalue))deallocate(xvalue)
-!
+
+
         check_sum = check_sum + sum_inelastic
         if(fission)check_sum = check_sum + fission_cs(in)
         write(6,*)
@@ -4275,7 +4450,7 @@ program YAHFC_MASTER
         end if
 
 
-         if(track_gammas)then
+         if(track_gammas .and. .not. event_generator)then
             ilab = ntar
             file_lab(1:ntar) = target_label(1:ntar)
             ilab = ilab + 1
@@ -4556,6 +4731,15 @@ program YAHFC_MASTER
             write(100,'(''#'')')
          end do
       end do
+
+
+      if(event_generator)then
+         write(6,*)'****************************************************'
+         write(6,*)'----   Finished simulating and writing events.   ---'
+         write(6,*)'----   All finished.                             ---'
+         write(6,*)'****************************************************'
+         call exit
+      end if
 
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !---------    Reaction Label       -----------------------------------+

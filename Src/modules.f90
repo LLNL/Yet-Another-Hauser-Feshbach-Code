@@ -32,7 +32,7 @@ module options
 !
    use variable_kinds
    character(len=132) version
-   parameter (version = 'MC-3.17')
+   parameter (version = 'MC-3.20')
    integer(kind=int_64) :: iseed
    integer(kind=4) PREEQ_Model
    logical analytic_preeq
@@ -114,6 +114,8 @@ module options
    integer(kind=4) :: nsamp, num_mc_samp
    logical :: biased_sampling
 
+   logical :: event_generator
+
    integer(kind=4) :: num_theta_angles
 
    logical :: trans_avg_l
@@ -161,7 +163,6 @@ module useful_data
    real(kind=8), allocatable, dimension (:,:) :: clb_l
    integer(kind=4) :: i_bind
 
-   real(kind=8) :: test_spectrum(0:10000)
 
 !.. names of stable isotopes, H-Es
    integer(kind=4), parameter :: num_elements = 99

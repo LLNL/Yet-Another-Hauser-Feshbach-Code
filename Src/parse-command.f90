@@ -53,6 +53,9 @@ subroutine parse_command(num_comp,icommand,command,finish)
    integer(kind=4) istart, istop, ilast
    integer(kind=4) :: ibegin, iend
    real(kind=8) :: e_min,e_max
+   character(len=132) :: error_line
+   integer(kind=4) :: ierr_last
+
    logical :: interact
    logical :: logic_char
    logical :: read_error
@@ -93,6 +96,10 @@ subroutine parse_command(num_comp,icommand,command,finish)
       finish=.true.
       return
    end if
+
+   error_line(1:132) = ' '
+   error_line(1:27) = 'Error in input for option "'
+   ierr_last = 27
 !
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -114,7 +121,8 @@ subroutine parse_command(num_comp,icommand,command,finish)
    if(command(startw(1):stopw(1)) == 'fission')then
       icommand = icommand + 1
       if(numw < 2)then
-         write(6,*)'Error in input for option "fission"'
+!         write(6,*)'Error in input for option "fission"'
+         write(6,*)error_line(1:ierr_last)//command(startw(1):stopw(1))//'"'
          return
       end if
       nchar = stopw(2) - startw(2) + 1
@@ -132,6 +140,42 @@ subroutine parse_command(num_comp,icommand,command,finish)
       end if
       if(iproc == 0)write(6,*)'Improper input for command "fission", no changes'
       return      !   if it gets here a proper input wasn't given so keep default
+   end if
+!
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!
+   if(command(startw(1):stopw(1)) == 'event_generator')then
+      icommand = icommand + 1
+      if(numw /= 2)then
+!         write(6,*)'Error in input for option "event_generator"'
+         write(6,*)error_line(1:ierr_last)//command(startw(1):stopw(1))//'"'
+         return
+      end if
+
+      call char_logical(command(startw(2):stopw(2)), logic_char, read_error)
+
+      if(read_error)then
+         write(6,*)'Error in input for option "event_generator"'
+         return
+      end if
+
+      event_generator = logic_char
+
+      if(logic_char)then
+         dump_events = .true.
+         binary_event_file = .true.
+         write(6,*)'***********************************************************'
+         write(6,*)'----   YAHFC is being run in event-generator mode       ---'
+         write(6,*)'----   Events will be printed to binary file            ---'
+         write(6,*)'----   For an ascii file, use command                   ---'
+         write(6,*)'----   "dump_events y a".                               ---'
+         write(6,*)'----   Note that an answer "n/f/0" will be overridden   ---'
+         write(6,*)'----   to "y/t/1" as events must be written to a file.  ---'
+         write(6,*)'----   with this option.                                ---'
+         write(6,*)'***********************************************************'
+      end if
+      return
    end if
 !
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -2283,7 +2327,6 @@ subroutine parse_command(num_comp,icommand,command,finish)
          write(6,*)'Error in input for option "dump_events"'
          return
       end if
-      dump_events = .false.
 
       call char_logical(command(startw(2):stopw(2)),logic_char,read_error)
 
@@ -2292,7 +2335,16 @@ subroutine parse_command(num_comp,icommand,command,finish)
          return
       end if
 
-      dump_events = logic_char
+      if(.not. event_generator)then
+         dump_events = logic_char
+      else
+         write(6,*)'*****************************************************************'
+         write(6,*)'----   Event generator mode has been selected, therefore,    ----'
+         write(6,*)'----   continuing with "dump_events = .true.".               ----'
+         write(6,*)'----   This option cannot be changed.                        ----'
+         write(6,*)'*****************************************************************'
+      end if
+
 
       if(dump_events)then
          nchar = stopw(3) - startw(3) + 1
@@ -2311,6 +2363,7 @@ subroutine parse_command(num_comp,icommand,command,finish)
       write(6,*)'dump_events = ',dump_events
       return
    end if
+
 !
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -2961,6 +3014,14 @@ integer(kind=4) function rank_commands(command)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'explicit_channels')then
+      rank_commands = 0 
+      return
+   end if
+!
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!
+   if(command(startw(1):stopw(1)) == 'event_generator')then
       rank_commands = 0 
       return
    end if

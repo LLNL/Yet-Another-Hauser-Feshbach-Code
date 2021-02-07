@@ -325,7 +325,7 @@ subroutine optical_setup(data_path, len_path, iproj, itarget,                  &
             write(6,*)'ERROR!!!  -  do_dwba = .true. but Optical Model calculation was performed without DWBA states'
             stop
          else if(.not. particle(iproj)%do_dwba .and. check_dwba)then
-            write(6,*)'ERROR!!!  -  do_dwba = .fale. but Optical Model calculation was performed with DWBA states'
+            write(6,*)'ERROR!!!  -  do_dwba = .false. but Optical Model calculation was performed with DWBA states'
             stop
          end if
 

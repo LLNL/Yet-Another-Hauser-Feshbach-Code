@@ -689,9 +689,12 @@ subroutine make_fresco_tco(data_path, len_path, tco_file, len_tco,       &
 !------------------------------------------------------------------------------------------
   if(.not.allocated(optical_cs))allocate(optical_cs(nume, nex))                   !  Ecis cross sections
    optical_cs(1:nume, 1:nex) = 0.0d0
-  if(pindex == iproj .and. .not.allocated(optical_leg))then
+  if(pindex == iproj .and. .not. allocated(optical_leg))then
      allocate(optical_leg(nume, 0:Ang_L_max, nex)) ! Legendre coeeficients
      optical_leg(1:nume, 0:Ang_L_max, 1:nex) = 0.0d0
+  else                              !   dummy allocation to make warnings disappear
+     allocate(optical_leg(1,1,1))           ! Legendre coeeficients
+     optical_leg(1,1,1) = 0.0d0
   end if
 
   namet(1:8) = ' '
@@ -845,7 +848,7 @@ subroutine make_fresco_tco(data_path, len_path, tco_file, len_tco,       &
         if(pindex == iproj)then
            do n = 1, nex
               read(20,*)itar, ichan, num_th, th_inc, th_min, cross
-                 optical_cs(ie,n) = cross/1000.0d0
+                 if(cc_index(n) == istate)optical_cs(ie,n) = cross/1000.0d0
                  do it = 1, num_th
                     read(20,*)x, y
                     theta(it) = x
@@ -865,7 +868,7 @@ subroutine make_fresco_tco(data_path, len_path, tco_file, len_tco,       &
                  value = interp(ang_theta, num_ang, theta, ang_dist(1,n,ie))
                  xnorm = xnorm + w_gleg2(ix)*value
               end do
-              if(iproj > 1 )optical_cs(ie,n) = xnorm
+              if(iproj > 1 .and. cc_index(n) == istate)optical_cs(ie,n) = xnorm
 
 !-------    Legendre Decomposition
 
@@ -880,7 +883,7 @@ subroutine make_fresco_tco(data_path, len_path, tco_file, len_tco,       &
                     sum = sum + w_gleg2(ix)*value*poly(L,1,alf,bet,x_gleg2(ix))
                  end do
                  if(xnorm > 1.0d-20)optical_leg(ie,L,n) = sum*0.5d0*(2.0d0*real(L,kind=8)+1.0d0)/xnorm
-                 optical_leg(ie,L,n) = sum*0.5d0*(2.0d0*real(L,kind=8)+1.0d0)
+!                 optical_leg(ie,L,n) = sum*0.5d0*(2.0d0*real(L,kind=8)+1.0d0)
               end do
            end do
            close(unit=20)

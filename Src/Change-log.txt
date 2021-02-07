@@ -298,6 +298,18 @@ Version3.19
 1.  Fixed error due to uninitialized use of variable prob. Wasn't used and
     was innocuous.
     
+Version 3.20
+1.  Set up command "event_generator answer" to run YAHFC as an event generartor
+    and not collect spectra or cross section data. Also, created directory
+    in the "data library" area where the events are printed to. For example,
+    Target/projectile/Event-files.
+2.  Removed unused array test_spectra declared in modules.f90.
+3.  Cleaned up subroutine get_binding_energies. Switched to allocated
+    arrays rather than using large declared arrays to avoid potential
+    problems with oveflowing the stack. 
+4.  Switched to an allocatable array in subroutine cum_rho, which fits the 
+    cummlative level density. The array cumr(:) was delclared dimension 10000,
+    which gave a warning related to being too large for the stack. 
 
 
 

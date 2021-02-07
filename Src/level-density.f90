@@ -1376,7 +1376,7 @@ subroutine cumm_rho(nfit,elv,ia,level_param,vib_enh,rot_enh,cumrho)
    real(kind=8) :: rrho, apu, sg2
    real(kind=8) :: e,de
    integer(kind=4), parameter :: nmax = 10000
-   real(kind=8) :: cumr(0:nmax)
+   real(kind=8),allocatable :: cumr(:)
    integer(kind=4) :: i, j
    real(kind=8) :: deriv
    real(kind=8) :: K_vib, K_rot
@@ -1384,6 +1384,7 @@ subroutine cumm_rho(nfit,elv,ia,level_param,vib_enh,rot_enh,cumrho)
 !----------------------------------------------------------------------
    rrho = 0.0d0
    cumrho(1:nfit) = 0.0d0
+   if(.not. allocated(cumr))allocate(cumr(nmax))
    cumr(0:nmax) = 0.0d0
    de = (elv(nfit)+0.02d0)/real(nmax,kind=8)
    T = level_param(14)

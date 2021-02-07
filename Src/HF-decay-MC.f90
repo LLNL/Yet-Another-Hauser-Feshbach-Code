@@ -956,12 +956,12 @@
    xip_f = real(2*ip_f - 1,kind=8)
 
    if(idb == 0)then
-      e_f = ex_i - nucleus(icomp_i)%sep_e(k) -           &
+      e_f = ex_i - nucleus(icomp_i)%sep_e(k) -                           &
                    nucleus(icomp_f)%e_grid(nbin_f)
       ex_f = nucleus(icomp_f)%e_grid(nbin_f)
       if(e_f < 0.0d0)stop 'problem with primary decay: e_f < 0 in MC_primary_decay'
    else  
-      e_f = ex_i - nucleus(icomp_i)%sep_e(k) -         &
+      e_f = ex_i - nucleus(icomp_i)%sep_e(k) -                           &
                    nucleus(icomp_f)%state(nbin_f)%energy
       ex_f = nucleus(icomp_f)%state(nbin_f)%energy
       if(e_f < 0.0d0)stop 'A problem arose with a decay to a discrete state with e_f < 0.0d0 in MC_primary_decay'
@@ -986,6 +986,8 @@
    part_Ang_data(0,num_part) = 0.5d0
    ran = random_64(iseed)
 
+   max_L = 0
+
    if(k /= 0)then
       max_L = min(2*l_i, 2*l_f, Ang_L_max)
       spin_eject = real(particle(k)%spin,kind=8)
@@ -996,12 +998,12 @@
       xl_f = l_f
       do L_ang = 2, max_L, 2
          xL_ang = L_ang
-         part_Ang_data(L_ang,num_part) =                             &
-            factor*                                                  &
-            clb_l(L_ang, l_i)*clb_l(L_ang,l_f)*                      &
-            racahr(xI_i,xj_i,xI_i,xj_i,spin_target_4,xl_Ang)*        &
-            racahr(xj_i,xj_i,xl_i,xl_i,xl_Ang,spin_proj)*            &
-            racahr(xI_i,xj_f,xI_i,xj_f,xI_f,xl_Ang)*                 &
+         part_Ang_data(L_ang,num_part) =                                 &
+            factor*                                                      &
+            clb_l(L_ang,l_i)*clb_l(L_ang,l_f)*                           &
+            racahr(xI_i,xj_i,xI_i,xj_i,spin_target_4,xl_Ang)*            &
+            racahr(xj_i,xj_i,xl_i,xl_i,xl_Ang,spin_proj)*                &
+            racahr(xI_i,xj_f,xI_i,xj_f,xI_f,xl_Ang)*                     &
             racahr(xj_f,xj_f,xl_f,xl_f,xl_Ang,spin_eject)
       end do
    end if
