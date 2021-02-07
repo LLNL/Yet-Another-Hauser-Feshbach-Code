@@ -939,7 +939,7 @@ subroutine make_fresco_tco(data_path, len_path, tco_file, len_tco,       &
   do ll = 1, num_e_lines
      minl = (ll-1)*10 + 1
      maxl = min(nume,minl+9)
-     write(51,'(10(1x,1pe15.9))')(particle(pindex)%e_grid(ie),ie = minl, maxl)
+     write(51,'(10(1x,1pe16.9))')(particle(pindex)%e_grid(ie),ie = minl, maxl)
   end do
   num_l_lines = (lmax+1)/10
   if(10*num_l_lines /= lmax)num_l_lines = num_l_lines + 1
@@ -951,7 +951,7 @@ subroutine make_fresco_tco(data_path, len_path, tco_file, len_tco,       &
         write(51,'(''#         energy'',10(1x,8x,''l = '',i3))')(l,l=minl,maxl)
         write(51,'(''#---------------'',10(1x,''---------------''))')
         do ie = 1, nume
-           write(51,'(11(1x,1pe15.9))')particle(pindex)%e_grid(ie),                 &
+           write(51,'(11(1x,1pe16.9))')particle(pindex)%e_grid(ie),                 &
                                       (particle(pindex)%trans_read(ie,ii,l),l=minl,maxl)
         end do
      end do

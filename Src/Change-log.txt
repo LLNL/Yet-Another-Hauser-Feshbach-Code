@@ -311,6 +311,9 @@ Version 3.20
     cumulative level density. The array cumr(:) was delclared dimension 10000,
     which gave a warning related to being too large for the stack. 
 
+Version 3.21
+1.  Fixed array out of bounds in cumr, start array at 0.
+2.  Changed output format to 1pe16.9 in fresco-setup.f90 and optical-setup.f90
 
 
 

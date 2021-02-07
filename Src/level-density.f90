@@ -1049,7 +1049,8 @@ subroutine rho_FT(e,E0,T,rho)
    use constants
    implicit none
    real(kind=8), intent(in) :: e
-   real(kind=8), intent(out) :: E0, T, rho
+   real(kind=8), intent(in) :: E0, T
+   real(kind=8), intent(out) :: rho
 !-------------------------------------------------------------------
    rho = exp((e-E0)/T)/T
    return
@@ -1384,7 +1385,7 @@ subroutine cumm_rho(nfit,elv,ia,level_param,vib_enh,rot_enh,cumrho)
 !----------------------------------------------------------------------
    rrho = 0.0d0
    cumrho(1:nfit) = 0.0d0
-   if(.not. allocated(cumr))allocate(cumr(nmax))
+   if(.not. allocated(cumr))allocate(cumr(0:nmax))
    cumr(0:nmax) = 0.0d0
    de = (elv(nfit)+0.02d0)/real(nmax,kind=8)
    T = level_param(14)

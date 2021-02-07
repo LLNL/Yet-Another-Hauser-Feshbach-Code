@@ -194,7 +194,7 @@ subroutine optical_setup(data_path, len_path, iproj, itarget,                  &
       do ll = 1, num_e_lines
          minl = (ll-1)*10 + 1
          maxl = min(nume,minl+9)
-         read(50,'(10(1x,1pe15.9))')(particle(k)%e_grid(i),i = minl, maxl)
+         read(50,'(10(1x,1pe16.9))')(particle(k)%e_grid(i),i = minl, maxl)
       end do
 
 
@@ -225,7 +225,7 @@ subroutine optical_setup(data_path, len_path, iproj, itarget,                  &
                do l = minl, maxl
                   if(particle(k)%trans_read(ie,ii,l) < 1.0d-9)particle(k)%trans_read(ie,ii,l) = 1.0d-9
                end do
-!   write(80,'(2(1x,i4),10(1x,1pe15.7))')isp,ie,(particle(k)%trans_read(ie,ii,l),l= minl, maxl)
+!   write(80,'(2(1x,i4),10(1x,1pe16.7))')isp,ie,(particle(k)%trans_read(ie,ii,l),l= minl, maxl)
             end do
          end do
       end do
