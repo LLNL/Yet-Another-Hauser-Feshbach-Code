@@ -308,7 +308,7 @@ Version 3.20
     arrays rather than using large declared arrays to avoid potential
     problems with oveflowing the stack. 
 4.  Switched to an allocatable array in subroutine cum_rho, which fits the 
-    cummlative level density. The array cumr(:) was delclared dimension 10000,
+    cumulative level density. The array cumr(:) was delclared dimension 10000,
     which gave a warning related to being too large for the stack. 
 
 
