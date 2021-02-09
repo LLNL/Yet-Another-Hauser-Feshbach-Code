@@ -320,4 +320,8 @@ Version 3.22
 1.  Fixed error arising from a blank line being in the string of input commands.
 2.  Implemented a dynamic check and rest of the FRESCO parameter hcm < 0.2/k
     to prevent FRESCO crashes.
+3.  Added file with particle properties in library directory
+4.  Fixed incorrect spin assignment for alpha particles
+5.  Fixed error where coupled-channels cross sections were inadvertently set
+    to zero.
 
