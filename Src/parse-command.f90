@@ -78,6 +78,8 @@ subroutine parse_command(num_comp,icommand,command,finish)
    istart = 1
    istop = index(command,' ')-1
 
+   write(6,*)command
+
    call parse_string(command,numw,startw,stopw)
 
    if(numw <= 0)then

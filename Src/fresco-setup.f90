@@ -848,7 +848,8 @@ subroutine make_fresco_tco(data_path, len_path, tco_file, len_tco,       &
         if(pindex == iproj)then
            do n = 1, nex
               read(20,*)itar, ichan, num_th, th_inc, th_min, cross
-                 if(cc_index(n) == istate)optical_cs(ie,n) = cross/1000.0d0
+                 if(iproj == 1)optical_cs(ie,n) = cross/1000.0d0
+                 if(iproj == 1 .and. cc_index(n) /= istate)optical_cs(ie,n) = cross/1000.0d0
                  do it = 1, num_th
                     read(20,*)x, y
                     theta(it) = x
@@ -1067,12 +1068,15 @@ subroutine run_fresco(ener, fresco_dir, len_fresco, fresco_name, iendf, fname, e
    character(len=15) char_energy
    character(len=132) command, line
    integer(kind=4) :: istart, istop, iend_err
-   integer(kind=4) :: jtmax
+   real(kind=8) :: jtmin, jtmax
+   real(kind=8) :: rmatch
    integer(kind=4) :: iter
    character(len=1) :: label
    integer(kind=4) :: len_dir
    real(kind=8) :: zzero
    real(kind=8) :: spin
+   real(kind=8) :: mass_rel, e_rel, momentum, wave_number
+   real(kind=8) :: hcm, hcm_check
 !----------    External functions   -------------------
    real(kind=8) :: clebr
 
@@ -1082,13 +1086,31 @@ subroutine run_fresco(ener, fresco_dir, len_fresco, fresco_name, iendf, fname, e
    if(len_dir == 0)len_dir = 132
 
    zzero = 0.0d0
+   jtmin = 0
    jtmax = 20
    absend = 0.001d0
+   rmatch = 20.0d0
 
    A = real(iA,kind=8)
    Z = real(iZ,kind=8)
-   ac = A**(1./3.)
+   ac = A**(1.0d0/3.0d0)
 
+   mass_rel = mass_proj*mass_target*mass_u/(mass_proj + mass_target)
+   e_rel = ener*mass_target/(mass_target + mass_proj)
+   momentum = dsqrt(2.0d0*e_rel*mass_rel)
+   wave_number = momentum/hbar_c
+   hcm_check = 0.2/wave_number
+   hcm = 0.1d0
+   if(hcm_check < 0.1d0)then
+      hcm = 0.05d0
+   elseif(hcm_check < 0.05d0)then
+      hcm = 0.01d0
+   elseif(hcm_check < 0.01d0)then
+      hcm = 0.005d0
+   end if
+
+!   write(6,*)hcm_check
+   
    th_min = 0.0d0
    th_max = 180.0d0
    th_inc = 1.0d0
@@ -1120,15 +1142,15 @@ subroutine run_fresco(ener, fresco_dir, len_fresco, fresco_name, iendf, fname, e
 
      write(20,'(a)') fname(1:iendf)//' with potential #'//opt_label(1:ipot_end)//', at E_lab ='//char_energy
      write(20,'(a)') 'NAMELIST'
-     write(20,'(a)') ' &Fresco  hcm= 0.1 rmatch=  20.000'
+     write(20,'('' &Fresco  hcm= '',f6.4, '' rmatch= '',f7.3)')hcm, rmatch
      absend = 1.0d-4
      if(ener <= 0.5d0)absend = 1.0d-6
-     write(20,'(a,i4,a,f8.6)') '    jtmin=   0.0 jtmax=',jtmax,' absend= ',absend
+     write(20,'(''    jtmin= '',f5.2,'' jtmax = '',f5.2,'' absend = '',f10.7)')jtmin,jtmax,absend
      write(20,14) th_min, th_inc, th_max, ncc
-14      format('    thmin=',f3.1,' thinc=',f3.1,' thmax=',f5.1,' iblock=',i3)
-     write(20,'(''    chans= 1 smats= 2 xstabl= 1 tcfile= 3 iter='',i2)')iter
+14      format('    thmin= ',f3.1,' thinc= ',f3.1,' thmax= ',f5.1,' iblock= ',i3)
+     write(20,'(''    chans= 1 smats= 2 xstabl= 1 tcfile= 3 iter= '',i2)')iter
      write(20,15) ener
-15      format('    elab=',e15.7,'  pel=1 exl=1 lab=1 lin=1 lex=1 /')
+15      format('    elab=',e15.7,'  pel= 1 exl= 1 lab= 1 lin= 1 lex= 1 /')
      write(20,*) 
      if(ncc == nex)then
         write(20,16) label, mass_proj, zpart, nex

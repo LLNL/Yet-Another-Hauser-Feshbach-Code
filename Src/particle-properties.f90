@@ -34,7 +34,7 @@ subroutine particle_data
    particle(-1)%spin = 0.5
    particle(-1)%par = 1.0
    particle(-1)%ME = 0.00000
-   particle(-1)%mass = 5.485799090d-4
+   particle(-1)%mass = 5.485799090d-4*mass_u
    particle(-1)%label = 'e'
    particle(-1)%name = 'electron'
    particle(-1)%opt_pot_set = .false.
@@ -48,7 +48,7 @@ subroutine particle_data
    particle(0)%ME = 0.00000
    particle(0)%mass = 0.00000
    particle(0)%label = 'g'
-   particle(0)%name = 'gamma'
+   particle(0)%name = 'photon'
    particle(0)%opt_pot_set = .false.
    particle(0)%max_opt_pot = -1
    particle(0)%om_option = -1  
@@ -115,7 +115,7 @@ subroutine particle_data
 !--------------   Alpha
    particle(6)%Z = 2
    particle(6)%A = 4
-   particle(6)%spin = 0.5
+   particle(6)%spin = 0.0
    particle(6)%par = 1.0
    particle(6)%ME = 2.424911
    particle(6)%mass = real(4,kind=8)*mass_u + particle(6)%ME

@@ -316,4 +316,8 @@ Version 3.21
 2.  Changed output format to 1pe16.9 in fresco-setup.f90 and optical-setup.f90
 
 
+Version 3.22
+1.  Fixed error arising from a blank line being in the string of input commands.
+2.  Implemented a dynamic check and rest of the FRESCO parameter hcm < 0.2/k
+    to prevent FRESCO crashes.
 

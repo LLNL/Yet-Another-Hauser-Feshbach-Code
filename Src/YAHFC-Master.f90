@@ -630,16 +630,19 @@ program YAHFC_MASTER
       call gauss_quad(n_gleg, 1, alf, bet, x_gleg, w_gleg)
 
 
-      trans_p_cut = 1.0d-7
-      trans_e_cut = 1.0d-18
+      trans_p_cut = 1.0d-6
+      trans_e_cut = 1.0d-15
       prob_cut = 1.0d-6
 
       num_mc_samp = 1000000
-
+!
 !---   initialize iseed to int(pi*10^9)
-
+!
       iseed = 3141592654_int_64
-
+!---
+!---  "Randomize" iseed with cnt from system clock. Generally, this 
+!---  will be different for each runs.
+!---
       call system_clock(COUNT = cnt, COUNT_RATE = cnt_r, COUNT_MAX = cnt_m)
       cnt = max(mod(cnt,100000),1)
       iseed = iseed + cnt
@@ -759,6 +762,7 @@ program YAHFC_MASTER
          end if
          if(command(1:1) == '#' .or. command(1:1) == '!')cycle
          call parse_string(command,numw,startw,stopw)
+         if(numw < 1)cycle
          nchar = stopw(numw)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !---------    Convert string to lower case
@@ -2414,6 +2418,24 @@ program YAHFC_MASTER
             call system(unix_cmd(1:icmd))
          end if
       end if
+
+!**************************************************************************
+!------    Write particle properties to file                           ---*
+!**************************************************************************
+
+      open(unit= 100, file = lib_dir(1:ilib_dir)//'/Particle-properties.dat', status = 'unknown')
+      do k = -1, 6
+         write(100,'(''#**************************'')')
+!         ilast = index(particle(k)%name,' ')-1
+!         if(ilast <= 0)ilast = 8
+         write(100,'(''# '',a)')particle(k)%name
+         write(100,'(''Z = '',i3)')particle(k)%Z
+         write(100,'(''A = '',i3)')particle(k)%A
+         write(100,'(''J = '',f4.1)')particle(k)%spin
+         write(100,'(''Parity = '', i2)')nint(particle(k)%par)
+         write(100,'(''Mass = '',1pe16.7,'' amu'')')particle(k)%mass/mass_u
+      end do
+      close(unit = 100)
 
 !-------------------------------------------------------------------------+
 !---------                                                                +
