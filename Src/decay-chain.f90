@@ -44,7 +44,7 @@ subroutine set_up_decay_chain(Z_p, A_p, Z_t, A_t, num_comp)
    real(kind=8) :: me,be,sep(6),me_f,be_f,sep_f(6)
    real(kind=8) :: sep_tot
    real(kind=8) :: emax
-   integer(kind=4) ::  N_i,d_i,alpha_i
+   integer(kind=4) ::  N_i, d_i, t_i, h_i, alpha_i
    integer(kind=4) ::  NZ
    real(kind=8) :: e_rel
    integer, parameter :: max_nuc = 500
@@ -53,6 +53,7 @@ subroutine set_up_decay_chain(Z_p, A_p, Z_t, A_t, num_comp)
    real(kind=8) :: exmax
    real(kind=8) :: em_proj
    real(kind=8) :: Coul
+   real(kind=8) :: xZ_i, xA_i, xZ_part, xA_part
    logical found
    integer(kind=4) :: npart
    integer(kind=4) :: num
@@ -68,22 +69,33 @@ subroutine set_up_decay_chain(Z_p, A_p, Z_t, A_t, num_comp)
 !-------------------------------------------------------
    Z_i = Z_p + Z_t
    A_i = A_p + A_t
+
+   xZ_i = real(Z_i,kind=8)
+   xA_i = real(A_i,kind=8)
  
    N_i = A_i - Z_i
    NZ = min(Z_i,N_i)
-   d_i = NZ
-   alpha_i = NZ/2
+   d_i = min(Z_i,A_i/2)
+   t_i = min(Z_i,A_i/3)
+   h_i = min(Z_i/2,A_i/3)
+   alpha_i = min(Z_i/2,A_i/4)
 
    if(max_particle(1) < 0)max_particle(1) = N_i - 2
    if(max_particle(2) < 0)max_particle(2) = Z_i - 2
    if(max_particle(3) < 0)max_particle(3) = d_i - 2
-   if(max_particle(6) < 0)max_particle(6) = alpha_i - 2
+   if(max_particle(4) < 0)max_particle(4) = t_i - 3
+   if(max_particle(5) < 0)max_particle(5) = h_i - 3
+   if(max_particle(6) < 0)max_particle(6) = alpha_i - 4
+
+!   write(6,*)N_i, Z_i, d_i, t_i, h_i
 
    Coulomb_Barrier(1:6) = 0.0d0
 
    do k = 1, 6
-      Coulomb_Barrier(k) = 0.5*1.44*(Z_i-particle(k)%Z)*particle(k)%Z/               &
-                           (1.3*((A_i-particle(k)%A)**(1./3.) + particle(k)%A**(1./3.)))
+      xZ_part = real(particle(k)%Z,kind=8)
+      xA_part = real(particle(k)%A,kind=8)
+      Coulomb_Barrier(k) = 0.5d0*e_sq*(xZ_i-xZ_part)*xZ_part/               &
+                           (1.3d0*((xA_i-xA_part)**(1.0d0/3.0d0) + xA_part**(1.0d0/3.0d0)))
    end do
       
 
@@ -108,8 +120,8 @@ subroutine set_up_decay_chain(Z_p, A_p, Z_t, A_t, num_comp)
 !--------------   Find out how many compound nuclei there are    !
 !--------------   And number of possible exit channels           !
 !----------------------------------------------------------------!
-   num_paths=0
-   num_temp=0
+   num_paths = 0
+   num_temp = 0
    max_num = 0
 
    particle(0:6)%in_decay = .false.
@@ -131,6 +143,7 @@ subroutine set_up_decay_chain(Z_p, A_p, Z_t, A_t, num_comp)
 !-----   See if channel is open
                      call get_binding_energy(data_path,len_path,      &
                                              Z_f,A_f,me_f,be_f,sep_f)
+
                      if(me_f <= -1.01d6)exit
                      sep_tot= me_f - me + ia*particle(6)%ME +    &
                                           ih*particle(5)%ME +    &
@@ -147,7 +160,9 @@ subroutine set_up_decay_chain(Z_p, A_p, Z_t, A_t, num_comp)
                                ih*Coulomb_Barrier(5) +           &
                                ia*Coulomb_Barrier(6)
                      if(emax < sep_tot + Coul)cycle
+!                     if(emax < sep_tot + Coul)exit
 
+!   write(6,'(8(1x,i4),1x,f15.6)')in,ip,id,it,ih,ia, Z_f, A_f, me_f
                      exmax = emax - sep_tot
                      found = .false.
 !------   Check temporary storage   -------
@@ -175,10 +190,15 @@ subroutine set_up_decay_chain(Z_p, A_p, Z_t, A_t, num_comp)
                      num = in + ip + id + it + ih + ia
                      if(num > max_num) max_num = num
                   end do
+                  if(me_f <= -1.01d6 .and. ip > 0)exit
                end do
+               if(me_f <= -1.01d6 .and. id > 0)exit
             end do
+            if(me_f <= -1.01d6 .and. it > 0)exit
          end do
+         if(me_f <= -1.01d6 .and. ih > 0)exit
       end do
+!      if(me_f <= -1.01d6 .and. ia > 0)exit
    end do
 
    if(iproc == 0)write(6,*)'Total number of compound nuclei',num_comp
@@ -359,10 +379,15 @@ subroutine set_up_decay_chain(Z_p, A_p, Z_t, A_t, num_comp)
 !           write(6,*)ichannel,Exit_channel(ichannel)%Channel_Label(1:ifinish)
                      end if
                   end do
+                  if(me_f <= -1.01d6 .and. ip > 0)exit
                end do
+               if(me_f <= -1.01d6 .and. id > 0)exit
             end do
+            if(me_f <= -1.01d6 .and. it > 0)exit
          end do
+         if(me_f <= -1.01d6 .and. ih > 0)exit
       end do
+!      if(me_f <= -1.01d6 .and. ia > 0)exit
    end do
 
 !-----   Adjust max_J_allowed for population calculations to ensure that everything fits

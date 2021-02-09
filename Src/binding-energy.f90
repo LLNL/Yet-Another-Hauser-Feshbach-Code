@@ -58,6 +58,8 @@ subroutine get_binding_energy(data_path, len_path,         &
 !---   Therefore, read in mass data
 !
 
+!  write(6,*)iz1,ia1
+
   if(.not. allocated(mass_ex))then
      open(unit=50,file=data_path(1:len_path)//'mass-frdm95.dat',status='old')
 !---   Count how many entries and allocate arrays
@@ -134,11 +136,13 @@ subroutine get_binding_energy(data_path, len_path,         &
   return
  101  continue
 !----   now for the separation energies
+!   write(6,*)'iz1 ',iz1, ia1
   do j = 1, 6
      iz2 = iz1 - particle(j)%Z
      ia2 = ia1 - particle(j)%A
      in2 = ia2 - iz2
      xtemp = 0.0
+!     write(6,*)iz2, istart(iz2), istart(iz2+1)
      do k = istart(iz2), istart(iz2+1) - 1
         if(ia2 == ia(k))xtemp = mass_ex(k)
      end do

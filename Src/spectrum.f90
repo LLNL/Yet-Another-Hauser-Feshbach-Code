@@ -112,8 +112,14 @@ subroutine get_spectrum(data_path,len_path,overide,       &
            ilab,spectrum,spin,par,t12,ng,jf
   if(par == -1)then           !  par =-1,1 (0 if indeterimant)
      ipar = 1                 !  but we'll use 0,1 for positive and negative parity
-  else                        !  i.e., parity =(-1)**ipar
+  elseif(par == 1)then                        !  i.e., parity =(-1)**ipar
      ipar = 0                 !  this lets us use 0,1 for an index
+  elseif(par == 0)then        !  Parity not defined, make even
+     ipar = 0
+  end if
+  if(spin < 0.0d0)then        !   ground-state spin is not known, and undefined, make 0 or 0.5
+     spin = 0.0d0
+     if(iand(ia-1,1) == 1)spin = 0.5d0
   end if
   target_spin = spin
   target_ipar = ipar
@@ -194,13 +200,13 @@ subroutine get_spectrum(data_path,len_path,overide,       &
      line(1:120) = ' '
      read(51,'(a)',end=120)line
 
-     ncount = ncount + 1                              !  increment read counter
+     ncount = ncount + 1                            !  increment read counter
      if(line(4:5) /= '  ')goto 120
      read(line,'(i3,1x,f10.6,1x,f5.1,i3,1x,(e10.2),i3,1x,a1)')                       &
           ilab,spectrum,spin,par,t12,ng,jf
 
      ifail = .false.
-     if(spin < 0.0d0)ifail = .true.                !  spin=-1.0 indicates unknown spin assignment in ENSDF file
+     if(spin < 0.0d0)ifail = .true.                 !  spin=-1.0 indicates unknown spin assignment in ENSDF file
      if(par == 0)ifail = .true.                     !  par=0 also indicates unknwon parity assignment.
 
      if(spectrum < spec_old)ifail = .true.                 !  energy of next decreases - probably an upper level super-deformed band
@@ -363,6 +369,37 @@ subroutine get_spectrum(data_path,len_path,overide,       &
   close(51)
   nucleus(icomp)%state(1)%exit_lab = 1
   num_s = 1
+!
+!-----    Rare occasion where ground state spin is not known spin = -1
+!-----    Make a guess and assume J = 0 if A=even or 0.5 if A= odd
+!-----    Assume parity is even
+!
+  if(nucleus(icomp)%state(1)%spin < 0.0d0)then
+     if(iand(ia,1) == 1)then             !   Assume if A odd J=0.5 or J=0 if A even
+        spin = 0.5d0
+         else
+        spin = 0.0d0
+     end if
+     if(spin <= 1.0d-4)then
+        s1 = spin + 0.5d0
+        s2 = spin + 0.5d0
+     else
+        s1 = spin - 0.5
+        s2 = spin + 0.5
+     end if
+     nucleus(icomp)%ipar = 0
+     nucleus(icomp)%state(1)%spin = spin
+     nucleus(icomp)%s1 = s1
+     nucleus(icomp)%s2 = s2
+     nucleus(icomp)%state(1)%parity = 1
+     nucleus(icomp)%state(1)%t12 = 1000.
+     nucleus(icomp)%state(1)%nbranch = 0              !  # of branches       
+     nucleus(icomp)%state(1)%pop = 0.0
+     nucleus(icomp)%state(1)%exit_lab = 1
+     nucleus(icomp)%target_spin = spin
+     nucleus(icomp)%target_ipar = 0
+  end if
+
 
 
   do j = 2, nucleus(icomp)%num_discrete
@@ -395,17 +432,17 @@ subroutine get_spectrum(data_path,len_path,overide,       &
      s1 = spin + 0.5d0
      s2 = spin + 0.5d0
   else
-     s1=spin-0.5
-     s2=spin+0.5
+     s1 = spin - 0.5
+     s2 = spin + 0.5
   end if
   nucleus(icomp)%ipar = 0
-  nucleus(icomp)%state(1)%spin=spin
-  nucleus(icomp)%s1=s1
-  nucleus(icomp)%s2=s2
-  nucleus(icomp)%state(1)%parity=1
-  nucleus(icomp)%state(1)%t12=1000.
-  nucleus(icomp)%state(1)%nbranch=0              !  # of branches       
-  nucleus(icomp)%state(1)%pop=0.0
+  nucleus(icomp)%state(1)%spin = spin
+  nucleus(icomp)%s1 = s1
+  nucleus(icomp)%s2 = s2
+  nucleus(icomp)%state(1)%parity = 1
+  nucleus(icomp)%state(1)%t12 = 1000.
+  nucleus(icomp)%state(1)%nbranch = 0              !  # of branches       
+  nucleus(icomp)%state(1)%pop = 0.0
   nucleus(icomp)%state(1)%exit_lab = 1
   nucleus(icomp)%target_spin = spin
   nucleus(icomp)%target_ipar = 0

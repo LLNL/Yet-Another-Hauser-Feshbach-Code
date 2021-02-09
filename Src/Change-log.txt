@@ -325,3 +325,12 @@ Version 3.22
 5.  Fixed error where coupled-channels cross sections were inadvertently set
     to zero.
 
+Version 3.23
+1.  Fixed error where coupled-channels cross sections were inadvertently set
+    to zero for charged particles. 
+2.  Adjusted decay chain search to fix subscript out of range with tritons
+    as an exit particle.
+3.  Forced an assignment for ground-state spin and parity when not in RIPL-3
+    file, but needed as an end-product in the decay chain. Set to J = 0 for
+    A even and J = 0.5 for A odd, and parity = +1. Otherwise a seg fault will
+    occur.

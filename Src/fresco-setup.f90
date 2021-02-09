@@ -849,7 +849,7 @@ subroutine make_fresco_tco(data_path, len_path, tco_file, len_tco,       &
            do n = 1, nex
               read(20,*)itar, ichan, num_th, th_inc, th_min, cross
                  if(iproj == 1)optical_cs(ie,n) = cross/1000.0d0
-                 if(iproj == 1 .and. cc_index(n) /= istate)optical_cs(ie,n) = cross/1000.0d0
+                 if(iproj > 1 .and. cc_index(n) /= istate)optical_cs(ie,n) = cross/1000.0d0
                  do it = 1, num_th
                     read(20,*)x, y
                     theta(it) = x

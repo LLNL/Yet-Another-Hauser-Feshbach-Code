@@ -107,6 +107,9 @@ subroutine optical_setup(data_path, len_path, iproj, itarget,                  &
    zzero = 0.0d0
    len_prn = 0
    bigblank(1:80) = ' ' 
+
+   write(6,*)'iproj = ',iproj
+
    do k = 1, 6                  !   loop over particles
       isp = nint(2.0d0*particle(k)%spin)
       if(.not.particle(k)%in_decay .and. k /= iproj)cycle        !   if not in decay chain cycle over
