@@ -190,13 +190,13 @@ subroutine set_up_decay_chain(Z_p, A_p, Z_t, A_t, num_comp)
                      num = in + ip + id + it + ih + ia
                      if(num > max_num) max_num = num
                   end do
-                  if(me_f <= -1.01d6 .and. ip > 0)exit
+!                  if(me_f <= -1.01d6 .and. ip > 0)exit
                end do
-               if(me_f <= -1.01d6 .and. id > 0)exit
+!               if(me_f <= -1.01d6 .and. id > 0)exit
             end do
-            if(me_f <= -1.01d6 .and. it > 0)exit
+!            if(me_f <= -1.01d6 .and. it > 0)exit
          end do
-         if(me_f <= -1.01d6 .and. ih > 0)exit
+!         if(me_f <= -1.01d6 .and. ih > 0)exit
       end do
 !      if(me_f <= -1.01d6 .and. ia > 0)exit
    end do
@@ -379,13 +379,13 @@ subroutine set_up_decay_chain(Z_p, A_p, Z_t, A_t, num_comp)
 !           write(6,*)ichannel,Exit_channel(ichannel)%Channel_Label(1:ifinish)
                      end if
                   end do
-                  if(me_f <= -1.01d6 .and. ip > 0)exit
+!                  if(me_f <= -1.01d6 .and. ip > 0)exit
                end do
-               if(me_f <= -1.01d6 .and. id > 0)exit
+!               if(me_f <= -1.01d6 .and. id > 0)exit
             end do
-            if(me_f <= -1.01d6 .and. it > 0)exit
+!            if(me_f <= -1.01d6 .and. it > 0)exit
          end do
-         if(me_f <= -1.01d6 .and. ih > 0)exit
+!         if(me_f <= -1.01d6 .and. ih > 0)exit
       end do
 !      if(me_f <= -1.01d6 .and. ia > 0)exit
    end do
