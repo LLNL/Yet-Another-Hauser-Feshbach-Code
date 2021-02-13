@@ -88,10 +88,6 @@ subroutine PREEQ_sample(iproj, in, itarget, istate, e_in, ex_tot,      &
 !--------------------------------    Start Calculation
 
 !----
-!----  Entry point to start pre-equilibrium emission selection
-!----  used in extremely rare case where a decay failed to find a 
-!----  valid final state. 
-!----
 !----  General procedure is to first select an emitting particle type
 !----  usually selected based on total cross section (with unbiased
 !----  sampling, each particle is nearly equally probable). Then, select
@@ -131,6 +127,16 @@ subroutine PREEQ_sample(iproj, in, itarget, istate, e_in, ex_tot,      &
      preeq_cs = nucleus(icomp_i)%PREEQ_cs(in)
      k = -1
 
+     prob = 0.0d0
+!        do kk = 1, nucleus(icomp_i)%num_decay                       !   Loop over particle allowed to decay from this nucleus
+!           k = nucleus(icomp_i)%decay_particle(kk)
+!           icomp_f = nucleus(icomp_i)%decay_to(kk)
+!           prob = prob + nucleus(icomp_i)%PREEQ_part_cs(kk,in)/preeq_cs
+!           if(ran < prob)exit
+!        end do
+!        tally_prob = 1.0d0
+
+
      if(biased_sampling)then
      prob = 0.0d0
         do kk = 1, nucleus(icomp_i)%num_decay                       !   Loop over particle allowed to decay from this nucleus
@@ -145,22 +151,22 @@ subroutine PREEQ_sample(iproj, in, itarget, istate, e_in, ex_tot,      &
         sum_prob = 0.0d0
         do kk = 1, nucleus(icomp_i)%num_decay
            k = nucleus(icomp_i)%decay_particle(kk)
-           if(nucleus(icomp_i)%PREEQ_part_cs(kk,in)/preeq_cs > 0.0d0)then
+           if(nucleus(icomp_i)%PREEQ_part_cs(kk,in)/preeq_cs >= 1.0d-6)then
               prob_part(k) = 1.0d0
            end if
            sum_prob = sum_prob + prob_part(k)
         end do
         prob = 0.0d0
         do kk = 1, nucleus(icomp_i)%num_decay                       !   Loop over particle allowed to decay from this nucleus
+           if(nucleus(icomp_i)%PREEQ_part_cs(kk,in)/preeq_cs < 1.0-6)cycle
            k = nucleus(icomp_i)%decay_particle(kk)
            icomp_f = nucleus(icomp_i)%decay_to(kk)
            prob = prob + prob_part(k)/sum_prob
-!    write(20,*)kk,k,prob_part(k),prob,ran
            if(ran < prob)exit
         end do
-        tally_prob = (nucleus(icomp_i)%PREEQ_part_cs(kk,in)/preeq_cs)*(prob_part(k)/sum_prob)
+        tally_prob = (nucleus(icomp_i)%PREEQ_part_cs(kk,in)/preeq_cs)*sum_prob
+!        tally_prob = (nucleus(icomp_i)%PREEQ_part_cs(kk,in)/preeq_cs)*(prob_part(k)/sum_prob)
      end if
-
 
      if(k == -1)stop 'k not set properly in PREEQ_Samp'
 
@@ -246,9 +252,12 @@ subroutine PREEQ_sample(iproj, in, itarget, istate, e_in, ex_tot,      &
         l_f = preeq_l(l_i, mass_p, E_in, mass_e, energy, theta_0, A_p, A_t)
 
         if(l_f > particle(k)%lmax)then
-           l_f = particle(k)%lmax
            write(6,*)'*******  Warning l_f > particle%lmax in PREEQ_samp  ******'
            write(6,*)'*******  l_f set = particle%lmax                    ******'
+           write(6,*)particle(k)%name
+           write(6,*)energy, theta_0
+           write(6,*)l_i, l_f, particle(k)%lmax
+           l_f = particle(k)%lmax
         end if
 
         cpar2 = par*(-1.0d0)**l_f                        !  Parity of nucleus and emitted particle
@@ -660,10 +669,18 @@ integer(kind=4) function preeq_l(l_p, mass_p, E_p, mass_e, E_e, theta_e, A_p, A_
          b_e = abs(sqrt(R**2-b_p**2)*sin(theta_e) + b_p*cos(theta_e))
       end if
    else
-      b_e = b_p*abs(cos(theta_e))
+      b_e = R*abs(cos(theta_e))
+!      b_e = b_p*abs(cos(theta_e))
    end if
 
    preeq_l = nint(b_e*k_e)
+
+!   if(preeq_l > 20)then
+!      write(6,*)E_p,E_e, theta_e
+!      write(6,*)mass_p, mass_e
+!      write(6,*)k_p,b_p,R
+!      write(6,*)k_e
+!    end if
    return
 end function preeq_l
 !

@@ -106,7 +106,7 @@ subroutine compound_xs(e_in,itarget,istate,iproj,sigma,    &
    do l = 0, particle(iproj)%lmax                                !   loop over angular momentum
       par = nint(cpar*(-1.0d0)**l)
       xj = real(l,kind=8) - spin_proj
-      do i=0,isp                                         !   loop over channel spins
+      do i = 0, isp                                             !   loop over channel spins
          xj = xj + real(i,kind=8)
          if(xj < 0.0d0)cycle
          xI_min = abs(xj - spin_target)

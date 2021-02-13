@@ -76,6 +76,8 @@ subroutine get_spectrum(data_path,len_path,overide,       &
   integer(kind=4) :: num_states, n_cut, ii
   integer(kind=4), allocatable :: state_map(:)
   logical E_cut_set
+  logical :: found
+  integer(kind=4) :: io_error
 !-----------------------------------------------------------------------  
   evaluated=.false.
 !------ find file name with data
@@ -102,37 +104,49 @@ subroutine get_spectrum(data_path,len_path,overide,       &
 !------  Use a default value to signal if it is known or not
   s1 = -1.5d0
   s2 = -0.5d0
- 21   read(51,'(i3,a2)',end=11)iap,symbb !  find element, end -. end of subroutine abort
-  if(symbb(2:2) == ' ')then
-     symbb(2:2) = symbb(1:1)
-     symbb(1:1) = ' '
-  end if
-  if(.not.(ia-1 == iap .and. symb == symbb))goto 21    ! not same read another line
-     read(51,'(i3,1x,f10.6,1x,f5.1,i3,1x,(e10.2),i3,1x,a1)',err=120)   &
-           ilab,spectrum,spin,par,t12,ng,jf
-  if(par == -1)then           !  par =-1,1 (0 if indeterimant)
-     ipar = 1                 !  but we'll use 0,1 for positive and negative parity
-  elseif(par == 1)then                        !  i.e., parity =(-1)**ipar
-     ipar = 0                 !  this lets us use 0,1 for an index
-  elseif(par == 0)then        !  Parity not defined, make even
-     ipar = 0
-  end if
-  if(spin < 0.0d0)then        !   ground-state spin is not known, and undefined, make 0 or 0.5
+  found = .false.
+  io_error = 0
+  do while(.not. found .and. io_error == 0)
+     read(51,'(i3,a2)',iostat=io_error)iap,symbb !  find element, end -. end of subroutine abort
+     if(symbb(2:2) == ' ')then
+        symbb(2:2) = symbb(1:1)
+        symbb(1:1) = ' '
+     end if
+     if(ia-1 == iap .and. symb == symbb)then
+        read(51,'(i3,1x,f10.6,1x,f5.1,i3,1x,(e10.2),i3,1x,a1)')   &
+        ilab,spectrum,spin,par,t12,ng,jf
+        found = .true.
+        if(par == -1)then           !  par =-1,1 (0 if indeterimant)
+           ipar = 1                 !  but we'll use 0,1 for positive and negative parity
+        elseif(par == 1)then                        !  i.e., parity =(-1)**ipar
+           ipar = 0                 !  this lets us use 0,1 for an index
+        elseif(par == 0)then        !  Parity not defined, make even
+           ipar = 0
+        end if
+        if(spin < 0.0d0)then        !   ground-state spin is not known, and undefined, make 0 or 0.5
+           spin = 0.0d0
+           if(iand(ia-1,1) == 1)spin = 0.5d0
+        end if
+        if(spin <= 1.0d-4)then
+           s1 = spin + 0.5d0
+           s2 = spin + 0.5d0
+        else
+           s1 = spin - 0.5d0
+           s2 = spin + 0.5d0
+        end if
+        target_spin = spin
+        target_ipar = ipar
+     end if
+  end do
+  if(.not. found)then
      spin = 0.0d0
      if(iand(ia-1,1) == 1)spin = 0.5d0
-  end if
-  target_spin = spin
-  target_ipar = ipar
-  if(spin <= 1.0d-4)then
      s1 = spin + 0.5d0
      s2 = spin + 0.5d0
-  else
-     s1 = spin - 0.5d0
-     s2 = spin + 0.5d0
+     target_spin = spin
+     target_ipar = ipar
   end if
-  goto 12
- 11   continue                                         !   nucleus not there
- 12   continue
+
   close(unit=51)
 
 !------  Open data file
@@ -380,13 +394,6 @@ subroutine get_spectrum(data_path,len_path,overide,       &
          else
         spin = 0.0d0
      end if
-     if(spin <= 1.0d-4)then
-        s1 = spin + 0.5d0
-        s2 = spin + 0.5d0
-     else
-        s1 = spin - 0.5
-        s2 = spin + 0.5
-     end if
      nucleus(icomp)%ipar = 0
      nucleus(icomp)%state(1)%spin = spin
      nucleus(icomp)%s1 = s1
@@ -396,7 +403,7 @@ subroutine get_spectrum(data_path,len_path,overide,       &
      nucleus(icomp)%state(1)%nbranch = 0              !  # of branches       
      nucleus(icomp)%state(1)%pop = 0.0
      nucleus(icomp)%state(1)%exit_lab = 1
-     nucleus(icomp)%target_spin = spin
+     nucleus(icomp)%target_spin = target_spin
      nucleus(icomp)%target_ipar = 0
   end if
 
@@ -425,26 +432,19 @@ subroutine get_spectrum(data_path,len_path,overide,       &
   nucleus(icomp)%state(1)%energy = 0.0d0
   if(iand(ia,1) == 1)then             !   Assume if A odd J=0.5 or J=0 if A even
      spin = 0.5d0
-      else
+     else
      spin = 0.0d0
-  end if
-  if(spin <= 1.0d-4)then
-     s1 = spin + 0.5d0
-     s2 = spin + 0.5d0
-  else
-     s1 = spin - 0.5
-     s2 = spin + 0.5
   end if
   nucleus(icomp)%ipar = 0
   nucleus(icomp)%state(1)%spin = spin
   nucleus(icomp)%s1 = s1
   nucleus(icomp)%s2 = s2
-  nucleus(icomp)%state(1)%parity = 1
+  nucleus(icomp)%state(1)%parity = 0
   nucleus(icomp)%state(1)%t12 = 1000.
   nucleus(icomp)%state(1)%nbranch = 0              !  # of branches       
   nucleus(icomp)%state(1)%pop = 0.0
   nucleus(icomp)%state(1)%exit_lab = 1
-  nucleus(icomp)%target_spin = spin
+  nucleus(icomp)%target_spin = target_spin
   nucleus(icomp)%target_ipar = 0
 
   

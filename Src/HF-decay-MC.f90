@@ -142,7 +142,7 @@
    do if1 = 1, nucleus(icomp_i)%bins(Ix_i,ip_i,nbin_i)%num_decay
       k = nucleus(icomp_i)%bins(Ix_i,ip_i,nbin_i)%decay_particle(if1)
       tally_norm = tally_norm + nucleus(icomp_i)%bins(Ix_i,ip_i,nbin_i)%HF_prob(if1)*part_fact(k)
-      xnnn= xnnn + part_fact(k)
+      xnnn = xnnn + part_fact(k)
    end do
    tally_norm = 1.0d0/tally_norm
 

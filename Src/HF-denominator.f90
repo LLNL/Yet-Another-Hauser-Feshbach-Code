@@ -42,6 +42,7 @@ subroutine HF_denominator(icomp)
    use nuclei
    use particles_def
    use constants 
+   use channel_info
    use nodeinfo
    implicit none
    integer(kind=4), intent(in) :: icomp
@@ -52,7 +53,7 @@ subroutine HF_denominator(icomp)
    real(kind=8) :: xI_i, xI_i_shift
    real(kind=8) :: xI_f_min, xI_f_max, xI_f, xI_f_max1
    integer(kind=4) :: lmin, lmax, le_min, lm_min
-   integer(kind=4) :: nbin, ibin, jbin
+   integer(kind=4) :: nbin, ibin
    real(kind=8) :: xj_f, xj_f_min1, xj_f_min, xj_f_max
    integer(kind=4) n
    integer(kind=4) :: ip
@@ -67,6 +68,11 @@ subroutine HF_denominator(icomp)
    real(kind=8) :: trans, trans_eff
    real(kind=8) :: F_trans(4)
    real(kind=8) :: ex
+
+   real(kind=8) :: xZ_i, xA_i, xZ_part, xA_part
+   real(kind=8) :: Coulomb_Barrier(6)
+
+
 !--------------------------------------------------------------------------
 
    integer(kind=4) :: num_j
@@ -96,6 +102,20 @@ subroutine HF_denominator(icomp)
    Ix_i_max = nucleus(icomp)%j_max
    xI_i_shift = nucleus(icomp)%jshift
    nbin = nucleus(icomp)%nbin
+
+!----   Coulomb barrier cutoff for low energy charged particles
+
+   Coulomb_barrier(1:6) = 0.0d0
+   if(Apply_Coulomb_Barrier)then
+      do k = 1, 6
+         xZ_part = real(particle(k)%Z,kind=8)
+         xA_part = real(particle(k)%A,kind=8)
+         xZ_i = real(nucleus(icomp)%Z,kind=8)
+         xA_i = real(nucleus(icomp)%A,kind=8)
+         Coulomb_Barrier(k) = 0.6d0*e_sq*(xZ_i-xZ_part)*xZ_part/               &
+            (1.2d0*((xA_i-xA_part)**(1.0d0/3.0d0) + xA_part**(1.0d0/3.0d0)))
+      end do
+   end if
 
    prob_norm = 0.0d0
 !----------------------------------------------------------------------------------+
@@ -156,7 +176,8 @@ subroutine HF_denominator(icomp)
                   do ns_f = 1, nucleus(i_f)%ncut
                      e_f = energy - nucleus(icomp)%sep_e(k) -                             &
                                 nucleus(i_f)%state(ns_f)%energy
-                     if(e_f <= 1.0d-6)cycle
+                     if(e_f - Coulomb_Barrier(k) <= 1.0d-6)cycle
+!                     if(e_f <= 1.0d-6)cycle
                      xI_f = nucleus(i_f)%state(ns_f)%spin
                      Ix_f = nint(xI_f - nucleus(i_f)%jshift)
                      xj_f_min = abs(xI_f - xI_i)
@@ -201,7 +222,8 @@ subroutine HF_denominator(icomp)
 
                         e_f = energy - nucleus(icomp)%sep_e(k) -                             &
                                        nucleus(i_f)%state(ns_f)%energy
-                        if(e_f <= 1.0d-6)cycle
+                        if(e_f - Coulomb_Barrier(k) <= 1.0d-6)cycle
+!                        if(e_f <= 1.0d-6)cycle
                         xI_f = nucleus(i_f)%state(ns_f)%spin
                         Ix_f = nint(xI_f - nucleus(i_f)%jshift)
                         xj_f_min = abs(xI_f - xI_i)
@@ -236,10 +258,8 @@ subroutine HF_denominator(icomp)
 
                      e_f = energy - nucleus(icomp)%sep_e(k) -       &
                                     nucleus(i_f)%e_grid(n_f)
-
-                     jbin = nucleus(i_f)%nbin - ibin - n_f + 1                                !  index for transmission coeff array
-
-                     if(e_f <= 1.0d-6)cycle
+                     if(e_f - Coulomb_Barrier(k) <= 1.0d-6)cycle
+!                     if(e_f <= 1.0d-6)cycle
 
                      do l = 0, particle(k)%lmax                                               !  loop over l-partial wave
                         cpar2 = par*(-1.0d0)**l                                               !  Parity of nucleus and emitted part
@@ -361,7 +381,6 @@ subroutine HF_denominator(icomp)
                      end do
 !-----------------------------------     End discrete state loop
 
-                     jbin = nucleus(i_f)%nbin - ibin - n_f + 1                                !  index for transmission coeff array
                      e_gamma = energy - nucleus(i_f)%e_grid(n_f)
                      if(e_gamma <= 1.0d-6)cycle
                      e_gamma = max(e_gamma,nucleus(i_f)%delta_e(n_f)/10.0)
@@ -449,7 +468,8 @@ subroutine HF_denominator(icomp)
                      do ns_f = 1, nucleus(i_f)%ncut
                         e_f = energy - nucleus(icomp)%sep_e(k)-           &
                                        nucleus(i_f)%state(ns_f)%energy
-                        if(e_f <= 1.0d-6)cycle
+                        if(e_f - Coulomb_Barrier(k) <= 1.0d-6)cycle
+!                        if(e_f <= 1.0d-6)cycle
                         xI_f = nucleus(i_f)%state(ns_f)%spin
                         Ix_f = nint(xI_f - nucleus(i_f)%jshift)
                         xj_f_min = abs(xI_f - xI_i)
@@ -506,7 +526,8 @@ subroutine HF_denominator(icomp)
                            end if
                            e_f = energy - nucleus(icomp)%sep_e(k)-           &
                                           nucleus(i_f)%state(ns_f)%energy
-                           if(e_f <= 1.0d-6)cycle
+                           if(e_f - Coulomb_Barrier(k) <= 1.0d-6)cycle
+!                           if(e_f <= 1.0d-6)cycle
                            xI_f = nucleus(i_f)%state(ns_f)%spin
                            Ix_f = nint(xI_f - nucleus(i_f)%jshift)
                            xj_f_min = abs(xI_f - xI_i)
@@ -555,10 +576,9 @@ subroutine HF_denominator(icomp)
 
                         e_f = energy-nucleus(icomp)%sep_e(k) -                            &
                               nucleus(i_f)%e_grid(n_f)
+                        if(e_f - Coulomb_Barrier(k) <= 1.0d-6)cycle
+!                        if(e_f <= 1.0d-6)cycle
 
-                        if(e_f <= 1.0d-6)cycle
-
-                        jbin = nucleus(i_f)%nbin-ibin-n_f+1                                   !  index for transmission coeff array
                         do l = 0, particle(k)%lmax                                            !  loop over l-partial wave
                            xj_f = real(l,kind=8) - p_spin
                            cpar2 = par*(-1.)**l                                               !  Parity of nucleus and emitted part
@@ -716,7 +736,6 @@ subroutine HF_denominator(icomp)
                               prob_sum = prob_sum + trans
                               if(ii == 2)then
 
-
                                  nucleus(icomp)%bins(Ix_i,ip,n)%nuke_decay(ifi)%decay_prob(num_prob) = &
                                      prob_sum/prob_norm
                                  idb = 1
@@ -747,7 +766,6 @@ subroutine HF_denominator(icomp)
                         end do
 !------------    End of loop over discrete states
 
-                        jbin=nucleus(i_f)%nbin-ibin-n_f+1                                     !  index for transmission coeff array
                         e_gamma=energy-nucleus(i_f)%e_grid(n_f)
                         if(e_gamma <= 1.0d-6)cycle
                         e_gamma = max(e_gamma,nucleus(i_f)%delta_e(n_f)/10.0)

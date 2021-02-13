@@ -334,3 +334,34 @@ Version 3.23
     file, but needed as an end-product in the decay chain. Set to J = 0 for
     A even and J = 0.5 for A odd, and parity = +1. Otherwise a seg fault will
     occur.
+
+Version 3.24
+1.  Made subroutine that sets up the decay chains more efficient.
+2.  Adjusted the maximum value for the orbital angular momentum for each
+    particle. It is now set in fresco-setup.f90 and is based on the maximum
+    incident energy requested, now lmax = 2*R*k_max, with R being the nuclear
+    radius.
+3.  Fixed parts of subroutine get_spectrum where errors occured due to the 
+    requested nucleus not appearing in the RIPL-3 file. In all cases, if the
+    nucleus is absent, J = 0 if A even, and J = 0.5 if A odd, and parity is +.
+4.  Also, extended the excitation energy bins for all nuclei up to the neutron
+    separation energy.
+5.  Adjusted decay algorithms to include the Coulomb Barrier information to
+    limit the decays of charged particles. Important for alphas, which are
+    unbound, and nearly limitless for heavy nuclei. The Colomb barrier tests
+    limits some channels that will be extremely weak, and thus avoids including
+    them in the overall calculation. Including the Coulomb barrier test in
+    the set up forces the weak channels not to occur, which would give an
+    error while searching for the nonexistent channel.
+6.  Adjusted model for the oribital angular momentum for emitted particle 
+    in the pre-equilibrium model (two-component exciton model) to assume that
+    particles are emitted at the nuclear surface rather than the classical 
+    impact parameter for the incident projectile with orbital angular
+    momentum l. Reduces the overall emitted l.
+7.  Fixed error sampling pre-equilibrium particles with unbiased sampling.
+    Affected cases with multiple particles being emitted.
+8.  Fixed error in writing and reading transmission coefficients and energy
+    grid if the number of data was exactly a multiple of 10.
+9.  Adjusted Coulomb Barrier limits to help reduce channels that will have 
+    extremely small cross sections.
+

@@ -1164,7 +1164,7 @@ program YAHFC_MASTER
 
       do i = 1, num_comp                  !   initial number of bins
          if(nucleus(i)%Ex_max > nucleus(i)%level_param(7) + de/2.)then   
-            nbin = int((nucleus(i)%Ex_max-                                    &
+            nbin = int((nucleus(i)%Ex_max -                                    &
                         nucleus(i)%level_param(7))/de+0.5)     ! energy difference level_param(7)=E_cut
             nbin = max(nbin,1)
          else
@@ -1180,13 +1180,13 @@ program YAHFC_MASTER
 !
 !-------------------   Set up energy grids for each nucleus
 !
-      do i=1,num_comp
+      do i = 1, num_comp
          nbin = nucleus(i)%nbin
          if(nbin == 0)cycle
-           do j = 1, nbin
-              nucleus(i)%e_grid(j) = nucleus(i)%Ex_max - (nbin-j)*de
-              nucleus(i)%delta_e(j) = de
-           end do
+         do j = 1, nbin
+            nucleus(i)%e_grid(j) = nucleus(i)%Ex_max - (nbin-j)*de
+            nucleus(i)%delta_e(j) = de
+         end do
       end do
 
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -1211,7 +1211,16 @@ program YAHFC_MASTER
             if(e_in < de/2.0)cycle                  !   keep it if energy is less than de/2
             e_rel = e_in*rel_factor
             e_x = e_rel + nucleus(1)%sep_e(projectile%particle_type)
-            j = nucleus(1)%nbin - nint((nucleus(1)%Ex_max - e_x)/de)
+!----   Find bin associated with this energy, not quite as simple as
+!----   it used to be as we are considering the possiblity of unequal bins
+            j = 0
+            do i = 1, nucleus(1)%nbin
+               if(e_x >= nucleus(1)%e_grid(i) - nucleus(1)%delta_e(i) .and.   &
+                  e_x < nucleus(1)%e_grid(i) + nucleus(1)%delta_e(i))then
+                  j = i
+                  exit
+               end if
+            end do
             if(j > 0)then
                e_x = nucleus(1)%e_grid(j)
                e_rel = e_x - nucleus(1)%sep_e(projectile%particle_type)
@@ -1233,9 +1242,10 @@ program YAHFC_MASTER
       end do
       if(e_in_problem)then
          write(6,*)'**************************************************************'
-         write(6,*)'* Warning, levels in compound extend above separation energy *'
-         write(6,*)'* Incident energies modified to start at continuous bins     *'
-         write(6,*)'* Hauser-Feshbach not valid in this nucleus                  *'
+         write(6,*)'* Warning, compound excitation extends to low energy with    *'
+         write(6,*)'* with low level density. Calculaitons will only be          *'
+         write(6,*)'* for incident energies that populate the continuous energy  *'
+         write(6,*)'* bins.                                                      *'
          write(6,*)'* Continue at your own risk!                                 *'
          write(6,*)'**************************************************************'
       end if
@@ -2462,6 +2472,24 @@ program YAHFC_MASTER
 
       allocate(check_cs(1:num_comp))
 
+      do k = 1, 6
+         isp = nint(2*particle(k)%spin)
+         write(100,*)particle(k)%name
+         write(100,*)'lmax = ',particle(k)%lmax
+         do i = 0, isp
+            write(100,*)'isp = ', i
+            do m = 1, particle(k)%nume
+               write(100,*)particle(k)%e_grid(m),(particle(k)%trans_read(m,i,l),l = 0, particle(k)%lmax)
+            end do
+         end do
+      end do
+
+
+
+
+
+
+
 
       do in = 1, num_energies
 
@@ -2483,6 +2511,11 @@ program YAHFC_MASTER
             e_rel = E_in*mass_target/(mass_target + mass_proj)
             ex_tot = e_rel + nucleus(1)%sep_e(iproj) +                          &
                              nucleus(itarget)%state(target%istate)%energy
+
+            if(ex_tot < nucleus(1)%e_grid(1))then
+                write(6,*)'This incident energy would populate discrete states only - skipping'
+                cycle
+            end if
 
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !------   Set up process to boost emitted particles to the correct frame
@@ -2627,6 +2660,7 @@ program YAHFC_MASTER
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
             call pre_equilibrium_1(1,istate,in,e_in,ex_tot,de,absorption_cs(in))
+
 
             preeq_prob = nucleus(1)%PREEQ_cs(in)/absorption_cs(in)
 
@@ -3597,6 +3631,26 @@ program YAHFC_MASTER
             else
                nn = num_part
                ichann = find_channel(n_dat, dim_part, num_part, part_data, num_part_type)
+
+
+    if(ichann < 1)then
+        do k = 1, 6
+           write(6,*)k, num_part_type(k)
+        end do
+        write(6,*)num_part
+        write(6,*)'Particle types'
+        do k = 1, num_part
+           write(6,*)k, part_data(2,k)
+        end do
+        write(6,*)'ichan: pop_calc = ',pop_calc
+        write(6,*)'ichan: compound = ',compound
+        write(6,*)'ichan: preeq_decay = ', preeq_decay
+        write(6,*)'ichan: direct = ',direct
+        write(6,*)'ichan: cc_decay = ',cc_decay
+        write(6,*)'ichan: dwba_decay = ',dwba_decay
+        write(6,*)'idb = ',idb
+    end if
+
                if(hung_up)Exit_Channel(ichann)%Channel_cs(in,-1) =                        &
                           Exit_Channel(ichann)%Channel_cs(in,-1) + tally_weight
 

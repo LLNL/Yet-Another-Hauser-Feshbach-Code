@@ -193,11 +193,12 @@ subroutine optical_setup(data_path, len_path, iproj, itarget,                  &
           allocate(particle(k)%trans_read(1:nume,0:isp,0:lmax))
       read(50,*)
       num_e_lines = nume/10
-      if(10*num_e_lines /= nume)num_e_lines = num_e_lines + 1
+      if(10*num_e_lines < nume)num_e_lines = num_e_lines + 1
       do ll = 1, num_e_lines
          minl = (ll-1)*10 + 1
          maxl = min(nume,minl+9)
-         read(50,'(10(1x,1pe16.9))')(particle(k)%e_grid(i),i = minl, maxl)
+!         read(50,'(10(1x,1pe16.9))')(particle(k)%e_grid(i),i = minl, maxl)
+         read(50,*)(particle(k)%e_grid(i),i = minl, maxl)
       end do
 
 
@@ -215,7 +216,7 @@ subroutine optical_setup(data_path, len_path, iproj, itarget,                  &
       end if
 
       num_l_lines = (lmax+1)/10
-      if(10*num_l_lines /= lmax)num_l_lines = num_l_lines + 1
+      if(10*num_l_lines < lmax+1)num_l_lines = num_l_lines + 1
       do ii = 0, isp
          read(50,*)
          do ll = 1, num_l_lines
@@ -294,13 +295,8 @@ subroutine optical_setup(data_path, len_path, iproj, itarget,                  &
             OpticalCS%max_L = Ang_L_max
          end if
 !
-!----   Changed 5-21-2020 not to tie the DWBA calculation to the xplicit energy grid.
+!----   Changed 5-21-2020 not to tie the DWBA calculation to the explicit energy grid.
 !----
-!         read(50,*)OpticalCS%nume, OpticalCS%numcc, OpticalCS%Max_L, de_read           ! data dimensions
-!----   de_read is the delta_e used to set up for this coupled-channels calculation 
-!----   If DWBA has been done, then we have a problem if this is not the same as de
-!----   Meaning that the DWBA was done with a different delta_e, which was used to map the 
-!----   DWBA states into the continuous level density - Need to check and warn user and stop calculation
          allocate(OpticalCS%state(OpticalCS%numcc))                                 ! coupled-channels states
          allocate(OpticalCS%energy(OpticalCS%nume))                                 !  Ecis cross sections
          allocate(OpticalCS%optical_cs(OpticalCS%nume, OpticalCS%numcc))                  !  Ecis cross sections
@@ -312,10 +308,8 @@ subroutine optical_setup(data_path, len_path, iproj, itarget,                  &
 !----   then DWBA calculation was not performed, and there is no need to check if excitation energy 
 !----   grid was the same.
 
-!         ex_min = nucleus(itarget)%e_grid(1) - de/2.0d0
          ex_min = nucleus(jtarget)%e_grid(1) - nucleus(jtarget)%delta_e(1)/2.0d0
 
-!         particle(iproj)%do_dwba = .false.
          check_dwba = .false.
          do i = 1, OpticalCS%numcc
             read(50,*)idummy, cc_index(i), OpticalCS%state(i)%spin,OpticalCS%state(i)%parity,    &
@@ -326,9 +320,11 @@ subroutine optical_setup(data_path, len_path, iproj, itarget,                  &
 
          if(particle(iproj)%do_dwba .and. .not. check_dwba)then
             write(6,*)'ERROR!!!  -  do_dwba = .true. but Optical Model calculation was performed without DWBA states'
+            write(6,*)'Edit command file and set do_dwba = .false. with the command "do_dwba n"'
             stop
          else if(.not. particle(iproj)%do_dwba .and. check_dwba)then
             write(6,*)'ERROR!!!  -  do_dwba = .false. but Optical Model calculation was performed with DWBA states'
+            write(6,*)'Edit command file and set do_dwba = .true. with the command "do_dwba y"'
             stop
          end if
 

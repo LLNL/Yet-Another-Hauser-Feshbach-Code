@@ -32,7 +32,7 @@ module options
 !
    use variable_kinds
    character(len=132) version
-   parameter (version = 'MC-3.23')
+   parameter (version = 'MC-3.24')
    integer(kind=int_64) :: iseed
    integer(kind=4) PREEQ_Model
    logical analytic_preeq
@@ -226,7 +226,7 @@ module Channel_info
 
    integer(kind=4) :: num_channels
    logical :: Apply_Coulomb_Barrier
-   real(kind=8) :: Coulomb_Barrier(6)
+!   real(kind=8) :: Coulomb_Barrier(6)
 
    type discrete_state
       integer(kind=4) :: nbranch

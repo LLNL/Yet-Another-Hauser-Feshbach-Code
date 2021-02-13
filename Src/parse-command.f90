@@ -225,7 +225,8 @@ subroutine parse_command(num_comp,icommand,command,finish)
          projectile%Z = particle(i)%Z
          projectile%A = particle(i)%A
          projectile%specified = .true.
-         particle(i)%do_dwba = .true.
+         particle(i)%do_dwba = .false.
+         if(i <= 2)particle(i)%do_dwba = .true.
 !-----    Set values for pree-equilibrium model for incident neutrons and protons
          if(i == 1)then
             Preeq_V = 38.0d0

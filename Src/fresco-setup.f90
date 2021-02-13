@@ -655,14 +655,11 @@ subroutine make_fresco_tco(data_path, len_path, tco_file, len_tco,       &
      ener = ener*factor
   end do
 
-
+  allocate(energy(nume))
   particle(pindex)%nume = nume
   if(.not.allocated(particle(pindex)%e_grid))allocate(particle(pindex)%e_grid(nume))
   particle(pindex)%e_grid(1:nume) = 0.0d0
-  if(.not.allocated(particle(pindex)%trans_read))allocate(particle(pindex)%trans_read(nume,0:isp_max,0:lmax))
-  particle(pindex)%trans_read(1:nume,0:isp_max,0:lmax) = 0.0d0
-!------------   temporary coupled channels cross section data 
-  allocate(energy(nume))
+
   energy(1:nume) = 0.0d0
   ener = emin/factor
   do ie = 1, nume
@@ -672,6 +669,19 @@ subroutine make_fresco_tco(data_path, len_path, tco_file, len_tco,       &
      energy(ie) = e_lab                                                           !   Lab frame
      write(6,*)ie, energy(ie), particle(pindex)%e_grid(ie)
   end do
+
+  Radius = 1.30d0*(A**(1.0d0/3.0d0) + Ap**(1.0d0/3.0d0))
+  lmax = nint(2.0d0*Radius*sqrt(2.0d0*mass_proj*mass_u*energy(nume))/hbar_c)
+
+  particle(pindex)%lmax = lmax
+
+  write(6,*)particle(pindex)%name, 'lmax = ',lmax
+
+
+  if(.not.allocated(particle(pindex)%trans_read))                        &
+      allocate(particle(pindex)%trans_read(nume,0:isp_max,0:lmax))
+  particle(pindex)%trans_read(1:nume,0:isp_max,0:lmax) = 0.0d0
+!------------   temporary coupled channels cross section data 
 
   num_ang = 181
   allocate(theta(num_ang))
@@ -933,24 +943,24 @@ subroutine make_fresco_tco(data_path, len_path, tco_file, len_tco,       &
   write(51,'(''# '',a50)')title(1:iend)
   write(51,'(''# Transmission coefficients computed using FRESCO'')')
   write(51,'(''# nume = '',i6)')nume
-  write(51,'(''# lmax = '',i6)')lmax
+  write(51,'(''# lmax = '',i6)')particle(pindex)%lmax
   write(51,'(''# Energy list '')')
   num_e_lines = nume/10
-  if(10*num_e_lines /= nume)num_e_lines = num_e_lines + 1
+  if(10*num_e_lines < nume)num_e_lines = num_e_lines + 1
   do ll = 1, num_e_lines
      minl = (ll-1)*10 + 1
      maxl = min(nume,minl+9)
      write(51,'(10(1x,1pe16.9))')(particle(pindex)%e_grid(ie),ie = minl, maxl)
   end do
-  num_l_lines = (lmax+1)/10
-  if(10*num_l_lines /= lmax)num_l_lines = num_l_lines + 1
+  num_l_lines = (particle(pindex)%lmax+1)/10
+  if(10*num_l_lines < particle(pindex)%lmax+1)num_l_lines = num_l_lines + 1
   do ii = 0, isp_max
      write(51,'(''# J-L = '',f4.1)')real(ii,kind=8) - spin
      do ll = 1, num_l_lines
         minl = (ll-1)*10
-        maxl = min(lmax,minl+9)
-        write(51,'(''#         energy'',10(1x,8x,''l = '',i3))')(l,l=minl,maxl)
-        write(51,'(''#---------------'',10(1x,''---------------''))')
+        maxl = min(particle(pindex)%lmax,minl+9)
+        write(51,'(''#          energy'',10(1x,9x,''l = '',i3))')(l,l=minl,maxl)
+        write(51,'(''#----------------'',10(1x,''----------------''))')
         do ie = 1, nume
            write(51,'(11(1x,1pe16.9))')particle(pindex)%e_grid(ie),                 &
                                       (particle(pindex)%trans_read(ie,ii,l),l=minl,maxl)
@@ -1087,7 +1097,7 @@ subroutine run_fresco(ener, fresco_dir, len_fresco, fresco_name, iendf, fname, e
 
    zzero = 0.0d0
    jtmin = 0
-   jtmax = 20
+   jtmax = particle(pindex)%lmax
    absend = 0.001d0
    rmatch = 20.0d0
 

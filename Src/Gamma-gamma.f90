@@ -74,6 +74,7 @@ subroutine Gamma_gamma(icomp, l, delta_e, Gamma_g, g_error)
    j_shift=nucleus(icomp)%jshift
 
    xspin = nucleus(icomp)%target_spin
+
    ipar = nucleus(icomp)%target_ipar
    ip = ((2*ipar - 1)*(-1)**l+1)/2
    xl = real(l, kind=8)
@@ -96,8 +97,8 @@ subroutine Gamma_gamma(icomp, l, delta_e, Gamma_g, g_error)
 
                ip_f = iand((ip+lem),1)                       !  parity of final state
                xj_f_min = abs(xj-dfloat(lem))                !  min final spin
-               xj_f_max = xj+dfloat(lem)                     !  max final spin
-               j_f_min = nint(xj_f_min-nucleus(i_f)%jshift)      !  min j-index
+               xj_f_max = xj + dfloat(lem)                     !  max final spin
+               j_f_min = nint(xj_f_min - nucleus(i_f)%jshift)      !  min j-index
                j_f_max = min(nint(xj_f_max-nucleus(i_f)%jshift),nucleus(i_f)%j_max)      !  max j-index
                do j_f = j_f_min, j_f_max                    !  loop over final j
                   xj_f = dfloat(j_f) + nucleus(i_f)%jshift

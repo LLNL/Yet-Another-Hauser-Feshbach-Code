@@ -71,6 +71,9 @@ subroutine HF_primary_decay_setup(e_in,iproj,itarget,icomp,istate,        &
    integer(kind=4) :: nnn
 !-------------------------------------------------------------------------
 
+   real(kind=8) :: xZ_i, xA_i, xZ_part, xA_part
+   real(kind=8) :: Coulomb_Barrier(6)
+
    integer(kind=4) :: num
    integer(kind=4) :: itemp, idb
 
@@ -119,6 +122,18 @@ subroutine HF_primary_decay_setup(e_in,iproj,itarget,icomp,istate,        &
    ipt = nint((nucleus(itarget)%state(istate)%parity + 1.0d0)/2.0d0)
    
    start = 0.0d0
+
+   Coulomb_barrier(1:6) = 0.0d0
+   if(Apply_Coulomb_Barrier)then
+      do k = 1, 6
+         xZ_part = real(particle(k)%Z,kind=8)
+         xA_part = real(particle(k)%A,kind=8)
+         xZ_i = real(nucleus(icomp)%Z,kind=8)
+         xA_i = real(nucleus(icomp)%A,kind=8)
+         Coulomb_Barrier(k) = 0.6d0*e_sq*(xZ_i-xZ_part)*xZ_part/               &
+            (1.2d0*((xA_i-xA_part)**(1.0d0/3.0d0) + xA_part**(1.0d0/3.0d0)))
+      end do
+   end if
 
 
 !   if(e_in >= delta_e)then
@@ -281,7 +296,8 @@ subroutine HF_primary_decay_setup(e_in,iproj,itarget,icomp,istate,        &
                   do n_f = nucleus(i_f)%nbin - ibin + 1, 1, -1                        !  loop over final excitation energies
                      e_f = energy - nucleus(icomp)%sep_e(k)-                &
                            nucleus(i_f)%e_grid(n_f)
-                     if(e_f <= 1.0d-6)cycle
+                     if(e_f - Coulomb_Barrier(k) <= 1.0d-6)cycle
+!                     if(e_f <= 1.0d-6)cycle
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !------    Loop over orbital angular momenta of emitted particle       +
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -323,7 +339,8 @@ subroutine HF_primary_decay_setup(e_in,iproj,itarget,icomp,istate,        &
                   do n_f = 1, num_discrete
                      e_f = energy-nucleus(icomp)%sep_e(k)-                                &
                                nucleus(i_f)%state(n_f)%energy
-                     if(e_f <= 1.0d-6)cycle
+                     if(e_f - Coulomb_Barrier(k) <= 1.0d-6)cycle
+!                     if(e_f <= 1.0d-6)cycle
                      xI_f = nucleus(i_f)%state(n_f)%spin
                      Ix_f = nint(xI_f - nucleus(i_f)%jshift)
                      xj_f_min = abs(xI_f - xI_i)
@@ -486,7 +503,8 @@ subroutine HF_primary_decay_setup(e_in,iproj,itarget,icomp,istate,        &
                      do n_f = nucleus(i_f)%nbin - ibin + 1, 1,-1                    !  loop over final excitation energies
                         e_f = energy-nucleus(icomp)%sep_e(k)-                     &
                               nucleus(i_f)%e_grid(n_f)
-                        if(e_f <= 1.0d-6)cycle
+                        if(e_f - Coulomb_Barrier(k) <= 1.0d-6)cycle
+!                        if(e_f <= 1.0d-6)cycle
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !------    Loop over orbital angular momenta of emitted particle       +
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -547,7 +565,8 @@ subroutine HF_primary_decay_setup(e_in,iproj,itarget,icomp,istate,        &
                      do n_f = 1, num_discrete
                         e_f = energy-nucleus(icomp)%sep_e(k)-                             &
                               nucleus(i_f)%state(n_f)%energy
-                        if(e_f <= 1.0d-6)cycle
+                        if(e_f - Coulomb_Barrier(k) <= 1.0d-6)cycle
+!                        if(e_f <= 1.0d-6)cycle
                         xI_f = nucleus(i_f)%state(n_f)%spin
                         Ix_f = nint(xI_f - nucleus(i_f)%jshift)
                         xj_f_min = abs(xI_f - xI_i)
@@ -887,6 +906,8 @@ subroutine sum_HFden(icomp, xI_i, par, energy, HFden, exp_gamma)
 
    integer(kind=4) :: num_discrete
 
+   real(kind=8) :: xZ_i, xA_i, xZ_part, xA_part
+   real(kind=8) :: Coulomb_Barrier(6)
 
 !--------------------------------------------------------------------
    real(kind=8) :: tco_interpolate
@@ -897,6 +918,19 @@ subroutine sum_HFden(icomp, xI_i, par, energy, HFden, exp_gamma)
    HFden = 0.0d0
    exp_gamma = 0.0d0
    ip_i = (par + 1)/2
+
+   Coulomb_barrier(1:6) = 0.0d0
+   if(Apply_Coulomb_Barrier)then
+      do k = 1, 6
+         xZ_part = real(particle(k)%Z,kind=8)
+         xA_part = real(particle(k)%A,kind=8)
+         xZ_i = real(nucleus(icomp)%Z,kind=8)
+         xA_i = real(nucleus(icomp)%A,kind=8)
+         Coulomb_Barrier(k) = 0.6d0*e_sq*(xZ_i-xZ_part)*xZ_part/               &
+            (1.2d0*((xA_i-xA_part)**(1.0d0/3.0d0) + xA_part**(1.0d0/3.0d0)))
+      end do
+   end if
+
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !---------   Now loop over all nuclei this compound nucleus decays to  +
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -916,7 +950,8 @@ subroutine sum_HFden(icomp, xI_i, par, energy, HFden, exp_gamma)
          do n_f = nucleus(i_f)%nbin,1,-1                                          !  loop over final excitation energies
             e_f = energy - nucleus(icomp)%sep_e(k) -      &
                   nucleus(i_f)%e_grid(n_f)
-            if(e_f <= 1.0d-6)cycle
+            if(e_f - Coulomb_Barrier(k) <= 1.0d-6)cycle
+!            if(e_f <= 1.0d-6)cycle
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !------    Loop over orbital angular momenta of emitted particle       +
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -960,7 +995,8 @@ subroutine sum_HFden(icomp, xI_i, par, energy, HFden, exp_gamma)
 !         do n_f = 1,nucleus(i_f)%num_discrete
             e_f = energy-nucleus(icomp)%sep_e(k) -          &
             nucleus(i_f)%state(n_f)%energy
-            if(e_f <= 1.0d-6)cycle
+            if(e_f - Coulomb_Barrier(k) <= 1.0d-6)cycle
+!            if(e_f <= 1.0d-6)cycle
             xI_f = nucleus(i_f)%state(n_f)%spin
             Ix_f = nint(xI_f - nucleus(i_f)%jshift)
             xj_f_min = abs(xI_f - xI_i)

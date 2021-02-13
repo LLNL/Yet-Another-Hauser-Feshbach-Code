@@ -36,6 +36,7 @@ subroutine pre_equilibrium_1(icomp, istate, in, E_inc,    &
    use variable_kinds
    use options
    use nuclei
+   use channel_info
    use particles_def
    use constants 
    use nodeinfo
@@ -102,6 +103,9 @@ subroutine pre_equilibrium_1(icomp, istate, in, E_inc,    &
    integer(kind=4) :: ifile
    character(len=20) :: outfile
 
+   real(kind=8) :: xZ_i, xA_i, xZ_part, xA_part
+   real(kind=8) :: Coulomb_Barrier(6)
+
 !--------   External Functions   ---------------------------
    real(kind=8) :: compound_cs
    real(kind=8) :: omega2
@@ -116,6 +120,20 @@ subroutine pre_equilibrium_1(icomp, istate, in, E_inc,    &
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !---------------------------    Calculate internal transition rates
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+   Coulomb_barrier(1:6) = 0.0d0
+   if(Apply_Coulomb_Barrier)then
+      do k = 1, 6
+         xZ_part = real(particle(k)%Z,kind=8)
+         xA_part = real(particle(k)%A,kind=8)
+         xZ_i = real(nucleus(icomp)%Z,kind=8)
+         xA_i = real(nucleus(icomp)%A,kind=8)
+         Coulomb_Barrier(k) = 0.6d0*e_sq*(xZ_i-xZ_part)*xZ_part/               &
+            (1.2d0*((xA_i-xA_part)**(1.0d0/3.0d0) + xA_part**(1.0d0/3.0d0)))
+      end do
+   end if
+
    j_max = nucleus(icomp)%j_max
    iproj = projectile%particle_type
    Z = nucleus(icomp)%Z
@@ -187,6 +205,7 @@ subroutine pre_equilibrium_1(icomp, istate, in, E_inc,    &
       if(preeq_fwell == 0 .or. preeq_fwell == 2)Vwell(h) = Well(h,A,E_inc,V1,V3,xK)
       if(preeq_fwell == 1)Vwell(h) = V3
    end do
+
    do pn = p0(1), pn_max
       do pp = p0(2), pp_max
          hn = pn - p0(1)
@@ -196,7 +215,7 @@ subroutine pre_equilibrium_1(icomp, istate, in, E_inc,    &
          p_tot = pn + pp
          h_tot = hn + hp
          n_tot = p_tot + h_tot
-        Lamb_p_p(pn,pp) = 0.0d0
+         Lamb_p_p(pn,pp) = 0.0d0
          Lamb_p_n(pn,pp) = 0.0d0
          Lamb_0_pn(pn,pp) = 0.0d0
          Lamb_0_np(pn,pp) = 0.0d0
@@ -272,8 +291,11 @@ subroutine pre_equilibrium_1(icomp, istate, in, E_inc,    &
             if(k > 0 .and. pn == p0(1) .and. pp == p0(2))cycle        !  only photons as there are no hole states, and thus emission 
                                                                    ! from here is just elastic scattering
             ifinal = nucleus(icomp)%decay_to(kk)
-            z_k=particle(k)%Z
-            n_k=particle(k)%A-z_k
+
+!  write(100,*)'nucleus = ',ifinal
+
+            z_k = particle(k)%Z
+            n_k = particle(k)%A-z_k
             if(pn < max(p0(1),n_k))cycle                                  !  not enough excitons - cycle
             if(pp < max(p0(2),z_k))cycle
             Sep = nucleus(icomp)%sep_e(k)
@@ -303,6 +325,7 @@ subroutine pre_equilibrium_1(icomp, istate, in, E_inc,    &
 
             do m = 1, nbin_end                        !  loop over output energies
                energy = dfloat(m)*de
+               if(energy < Coulomb_Barrier(k))cycle
                Ex_final = Ex_tot - energy - Sep
                if(energy > Ex_tot - nucleus(icomp)%sep_e(k)+0.5d0*de)exit         !  Check if there is enough energy to emit this particle
                Delta = Delta_pre(pn_res,hn,pp_res,hp,Zf,Af,gpf,gnf,Ex_final)
@@ -310,7 +333,7 @@ subroutine pre_equilibrium_1(icomp, istate, in, E_inc,    &
                gpf = aparam_u(Ex_final, gppf, shell, gamma)
                gf = gnf + gpf
                mass_t = nucleus(ifinal)%Mass + ex_final
-               mass_rel=mass_i*mass_t/(mass_t+mass_i)
+               mass_rel = mass_i*mass_t/(mass_t+mass_i)
                sig_inv = 0.0d0
                do ipar = 0, 1                                              !   parity of compound nucleus
                   do j = 0, j_max                                          !   loop over J values
@@ -318,17 +341,23 @@ subroutine pre_equilibrium_1(icomp, istate, in, E_inc,    &
                      sig_inv = sig_inv + compound_cs(energy,ipar,xji,ifinal,1,k)
                   end do
                end do
-               factor1 = (2.0d0*spin_proj+1.0d0)/(pi*hbar_c)**2*mass_rel*barn_eq_fmsq/hbar
+               factor1 = (2.0d0*spin_proj+1.0d0)*mass_rel*barn_eq_fmsq/((pi*hbar_c)**2*hbar)
                factor = factor1*energy*sig_inv
                pn_res = pn - n_k
                pp_res = pp - z_k
                om = omega2(pn_res,hn,pp_res,hp,Zf,Af,gpf,gnf,Ex_final,Delta,h_max,Vwell)
 
                ratio = om/omdenom
-               dWk(pn,pp,m,k) = factor*ratio                                      !   decay rate for each particle type and energy
-              Wk(pn,pp,k) = Wk(pn,pp,k) + dWk(pn,pp,m,k)*de                          !   its integral
+               dWk(pn,pp,m,k) = factor*ratio                              !   decay rate for each particle type and energy
+
+               Wk(pn,pp,k) = Wk(pn,pp,k) + dWk(pn,pp,m,k)*de                          !   its integral
+
+!   write(100,'(4(1x,i4),4(1x,1pe12.5))')pn, pp, k, m,energy, Coulomb_Barrier(k),sig_inv,dWk(pn,pp,m,k)
+
+
             end do
             W(pn,pp) = W(pn,pp) + Wk(pn,pp,k)
+!   write(100,*)'Total = ',W(pn,pp)
          end do
          
          denom = Lamb_p_p(pn,pp) + Lamb_p_n(pn,pp) +                       &
@@ -362,8 +391,8 @@ subroutine pre_equilibrium_1(icomp, istate, in, E_inc,    &
 !-------   Surviving pre-equilibrium flux
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    Pre_Prob(p0(1),p0(2)) = 1.0d0
-   do pn=p0(1), pn_calc
-      do pp=p0(2), pp_calc
+   do pn = p0(1), pn_calc
+      do pp = p0(2), pp_calc
          hn = pn - p0(1)
          if((pn == p0(1) .and. pp == p0(2)) .or. pp < p0(2) .or. pp > pp_max .or. pn > pn_max)cycle
          hp = pp - p0(2)
@@ -373,30 +402,30 @@ subroutine pre_equilibrium_1(icomp, istate, in, E_inc,    &
       end do
    end do
 
-   nucleus(icomp)%PREEQ_cs(in)=0.0d0
-   nucleus(icomp)%PREEQ_part_cs(1:nucleus(icomp)%num_decay,in)=0.0d0
+   nucleus(icomp)%PREEQ_cs(in) = 0.0d0
+   nucleus(icomp)%PREEQ_part_cs(1:nucleus(icomp)%num_decay,in) = 0.0d0
 !
-   stest2=0.0d0
-   sum2=0.0d0
-   pre_eq_cs(0:6)=0.0d0
-   stest=0.0d0
-   do kk=1,nucleus(icomp)%num_decay                       !   Loop over particle allowed to decay from this nucleus
-      k=nucleus(icomp)%decay_particle(kk)
-      z_k=particle(k)%Z
-      n_k=particle(k)%A-z_k
-      ifinal=nucleus(icomp)%decay_to(kk)
+   stest2 = 0.0d0
+   sum2 = 0.0d0
+   pre_eq_cs(0:6) = 0.0d0
+   stest = 0.0d0
+   do kk = 1,nucleus(icomp)%num_decay                       !   Loop over particle allowed to decay from this nucleus
+      k = nucleus(icomp)%decay_particle(kk)
+      z_k = particle(k)%Z
+      n_k = particle(k)%A - z_k
+      ifinal = nucleus(icomp)%decay_to(kk)
       if(k == 0)cycle                                     !  We don't do photons yet
-      e_max = ex_tot-nucleus(icomp)%sep_e(k)
+      e_max = ex_tot - nucleus(icomp)%sep_e(k)
       e_cut = nucleus(ifinal)%level_param(7)
       e_bin = e_max
       nbin_end = min(int(e_bin/de),nucleus(icomp)%nbin_part)
       do m = 0, nbin_end                           !  loop over output energies
          energy = dfloat(m)*de
+         nucleus(icomp)%PREEQ_part_spectrum(kk,m)=0.0d0
          if(energy > ex_tot - nucleus(icomp)%sep_e(k)+de/2.0) exit
          ex_final = ex_tot - energy - nucleus(icomp)%sep_e(k)
          pn_min = max(p0(1),n_k)
          pp_min = max(p0(2),z_k)
-         nucleus(icomp)%PREEQ_part_spectrum(kk,m)=0.0d0
          sum = 0.0d0
          do pn = p0(1), pn_calc
             do pp = p0(2), pp_calc
@@ -430,7 +459,6 @@ subroutine pre_equilibrium_1(icomp, istate, in, E_inc,    &
             end if
          end if
       end do
-
 
       sum = 0.0d0
       do m = 0, nbin_end
