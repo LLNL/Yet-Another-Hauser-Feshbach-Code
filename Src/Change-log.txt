@@ -364,4 +364,10 @@ Version 3.24
     grid if the number of data was exactly a multiple of 10.
 9.  Adjusted Coulomb Barrier limits to help reduce channels that will have 
     extremely small cross sections.
+10. Added check on incident energies to see if the compound system would be
+    excited below the continuous energy grid. If so, the calculation is skipped.
+    This affects loosely bound systems near the drip line where HF is not 
+    really applicable, and for alphas on heavy nuclei where the separation
+    energy is negative, i.e., unbound, and would try to create a compound
+    with negative excitation energy.
 
