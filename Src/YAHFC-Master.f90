@@ -1214,18 +1214,24 @@ program YAHFC_MASTER
 !----   Find bin associated with this energy, not quite as simple as
 !----   it used to be as we are considering the possiblity of unequal bins
             j = 0
+   write(6,*)e_in, e_x
             do i = 1, nucleus(1)%nbin
-               if(e_x >= nucleus(1)%e_grid(i) - nucleus(1)%delta_e(i) .and.   &
-                  e_x < nucleus(1)%e_grid(i) + nucleus(1)%delta_e(i))then
+               if(e_x >= nucleus(1)%e_grid(i) - 0.5d0*nucleus(1)%delta_e(i) .and.   &
+                  e_x < nucleus(1)%e_grid(i) + 0.5d0*nucleus(1)%delta_e(i))then
                   j = i
                   exit
                end if
             end do
+  write(6,*)'Sep_e = ',nucleus(1)%sep_e(projectile%particle_type)
+  write(6,*)'j = ',j,nucleus(1)%e_grid(j),nucleus(1)%e_grid(j),nucleus(1)%e_grid(j)
+  write(6,*)'j = ',j,e_x,nucleus(1)%e_grid(j) - nucleus(1)%delta_e(i),    &
+                     nucleus(1)%e_grid(j) + nucleus(1)%delta_e(i)
             if(j > 0)then
                e_x = nucleus(1)%e_grid(j)
                e_rel = e_x - nucleus(1)%sep_e(projectile%particle_type)
                e_in = e_rel/rel_factor
                projectile%energy(in) = e_in
+  write(6,*)'final',projectile%energy(in)
             else
                e_x = nucleus(1)%e_grid(1)
                e_rel = e_x - nucleus(1)%sep_e(projectile%particle_type)
@@ -1308,10 +1314,10 @@ program YAHFC_MASTER
          end do
          if(min_e < particle(iproj)%min_e)then
             write(6,'(''*********************************************'')')
-            write(6,'(''*  WARNING!WARNING!WARNING!WARNING!WARNING  *'')')
-            write(6,'(''*  Minimum energy projectile is below what  *'')')
+            write(6,'(''*  ERROR!!!  ERROR!!!  ERROR!!!  ERROR!!!   *'')')
+            write(6,'(''*  Minimum energy projectile is below a     *'')')
             write(6,'(''*  safe value. Restart with                 *'')')
-            write(6,'(''*  e_min >= '',1pe15.7,''               *'')')particle(iproj)%min_e
+            write(6,'(''*  e_min >= '',1pe15.7,''                *'')')particle(iproj)%min_e
             write(6,'(''*********************************************'')')
             stop
          end if

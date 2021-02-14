@@ -8,7 +8,7 @@ file u238                       !   output file
 All_gammas 1                    !   use all discrete states with decay path to g.s. or isomer
 target 92 238                   !   Target:  Z_target  A_target
 projectile 0 1                  !   projectile:  Z_proj  A_proj
-max_particle 2 0                !   max # of particle allowed for type - no protons
+max_particle p 0                !   max # of particle allowed for type - no protons
 #
 #----   Do DWBA calculation with FRESCO
 #----   Coupled Channels states are in
