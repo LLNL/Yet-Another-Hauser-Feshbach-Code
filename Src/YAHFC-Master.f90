@@ -4515,9 +4515,7 @@ subroutine EM_str_param(num_comp)
 !--------------------External functions--------------------------------
    real(kind=8) :: EL_f
    real(kind=8) :: ML_f
-
 !-------------------------------------------------------------------------
-
    do i = 1, num_comp
       nucleus(i)%lmax_E = e_l_max                     !   maximum Electro-magnetic multipole 
 !----------------------------------------------------------------------
@@ -4527,7 +4525,7 @@ subroutine EM_str_param(num_comp)
 !--------   Electric dipole strength function
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
       num_res = 0
-      do k = 1,3
+      do k = 1, 3
          if(nucleus(i)%sr_E1(k) > 1.0d-6)num_res = num_res +1
       end do
       nucleus(i)%num_res = num_res
@@ -4592,6 +4590,7 @@ subroutine EM_str_param(num_comp)
          nucleus(i)%sr_M(l_radiation) = 8.0d-4*nucleus(i)%sr_M(l_radiation-1)
       end do
    end do
+
    return
 end subroutine EM_str_param
 !

@@ -397,3 +397,9 @@ Version 3.25
     "call MPI_Abort". It would also be useful to implement an error code system.
     The call to frescox also needs to be parallelized, but this requires 
     modifications to fresco. 
+
+Version 3.26
+1.  Fixed problem with nucleus(i)%nbin_em not being defined, leading to
+    potential runaway writing of the EM strength parameters.
+2.  Fixed error reading in and assigning E1 strength parameters from the
+    "exp" evaluated data file. 

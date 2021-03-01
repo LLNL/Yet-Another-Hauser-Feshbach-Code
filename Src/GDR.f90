@@ -27,28 +27,29 @@ subroutine gdr_param(data_path, len_path, iz, ia, err, grr, srr)
    implicit none
    character(len=200), intent(in) :: data_path      ! path where data files are kept
    integer(kind=4), intent(in) :: len_path             ! length of data_path
-   integer(kind=4), intent(in) :: iz,ia
-   real(kind=8), intent(out) :: err(3),grr(3),srr(3)
+   integer(kind=4), intent(in) :: iz, ia
+   real(kind=8), intent(out) :: err(3), grr(3), srr(3)
+!--------------------------------------------------------------------------
    integer(kind=4) :: i
    integer(kind=4) :: eof
    logical :: found
    integer(kind=4) :: izz,iaa
+   real(kind=8) :: xA, xZ
    character(len=2) :: symbb
-   real(kind=8) :: er1,gr1,sr1,er2,gr2,sr2
-   integer(kind=4) :: iread,jread
-   real(kind=8) :: diff,diffn,diffn_min
-   real(kind=8) :: anat(100)
-   data anat/                                                                         &
-      1.0d0,  4.0d0,  6.9d0,  9.0d0, 10.8d0, 12.0d0, 14.0d0, 16.0d0, 19.0d0, 20.2d0,  &
-     23.0d0, 24.3d0, 27.0d0, 28.1d0, 31.0d0, 32.1d0, 35.5d0, 39.9d0, 39.1d0, 40.1d0,  &
-     45.0d0, 47.9d0, 50.9d0, 52.0d0, 54.9d0, 55.8d0, 58.9d0, 58.7d0, 63.5d0, 65.4d0,  &
-     69.7d0, 72.6d0, 74.9d0, 79.0d0, 79.9d0, 83.8d0, 85.5d0, 87.6d0, 88.9d0, 91.2d0,  &
-     92.9d0, 95.9d0, 98.0d0,101.1d0,102.9d0,106.4d0,107.8d0,112.4d0,114.8d0,118.7d0,  &
-    121.8d0,127.6d0,126.9d0,131.3d0,132.9d0,137.3d0,138.9d0,140.1d0,140.9d0,144.2d0,  &
-    145.0d0,150.4d0,152.0d0,157.3d0,158.9d0,162.5d0,164.9d0,167.3d0,168.9d0,173.0d0,  &
-    175.0d0,189.5d0,180.9d0,183.8d0,186.2d0,190.2d0,192.2d0,195.1d0,197.0d0,200.6d0,  &
-    204.4d0,207.2d0,209.0d0,209.0d0,210.0d0,222.0d0,223.0d0,226.0d0,227.0d0,232.0d0,  &
-    231.0d0,238.0d0,237.0d0,244.0d0,243.0d0,247.0d0,247.0d0,251.0d0,252.0d0,257.0d0/
+   real(kind=8) :: er1, gr1, sr1, er2, gr2, sr2
+   integer(kind=4) :: iread, jread
+!   real(kind=8) :: anat(100)
+!   data anat/                                                                         &
+!      1.0d0,  4.0d0,  6.9d0,  9.0d0, 10.8d0, 12.0d0, 14.0d0, 16.0d0, 19.0d0, 20.2d0,  &
+!     23.0d0, 24.3d0, 27.0d0, 28.1d0, 31.0d0, 32.1d0, 35.5d0, 39.9d0, 39.1d0, 40.1d0,  &
+!     45.0d0, 47.9d0, 50.9d0, 52.0d0, 54.9d0, 55.8d0, 58.9d0, 58.7d0, 63.5d0, 65.4d0,  &
+!     69.7d0, 72.6d0, 74.9d0, 79.0d0, 79.9d0, 83.8d0, 85.5d0, 87.6d0, 88.9d0, 91.2d0,  &
+!     92.9d0, 95.9d0, 98.0d0,101.1d0,102.9d0,106.4d0,107.8d0,112.4d0,114.8d0,118.7d0,  &
+!    121.8d0,127.6d0,126.9d0,131.3d0,132.9d0,137.3d0,138.9d0,140.1d0,140.9d0,144.2d0,  &
+!    145.0d0,150.4d0,152.0d0,157.3d0,158.9d0,162.5d0,164.9d0,167.3d0,168.9d0,173.0d0,  &
+!    175.0d0,189.5d0,180.9d0,183.8d0,186.2d0,190.2d0,192.2d0,195.1d0,197.0d0,200.6d0,  &
+!    204.4d0,207.2d0,209.0d0,209.0d0,210.0d0,222.0d0,223.0d0,226.0d0,227.0d0,232.0d0,  &
+!    231.0d0,238.0d0,237.0d0,244.0d0,243.0d0,247.0d0,247.0d0,251.0d0,252.0d0,257.0d0/
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    jread  =  -1
    do i = 1, 3
@@ -59,18 +60,16 @@ subroutine gdr_param(data_path, len_path, iz, ia, err, grr, srr)
    open(unit=52,                                               &
         file=data_path(1:len_path)//'gdr-parameters-exp.dat',  &
         status='old')
-   diff = 10.
    do i = 1,4
       read(52,*)
    end do
-   diffn_min = 1.0d10
    iread = 0
    found = .false.
    eof = 0
    do while(eof == 0)
       read(52,'(2(1x,i3),1x,a2,6x,6(1x,f6.2))',iostat=eof)             &
            izz,iaa,symbb,er1,sr1,gr1,er2,sr2,gr2
-      iread = iread+1
+      iread = iread + 1
       if(iz == izz .and. ia == iaa)then
          err(1) = er1
          grr(1) = gr1
@@ -91,38 +90,17 @@ subroutine gdr_param(data_path, len_path, iz, ia, err, grr, srr)
          found = .true.
          exit
       end if
-      if(iaa == 0)then                    !   try to find closest nucleus
-         diffn = sqrt(1.5*real(iz-izz)**2+(ia-iaa)**2)
-      else
-         diffn = sqrt(1.5*real(iz-izz)**2+(real(ia)-anat(izz))**2)
-      end if
-      if(diffn < diffn_min)then
-         diffn_min = diffn
-         jread = iread
-      end if
    end do
-   if(.not. found)then
-      rewind(52)
-      do i = 1, 4
-         read(52,*)
-      end do
-      do iread = 1, jread
-         read(52,'(2(1x,i3),1x,a2,6x,6(1x,f6.2))')         &
-             izz,iaa,symbb,er1,sr1,gr1,er2,sr2,gr2
-      end do
-      err(1) = er1
-      grr(1) = gr1
-      srr(1) = sr1
-      err(2) = er2
-      grr(2) = gr2
-      srr(2) = sr2
-   end if
+
+   if(found)return
 
    close(unit=52)
 
-   err(1) = 31.2d0*dfloat(ia)**(-1.d0/3.d0)+20.6d0*dfloat(ia)**(-1.d0/6.d0)
+   xA = real(iA,kind=8)
+   xZ = real(iZ,kind=8)
+   err(1) = 31.2d0*xA**(-1.d0/3.d0)+20.6d0*xA**(-1.d0/6.d0)
    grr(1) = 0.026d0*err(1)**1.91d0
-   srr(1) = 144.0d0*dfloat((ia-iz)*iz)/(dfloat(ia)*3.141593*grr(1))
+   srr(1) = 144.0d0*real((ia-iz)*iz,kind=8)/(xA*3.141593*grr(1))
 end subroutine gdr_param
 !
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

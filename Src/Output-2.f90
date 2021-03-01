@@ -326,12 +326,14 @@ subroutine output_nucleus_data(num_comp, j_max, itarget)
    integer(kind=4) :: lev_below, char_start
    logical :: lprint
    real(kind=8) :: pmode, pe1, pbb
+   integer(kind=4) :: num_points
 !---------   External functions
    real(kind=8) :: spin_fac, parity_fac
    real(kind=8) :: EL_f, EL_trans
    real(kind=8) :: ML_f, ML_trans
 
 !--------------   Start subrotuine
+   num_points = int(30.0d0/de,kind=4) + 1
 
    char_pos='+'
    char_neg='-'
@@ -402,7 +404,7 @@ subroutine output_nucleus_data(num_comp, j_max, itarget)
            particle(k)%name,nucleus(i)%sep_e(k)
       end do
 
-      write(6,*)'Level density information for this compound nucleus - not target'
+!      write(6,*)'Level density information for this compound nucleus - not target'
       if(nucleus(i)%D0exp > 0.0)then
          write(13,'('' Experimental D0   ='',f10.3,'' +/- '',f10.3,'' eV'')')    &
                      nucleus(i)%D0exp,nucleus(i)%dD0exp
@@ -422,7 +424,7 @@ subroutine output_nucleus_data(num_comp, j_max, itarget)
                   nucleus(i)%D1
 
 
-      write(6,*)'Gamma_gamma data for this compound nucleus - not as a target'
+!      write(6,*)'Gamma_gamma data for this compound nucleus - not as a target'
       if(nucleus(i)%Gamma_g >= 0.0d0)write(13,'('' Calcuated Gamma_gamma(l=0)    = '',f12.3,'' meV'')')nucleus(i)%Gamma_g
       if(nucleus(i)%Gamma_g < 0.0d0)write(13,'('' Gamma_gamma(l=0) is NOT CALCULATED; Ex_max < Sn in this run'')')
       if(nucleus(i)%Gamma_g_exp > 0.0d0)then
@@ -453,7 +455,7 @@ subroutine output_nucleus_data(num_comp, j_max, itarget)
                  '1x,''Par'',8x,''T1/2'',6x,'//                        &
                  '''Isomer'')')
       lev_below = 0
-      do k=1,nucleus(i)%num_discrete
+      do k = 1,nucleus(i)%num_discrete
          if(nucleus(i)%state(k)%energy > nucleus(i)%level_param(7)     &
            .and. lev_below == 0)lev_below = 1 
          if(lev_below /= 1)then
@@ -691,8 +693,8 @@ subroutine output_nucleus_data(num_comp, j_max, itarget)
       pe1 = nucleus(i)%level_param(17)
       pbb = nucleus(i)%level_param(18)
 
-      do k=1,nucleus(i)%nbin
-         energy=nucleus(i)%e_grid(k)
+      do k = 1, nucleus(i)%nbin
+         energy = nucleus(i)%e_grid(k)
          sum_rho = 0.0d0
          call rhoe(energy,nucleus(i)%level_param,                      &
                    nucleus(i)%vib_enh,                                 &
@@ -718,8 +720,8 @@ subroutine output_nucleus_data(num_comp, j_max, itarget)
       pe1 = nucleus(i)%level_param(17)
       pbb = nucleus(i)%level_param(18)
 
-      do k=1,nucleus(i)%nbin
-         energy=nucleus(i)%e_grid(k)
+      do k = 1, nucleus(i)%nbin
+         energy = nucleus(i)%e_grid(k)
          sum_rho = 0.0d0
          call rhoe(energy,nucleus(i)%level_param,                      &
                    nucleus(i)%vib_enh,                                 &
@@ -808,6 +810,8 @@ subroutine output_nucleus_data(num_comp, j_max, itarget)
       deallocate(cumm_fit)
       deallocate(elv)
 
+      nucleus(i)%nbin_em = num_points
+
       if(nucleus(i)%e1_model == 1)then
          write(13,'(''E1 model used = '',''Lorenztian'')')
       elseif(nucleus(i)%e1_model == 2)then
@@ -816,7 +820,7 @@ subroutine output_nucleus_data(num_comp, j_max, itarget)
 !------------------------------------------------------------------
       write(13,*)
       write(13,*)'Electric-dipole resonance parameters'
-      do k=1,3
+      do k = 1, 3
          write(13,'(''Mode ='',i2,'//                             &
                     ''' Centroid = '',f12.5,'' MeV'','//          &
                     ''' Width = '',f12.5,'' MeV'','//             &
@@ -827,7 +831,8 @@ subroutine output_nucleus_data(num_comp, j_max, itarget)
              nucleus(i)%sr_E1(k)
             end do
       write(13,'(''E1 strength function'')')
-      write(13,'(2x,''Energy'',11x,''F'',16x,''T'')')
+      write(13,'(''     Energy         F               T'')')
+      write(13,'(''  ---------   -------------   -------------'')')
       l_radiation = 1
       do j = 0, nucleus(i)%nbin_em
          energy = dfloat(j)*de
@@ -852,7 +857,8 @@ subroutine output_nucleus_data(num_comp, j_max, itarget)
                 nucleus(i)%gr_E(l_radiation),                      &
                 nucleus(i)%sr_E(l_radiation)
          write(13,'(''E'',i1,'' Strength function'')')l_radiation
-         write(13,'(2x,''Energy'',11x,''F'',16x,''T'')')
+         write(13,'(''     Energy         F               T'')')
+         write(13,'(''  ---------   -------------   -------------'')')
          do j = 0, nucleus(i)%nbin_em
             energy = dfloat(j)*de
             f_E = EL_f(i, l_radiation, energy, nucleus(i)%sep_e(1))
@@ -877,7 +883,8 @@ subroutine output_nucleus_data(num_comp, j_max, itarget)
                 nucleus(i)%gr_M(l_radiation),                      &
                 nucleus(i)%sr_M(l_radiation)
          write(13,'(''M'',i1,'' Strength function'')')l_radiation
-         write(13,'(2x,''Energy'',11x,''F'',16x,''T'')')
+         write(13,'(''     Energy         F               T'')')
+         write(13,'(''  ---------   -------------   -------------'')')
          do j = 0, nucleus(i)%nbin_em
             energy = dfloat(j)*de
             f_M = ML_f(i, l_radiation, energy)
