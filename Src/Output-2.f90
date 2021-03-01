@@ -311,7 +311,7 @@ subroutine output_nucleus_data(num_comp, j_max, itarget)
    integer(kind=4) :: n_bin
    integer(kind=4) :: numcc
 !---------------------------------------------------------------------
-   integer(kind=4) nfit
+   integer(kind=4) :: nfit
    real(kind=8),allocatable :: cum_rho(:), cumm_fit(:), elv(:)
    real(kind=8) :: energy, prob, prob1(0:60), prob2(0:60)
    real(kind=8) :: rho(0:60,0:1)
@@ -320,13 +320,16 @@ subroutine output_nucleus_data(num_comp, j_max, itarget)
    real(kind=8) :: E0, T, E1
    real(kind=8) :: sum_rho
    real(kind=8) :: K_vib, K_rot
-   character(len=1) char
-   character(len=1) char_pos,char_neg
+   real(kind=8) :: f_E, str_E, f_M, str_M
+   character(len=1) :: char
+   character(len=1) :: char_pos,char_neg
    integer(kind=4) :: lev_below, char_start
-   logical lprint
+   logical :: lprint
    real(kind=8) :: pmode, pe1, pbb
 !---------   External functions
    real(kind=8) :: spin_fac, parity_fac
+   real(kind=8) :: EL_f, EL_trans
+   real(kind=8) :: ML_f, ML_trans
 
 !--------------   Start subrotuine
 
@@ -395,7 +398,7 @@ subroutine output_nucleus_data(num_comp, j_max, itarget)
       end do
       write(13,*)'Particle separation energies '
       do k=1,6
-         write(13,'(2x,a8,1x,''Separation energy = '',f10.3,'' MeV'')') &
+         write(13,'(2x,a8,1x,''Separation energy = '',f10.3,'' MeV'')')          &
            particle(k)%name,nucleus(i)%sep_e(k)
       end do
 
@@ -406,16 +409,16 @@ subroutine output_nucleus_data(num_comp, j_max, itarget)
       else
          write(13,'('' Experimental D0   =  UNAVAILABLE'')')
       end if
-      write(13,'('' Calculated D0     ='',f10.3,'' eV'')')    &
+      write(13,'('' Calculated D0     ='',f10.3,'' eV'')')                       &
                   nucleus(i)%D0
 
       if(nucleus(i)%D1exp > 0.0)then
-         write(13,'('' Experimental D1 ='',f10.3,'' +/- '',f10.3,'' eV'')')    &
+         write(13,'('' Experimental D1 ='',f10.3,'' +/- '',f10.3,'' eV'')')      &
                      nucleus(i)%D1exp,nucleus(i)%dD1exp
       else
          write(13,'('' Experimental D1   =  UNAVAILABLE'')')
       end if
-      write(13,'('' Calculated D1     ='',f10.3,'' eV'')')    &
+      write(13,'('' Calculated D1     ='',f10.3,'' eV'')')                       &
                   nucleus(i)%D1
 
 
@@ -446,12 +449,12 @@ subroutine output_nucleus_data(num_comp, j_max, itarget)
 !------------------------------------------------------------------
       write(13,*)
       write(13,*)'Discrete states used in calculation'
-      write(13,'(''State'',6x,''Energy'',2x,''Spin'','//       &
-                 '1x,''Par'',8x,''T1/2'',6x,'//          &
+      write(13,'(''State'',6x,''Energy'',2x,''Spin'','//               &
+                 '1x,''Par'',8x,''T1/2'',6x,'//                        &
                  '''Isomer'')')
       lev_below = 0
       do k=1,nucleus(i)%num_discrete
-         if(nucleus(i)%state(k)%energy > nucleus(i)%level_param(7)   &
+         if(nucleus(i)%state(k)%energy > nucleus(i)%level_param(7)     &
            .and. lev_below == 0)lev_below = 1 
          if(lev_below /= 1)then
             if(i == itarget .and. k == target%istate)then
@@ -476,13 +479,13 @@ subroutine output_nucleus_data(num_comp, j_max, itarget)
         elseif(lev_below == 1)then
             lev_below = 2
             write(13,'(''   ---------------   Ecut   ---------------------'')')
-            write(13,'(2x,i3,2x,f10.5,1x,f5.1,1x,f3.0,1x,'//        &
-                       '1x,e15.7,1x,l4)')                           &
-              k,                                                    &
-              nucleus(i)%state(k)%energy,                           &
-              nucleus(i)%state(k)%spin,                             &
-              nucleus(i)%state(k)%parity,                           &
-              nucleus(i)%state(k)%t12,                              &
+            write(13,'(2x,i3,2x,f10.5,1x,f5.1,1x,f3.0,1x,'//           &
+                       '1x,e15.7,1x,l4)')                              &
+              k,                                                       &
+              nucleus(i)%state(k)%energy,                              &
+              nucleus(i)%state(k)%spin,                                &
+              nucleus(i)%state(k)%parity,                              &
+              nucleus(i)%state(k)%t12,                                 &
               nucleus(i)%state(k)%isomer
         end if
       end do
@@ -814,65 +817,77 @@ subroutine output_nucleus_data(num_comp, j_max, itarget)
       write(13,*)
       write(13,*)'Electric-dipole resonance parameters'
       do k=1,3
-         write(13,'(''Mode ='',i2,'//                       &
-                    ''' Centroid = '',f12.5,'' MeV'','//    &
-                    ''' Width = '',f12.5,'' MeV'','//       &
-                    ''' Strength = '',f12.5,'' mb'')')      &
-             k,                     &
-             nucleus(i)%er_E1(k),   &
-             nucleus(i)%gr_E1(k),   &
+         write(13,'(''Mode ='',i2,'//                             &
+                    ''' Centroid = '',f12.5,'' MeV'','//          &
+                    ''' Width = '',f12.5,'' MeV'','//             &
+                    ''' Strength = '',f12.5,'' mb'')')            &
+             k,                                                   &
+             nucleus(i)%er_E1(k),                                 &
+             nucleus(i)%gr_E1(k),                                 &
              nucleus(i)%sr_E1(k)
             end do
       write(13,'(''E1 strength function'')')
       write(13,'(2x,''Energy'',11x,''F'',16x,''T'')')
-      do j=0,nucleus(i)%nbin_em
-         energy=dfloat(j)*de
-         write(13,'(1x,f10.5,(2(1x,e15.7)))')      &
-              energy,nucleus(i)%f_E(j,1),nucleus(i)%str_E(j,1)
+      l_radiation = 1
+      do j = 0, nucleus(i)%nbin_em
+         energy = dfloat(j)*de
+         f_E = EL_f(i, l_radiation, energy, nucleus(i)%sep_e(1))
+         str_E = EL_trans(i, l_radiation, energy, nucleus(i)%sep_e(1))
+         write(13,'(1x,f10.5,(2(1x,e15.7)))')                     &
+              energy, f_E, str_E
+!              energy,nucleus(i)%f_E(j,1),nucleus(i)%str_E(j,1)
       end do
 !------------------------------------------------------------------
 !-----------   The other Electric multipoles - 
 !-----------   different because E1 has up to three modes
 !------------------------------------------------------------------
-      do l_radiation=2,nucleus(i)%lmax_E
+      do l_radiation = 2, nucleus(i)%lmax_E
          write(13,*)
-         write(13,'(''Electric-'',i1,'' resonance parameters'')') &
+         write(13,'(''Electric-'',i1,'' resonance parameters'')')  &
             l_radiation
-            write(13,'('' Centroid = '',f12.5,'' MeV'','//        &
-                       ''' Width = '',f12.5,'' MeV'','//          &
-                       ''' Strength = '',e12.6,'' mb'')')         &
-                nucleus(i)%er_E(l_radiation),      &
-                nucleus(i)%gr_E(l_radiation),      &
+            write(13,'('' Centroid = '',f12.5,'' MeV'','//         &
+                       ''' Width = '',f12.5,'' MeV'','//           &
+                       ''' Strength = '',e12.6,'' mb'')')          &
+                nucleus(i)%er_E(l_radiation),                      &
+                nucleus(i)%gr_E(l_radiation),                      &
                 nucleus(i)%sr_E(l_radiation)
          write(13,'(''E'',i1,'' Strength function'')')l_radiation
          write(13,'(2x,''Energy'',11x,''F'',16x,''T'')')
-         do j=0,nucleus(i)%nbin_em
-            energy=dfloat(j)*de
-            write(13,'(1x,f10.5,(20(1x,e15.7)))')     &
-                   energy,                            &
-                   nucleus(i)%f_E(j,l_radiation),     &
-                   nucleus(i)%str_E(j,l_radiation)
+         do j = 0, nucleus(i)%nbin_em
+            energy = dfloat(j)*de
+            f_E = EL_f(i, l_radiation, energy, nucleus(i)%sep_e(1))
+            str_E = EL_trans(i, l_radiation, energy, nucleus(i)%sep_e(1))
+            write(13,'(1x,f10.5,(2(1x,e15.7)))')                   &
+                 energy, f_E, str_E
+!            write(13,'(1x,f10.5,(20(1x,e15.7)))')     &
+!                   energy,                            &
+!                   nucleus(i)%f_E(j,l_radiation),     &
+!                   nucleus(i)%str_E(j,l_radiation)
          end do
       end do
 !------------------------------------------------------------------
-      do l_radiation=1,nucleus(i)%lmax_M
+      do l_radiation = 1, nucleus(i)%lmax_M
          write(13,*)
          write(13,'(''Magnetic-'',i1,'' resonance parameters'')')  &
             l_radiation
-         write(13,'('' Centroid = '',f10.5,'' MeV'','//         &
-                       ''' Width = '',f10.5,'' MeV'','//        &
-                       ''' Strength = '',e12.4,'' mb'')')       &
-                nucleus(i)%er_M(l_radiation),                   &
-                nucleus(i)%gr_M(l_radiation),                   &
+         write(13,'('' Centroid = '',f10.5,'' MeV'','//            &
+                       ''' Width = '',f10.5,'' MeV'','//           &
+                       ''' Strength = '',e12.4,'' mb'')')          &
+                nucleus(i)%er_M(l_radiation),                      &
+                nucleus(i)%gr_M(l_radiation),                      &
                 nucleus(i)%sr_M(l_radiation)
          write(13,'(''M'',i1,'' Strength function'')')l_radiation
          write(13,'(2x,''Energy'',11x,''F'',16x,''T'')')
-         do j=0,nucleus(i)%nbin_em
-            energy=dfloat(j)*de
-            write(13,'(1x,f10.5,(20(1x,e15.7)))')                                    &
-                  energy,                                                            &
-                  nucleus(i)%f_M(j,l_radiation),                                     &
-                  nucleus(i)%str_M(j,l_radiation)
+         do j = 0, nucleus(i)%nbin_em
+            energy = dfloat(j)*de
+            f_M = ML_f(i, l_radiation, energy)
+            str_M = ML_trans(i, l_radiation, energy)
+            write(13,'(1x,f10.5,(2(1x,e15.7)))')                   &
+                 energy, f_M, str_M
+!            write(13,'(1x,f10.5,(20(1x,e15.7)))')                  &
+!                  energy,                                          &
+!                  nucleus(i)%f_M(j,l_radiation),                   &
+!                  nucleus(i)%str_M(j,l_radiation)
          end do
       end do
       if(fission .and. .not. nucleus(i)%fission)then

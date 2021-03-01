@@ -73,17 +73,19 @@ subroutine PREEQ_sample(iproj, in, itarget, istate, e_in, ex_tot,      &
 
 
    real(kind=8) :: dee
-   real(kind=8) :: e_grid, delta_e
 
-   real(kind=8) :: costhp, sinthp, theta_0, phi_0
+!   real(kind=8) :: costhp, sinthp
+   real(kind=8) :: theta_0, phi_0
 
    real(kind=8) :: prob_part(0:6)
    real(kind=8) :: sum_prob
    real(kind=8) :: tally_prob
 
 !--------------------------------    External functions
-   real(kind=8) :: random_64
+!   real(kind=8) :: random_64
+   real(kind=8) :: random_32
    integer(kind=4) :: preeq_l
+   integer(kind=4) :: find_ibin
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !--------------------------------    Start Calculation
 
@@ -123,19 +125,12 @@ subroutine PREEQ_sample(iproj, in, itarget, istate, e_in, ex_tot,      &
 
      xI_i = dfloat(Ix_i) + nucleus(1)%jshift
      par = 2*ip_i - 1
-     ran = random_64(iseed)
+!     ran = random_64(iseed_64)
+     ran = random_32(iseed_32)
      preeq_cs = nucleus(icomp_i)%PREEQ_cs(in)
      k = -1
 
      prob = 0.0d0
-!        do kk = 1, nucleus(icomp_i)%num_decay                       !   Loop over particle allowed to decay from this nucleus
-!           k = nucleus(icomp_i)%decay_particle(kk)
-!           icomp_f = nucleus(icomp_i)%decay_to(kk)
-!           prob = prob + nucleus(icomp_i)%PREEQ_part_cs(kk,in)/preeq_cs
-!           if(ran < prob)exit
-!        end do
-!        tally_prob = 1.0d0
-
 
      if(biased_sampling)then
      prob = 0.0d0
@@ -175,8 +170,8 @@ subroutine PREEQ_sample(iproj, in, itarget, istate, e_in, ex_tot,      &
         if(num_part_type(k) >= max_particle(k))part_fact(k) = 0.0d0
      end if
 
-
-     ran = random_64(iseed)
+!     ran = random_64(iseed_64)
+     ran = random_32(iseed_32)
      preeq_cs_k = nucleus(icomp_i)%PREEQ_part_cs(kk,in)
      e_max = max(ex_tot - nucleus(icomp_i)%sep_e(k),0.0d0)
      nbin_end = min(int(e_max/de),nucleus(icomp_i)%nbin_part)
@@ -193,15 +188,15 @@ subroutine PREEQ_sample(iproj, in, itarget, istate, e_in, ex_tot,      &
 
      e_cut = nucleus(icomp_f)%level_param(7)
 
-
      num_part = 1
 !
 !------   Find angular distribution quantities for pre-equilirum emission
 !------   Finds angle based Kalbach-Mann statistics for pre-equilibrium
 !------   emission
 !
-     part_Ang_data(0:Ang_L_max,num_part) = 0.0d0
+     theta_0 = 0.0d0
 
+     part_Ang_data(0:Ang_L_max,num_part) = 0.0d0
      do nang = 1, num_theta
         call PREEQ_Angular(icomp_i, icomp_f, iproj, e_in, k, energy,            &
                            dim_part, num_part, Ang_L_max, part_Ang_data, x_Ang)
@@ -209,6 +204,7 @@ subroutine PREEQ_sample(iproj, in, itarget, istate, e_in, ex_tot,      &
         extra_angle_data(nang,num_part) = acos(x_Ang)
      end do
      theta_0 = extra_angle_data(1,num_part)
+     phi_0 = two_pi*random_32(iseed_32)
 
 !-----------------------------------------  Find energy bin, or discrete state
 !     ex_min_bin = nucleus(icomp_f)%e_grid(1) - de/2.0d0
@@ -224,20 +220,18 @@ subroutine PREEQ_sample(iproj, in, itarget, istate, e_in, ex_tot,      &
 !----   Now, must search e_grid since we are allowing for the possibility of 
 !----   unequal bins
 !----   start from the bottom
+
         nbin_f = 0
-        do i = 1, nucleus(icomp_f)%nbin
-           e_grid = nucleus(icomp_f)%e_grid(i)
-           delta_e = nucleus(icomp_f)%delta_e(i)
-           if((ex_final >= e_grid - 0.5d0*delta_e) .and.                    &
-              (ex_final < e_grid + 0.5d0*delta_e))then
-              nbin_f = i
-              exit
-           end if
-        end do
+
+        nbin_f = find_ibin(ex_final,icomp_f)
+
 !-------
         if(nbin_f <= 0) nbin_f = 1
         idb = 0
 
+        ex_final = nucleus(icomp_f)%e_grid(nbin_f)
+        energy = ex_tot - ex_final - nucleus(icomp_i)%sep_e(k)
+        if(energy <= 0.0d0)nbin_f = nbin_f -1
         ex_final = nucleus(icomp_f)%e_grid(nbin_f)
         energy = ex_tot - ex_final - nucleus(icomp_i)%sep_e(k)
 
@@ -251,12 +245,15 @@ subroutine PREEQ_sample(iproj, in, itarget, istate, e_in, ex_tot,      &
 
         l_f = preeq_l(l_i, mass_p, E_in, mass_e, energy, theta_0, A_p, A_t)
 
+
         if(l_f > particle(k)%lmax)then
-           write(6,*)'*******  Warning l_f > particle%lmax in PREEQ_samp  ******'
-           write(6,*)'*******  l_f set = particle%lmax                    ******'
-           write(6,*)particle(k)%name
-           write(6,*)energy, theta_0
-           write(6,*)l_i, l_f, particle(k)%lmax
+           if(iproc == 0)then
+              write(6,*)'*******  Warning l_f > particle%lmax in PREEQ_samp  ******'
+              write(6,*)'*******  l_f set = particle%lmax                    ******'
+              write(6,*)particle(k)%name
+              write(6,*)energy, theta_0
+              write(6,*)l_i, l_f, particle(k)%lmax
+           end if
            l_f = particle(k)%lmax
         end if
 
@@ -282,6 +279,7 @@ subroutine PREEQ_sample(iproj, in, itarget, istate, e_in, ex_tot,      &
 !
 !---- Distribute J and parity according to level density
 !
+
         rho_sum = 0.0d0
         do Ix_f = ixI_f_min, ixI_f_max
            rho_sum = rho_sum + nucleus(icomp_f)%bins(Ix_f, ip_f, nbin_f)%rho
@@ -291,7 +289,8 @@ subroutine PREEQ_sample(iproj, in, itarget, istate, e_in, ex_tot,      &
 !---- randomly with probability defined by the density of states
 !----
         if(rho_sum >= 1.0d-6)then
-           ran = random_64(iseed)
+!           ran = random_64(iseed_64)
+           ran = random_32(iseed_32)
            prob = 0.0d0
            do Ix_f = ixI_f_min, ixI_f_max
               prob = prob + nucleus(icomp_f)%bins(Ix_f, ip_f, nbin_f)%rho/rho_sum
@@ -316,8 +315,9 @@ subroutine PREEQ_sample(iproj, in, itarget, istate, e_in, ex_tot,      &
 
      else                         ! Discrete state
 !----- Trap that ex_final is actually greater than e_cut
-!        if(ex_final > e_cut)ex_final = e_cut - de*random_64(iseed)
-        if(ex_final > e_cut)ex_final = e_cut - nucleus(icomp_f)%delta_e(1)*random_64(iseed)
+!        if(ex_final > e_cut)ex_final = e_cut - de*random_64(iseed_64)
+        if(ex_final > e_cut)ex_final = e_cut - nucleus(icomp_f)%delta_e(1)*random_32(iseed_32)
+!        if(ex_final > e_cut)ex_final = e_cut - nucleus(icomp_f)%delta_e(1)*random_64(iseed_64)
 
         dee = 0.5d0*nucleus(icomp_f)%delta_e(1)
         idb = 1
@@ -329,7 +329,8 @@ subroutine PREEQ_sample(iproj, in, itarget, istate, e_in, ex_tot,      &
         end do
         if(frac > 0.0d0)then
            frac=1.0d0/frac
-           ran = random_64(iseed)
+!           ran = random_64(iseed_64)
+           ran = random_32(iseed_32)
            prob = 0.0d0
            do i = 1, nucleus(icomp_f)%num_discrete 
               if(nucleus(icomp_f)%state(i)%energy + dee >= ex_final .and.        &
@@ -372,7 +373,8 @@ subroutine PREEQ_sample(iproj, in, itarget, istate, e_in, ex_tot,      &
         if(l_f == 0)then
            xj_f = particle(k)%spin
         else
-           if(random_64(iseed) <= 0.5)then
+!           if(random_64(iseed_64) <= 0.5)then
+           if(random_32(iseed_32) <= 0.5)then
               xj_f = real(l_f) + particle(k)%spin
            else
               xj_f = real(l_f) - particle(k)%spin
@@ -398,23 +400,11 @@ subroutine PREEQ_sample(iproj, in, itarget, istate, e_in, ex_tot,      &
         part_data(8,num_part) = xj_f
      end if
 
-     costhp = 2.0*random_64(iseed) - 1.0
-     sinthp = sqrt(1.0-costhp**2)
-     phi_0 = two_pi*random_64(iseed)
+!     costhp = 2.0*random_64(iseed_64) - 1.0
+!     costhp = 2.0d0*random_32(iseed_32) - 1.0
+!     sinthp = sqrt(1.0d0-costhp**2)
+!     phi_0 = two_pi*random_64(iseed_64)
 
-!     mass_1 = particle(k)%Mass
-!     if(idb == 0)then
-!        mass_2 = nucleus(icomp_f)%Mass + nucleus(icomp_f)%e_grid(nbin_f)
-!     else
-!        mass_2 = nucleus(icomp_f)%Mass + nucleus(icomp_f)%state(nbin_f)%energy
-!     end if
-!
-!----   Compute energy, angles, all decay data in original COM frame and
-!----   Lab frame. 
-
-!     call Boost_frame(energy, mass_1, mass_2, theta_0, phi_0,                   &
-!                      Boost_Lab, Boost_COM, T_1, theta, phi,                    &
-!                      T_2, T_L, theta_L, phi_L)
 
      part_data(10,num_part) = theta_0
      part_data(11,num_part) = phi_0
@@ -489,10 +479,10 @@ subroutine PREEQ_Angular(icomp_C, icomp_B, iproj, E_A, ieject, E_B,           &
    integer(kind=4) :: numx
    parameter (numx = 200)
 
-   integer(kind=4) :: L
-   real(kind=8) :: xL
+!   integer(kind=4) :: L
+!   real(kind=8) :: xL
 !------------   External functions
-   real(kind=8) :: exp_leg_int
+!   real(kind=8) :: exp_leg_int
    real(kind=8) :: expdev
 !-------------------   Run program
 
@@ -545,16 +535,17 @@ subroutine PREEQ_Angular(icomp_C, icomp_B, iproj, E_A, ieject, E_B,           &
 
    a = 0.04d0*E1*ebp/eap + 1.8d-6*(E1*ebp/eap)**3 +      &
        6.7d-7*Ma*mb*(E3*ebp/eap)**4
+!
+!   if(part_Ang_data(0,num_part) < 1.0d-6)then
+!      part_Ang_data(0,num_part) = 0.5d0
+!      do L = 1, Ang_L_max
+!         xL = real(L,kind=8)
+!         part_Ang_data(L,num_part) = exp_leg_int(L,a)*(2.0d0*xL+1.0d0)/2.0d0
+!      end do
+!   end if
 
-   if(part_Ang_data(0,num_part) < 1.0d-6)then
-      part_Ang_data(0,num_part) = 0.5d0
-      do L = 1, Ang_L_max
-         xL = real(L,kind=8)
-         part_Ang_data(L,num_part) = exp_leg_int(L,a)*(2.0d0*xL+1.0d0)/2.0d0
-      end do
-   end if
-
-   x_Ang = expdev(iseed,a)
+   x_Ang = expdev(iseed_32,a)
+!   x_Ang = expdev(iseed_64,a)
 
    return
 end subroutine PREEQ_Angular
@@ -656,6 +647,10 @@ integer(kind=4) function preeq_l(l_p, mass_p, E_p, mass_e, E_e, theta_e, A_p, A_
    real(kind=8) :: R
    real(kind=8) :: ex1
 !--------------------   Calculation
+   if(E_p < 1.0d-2)then
+      preeq_l = 0
+      return
+   end if
    ex1 = 1.0d0/3.0d0
    R = 1.2*(real(A_p,kind=8)**ex1 + real(A_t,kind=8)**ex1)
    k_p = sqrt(2.0d0*mass_p*E_p)/hbar_c
@@ -686,7 +681,8 @@ end function preeq_l
 !
 !*******************************************************************************
 !
-real(kind=8) function expdev(iseed,a)
+!real(kind=8) function expdev(iseed_64,a)
+real(kind=8) function expdev(iseed_32,a)
 !
 !*******************************************************************************
 !
@@ -712,14 +708,17 @@ real(kind=8) function expdev(iseed,a)
 !
    use variable_kinds
    implicit none
-   integer(kind=int_64), intent(inout) :: iseed
+   integer(kind=int_32), intent(inout) :: iseed_32
+!   integer(kind=int_64), intent(inout) :: iseed_64
    real(kind=8), intent(in) :: a
 !-------------------------
    real(kind=8) dum
-   real(kind=8) random_64
+   real(kind=8) random_32
+!   real(kind=8) random_64
 !------------------------------
- 1 dum = 1.0d0 - random_64(iseed)*(1.0d0-exp(-2.0d0*a))
-   if(dum == 0.0) goto 1
+ 1 dum = 1.0d0 - random_32(iseed_32)*(1.0d0-exp(-2.0d0*a))
+! 1 dum = 1.0d0 - random_64(iseed_64)*(1.0d0-exp(-2.0d0*a))
+   if(dum == 0.0d0) goto 1
    expdev = -log(dum)/a
    expdev = -(expdev - 1.0d0)
    if(abs(expdev) > 1.0d0)goto 1

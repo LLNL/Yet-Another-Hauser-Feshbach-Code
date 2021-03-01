@@ -33,8 +33,8 @@ Delta_e        0.100
 #----   proj_e_file which can have emax < delta_e
 #----   or proj_eminmax  emin, emax, de but emin >= delta_e
 #
-#proj_e_file   elist-e-0.1.input
-proj_eminmax   0.1  20.1  0.2
+proj_e_file   elist-e-0.1.input
+#proj_eminmax   0.1  20.1  0.2
 #
 fit_aparam 1                    !  fit level density a-param to D0
 pair_model 1                    !  use pairing model #1

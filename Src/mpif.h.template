@@ -1,0 +1,18 @@
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!-----------   This is a dummy header file for non-MPI use
+!              This header file is required to make MPI calls
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+  integer(kind=4),parameter :: MPI_INTEGER = 4
+  integer(kind=4),parameter :: MPI_REAL = 4
+  integer(kind=4),parameter :: MPI_REAL8 = 8
+  integer(kind=4),parameter :: MPI_CHARACTER = 4
+  integer(kind=4),parameter :: MPI_LOGICAL = 4
+  integer(kind=4),parameter :: mpi_COMM_world = 0
+  integer(kind=4),parameter :: MPI_SUM = 4
+  integer(kind=4),parameter :: MPI_MODE_CREATE = 0
+  integer(kind=4),parameter :: MPI_MODE_RDWR = 0
+  integer(kind=4),parameter :: MPI_INFO_NULL = 0
+  integer(kind=4),parameter :: MPI_STATUS_SIZE = 1
+  integer(kind=4),parameter :: MPI_OFFSET_KIND = selected_int_kind(8)
+  integer(kind=4),parameter :: MPI_IN_PLACE = 4
+      

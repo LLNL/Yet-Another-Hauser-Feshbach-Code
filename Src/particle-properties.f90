@@ -39,7 +39,8 @@ subroutine particle_data
    particle(-1)%name = 'electron'
    particle(-1)%opt_pot_set = .false.
    particle(-1)%max_opt_pot = -1
-   particle(-1)%om_option = -1  
+   particle(-1)%om_option = -1
+   particle(-1)%nume = 0
 !--------------   photon
    particle(0)%Z = 0
    particle(0)%A = 0
@@ -52,6 +53,7 @@ subroutine particle_data
    particle(0)%opt_pot_set = .false.
    particle(0)%max_opt_pot = -1
    particle(0)%om_option = -1  
+   particle(0)%nume = 0
 !--------------   neutron
    particle(1)%Z = 0
    particle(1)%A = 1
@@ -64,6 +66,7 @@ subroutine particle_data
    particle(1)%opt_pot_set = .false.
    particle(1)%max_opt_pot = 3
    particle(1)%om_option = 0  
+   particle(1)%nume = 0
 !--------------   proton
    particle(2)%Z = 1
    particle(2)%A = 1
@@ -76,6 +79,7 @@ subroutine particle_data
    particle(2)%opt_pot_set = .false.
    particle(2)%max_opt_pot = 3
    particle(2)%om_option = 0  
+   particle(2)%nume = 0
 !--------------   deuteron
    particle(3)%Z = 1
    particle(3)%A = 2
@@ -88,6 +92,7 @@ subroutine particle_data
    particle(3)%opt_pot_set = .false.
    particle(3)%max_opt_pot = 1
    particle(3)%om_option = 0 
+   particle(3)%nume = 0
 !--------------   triton
    particle(4)%Z = 1
    particle(4)%A = 3
@@ -100,6 +105,7 @@ subroutine particle_data
    particle(4)%opt_pot_set = .false.
    particle(4)%max_opt_pot = 1
    particle(4)%om_option = 0 
+   particle(4)%nume = 0
 !--------------   Helium-3
    particle(5)%Z = 2
    particle(5)%A = 3
@@ -112,6 +118,7 @@ subroutine particle_data
    particle(5)%opt_pot_set = .false.
    particle(5)%max_opt_pot = 1
    particle(5)%om_option = 0  
+   particle(5)%nume = 0
 !--------------   Alpha
    particle(6)%Z = 2
    particle(6)%A = 4
@@ -124,6 +131,7 @@ subroutine particle_data
    particle(6)%opt_pot_set = .false.
    particle(6)%max_opt_pot = 1
    particle(6)%om_option = 0  
+   particle(6)%nume = 0
 !--------------   Blank - used for population calculations
    particle(7)%Z = 0
    particle(7)%A = 0
@@ -136,5 +144,6 @@ subroutine particle_data
    particle(7)%opt_pot_set = .false.
    particle(7)%max_opt_pot = 1
    particle(7)%om_option = 0  
+   particle(7)%nume = 0
    return
 end subroutine particle_data

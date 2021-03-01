@@ -1,4 +1,4 @@
-subroutine factorial(lfactc,faclog)
+subroutine log_fact(lfactc, faclog)
 !
 !*******************************************************************************
 !
@@ -33,11 +33,11 @@ subroutine factorial(lfactc,faclog)
       faclog(i) = faclog(i-1) + log(fn)
    end do
    return
-end subroutine factorial
+end subroutine log_fact
 !
 !*******************************************************************************
 !
-real(kind=8) function wignerj(j1,j2,j3,m1,m2,m3)
+real(kind=8) function wigner3j(j1,j2,j3,m1,m2,m3)
 !
 !*******************************************************************************
 !
@@ -63,12 +63,11 @@ real(kind=8) function wignerj(j1,j2,j3,m1,m2,m3)
 !
 !*******************************************************************************
 !
+!----   uses array fact inside module log_factorial
+   use log_factorial
    implicit none
    real(kind=8), intent(in) :: j1, m1, j2, m2, j3, m3
 !-------------------------------------------------------------------
-   integer(kind=4), parameter :: num_fac = 200
-!
-   real(kind=8) :: fact(num_fac)
    real(kind=8) :: x, y, z
 
    integer(kind=4) :: ia, ib, ic, id, ie
@@ -86,11 +85,9 @@ real(kind=8) function wignerj(j1,j2,j3,m1,m2,m3)
    frac(x) = abs(x-int(x)) > 1.0d-10
 !----   Triangle relation to check if angular momenta can couple
    triangle(x,y,z) = frac(x+y+z) .or. x > y+z .or. x < abs(y-z)
-!--------------------------------------------------------------
-!
-   call factorial(num_fac,fact)
 
-   wignerj = 0.0d0
+   wigner3j = 0.0d0
+
    if((m1 + m2 + m3) /= 0.0d0)return    !   check on z-component 
    if(triangle(j3,j1,j2))return            !   angular momenta can't couple
    if(j1 - abs(m1) < 0)return           !   m1 > j1 - not allowed
@@ -145,10 +142,9 @@ real(kind=8) function wignerj(j1,j2,j3,m1,m2,m3)
 
 
    if(abs(s) <= 1.0d-10)then
-      wignerj = 0.0d0
+      wigner3j = 0.0d0
       return
    end if
-
    ih = int(j1 + m1)
    ii = int(j2 - m2)
    ij = int(j3 + m3)
@@ -161,10 +157,10 @@ real(kind=8) function wignerj(j1,j2,j3,m1,m2,m3)
                  fact(ie+1) + fact(im+1) + fact(il+1) - fact(in+1)) -    &
                  (fact(ic-nin+1) + fact(ia+nin+1) + fact(id-nin+1) +     &
                  fact(ib+nin+1) + fact(nin+1) + fact(ie-nin+1))
-   wignerj = phase(i)*exp(xddd)*s
+   wigner3j = phase(i)*exp(xddd)*s
 
    return
-end function wignerj
+end function wigner3j
 !
 !*******************************************************************************
 !
@@ -200,7 +196,7 @@ real(kind=8) function clebr(j1,m1,j2,m2,j3,m3)
 !---------------------------------------------------------------------------
    integer(kind=4) :: i
    integer(kind=4) :: iphase
-   real(kind=8) :: wignerj
+   real(kind=8) :: wigner3j
    real(kind=8) :: phase
 !----  Phase (-1)**i
    phase(i) = (-1.0d0)**i
@@ -208,14 +204,14 @@ real(kind=8) function clebr(j1,m1,j2,m2,j3,m3)
 
    iphase = nint(-j1 + j2 - m3)
 
-   clebr = phase(iphase)*wignerj(j1,j2,j3,m1,m2,-m3)*sqrt(2.0d0*j3+1.0d0)
+   clebr = phase(iphase)*wigner3j(j1,j2,j3,m1,m2,-m3)*sqrt(2.0d0*j3+1.0d0)
 
    return
 end function clebr
 !
 !*******************************************************************************
 !
-real(kind=8) function wig6j(j1,j2,j3,j4,j5,j6)
+real(kind=8) function wigner6j(j1,j2,j3,j4,j5,j6)
 !
 !*******************************************************************************
 !
@@ -240,6 +236,8 @@ real(kind=8) function wig6j(j1,j2,j3,j4,j5,j6)
 !
 !*******************************************************************************
 !
+!----   uses array fact inside module log_factorial
+   use log_factorial
    implicit none
    real(kind=8), intent(in) :: j1, j2, j3, j4, j5, j6
 !---------------------------------------------------------------------------
@@ -249,11 +247,10 @@ real(kind=8) function wig6j(j1,j2,j3,j4,j5,j6)
    real(kind=8) :: xd
    real(kind=8) :: ta, tb, t, s
 
-   real(kind=8) :: x, y, z
+!   integer(kind=4), parameter :: num_fac = 200
+!   real(kind=8) :: fact(num_fac)
 
-   integer(kind=4) :: num_fac
-   parameter (num_fac = 200)
-   real(kind=8) :: fact(num_fac)
+   real(kind=8) :: x, y, z
 !--------------------------------------------------------------
    real(kind=8) :: phase 
    logical :: frac, triangle
@@ -265,9 +262,9 @@ real(kind=8) function wig6j(j1,j2,j3,j4,j5,j6)
    triangle(x,y,z) = frac(x+y+z) .or. x > y+z .or. x < abs(y-z)
 !--------------------------------------------------------------
 !
-   call factorial(num_fac,fact)
-!
-   wig6j = 0.0d0
+!   call log_fact(num_fac,fact)
+
+   wigner6j = 0.0d0
 
    if(triangle(j1,j2,j3))return
    if(triangle(j1,j5,j6))return
@@ -304,21 +301,22 @@ real(kind=8) function wig6j(j1,j2,j3,j4,j5,j6)
    iu = int(j1+j5+j6) + 1
    iv = int(j2+j4+j6) + 1
    iw = int(j3+j4+j5) + 1
-   xd = 0.5d0*(fact(1+ic) + fact(1+ie+ib) + fact(1+ia+ig) +        &
-               fact(1+ie) + fact(1+ib+ic) + fact(1+ia+id) +        &
-               fact(1+ig) + fact(1+ic+ia) + fact(1+id+ib) +        &
-               fact(1+id) + fact(1+ia+ie) + fact(1+ib+ig) -        &
-               fact(1+it) - fact(1+iu) - fact(1+iv)-fact(1+iw)) +  &
-        fact(1+ih-n) - fact(1+n) - fact(1+ia+n) - fact(1+ib+n) -   &
-        fact(1+ic-n) - fact(1+id-n)-fact(1+ie-n)-fact(1+ig-n)
-   wig6j = phase(ih-1)*s*exp(xd)
+
+   xd = 0.5d0*(fact(1+ic) + fact(1+ie+ib) + fact(1+ia+ig) +          &
+               fact(1+ie) + fact(1+ib+ic) + fact(1+ia+id) +          &
+               fact(1+ig) + fact(1+ic+ia) + fact(1+id+ib) +          &
+               fact(1+id) + fact(1+ia+ie) + fact(1+ib+ig) -          &
+               fact(1+it) - fact(1+iu) - fact(1+iv) - fact(1+iw)) +  &
+        fact(1+ih-n) - fact(1+n) - fact(1+ia+n) - fact(1+ib+n) -     &
+        fact(1+ic-n) - fact(1+id-n) - fact(1+ie-n) - fact(1+ig-n)
+   wigner6j = phase(ih-1)*s*exp(xd)
 
    return
-end function wig6j
+end function wigner6j
 !
 !*******************************************************************************
 !
-real(kind=8) function wig9j(j1,j2,j3,j4,j5,j6,j7,j8,j9)
+real(kind=8) function wigner9j(j1,j2,j3,j4,j5,j6,j7,j8,j9)
 !
 !*******************************************************************************
 !
@@ -351,7 +349,7 @@ real(kind=8) function wig9j(j1,j2,j3,j4,j5,j6,j7,j8,j9)
    integer(kind=4) :: k
    integer(kind=4) :: i
    real(kind=8) :: xx, yy, zz
-   real(kind=8) :: wig6j
+   real(kind=8) :: wigner6j
 !------------------------------------------------------------------------
    real(kind=8) :: phase 
    logical :: frac, triangle
@@ -363,7 +361,7 @@ real(kind=8) function wig9j(j1,j2,j3,j4,j5,j6,j7,j8,j9)
    triangle(xx,yy,zz) = frac(xx+yy+zz) .or. xx > yy+zz .or. xx < abs(yy-zz)
 !--------------------------------------------------------------
 !
-   wig9j = 0.0d0
+   wigner9j = 0.0d0
 
    if(triangle(j1,j2,j3))return
    if(triangle(j4,j5,j6))return
@@ -383,15 +381,15 @@ real(kind=8) function wig9j(j1,j2,j3,j4,j5,j6,j7,j8,j9)
 
    do while((x-j1-j9) <= 0.0d0 .and. (x-j4-j8) <= 0.0d0 .and.       &
             (x-j2-j6) <= 0.0d0 )
-      s = s + (2.0d0*x+1.0d0)*wig6j(j1,j9,X,j8,j4,j7)*              &
-          wig6j(j2,j6,X,j4,j8,j5)*wig6j(j1,j9,X,j6,j2,j3)
+      s = s + (2.0d0*x+1.0d0)*wigner6j(j1,j9,X,j8,j4,j7)*              &
+          wigner6j(j2,j6,X,j4,j8,j5)*wigner6j(j1,j9,X,j6,j2,j3)
       x = x + 1.0d0
    end do
 
    k = int(2.0d0*(j1+j2+j4+j6+j8+j9))
-   wig9j = phase(k)*s
+   wigner9j = phase(k)*s
    return
-end function wig9j
+end function wigner9j
 !
 !*******************************************************************************
 !
@@ -426,14 +424,14 @@ real(kind=8) function racahr(j1,j2,j3,j4,j5,j6)
    integer(kind=4) :: i
    real(kind=8) :: z
    real(kind=8) :: phase
-   real(kind=8) :: wig6j
+   real(kind=8) :: wigner6j
 !----   Compute phase (-1)**i
    phase(i) = (-1.0d0)**i
 !--------------------------------------------------------------
 !
    z = abs(j1+j2+j3+j4)
    i = int(z + 0.5d0)
-   racahr = phase(i)*wig6j(j1,j2,j5,j4,j3,j6)
+   racahr = phase(i)*wigner6j(j1,j2,j5,j4,j3,j6)
    return
 end function racahr
 

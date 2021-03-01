@@ -371,3 +371,29 @@ Version 3.24
     energy is negative, i.e., unbound, and would try to create a compound
     with negative excitation energy.
 
+Version 3.25
+1.  Implemented nonequal energy bins with option "use_unequal_bin y". With this
+    option, the base energy scale is E_base=S(projectile) + 2 MeV. A bin width 
+    of de (either default or with option "delta_e de") is used upto E_base, 
+    then 2*de for E_base <= Ex < 2*E_base, 4*de for 2*E_base <= Ex < 4*E_base,
+    and 8*de fpr Ex >= 4*E_base.
+2.  Major cleanup to modularize components of the code. Separate subroutines
+    were implemented to:
+    a.  Print library files 
+    b.  Print particle spectra 
+    c.  Set up of EM strength functions
+    d.  Fit to Gamma_gamma
+3.  Increased efficiency for angular distributions by storing Legendre
+    polynomials in arrays for later use. Used for primary decay, elastic,
+    and all direct and dwba channels.
+4.  Increased efficiency by switching to a 32-bit random number generator (RNG) 
+    where there wouldn't be a significant of accuracy. The 64-bit RNG is used 
+    only to select decays from the HF bins where there are potentially a 
+    large number of possible decays.
+5.  Implemented new option to calculate cross sections on "xs_only y".
+6.  Put in code to do MPI parallelization over the MC sample loop. Majority of
+    reads and writes are restricted to iproc = 0. Still needs to be fully 
+    debugged and numerous "stop" directives need to be replaced with 
+    "call MPI_Abort". It would also be useful to implement an error code system.
+    The call to frescox also needs to be parallelized, but this requires 
+    modifications to fresco. 

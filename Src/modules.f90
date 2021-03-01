@@ -31,23 +31,26 @@ module options
 !*******************************************************************************
 !
    use variable_kinds
-   character(len=132) version
-   parameter (version = 'MC-3.24')
-   integer(kind=int_64) :: iseed
-   integer(kind=4) PREEQ_Model
-   logical analytic_preeq
-   logical fission
-   logical channels
-   logical dump_events
-   logical binary_event_file
-   logical track_gammas, track_primary_gammas
-   logical pop_calc
-   logical j_pop_calc
-   logical fit_Gamma_gamma
-   logical All_gammas
-   logical Out_gammas_vs_E
+   character(len=132) :: version
+   parameter (version = 'MC-3.25')
+   integer(kind=int_64) :: iseed_64
+   integer(kind=int_32) :: iseed_32
+   integer(kind=4) :: PREEQ_Model
+   logical :: analytic_preeq
+   logical :: fission
+   logical :: channels
+   logical :: dump_events
+   logical :: binary_event_file
+   logical :: track_gammas, track_primary_gammas
+   logical :: pop_calc
+   logical :: j_pop_calc
+   logical :: fit_Gamma_gamma
+   logical :: All_gammas
+   logical :: Out_gammas_vs_E
    logical :: explicit_channels
-   logical Preeq_g_a
+   logical :: Preeq_g_a
+   logical :: use_unequal_bins
+   logical :: xs_only
 !-------------------------------------------
    integer(kind=4) :: output_mode
    integer(kind=4) :: preeq_pair_model
@@ -58,12 +61,12 @@ module options
    integer(kind=4) :: write_me
    real(kind=8) :: prob_cut
    real(kind=8) :: pop_check
-   real(kind=8) sig_sum, sig_sumg, sig_sumn, sig_sep_e, sig_in
-   real(kind=8) sigb(3)
-   integer(kind=4) :: numn1, numn2, numn3
+!-rem   real(kind=8) sig_sum, sig_sumg, sig_sumn, sig_sep_e, sig_in
+!-rem   real(kind=8) sigb(3)
+!-rem   integer(kind=4) :: numn1, numn2, numn3
    integer(kind=4) :: part_lmax
    integer(kind=4) :: E1_model
-   integer(kind=4)  e_l_max,m_l_max
+   integer(kind=4)  e_l_max, m_l_max
    character(len=50) ex_pop_file
    integer(kind=4) :: num_pop_e,num_pop
    real(kind=8) :: rho_cut
@@ -126,6 +129,35 @@ module options
    real(kind=8) :: Init_Kinetic_Energy, dInit_Kinetic_Energy
 
 end module options
+!
+!++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!
+module log_factorial
+!
+!*******************************************************************************
+!
+!  Discussion:
+!
+!------  Module containing array storing log factorials
+!
+!  Licensing:
+!
+!    This code is distributed under the GNU LGPL version 2 license. 
+!
+!  Date:
+!
+!    25 September 2019
+!
+!  Author:
+!
+!      Erich Ormand, LLNL
+!
+!*******************************************************************************
+!
+   integer(kind=4), parameter :: num_fac = 200
+   real(kind=8) :: fact(num_fac)
+
+end module log_factorial 
 !
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
@@ -695,7 +727,7 @@ module constants
    real(kind=8) :: fine_structure
    real(kind=8) :: d_zero,d_half,d_one,d_two,d_three,d_four
    real(kind=8) :: factorial(0:50)
-   real(kind=8) :: lfactorial(0:101)
+   real(kind=8) :: lfactorial(0:200)
    real(kind=8) :: g_metric(0:3,0:3)
 end module constants
 !
@@ -787,8 +819,9 @@ module nodeinfo
 !
    use variable_kinds
    implicit none
-   integer(kind=4) :: iproc,nproc,icomm
+   integer(kind=4) :: iproc, nproc, icomm, mpi_error
    integer(kind=4) :: group
+   character(len=8) :: node_name
 end module nodeinfo
 !
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -817,6 +850,7 @@ module print_control
 !
    logical print_output
    logical print_spectra
+   logical print_libraries
 end module print_control
 !
 !*******************************************************************************

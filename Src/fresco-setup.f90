@@ -286,7 +286,7 @@ subroutine make_fresco_tco(data_path, len_path, tco_file, len_tco,       &
   nccba = 0
   ncc = 0
 
-  write(6,*)'Check ',particle(pindex)%do_dwba
+  if(iproc == 0)write(6,*)'Check ',particle(pindex)%do_dwba
 
 
   cc_found = .false.
@@ -295,11 +295,11 @@ subroutine make_fresco_tco(data_path, len_path, tco_file, len_tco,       &
      if(exist_cc_file)then
         ilen_cc_file = index(local_cc_file,' ')-1
         cc_file(1:ilen_cc_file) = local_cc_file(1:ilen_cc_file)
-        write(6,*)'Using local coupled-channels file: ', cc_file(1:ilen_cc_file)
+        if(iproc == 0)write(6,*)'Using local coupled-channels file: ', cc_file(1:ilen_cc_file)
      else
         cc_file = data_path(1:len_path)//'Coupled-Channels.txt'
         ilen_cc_file = index(cc_file,' ')-1
-        write(6,*)'Using system coupled-channels file: ', cc_file(1:ilen_cc_file)
+        if(iproc == 0)write(6,*)'Using system coupled-channels file: ', cc_file(1:ilen_cc_file)
      end if
 
      open(unit = 21,file = cc_file(1:ilen_cc_file),status = 'old')
@@ -428,9 +428,11 @@ subroutine make_fresco_tco(data_path, len_path, tco_file, len_tco,       &
            call parse_string(line, numw, startw, stopw)
            read(line(startw(1):stopw(1)),*)jndex
            if(jndex <= 0)then
-              write(6,*)'Error in coupled channels, this state has an improper cc_index'
-              write(6,'(a)')line(1:stopw(numw))
-              stop
+              if(iproc == 0)then
+                 write(6,*)'Error in coupled channels, this state has an improper cc_index'
+                 write(6,'(a)')line(1:stopw(numw))
+              end if
+              call MPI_Abort(icomm, 101, mpi_error)
            end if
 !-----  See if state in cc list is in calculation
 !-----  Check against all discrete states for target - jndex is index in ensdf evaluated file
@@ -463,7 +465,7 @@ subroutine make_fresco_tco(data_path, len_path, tco_file, len_tco,       &
            read(21,'(a)')line
            call parse_string(line, numw, startw, stopw)
            read(line(startw(1):stopw(1)),*)jndex
-           if(numw < 5)then
+           if(numw < 5 .and. iproc == 0)then
               write(6,*)'Error reading in coupled channels'
               write(6,*)'Not enough entries for DWBA state'
               write(6,*)'This is entry #',i,' in list'
@@ -512,7 +514,10 @@ subroutine make_fresco_tco(data_path, len_path, tco_file, len_tco,       &
                     xJmax = xKK + K_band
                     num_K = nint(xJmax - xJmin) + 1
                     xJmin = xJmin - 1.0d0
-                    if(par_band == -100)stop 'par_band not set correctly'
+                    if(par_band == -100)then
+                       if(iproc == 0)write(6,*)'par_band not set correctly'
+                       call MPI_Abort(icomm, 101, mpi_error)
+                    end if
                     par_state = par_band*(-1)**KK
                     do k = 1, num_K
                        ncount = ncount + 1
@@ -667,7 +672,7 @@ subroutine make_fresco_tco(data_path, len_path, tco_file, len_tco,       &
      particle(pindex)%e_grid(ie) = ener*mass_target/(mass_target + mass_proj)     !   COM frame
      e_lab = ener
      energy(ie) = e_lab                                                           !   Lab frame
-     write(6,*)ie, energy(ie), particle(pindex)%e_grid(ie)
+     if(iproc == 0)write(6,*)ie, energy(ie), particle(pindex)%e_grid(ie)
   end do
 
   Radius = 1.30d0*(A**(1.0d0/3.0d0) + Ap**(1.0d0/3.0d0))
@@ -675,7 +680,7 @@ subroutine make_fresco_tco(data_path, len_path, tco_file, len_tco,       &
 
   particle(pindex)%lmax = lmax
 
-  write(6,*)particle(pindex)%name, 'lmax = ',lmax
+  if(iproc == 0)write(6,*)particle(pindex)%name, 'lmax = ',lmax
 
 
   if(.not.allocated(particle(pindex)%trans_read))                        &
@@ -718,23 +723,25 @@ subroutine make_fresco_tco(data_path, len_path, tco_file, len_tco,       &
   iend_err = len_tco + 15
   err_name(iendf+1:iend_err) = '_fresco_err.out'
 
-  write(6,*)'particle = ',pindex
-  write(6,*)'Optical potential # = ',particle(pindex)%opt_pot
+  if(iproc == 0)then
+     write(6,*)'particle = ',pindex
+     write(6,*)'Optical potential # = ',particle(pindex)%opt_pot
 
-  fresco_dir(1:132) = ' '
-  fresco_dir(1:12) = 'Fresco-files'
+     fresco_dir(1:132) = ' '
+     fresco_dir(1:12) = 'Fresco-files'
 
-  unix_command(1:132) = ' '
-  istart = 1
-  istop = 6
-  unix_command(1:6) = 'mkdir '
-  istart = istop + 1
-  istop = istart + 12
-  unix_command(istart:istop) = fresco_dir(1:12)
+     unix_command(1:132) = ' '
+     istart = 1
+     istop = 6
+     unix_command(1:6) = 'mkdir '
+     istart = istop + 1
+     istop = istart + 12
+     unix_command(istart:istop) = fresco_dir(1:12)
 
-  write(6,*)unix_command(1:istop)
+     write(6,*)unix_command(1:istop)
+     call system(unix_command(1:istop))
 
-  call system(unix_command(1:istop))
+  end if
 
   do ie = 1, nume
      ener = energy(ie)
@@ -788,7 +795,8 @@ subroutine make_fresco_tco(data_path, len_path, tco_file, len_tco,       &
      elseif(ie < 10000)then
         write(fresco_name(iend-3:iend),'(i4)')ie
      else
-        stop 'ie > 9999 cannot run fresco'
+        write(6,*)'ie > 9999 cannot run fresco'
+        call MPI_Abort(icomm, 101, mpi_error)
      end if
 
      len_fresco = iend
@@ -810,7 +818,7 @@ subroutine make_fresco_tco(data_path, len_path, tco_file, len_tco,       &
      if(pindex > 1)then
         r_turn = e_sq*particle(pindex)%Z*real(iZ,kind=8)/ener
         r_nuc = R_pot(1,1)*(A**(1.0d0/3.0d0) + 1.0d0)
-        write(6,*)'r_turn = ',r_turn,' r_nuc = ',r_nuc
+        if(iproc == 0)write(6,*)'r_turn = ',r_turn,' r_nuc = ',r_nuc
      end if
 
      execute_fresco = .true.
@@ -932,74 +940,76 @@ subroutine make_fresco_tco(data_path, len_path, tco_file, len_tco,       &
   tco_name(1:iendf) = fname(1:iendf)
   iend_tco = iendf + 4
 
-  write(6,*)'Writing transmission coefficients'
+  if(iproc == 0)then
+     write(6,*)'Writing transmission coefficients'
 
 !-------    Write transmission coefficients to file for general use later
-  open(unit = 51, file = tco_file(1:len_tco)//'.tcoef', status = 'unknown')
-  title(1:1) = particle(pindex)%label
-  title(2:5) = ' on '
-  iend = 5 + iendf - 1
-  title(6:iend) = tco_file(2:iendf)
-  write(51,'(''# '',a50)')title(1:iend)
-  write(51,'(''# Transmission coefficients computed using FRESCO'')')
-  write(51,'(''# nume = '',i6)')nume
-  write(51,'(''# lmax = '',i6)')particle(pindex)%lmax
-  write(51,'(''# Energy list '')')
-  num_e_lines = nume/10
-  if(10*num_e_lines < nume)num_e_lines = num_e_lines + 1
-  do ll = 1, num_e_lines
-     minl = (ll-1)*10 + 1
-     maxl = min(nume,minl+9)
-     write(51,'(10(1x,1pe16.9))')(particle(pindex)%e_grid(ie),ie = minl, maxl)
-  end do
-  num_l_lines = (particle(pindex)%lmax+1)/10
-  if(10*num_l_lines < particle(pindex)%lmax+1)num_l_lines = num_l_lines + 1
-  do ii = 0, isp_max
-     write(51,'(''# J-L = '',f4.1)')real(ii,kind=8) - spin
-     do ll = 1, num_l_lines
-        minl = (ll-1)*10
-        maxl = min(particle(pindex)%lmax,minl+9)
-        write(51,'(''#          energy'',10(1x,9x,''l = '',i3))')(l,l=minl,maxl)
-        write(51,'(''#----------------'',10(1x,''----------------''))')
-        do ie = 1, nume
-           write(51,'(11(1x,1pe16.9))')particle(pindex)%e_grid(ie),                 &
-                                      (particle(pindex)%trans_read(ie,ii,l),l=minl,maxl)
+     open(unit = 51, file = tco_file(1:len_tco)//'.tcoef', status = 'unknown')
+     title(1:1) = particle(pindex)%label
+     title(2:5) = ' on '
+     iend = 5 + iendf - 1
+     title(6:iend) = tco_file(2:iendf)
+     write(51,'(''# '',a50)')title(1:iend)
+     write(51,'(''# Transmission coefficients computed using FRESCO'')')
+     write(51,'(''# nume = '',i6)')nume
+     write(51,'(''# lmax = '',i6)')particle(pindex)%lmax
+     write(51,'(''# Energy list '')')
+     num_e_lines = nume/10
+     if(10*num_e_lines < nume)num_e_lines = num_e_lines + 1
+     do ll = 1, num_e_lines
+        minl = (ll-1)*10 + 1
+        maxl = min(nume,minl+9)
+        write(51,'(10(1x,1pe16.9))')(particle(pindex)%e_grid(ie),ie = minl, maxl)
+     end do
+     num_l_lines = (particle(pindex)%lmax+1)/10
+     if(10*num_l_lines < particle(pindex)%lmax+1)num_l_lines = num_l_lines + 1
+     do ii = 0, isp_max
+        write(51,'(''# J-L = '',f4.1)')real(ii,kind=8) - spin
+        do ll = 1, num_l_lines
+           minl = (ll-1)*10
+           maxl = min(particle(pindex)%lmax,minl+9)
+           write(51,'(''#          energy'',10(1x,9x,''l = '',i3))')(l,l=minl,maxl)
+           write(51,'(''#----------------'',10(1x,''----------------''))')
+           do ie = 1, nume
+              write(51,'(11(1x,1pe16.9))')particle(pindex)%e_grid(ie),                 &
+                                         (particle(pindex)%trans_read(ie,ii,l),l=minl,maxl)
+           end do
         end do
      end do
-  end do
-  close(unit=51)
+     close(unit=51)
 
 
-  if(pindex == iproj .and. .not. pop_calc)then
-     open(unit = 12, file = tco_file(1:len_tco)//'-CC.data', status = 'unknown')
+     if(pindex == iproj .and. .not. pop_calc)then
+        open(unit = 12, file = tco_file(1:len_tco)//'-CC.data', status = 'unknown')
 
-     write(12,'(3(1x,i5),1x,f10.4)')nume, nex, Ang_L_max
+        write(12,'(3(1x,i5),1x,f10.4)')nume, nex, Ang_L_max
 
-     do n = 1, nex
-        write(12,'(2(1x,i5),1x,f4.1,1x,f4.1,1x,f4.1,1x,f8.4,1x,i6)')                &
-              n, cc_index(n), cc_state_j(n),                                        &
-              real(cc_state_par(n),kind=8), real(cc_state_K(n),kind=8),             &
-              cc_state_e(n), cc_state_type(n)
-     end do
-
-     num_l_lines = (nex+1)/10
-     if(10*num_l_lines /= nex)num_l_lines = num_l_lines + 1
-     do ll = 1, num_l_lines
-        minl = (ll-1)*10+1
-        maxl = min(nex,minl+9)
-        write(12,'(''#         energy'',10(1x,8x,''n = '',i3))')(l,l=minl,maxl)
-        do ie = 1, nume
-           write(12,'(1x,e15.7,10(1x,(e15.7)))')energy(ie),(optical_cs(ie,n),n = minl,maxl)
+        do n = 1, nex
+           write(12,'(2(1x,i5),1x,f4.1,1x,f4.1,1x,f4.1,1x,f8.4,1x,i6)')                &
+                 n, cc_index(n), cc_state_j(n),                                        &
+                 real(cc_state_par(n),kind=8), real(cc_state_K(n),kind=8),             &
+                 cc_state_e(n), cc_state_type(n)
         end do
-     end do
 
-     do n = 1, nex
-        write(12,'(1x,i5,1x,i5)')n,Ang_L_max
-        do ie = 1, nume
-           write(12,'(1x,e15.7,50(1x,e15.7))')energy(ie),(optical_leg(ie,l,n),l = 0, Ang_L_max)
+        num_l_lines = (nex+1)/10
+        if(10*num_l_lines /= nex)num_l_lines = num_l_lines + 1
+        do ll = 1, num_l_lines
+           minl = (ll-1)*10+1
+           maxl = min(nex,minl+9)
+           write(12,'(''#         energy'',10(1x,8x,''n = '',i3))')(l,l=minl,maxl)
+           do ie = 1, nume
+              write(12,'(1x,e15.7,10(1x,(e15.7)))')energy(ie),(optical_cs(ie,n),n = minl,maxl)
+           end do
         end do
-     end do
-     close(unit=12)
+
+       do n = 1, nex
+           write(12,'(1x,i5,1x,i5)')n,Ang_L_max
+           do ie = 1, nume
+              write(12,'(1x,e15.7,50(1x,e15.7))')energy(ie),(optical_leg(ie,l,n),l = 0, Ang_L_max)
+           end do
+        end do
+        close(unit=12)
+     end if
   end if
 
 !------------------------------------------------------------------------------------------

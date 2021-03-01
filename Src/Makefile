@@ -36,25 +36,37 @@ level-density.o            \
 Moldauer-WF.o              \
 optical-setup.o            \
 Output-2.o                 \
+print-spectra.o            \
+print-library-data.o       \
 parse-command.o            \
 particle-properties.o      \
 pre-equilibrium-1.o        \
 PREEQ-Samp.o               \
-random-64.o                \
+random.o                   \
 range_char.o               \
-spectrum.o
-
+spectrum.o                 
 
 %.o : %.f90 $(DEPS)
 	$(F90COMPILER) -c $(F90CFLAGS) $(<F)  
 
-%.o : %.f
+%.o : %.f $(DEPS)
 	$(F77COMPILER) -c $(F77CFLAGS) $(<F)  
 
-YAHFC : $(HAUSER_OBJECTS)
-	$(F90COMPILER) -o $@.x $(HAUSER_OBJECTS) $(LFLAGS) $(DPLIBS)
+default: $(HAUSER_OBJECTS) $(MPI_OBJECTS)
+	$(F90) -o $(EX).x $(HAUSER_OBJECTS) $(MPI_OBJECTS) $(LFLAGS) $(DPLIBS)
+
+YAHFC:
+	cp mpif.h.template mpif.h
+	$(MAKE) F90=$(F90COMPILER) MPI_OBJECTS=dummy_MPI_libs.o EX=$@
+	rm mpif.h
 	cp $@.x $(YAHFC_BIN_DIR)/.
 
+#YAHFC : $(HAUSER_OBJECTS) $(DUMMY_MPI)
+#	cp mpif.h.template mpif.h
+#	$(F90COMPILER) -o $@.x $(HAUSER_OBJECTS) $(DUMMY_MPI) $(LFLAGS) $(DPLIBS)
+#	rm mpif.h
+#	cp $@.x $(YAHFC_BIN_DIR)/.
+
 clean :
-	rm *.o *.mod 
+	rm *.o *.mod *.x mpif.h
 

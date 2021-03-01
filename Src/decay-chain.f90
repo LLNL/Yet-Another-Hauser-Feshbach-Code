@@ -251,10 +251,11 @@ subroutine set_up_decay_chain(Z_p, A_p, Z_t, A_t, num_comp)
 !--------------------------------------!
 !------    Allocate Exit channles      !
 !--------------------------------------!
-   if(.not.allocated(Exit_channel))then
-      allocate(Exit_channel(num_channels))
+   if(.not.allocated(Exit_Channel))then
+      allocate(Exit_Channel(num_Channels))
    else
-      stop 'channels already allocated'
+      if(iproc == 0)write(6,*)'channels already allocated'
+      call MPI_Abort(icomm, 101, mpi_error)
    end if
 
 !--------------------------------------!
@@ -386,37 +387,37 @@ subroutine set_up_decay_chain(Z_p, A_p, Z_t, A_t, num_comp)
                         call make_channels(num, nump, inuc, ichannel)
                      else
                         ichannel = ichannel + 1
-                        Exit_channel(ichannel)%Channel_code = -1
-                        Exit_channel(ichannel)%Final_nucleus = inuc
-                        Exit_channel(ichannel)%Channel_Label(1:100) = ' '
+                        Exit_Channel(ichannel)%Channel_code = -1
+                        Exit_Channel(ichannel)%Final_nucleus = inuc
+                        Exit_Channel(ichannel)%Channel_Label(1:100) = ' '
                         istart = 1
                         ifinish = istart
-                        Exit_channel(ichannel)%Channel_Label(1:1) = 'g'
+                        Exit_Channel(ichannel)%Channel_Label(1:1) = 'g'
                         Exit_Channel(ichannel)%num_part(1:6) = 0
                         channel_code = 0
                         do k = 1, 6
                            Exit_Channel(ichannel)%num_part(k) = nump(k)
-                           Exit_channel(ichannel)%num_particles = Exit_channel(ichannel)%num_particles + &
+                           Exit_Channel(ichannel)%num_particles = Exit_Channel(ichannel)%num_particles + &
                                nump(k)
                            if(nump(k) == 0)cycle
                            if(nump(k) > 9)then
                               ifinish = istart + 1
-                              write(Exit_channel(ichannel)%Channel_Label(istart:ifinish),           &
+                              write(Exit_Channel(ichannel)%Channel_Label(istart:ifinish),           &
                                     '(i2)')nump(k)
                               istart = ifinish + 1
                            elseif(nump(k) > 1)then
                               ifinish = istart
-                              write(Exit_channel(ichannel)%Channel_Label(istart:ifinish),           &
+                              write(Exit_Channel(ichannel)%Channel_Label(istart:ifinish),           &
                                     '(i1)')nump(k)
                               istart = ifinish + 1
                            end if
                            ifinish = istart
-                           Exit_channel(ichannel)%Channel_Label(istart:ifinish) = particle(k)%label
+                           Exit_Channel(ichannel)%Channel_Label(istart:ifinish) = particle(k)%label
                            istart = istart + 1
                            channel_code = ior(channel_code,ishft(int(nump(k),kind=8),(k-1)*5))
                         end do
-                        Exit_channel(ichannel)%Channel_code = channel_code
-!           write(6,*)ichannel,Exit_channel(ichannel)%Channel_Label(1:ifinish)
+                        Exit_Channel(ichannel)%Channel_code = channel_code
+!           write(6,*)ichannel,Exit_Channel(ichannel)%Channel_Label(1:ifinish)
                      end if
                   end do
                end do
@@ -435,7 +436,7 @@ subroutine set_up_decay_chain(Z_p, A_p, Z_t, A_t, num_comp)
 !----    Reset max_particle to reflect those actually encountered in the decay chains
    do i = 1, num_channels
       do k = 1, 6
-         max_particle(k) = max(Exit_channel(i)%num_part(k),max_particle(k))
+         max_particle(k) = max(Exit_Channel(i)%num_part(k),max_particle(k))
       end do
    end do
 
@@ -631,11 +632,11 @@ subroutine make_channels(num_part_tot, num_part, inuc, ichannel)
    if(nloops == 0)then
       ichannel = ichannel + 1
       channel_code = 0
-      Exit_channel(ichannel)%Channel_code = channel_code
-      Exit_channel(ichannel)%num_particles = num_part_tot
-      Exit_channel(ichannel)%Channel_Label(1:100) = ' '
-      Exit_channel(ichannel)%Channel_Label(1:1) = 'g'   
-      Exit_channel(ichannel)%Final_nucleus = inuc
+      Exit_Channel(ichannel)%Channel_code = channel_code
+      Exit_Channel(ichannel)%num_particles = num_part_tot
+      Exit_Channel(ichannel)%Channel_Label(1:100) = ' '
+      Exit_Channel(ichannel)%Channel_Label(1:1) = 'g'   
+      Exit_Channel(ichannel)%Final_nucleus = inuc
       return
    end if
 
@@ -664,21 +665,21 @@ subroutine make_channels(num_part_tot, num_part, inuc, ichannel)
       if(.not. too_many)then
          ichannel = ichannel + 1
          do k = 1, 6
-            Exit_channel(ichannel)%num_part(k) = num_part(k)
+            Exit_Channel(ichannel)%num_part(k) = num_part(k)
          end do
          channel_code = 0
          do n = 1, nloops
             channel_code = ior(channel_code,ishft(int(idex(n),kind=8),(n-1)*3))
          end do
-         Exit_channel(ichannel)%Channel_code = channel_code
-         Exit_channel(ichannel)%num_particles = num_part_tot
-         Exit_channel(ichannel)%Channel_Label(1:100) = ' '
-         allocate(Exit_channel(ichannel)%decay_particles(num_part_tot))
+         Exit_Channel(ichannel)%Channel_code = channel_code
+         Exit_Channel(ichannel)%num_particles = num_part_tot
+         Exit_Channel(ichannel)%Channel_Label(1:100) = ' '
+         allocate(Exit_Channel(ichannel)%decay_particles(num_part_tot))
          do n = 1, nloops
-            Exit_channel(ichannel)%decay_particles(n) = idex(n)
+            Exit_Channel(ichannel)%decay_particles(n) = idex(n)
             Exit_Channel(ichannel)%Channel_Label(n:n) = particle(idex(n))%label
          end do
-         Exit_channel(ichannel)%Final_nucleus = inuc
+         Exit_Channel(ichannel)%Final_nucleus = inuc
       end if        
       idex(nloops) = idex(nloops) + 1
       do n = nloops, 2, -1

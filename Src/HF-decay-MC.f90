@@ -78,6 +78,7 @@
 !----------   External Functions
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ 
    real(kind=8) :: random_64
+   real(kind=8) :: random_32
 !-----------------    Data stored for each event
 !-----   part_data(1,num_part) = icomp_f
 !-----   part_data(2,num_part) = k             !--------   Type of particle emitted
@@ -118,7 +119,8 @@
 !--------  First, check which nucleus it decays to
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-   prob = random_64(iseed)                !  starting probability
+!   prob = random_64(iseed_64)                !  starting probability
+   prob = random_32(iseed_32)                !  starting probability
 
    if1 = 0
    icomp_f = icomp_i
@@ -222,7 +224,7 @@
    end if
 
 
-   prob = random_64(iseed)
+   prob = random_64(iseed_64)
 
    call find_prob(nucleus(icomp_i)%bins(Ix_i,ip_i,nbin_i)%nuke_decay(if1)%num_decay,     &
                   nucleus(icomp_i)%bins(Ix_i,ip_i,nbin_i)%nuke_decay(if1)%decay_prob,    &
@@ -311,13 +313,23 @@
       part_data(8,num_part) = xj_f
    end if
 
-   do nang = 1, num_theta
-      costhp = 2.0d0*random_64(iseed) - 1.0d0
-      if(abs(costhp) > 1.0d0)stop 'cos(theta) wrong in MC_decay_bin'
-      extra_angle_data(nang,num_part) = acos(costhp)
-   end do
-   theta_0 = extra_angle_data(1,num_part)
-   phi_0 = two_pi*random_64(iseed)
+   theta_0 = 0.0d0
+   phi_0 = 0.0d0
+
+   if(.not. xs_only)then
+      do nang = 1, num_theta
+!         costhp = 2.0d0*random_64(iseed_64) - 1.0d0
+         costhp = 2.0d0*random_32(iseed_32) - 1.0d0
+         if(abs(costhp) > 1.0d0)then
+            write(6,*)'cos(theta) wrong in MC_decay_bin'
+            call MPI_Abort(icomm, 101, mpi_error)
+         end if
+         extra_angle_data(nang,num_part) = acos(costhp)
+      end do
+      theta_0 = extra_angle_data(1,num_part)
+      phi_0 = two_pi*random_32(iseed_32)
+!     phi_0 = two_pi*random_64(iseed_64)
+   end if
 
    part_data(9,num_part)  = e_f
    part_data(10,num_part) = theta_0
@@ -414,7 +426,8 @@
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !----------   External Functions
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ 
-   real(kind=8) :: random_64
+!   real(kind=8) :: random_64
+   real(kind=8) :: random_32
 
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !----------   Start Program
@@ -439,7 +452,8 @@
    end if
    if(istate == 1 .or. nucleus(icomp_i)%state(istate)%isomer) return
 
-   prob = random_64(iseed)
+   prob = random_32(iseed_32)
+!   prob = random_64(iseed_64)
 !    write(46,'(1x,e30.16)')prob
 !    flush(46)
 
@@ -479,13 +493,23 @@
       part_data(7,num_part) = real(l,kind=8)
       part_data(8,num_part) = real(iss,kind=8)
 
-      do nang = 1, num_theta
-         costhp = 2.0d0*random_64(iseed) - 1.0d0
-         if(abs(costhp) > 1.0d0)stop 'cos(theta) wrong in MC_decay_state'
-         extra_angle_data(nang,num_part) = acos(costhp)
-      end do
-      theta_0 = extra_angle_data(1,num_part)
-      phi_0 = two_pi*random_64(iseed)
+      theta_0 = 0.0d0
+      phi_0 = 0.0d0
+
+      if(.not. xs_only)then
+         do nang = 1, num_theta
+!            costhp = 2.0d0*random_64(iseed_64) - 1.0d0
+            costhp = 2.0d0*random_32(iseed_32) - 1.0d0
+            if(abs(costhp) > 1.0d0)then
+               write(6,*) 'cos(theta) wrong in MC_decay_state'
+               call MPI_Abort(icomm, 101, mpi_error)
+            end if
+            extra_angle_data(nang,num_part) = acos(costhp)
+         end do
+         theta_0 = extra_angle_data(1,num_part)
+         phi_0 = two_pi*random_32(iseed_32)
+!         phi_0 = two_pi*random_64(iseed_64)
+      end if
 
       part_data(9,num_part) = e_gamma
       part_data(10,num_part) = theta_0
@@ -521,7 +545,8 @@
       if(prob <= check) exit
    end do
 
-   prob = random_64(iseed)
+!   prob = random_64(iseed_64)
+   prob = random_32(iseed_32)
    if(prob <= nucleus(icomp_i)%state(istate)%p_gamma(j))then   !  Gamma decay
       k = 0
       if(track_gammas)then
@@ -559,10 +584,12 @@
    part_data(7,num_part) = real(l,kind=8)
    part_data(8,num_part) = real(iss,kind=8)
 
-   costhp = 2.0d0*random_64(iseed) - 1.0d0
+!   costhp = 2.0d0*random_64(iseed_64) - 1.0d0
+   costhp = 2.0d0*random_32(iseed_32) - 1.0d0
    if(abs(costhp) > 1.0d0)stop 'cos(theta) wrong in MC_decay_state #2'
    theta_0 = acos(costhp)
-   phi_0 = two_pi*random_64(iseed)
+   phi_0 = two_pi*random_32(iseed_32)
+!   phi_0 = two_pi*random_64(iseed_64)
 
 
    part_data(9,num_part) = e_gamma
@@ -771,7 +798,9 @@
                                n_dat, dim_part, num_part_type, part_fact,  &
                                num_part, part_data,                        &
                                Ang_L_max, part_Ang_data,                   &
-                               ixx_max, delta_x, num_theta, extra_angle_data)
+                               ixx_max, delta_x, Leg_poly,                 &
+!                               ixx_max, delta_x,                           &
+                               num_theta, extra_angle_data)
 !
 !*******************************************************************************
 !
@@ -807,7 +836,6 @@
 !----------   Passed Data
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ 
 !-----------  Input  ------------------------------------------------
-!   integer(kind=4) :: iseed
    integer(kind=4), intent(in) :: iproj
    real(kind=8), intent(in) :: spin_target
    integer(kind=4), intent(in) :: l_i, is_i, Ix_i, icomp_i
@@ -822,6 +850,7 @@
    real(kind=8), intent(inout) :: part_Ang_data(0:Ang_L_max,dim_part)
    integer(kind=4), intent(in) :: ixx_max
    real(kind=8), intent(in) :: delta_x
+   real(kind=8), intent(in) :: Leg_poly(0:Ang_L_max,0:ixx_max)
    integer(kind=4), intent(in) :: num_theta
    real(kind=8), intent(inout) :: extra_angle_data(3*num_theta,dim_part)
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -842,21 +871,23 @@
    real(kind=8) :: spin_proj, spin_eject, spin_target_4
    integer(kind=4) :: L_ang, max_L
    real(kind=8) :: factor
-   real(kind=8) :: x, x1, check, sum, ran
+   real(kind=8) :: x, check, sum, ran
+!   real(kind=8) :: x, x1, check, sum, ran
 
    real(kind=8) :: theta_0, phi_0
    integer(kind=4) :: nang
 
    real(kind=8) :: tally_prob
    real(kind=8) :: xnnn
-   real(kind=8) :: alf, bet
+!   real(kind=8) :: alf, bet
 
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !----------   External Functions
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ 
+   real(kind=8) :: random_32
    real(kind=8) :: random_64
    real(kind=8) :: racahr
-   real(kind=8) :: poly
+!   real(kind=8) :: poly
 
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !----------   Start Program
@@ -875,7 +906,8 @@
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !--------  First, check which nucleus it decays to
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   prob = random_64(iseed)                !  starting probability
+!   prob = random_64(iseed_64)                !  starting probability
+   prob = random_32(iseed_32)                !  starting probability
 
    if1 = 0
    icomp_f = icomp_i
@@ -888,7 +920,8 @@
       end do
    else
       xnnn = Channel(l_i,is_i,Ix_i)%num_decay
-      if1 = int(random_64(iseed)*xnnn) + 1
+      if1 = int(random_32(iseed_32)*xnnn) + 1
+!      if1 = int(random_64(iseed_64)*xnnn) + 1
       tally_prob = Channel(l_i,is_i,Ix_i)%Channel_prob(if1)
       if(if1 > 1) tally_prob = tally_prob - Channel(l_i,is_i,Ix_i)%Channel_prob(if1-1)
       tally_prob = tally_prob*xnnn
@@ -934,7 +967,7 @@
    end if
 
 
-   prob = random_64(iseed)
+   prob = random_64(iseed_64)
    call find_prob(Channel(l_i,is_i,Ix_i)%Channel_decay(if1)%num_decay,     &
                   Channel(l_i,is_i,Ix_i)%Channel_decay(if1)%decay_prob,    &
                   prob, idex)
@@ -975,7 +1008,7 @@
    part_data(5,num_part) = real(nbin_f,kind=8)
    part_data(6,num_part) = real(idb,kind=8)
    part_data(7,num_part) = real(l_f,kind=8)
-   if( k == 0)then
+   if(k == 0)then
       part_data(8,num_part) = real(iss,kind=8)
    else
       part_data(8,num_part) = xj_f
@@ -984,7 +1017,8 @@
    part_Ang_data(0:0:Ang_L_max,num_part) = 0.0d0
 
    part_Ang_data(0,num_part) = 0.5d0
-   ran = random_64(iseed)
+!   ran = random_64(iseed_64)
+   ran = random_32(iseed_32)
 
    max_L = 0
 
@@ -997,52 +1031,55 @@
                (2.0d0*xj_f+1.0d0)*(2.0d0*xl_f+1.0d0)*0.5d0
       xl_f = l_f
       do L_ang = 2, max_L, 2
+         part_Ang_data(L_ang,num_part) = 1.0d-3
          xL_ang = L_ang
          part_Ang_data(L_ang,num_part) =                                 &
             factor*                                                      &
             clb_l(L_ang,l_i)*clb_l(L_ang,l_f)*                           &
-            racahr(xI_i,xj_i,xI_i,xj_i,spin_target_4,xl_Ang)*            &
-            racahr(xj_i,xj_i,xl_i,xl_i,xl_Ang,spin_proj)*                &
-            racahr(xI_i,xj_f,xI_i,xj_f,xI_f,xl_Ang)*                     &
-            racahr(xj_f,xj_f,xl_f,xl_f,xl_Ang,spin_eject)
+            racahr(xI_i,xj_i,xI_i,xj_i,spin_target_4,xL_Ang)*            &
+            racahr(xj_i,xj_i,xl_i,xl_i,xL_Ang,spin_proj)*                &
+            racahr(xI_i,xj_f,xI_i,xj_f,xI_f,xL_Ang)*                     &
+            racahr(xj_f,xj_f,xl_f,xl_f,xL_Ang,spin_eject)
       end do
    end if
 
-   do nang = 1, num_theta
-      if(k == 0)then
-         x = 2.0d0*random_64(iseed) - 1.0d0
-      else
-         alf = 0.0d0
-         bet = 0.0d0
-         check = 0.0d0
-         x = -1.0d0
-         do i = 1, ixx_max
-            x = real(i,kind=8)*delta_x - 1.0d0
-            x1 = x - delta_x
-            sum = 0.5d0*(poly(0,1,alf,bet,x) + poly(0,1,alf,bet,x1))
-            do L_ang = 2, max_L,2
-               sum = sum + part_Ang_data(L_ang,num_part)*                          &
-                          (poly(L_ang,1,alf,bet,x) + poly(L_ang,1,alf,bet,x1))
+   theta_0 = 0.0d0
+   phi_0 = 0.0d0
+
+   if(.not. xs_only)then
+      do nang = 1, num_theta
+         if(k == 0)then
+!            x = 2.0d0*random_64(iseed_64) - 1.0d0
+            x = 2.0d0*random_32(iseed_32) - 1.0d0
+         else
+            check = 0.0d0
+            do i = 1, ixx_max
+               x = real(i,kind=8)*delta_x - 1.0d0
+               sum = 0.5d0*(Leg_poly(0,i) + Leg_poly(0,i-1))
+               do L_ang = 2, max_L, 2
+                  sum = sum + part_Ang_data(L_ang,num_part)*                          &
+                             (Leg_poly(L_ang,i) + Leg_poly(L_ang,i-1))
+               end do
+               check = check + 0.5d0*sum*delta_x
+               if(check >= ran)exit
             end do
-            check = check + 0.5d0*sum*delta_x
-            x = x - random_64(iseed)*delta_x*0.9999999d0
-            if(check >= ran)exit
-         end do
-         if(abs(x) > 1.0d0)then
-            write(6,*) 'cos(theta) =',x,' wrong in primary decay'
-            stop
+            x = x - random_32(iseed_32)*delta_x*0.9999999d0
+!            x = x - random_64(iseed_64)*delta_x*0.9999999d0
+            if(abs(x) > 1.0d0)then
+               write(6,*) 'cos(theta) =',x,' wrong in primary decay'
+               call MPI_Abort(icomm,101,mpi_error)
+            end if
+            if(abs(x) < -1.0d0)then
+               write(6,*) 'cos(theta) =',x,' wrong in primary decay'
+               call MPI_Abort(icomm,101,mpi_error)
+            end if
          end if
-         if(abs(x) < -1.0d0)then
-            write(6,*) 'cos(theta) =',x,' wrong in primary decay'
-            stop
-         end if
-      end if
-      extra_angle_data(nang,num_part) = acos(x)
-   end do
-
-   theta_0 = extra_angle_data(1,num_part)
-
-   phi_0 = two_pi*random_64(iseed)
+         extra_angle_data(nang,num_part) = acos(x)
+      end do
+      theta_0 = extra_angle_data(1,num_part)
+      phi_0 = two_pi*random_32(iseed_32)
+!      phi_0 = two_pi*random_64(iseed_64)
+   end if
 
    part_data(9,num_part) = e_f
    part_data(10,num_part) = theta_0
@@ -1120,7 +1157,6 @@ subroutine force_decay(icomp_i, nbin_i,                              &
 !----------   Passed Data
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ 
 !-----------  Input  ------------------------------------------------
-!   integer(kind=4) :: iseed
    integer(kind=4), intent(in) :: icomp_i, nbin_i 
 !-----------  Output ------------------------------------------------
    integer(kind=4), intent(out) :: icomp_f, Ix_f, ip_f, nbin_f, idb
@@ -1146,7 +1182,8 @@ subroutine force_decay(icomp_i, nbin_i,                              &
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !----------   External Functions
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ 
-   real(kind=8) :: random_64
+!   real(kind=8) :: random_64
+   real(kind=8) :: random_32
 !---------------------------------------------------------------------------
 
    tally_prob = 1.0d0
@@ -1163,7 +1200,8 @@ subroutine force_decay(icomp_i, nbin_i,                              &
 !--------------   find final state randomly   -----------------------
    xnstate = real(nucleus(icomp_f)%ncut,kind=8)
 
-   nbin_f = int(xnstate*random_64(iseed)) + 1
+!   nbin_f = int(xnstate*random_64(iseed_64)) + 1
+   nbin_f = int(xnstate*random_32(iseed_32)) + 1
 !--------------------------------------------------------------------
    ex_f = nucleus(icomp_f)%state(nbin_f)%energy
 
@@ -1184,14 +1222,19 @@ subroutine force_decay(icomp_i, nbin_i,                              &
    part_data(8,num_part) = real(iss,kind=8)
 !   part_data(9,num_part) = t
 
+   theta_0 = 0.0d0
+   phi_0 = 0.0d0
 
-   do nang = 1, num_theta
-      costhp = 2.0d0*random_64(iseed) - 1.0d0
-      extra_angle_data(nang,num_part) = acos(costhp)
-   end do
-
-   theta_0 = extra_angle_data(1,num_part)
-   phi_0 = two_pi*random_64(iseed)
+   if(.not. xs_only)then
+      do nang = 1, num_theta
+!         costhp = 2.0d0*random_64(iseed_64) - 1.0d0
+         costhp = 2.0d0*random_32(iseed_32) - 1.0d0
+         extra_angle_data(nang,num_part) = acos(costhp)
+      end do
+      theta_0 = extra_angle_data(1,num_part)
+      phi_0 = two_pi*random_32(iseed_32)
+!      phi_0 = two_pi*random_64(iseed_64)
+   end if
 
    part_data(9,num_part) = e_f
    part_data(10,num_part) = theta_0
