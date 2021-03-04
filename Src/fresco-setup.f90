@@ -432,7 +432,7 @@ subroutine make_fresco_tco(data_path, len_path, tco_file, len_tco,       &
                  write(6,*)'Error in coupled channels, this state has an improper cc_index'
                  write(6,'(a)')line(1:stopw(numw))
               end if
-              call MPI_Abort(icomm, 101, mpi_error)
+              call MPI_Abort(icomm, 101, ierr)
            end if
 !-----  See if state in cc list is in calculation
 !-----  Check against all discrete states for target - jndex is index in ensdf evaluated file
@@ -516,7 +516,7 @@ subroutine make_fresco_tco(data_path, len_path, tco_file, len_tco,       &
                     xJmin = xJmin - 1.0d0
                     if(par_band == -100)then
                        if(iproc == 0)write(6,*)'par_band not set correctly'
-                       call MPI_Abort(icomm, 101, mpi_error)
+                       call MPI_Abort(icomm, 101, ierr)
                     end if
                     par_state = par_band*(-1)**KK
                     do k = 1, num_K
@@ -796,7 +796,7 @@ subroutine make_fresco_tco(data_path, len_path, tco_file, len_tco,       &
         write(fresco_name(iend-3:iend),'(i4)')ie
      else
         write(6,*)'ie > 9999 cannot run fresco'
-        call MPI_Abort(icomm, 101, mpi_error)
+        call MPI_Abort(icomm, 101, ierr)
      end if
 
      len_fresco = iend
@@ -1076,7 +1076,7 @@ subroutine run_fresco(ener, fresco_dir, len_fresco, fresco_name, iendf, fname, e
    integer(kind=4) :: ipot
    real(kind=8) :: th_min, th_max, th_inc
    integer(kind=4) :: zpart, apart
-   real(kind=8) :: A, Z, Ap
+   real(kind=8) :: A, Z, Ap, AAp
    real(kind=8) :: ac
    real(kind=8) :: absend
    integer(kind=4) :: kp
@@ -1139,6 +1139,8 @@ subroutine run_fresco(ener, fresco_dir, len_fresco, fresco_name, iendf, fname, e
    zpart = particle(pindex)%Z
    apart = particle(pindex)%A
    Ap = real(apart,kind=8)
+   AAp = Ap
+   if(pindex < 6)AAp = 0.0d0
 !   mass_proj = particle(pindex)%mass/mass_u
    spin = particle(pindex)%spin
 !---------    Coupled channels control
@@ -1202,7 +1204,7 @@ subroutine run_fresco(ener, fresco_dir, len_fresco, fresco_name, iendf, fname, e
 !---------    Write data to generate potential
      kp = 1                           !   potential for coupled-channels states
 !---------    First print Coulomb
-     write(20,30) kp, 0, 0, A, Ap, RC
+     write(20,30) kp, 0, 0, A, AAp, RC
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !---------   Now loop over indvidual components of nuclear potentials
 !---------   ipot = 1, 6
@@ -1223,7 +1225,7 @@ subroutine run_fresco(ener, fresco_dir, len_fresco, fresco_name, iendf, fname, e
      if(ncc /= nex)then
         write(20,*)
         kp = 2
-        write(20,30) kp,0,0,A,Ap,RC
+        write(20,30) kp,0,0,A,AAp,RC
         ipot = 1
         write(20,31) kp,ipot,0,V_pot(1,ipot),R_pot(1,ipot),a_pot(1,ipot),V_pot(2,ipot),R_pot(2,ipot),a_pot(2,ipot)
         ipot = 2

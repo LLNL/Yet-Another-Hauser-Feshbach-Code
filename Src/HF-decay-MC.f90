@@ -322,7 +322,7 @@
          costhp = 2.0d0*random_32(iseed_32) - 1.0d0
          if(abs(costhp) > 1.0d0)then
             write(6,*)'cos(theta) wrong in MC_decay_bin'
-            call MPI_Abort(icomm, 101, mpi_error)
+            call MPI_Abort(icomm, 101, ierr)
          end if
          extra_angle_data(nang,num_part) = acos(costhp)
       end do
@@ -502,7 +502,7 @@
             costhp = 2.0d0*random_32(iseed_32) - 1.0d0
             if(abs(costhp) > 1.0d0)then
                write(6,*) 'cos(theta) wrong in MC_decay_state'
-               call MPI_Abort(icomm, 101, mpi_error)
+               call MPI_Abort(icomm, 101, ierr)
             end if
             extra_angle_data(nang,num_part) = acos(costhp)
          end do
@@ -1050,7 +1050,8 @@
       do nang = 1, num_theta
          if(k == 0)then
 !            x = 2.0d0*random_64(iseed_64) - 1.0d0
-            x = 2.0d0*random_32(iseed_32) - 1.0d0
+!            x = 2.0d0*random_32(iseed_32) - 1.0d0
+            x = 2.0d0*ran - 1.0d0
          else
             check = 0.0d0
             do i = 1, ixx_max
@@ -1067,11 +1068,11 @@
 !            x = x - random_64(iseed_64)*delta_x*0.9999999d0
             if(abs(x) > 1.0d0)then
                write(6,*) 'cos(theta) =',x,' wrong in primary decay'
-               call MPI_Abort(icomm,101,mpi_error)
+               call MPI_Abort(icomm,101,ierr)
             end if
             if(abs(x) < -1.0d0)then
                write(6,*) 'cos(theta) =',x,' wrong in primary decay'
-               call MPI_Abort(icomm,101,mpi_error)
+               call MPI_Abort(icomm,101,ierr)
             end if
          end if
          extra_angle_data(nang,num_part) = acos(x)
@@ -1317,11 +1318,12 @@ subroutine Boost_frame(e_f, mass_1, mass_2, theta_0, phi_0,                   &
 !-------------    Inteneral Data
    real(kind=8) :: E_T, EE, pp
    real(kind=8) :: p_1(0:3), P_2(0:3), Lor(0:3,0:3), Temp(0:3,0:3), v_2(1:3)
+   real(kind=8) :: vtemp, gamma_m1
    real(kind=8) :: ptemp(0:3)
    real(kind=8) :: cos_theta, sin_theta, cos_phi, sin_phi
    real(kind=8) :: beta, gamma 
    real(kind=8) :: e_f1
-   integer(kind=4) :: i, j, k
+   integer(kind=4) :: i, j
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !-------------     Start Calculation      -----------------
 
@@ -1345,26 +1347,21 @@ subroutine Boost_frame(e_f, mass_1, mass_2, theta_0, phi_0,                   &
    p_2(3) = -ptemp(3)
 !------------------------------------------------------   Compute quantities in COM and Lab frame
 !------------------------------------------------------   Lorentz transform momentum to COM frame
-   do i = 0, 3
-      p_1(i) = 0.0d0
-      do j = 0, 3
-         p_1(i) = p_1(i) + Boost_COM(i,j)*ptemp(j)
-      end do
-!      write(6,*)'p_1',i,p_1(i)
-   end do
+   p_1 = matmul(Boost_COM,ptemp)
+
 !---------------------------   Kinetic energies in COM frame
    T_1 = p_1(0) - mass_1                                 !   Kinetic energy of emitted particle
    T_2 = p_2(0) - mass_2                                 !   Kinetic energy of residual nucleus
    pp = 0.0d0
    do i = 1, 3
-      pp = pp + p_1(i)**2                                !  magnitude of vector momentum
+      pp = pp + p_1(i)*p_1(i)                                !  magnitude of vector momentum
    end do
    pp = sqrt(pp)
    cos_theta = 0.0d0
    sin_theta = 1.0d0
    phi = 0.0d0
-   cos_phi = cos(phi)
-   sin_phi = sin(phi)
+   cos_phi = 1.0d0
+   sin_phi = 0.0d0
 !--------------------------   Compute theta and phi in COM
    cos_theta = p_1(1)/pp
    sin_theta = sqrt(1.0d0 - cos_theta**2)
@@ -1374,24 +1371,17 @@ subroutine Boost_frame(e_f, mass_1, mass_2, theta_0, phi_0,                   &
       cos_phi = p_1(2)/(sin_theta*pp)
       sin_phi = p_1(3)/(sin_theta*pp)
       phi = acos(cos_phi)
-      if(sin_phi < 0.0)phi = 2.0d0*pi - phi
+      if(sin_phi < 0.0d0)phi = two_pi - phi
    end if
 
 !---------------------------------------------------------     Lorentz transformation to the Lab frame
-   do i =0, 3
-      ptemp(i) = p_1(i)
-   end do
-   do i = 0, 3
-      p_1(i) = 0.0d0
-      do j = 0, 3
-         p_1(i) = p_1(i) + Boost_Lab(i,j)*ptemp(j)
-      end do
-   end do
-!---------------------------   Kinetic energies in Lab frame
+   ptemp = p_1
+   p_1 = matmul(Boost_Lab,ptemp)
+!
    T_L = p_1(0) - mass_1                                 !   Kinetic energy of emitted particle
    pp = 0.0d0
    do i = 1, 3
-      pp = pp + p_1(i)**2                                !  magnitude of vector momentum
+      pp = pp + p_1(i)*p_1(i)                                !  magnitude of vector momentum
    end do
    pp = sqrt(pp)
    cos_theta = 0.0d0
@@ -1405,51 +1395,40 @@ subroutine Boost_frame(e_f, mass_1, mass_2, theta_0, phi_0,                   &
       cos_phi = p_1(2)/(sin_theta*pp)
       sin_phi = p_1(3)/(sin_theta*pp)
       phi_L = acos(cos_phi)
-      if(sin_phi < 0.0)phi_L = 2.0d0*pi - phi_L
+      if(sin_phi < 0.0d0)phi_L = two_pi - phi_L
    end if
 
 !------------------------------------    Update Lorentz transformation to COM frame for next decay
 !------------------------------------    Velocity of residual nucleus in units of c, i.e., V_2(i) = beta(i)
-   do i = 1, 3
-      v_2(i) = p_2(i)/mass_2
-   end do
    pp = 0.0d0
    do i = 1, 3
-      pp = pp + p_2(i)**2
+      v_2(i) = p_2(i)/mass_2
+      pp = pp + p_2(i)*p_2(i)
    end do
    pp = sqrt(pp)
    beta = pp/mass_2
    gamma = 1.0d0/sqrt(1.0d0 - beta**2)
 !---------------------------    Lorentz transformation for the residual nucleus
+   Lor = 0.0d0
    Lor(0,0) = gamma
    do i = 1, 3
-      Lor(0,i) = -gamma*v_2(i)
-      Lor(i,0) = Lor(0,i)
+      Lor(i,0) = -gamma*v_2(i)
+      Lor(0,i) = Lor(i,0)
+      Lor(i,i) = 1.0d0
    end do
-   do i =1, 3
-      do j = i, 3
-         if(i == j)then
-            Lor(i,j) = 1.0d0 + (gamma-1.0d0)*v_2(i)**2/beta**2
-         else
-            Lor(i,j) = (gamma - 1.0d0)*V_2(i)*v_2(j)/beta**2
-            Lor(j,i) = Lor(i,j)
-         end if
+!   v_2 = v_2/beta
+   gamma_m1 = (gamma - 1.0d0)/beta**2
+   do j = 1, 3
+      vtemp = gamma_m1*v_2(j)
+      do i = 1, 3
+         Lor(i,j) = Lor(i,j) + v_2(i)*vtemp
+!         Lor(i,j) = Lor(i,j) + (gamma - 1.0d0)*V_2(i)*vtemp
       end do
    end do
 !--------------------------   Update Boost for next decay Boost_COM = Boost_COM*Lor
-   do i = 0, 3
-      do j = 0, 3
-         Temp(i,j) = 0.0d0
-         do k = 0, 3
-            Temp(i,j) = Temp(i,j) + Boost_COM(i,k)*Lor(k,j)
-         end do
-      end do
-   end do
-   do i = 0, 3
-      do j = 0, 3
-         Boost_COM(i,j) = Temp(i,j)
-      end do
-   end do
+   Temp = matmul(Boost_COM,Lor)
+   Boost_COM = Temp
+
    return
 end subroutine Boost_frame
    

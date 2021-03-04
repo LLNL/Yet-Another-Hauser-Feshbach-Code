@@ -32,7 +32,7 @@ module options
 !
    use variable_kinds
    character(len=132) :: version
-   parameter (version = 'MC-3.26')
+   parameter (version = 'MC-3.27')
    integer(kind=int_64) :: iseed_64
    integer(kind=int_32) :: iseed_32
    integer(kind=4) :: PREEQ_Model
@@ -819,7 +819,7 @@ module nodeinfo
 !
    use variable_kinds
    implicit none
-   integer(kind=4) :: iproc, nproc, icomm, mpi_error
+   integer(kind=4) :: iproc, nproc, icomm, ierr
    integer(kind=4) :: group
    character(len=8) :: node_name
 end module nodeinfo

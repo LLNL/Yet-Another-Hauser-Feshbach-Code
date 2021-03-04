@@ -70,6 +70,7 @@ subroutine parse_command(num_comp,icommand,command,finish)
    real(kind=8) :: sig2_perp, sig2_ax
    real(kind=8) :: xnorm
    integer(kind=int_64) :: one_int_64
+   integer(kind=4) :: iseed
 !-----------------   External functions ------------------------------
    integer particle_index
 !---------------------------------------------------------------------
@@ -1897,10 +1898,15 @@ subroutine parse_command(num_comp,icommand,command,finish)
          call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
          return
       end if
-      read(command(startw(2):stopw(2)),*)iseed_64
+      read(command(startw(2):stopw(2)),*)iseed
+!      read(command(startw(2):stopw(2)),*)iseed_64
+      iseed_32 = iseed
+      iseed_64 = int(iseed,kind=int_64)
       one_int_64 = 1_int_64
       if(iand(iseed_64,one_int_64) /= one_int_64)iseed_64 = iseed_64 + one_int_64
       if(iseed_64 > 0)iseed_64 = -iseed_64
+      if(iand(iseed_32,1) /= 1)iseed_32 = iseed_32 + 1
+      if(iseed_32 > 0)iseed_32 = -iseed_32      
       return
    end if
 !

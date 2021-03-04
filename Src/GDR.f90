@@ -60,7 +60,7 @@ subroutine gdr_param(data_path, len_path, iz, ia, err, grr, srr)
    open(unit=52,                                               &
         file=data_path(1:len_path)//'gdr-parameters-exp.dat',  &
         status='old')
-   do i = 1,4
+   do i = 1, 4
       read(52,*)
    end do
    iread = 0
@@ -80,7 +80,7 @@ subroutine gdr_param(data_path, len_path, iz, ia, err, grr, srr)
          found = .true.
          exit
       end if
-      if(iaa == 0 .and. iz == izz)then     !   use natural GDR parameters
+      if(iz == izz .and. iaa == 0)then     !   use natural GDR parameters
          err(1) = er1
          grr(1) = gr1
          srr(1) = sr1
@@ -92,9 +92,9 @@ subroutine gdr_param(data_path, len_path, iz, ia, err, grr, srr)
       end if
    end do
 
-   if(found)return
-
    close(unit=52)
+
+   if(found)return
 
    xA = real(iA,kind=8)
    xZ = real(iZ,kind=8)

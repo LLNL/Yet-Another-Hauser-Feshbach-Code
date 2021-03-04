@@ -403,3 +403,17 @@ Version 3.26
     potential runaway writing of the EM strength parameters.
 2.  Fixed error reading in and assigning E1 strength parameters from the
     "exp" evaluated data file. 
+
+Version 3.27
+1.  Sped up subrotuine Boost_frame by using intrinsic function matmul and
+    aligning due loops to better use memory arrays.
+2.  Fixed a bug in the E1 strength parameters where every other nucleus would
+    not get assigned properly because the file was not closed before the
+    subroutine returned.
+3.  Fixed bug in subroutine calling fresco where the radius for the potential 
+    inadvertantly used the projectile (A_target**(1/3) + A_proj**(1/3)). A_proj
+    should only be used for alphas and heavier projectiles.This error was 
+    introduced in 3.18 when the bypass subroutine was implemented.
+4.  Minor fix to the MPI code: replaced variable mpi_error to ierr to avoid
+    conflict with intrinsic and fixed an incorrect call to MPI_Bcast. Further
+    integration with MPI will occur in 3.28.

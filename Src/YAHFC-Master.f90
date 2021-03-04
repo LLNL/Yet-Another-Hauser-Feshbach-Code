@@ -389,11 +389,11 @@ program YAHFC_MASTER
 
 !
 !------   Setup MPI world
-   call MPI_INIT(mpi_error)
+   call MPI_INIT(ierr)
 
    icomm = MPI_COMM_WORLD
-   call MPI_COMM_RANK(icomm, iproc, mpi_error)
-   call MPI_COMM_SIZE(icomm, nproc, mpi_error)
+   call MPI_COMM_RANK(icomm, iproc, ierr)
+   call MPI_COMM_SIZE(icomm, nproc, ierr)
 
    ilast = index(version,' ') - 1
    if(iproc == 0)then
@@ -729,8 +729,8 @@ program YAHFC_MASTER
 !----   NEED TO MPI_BCAST num_command here
 !-----------------------------------------------------------------------------------------
 !
-      call MPI_Barrier(icomm, mpi_error)
-      call MPI_BCAST(icomm, num_command, MPI_INTEGER, 0, icomm, mpi_error)
+      call MPI_Barrier(icomm, ierr)
+      call MPI_BCAST(num_command, MPI_INTEGER, 0, icomm, ierr)
 !        
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !-------   Set up buffer for input commands
@@ -1291,6 +1291,11 @@ program YAHFC_MASTER
          end do
          max_J = J
 !----
+         if(max_J > 60 .and. iproc == 0)then
+            write(6,*)'***************************************************'
+            write(6,*)'*-----     max_J_allowed is limited to 60    -----*'
+            write(6,*)'***************************************************'
+         end if
          max_J_allowed = min(max_J,60)
       end if        
 
@@ -2288,7 +2293,7 @@ program YAHFC_MASTER
                write(node_name(6:8),'(i3)')iproc
             else if(iproc >= 1000)then
                write(6,*)'Error, many more MPI processes than expected'
-               call MPI_Abort(icomm, 101, mpi_error)
+               call MPI_Abort(icomm, 101, ierr)
             end if
          end if
 
@@ -2986,7 +2991,7 @@ program YAHFC_MASTER
             if(biased_sampling .and. dabs(tally_weight - 1.0d0) > 1.0d-6)then
                write(6,*)'Error in sampling weight for unbiased sampling with processor #',iproc
                write(6,*)nsamp,tally_weight
-               call MPI_Abort(icomm, 101, mpi_error)
+               call MPI_Abort(icomm, 101, ierr)
             end if
 
 
@@ -3222,74 +3227,74 @@ program YAHFC_MASTER
 !
       if(nproc > 1)then
          num_data = 1
-         call MPI_Allreduce(MPI_IN_PLACE, tally_norm, num_data, MPI_REAL8, MPI_SUM, icomm, mpi_error)
+         call MPI_Allreduce(MPI_IN_PLACE, tally_norm, num_data, MPI_REAL8, MPI_SUM, icomm, ierr)
          num_data = (num_e+1)*7
          call MPI_Allreduce(MPI_IN_PLACE, x_particle_spectrum,                                     &
-                            num_data, MPI_REAL8, MPI_SUM, icomm, mpi_error)
+                            num_data, MPI_REAL8, MPI_SUM, icomm, ierr)
 !---  Fission information
          if(fission)then
             call MPI_Allreduce(MPI_IN_PLACE, fission_cs(in),                                       &
-                                       num_data, MPI_REAL8, MPI_SUM, icomm, mpi_error)
+                                       num_data, MPI_REAL8, MPI_SUM, icomm, ierr)
             num_data = num_comp
             call MPI_Allreduce(MPI_IN_PLACE, FIss_J_avg(1,in),                                     &
-                               num_data, MPI_REAL8, MPI_SUM, icomm, mpi_error)
+                               num_data, MPI_REAL8, MPI_SUM, icomm, ierr)
             call MPI_Allreduce(MPI_IN_PLACE, FIss_J_var(1,in),                                     &
-                               num_data, MPI_REAL8, MPI_SUM, icomm, mpi_error)
+                               num_data, MPI_REAL8, MPI_SUM, icomm, ierr)
             call MPI_Allreduce(MPI_IN_PLACE, FIss_Tally(1,in),                                     &
-                               num_data, MPI_REAL8, MPI_SUM, icomm, mpi_error)
+                               num_data, MPI_REAL8, MPI_SUM, icomm, ierr)
          end if
 !---  Inelastic scattering data
          num_data = 1
          call MPI_Allreduce(MPI_IN_PLACE, Inelastic_Total(in),                                     &
-                            num_data, MPI_REAL8, MPI_SUM, icomm, mpi_error)
+                            num_data, MPI_REAL8, MPI_SUM, icomm, ierr)
          num_data = (nucleus(itarget)%num_discrete+1)
          call MPI_Allreduce(MPI_IN_PLACE, Inelastic_cs(0,in),                                      &
-                            num_data, MPI_REAL8, MPI_SUM, icomm, mpi_error)
+                            num_data, MPI_REAL8, MPI_SUM, icomm, ierr)
          call MPI_Allreduce(MPI_IN_PLACE, Inelastic_count(0,in),                                   &
-                            num_data, MPI_INTEGER, MPI_SUM, icomm, mpi_error)
+                            num_data, MPI_INTEGER, MPI_SUM, icomm, ierr)
 !---   Pre-equilibrium data
          num_data = 7
          call MPI_Allreduce(MPI_IN_PLACE, preeq_css(0,in),                                         &
-                            num_data, MPI_REAL8, MPI_SUM, icomm, mpi_error)
+                            num_data, MPI_REAL8, MPI_SUM, icomm, ierr)
          if(.not. xs_only)then
             num_data = 7*(num_e+1)
             call MPI_Allreduce(MPI_IN_PLACE, preeq_spect,                                          &
-                               num_data, MPI_REAL8, MPI_SUM, icomm, mpi_error)
+                               num_data, MPI_REAL8, MPI_SUM, icomm, ierr)
             call MPI_Allreduce(MPI_IN_PLACE, preeq_spect_full,                                     &
-                               num_data, MPI_REAL8, MPI_SUM, icomm, mpi_error)
+                               num_data, MPI_REAL8, MPI_SUM, icomm, ierr)
 !---   Direct and DWBA spectra
             num_data = (num_e+1)
             call MPI_Allreduce(MPI_IN_PLACE, direct_spectrum,                                      &
-                               num_data, MPI_REAL8, MPI_SUM, icomm, mpi_error)
+                               num_data, MPI_REAL8, MPI_SUM, icomm, ierr)
             call MPI_Allreduce(MPI_IN_PLACE, dwba_spectrum,                                        &
-                               num_data, MPI_REAL8, MPI_SUM, icomm, mpi_error)
+                               num_data, MPI_REAL8, MPI_SUM, icomm, ierr)
          end if
 !---   Exit_Channel data
          do i = 1, num_channels
             num_data = 1
             call MPI_Allreduce(MPI_IN_PLACE,Exit_Channel(i)%num_event,                             &
-                               num_data, MPI_INTEGER, MPI_SUM, icomm, mpi_error)
+                               num_data, MPI_INTEGER, MPI_SUM, icomm, ierr)
             num_s = Exit_Channel(i)%num_cs   
             num_data = num_s + 3                                !  allocated (-2:Exit_Channel(i)%num_cs)
             call MPI_Allreduce(MPI_IN_PLACE,Exit_Channel(i)%Channel_cs(-2,in),                     &
-                               num_data, MPI_REAL8, MPI_SUM, icomm, mpi_error)
+                               num_data, MPI_REAL8, MPI_SUM, icomm, ierr)
             num_data = 7*(num_s+2)
             call MPI_Allreduce(MPI_IN_PLACE,Exit_Channel(i)%part_mult(0,-1,in),                    &
-                               num_data, MPI_REAL8, MPI_SUM, icomm, mpi_error)
+                               num_data, MPI_REAL8, MPI_SUM, icomm, ierr)
             if(.not. xs_only)then
                do k = 0, 6
                   do ictype = -1, num_s
                      num_data = num_e + 1
                      call MPI_Allreduce(MPI_IN_PLACE,Exit_Channel(i)%Spect(k,ictype,in)%E_spec,    &
-                                  num_data, MPI_REAL8, MPI_SUM, icomm, mpi_error)
+                                  num_data, MPI_REAL8, MPI_SUM, icomm, ierr)
                      call MPI_Allreduce(MPI_IN_PLACE,Exit_Channel(i)%Spect(k,ictype,in)%E_count,   &
-                                  num_data, MPI_REAL8, MPI_SUM, icomm, mpi_error)
+                                  num_data, MPI_REAL8, MPI_SUM, icomm, ierr)
                      num_data = (max_jx_10+1)*(num_s+2)
                      call MPI_Allreduce(MPI_IN_PLACE,Exit_Channel(i)%Spect(k,ictype,in)%E_Ang_Dist,&
-                                  num_data, MPI_REAL8, MPI_SUM, icomm, mpi_error)
+                                  num_data, MPI_REAL8, MPI_SUM, icomm, ierr)
                      num_data = (max_jx_10+1)
                      call MPI_Allreduce(MPI_IN_PLACE,Exit_Channel(i)%Spect(k,ictype,in)%Ang_Dist,  &
-                                  num_data, MPI_REAL8, MPI_SUM, icomm, mpi_error)
+                                  num_data, MPI_REAL8, MPI_SUM, icomm, ierr)
                   end do
                end do
             end if
@@ -3610,10 +3615,10 @@ program YAHFC_MASTER
                     end do
 
                     Inelastic_L_max(j,in) = 8
-                    if(Inelastic_count(j,in) < 4000)Inelastic_L_max(j,in) = 6
-                    if(Inelastic_count(j,in) < 2000)Inelastic_L_max(j,in) = 4
-                    if(Inelastic_count(j,in) < 1000)Inelastic_L_max(j,in) = 2
-                    if(Inelastic_count(j,in) < 500)Inelastic_L_max(j,in) = 0
+                    if(Inelastic_count(j,in) < 9000)Inelastic_L_max(j,in) = 6
+                    if(Inelastic_count(j,in) < 6000)Inelastic_L_max(j,in) = 4
+                    if(Inelastic_count(j,in) < 3000)Inelastic_L_max(j,in) = 2
+                    if(Inelastic_count(j,in) < 1000)Inelastic_L_max(j,in) = 0
                     call Legendre_expand(max_jx_10+1,xvalue(0),Inelastic_Ang_Dist(0,j,in),         &
                                          Inelastic_L_max(j,in),Inelastic_Ang_L(0,j,in))
                  end if
@@ -3662,10 +3667,10 @@ program YAHFC_MASTER
                        sum = Exit_Channel(i)%Spect(k,n,in)%E_count(icc)
 !-----   Set max L based on number of counts in energy bin
                        Exit_Channel(i)%Spect(k,n,in)%E_Ang_L_max(icc) = 8
-                       if(sum < 8000)Exit_Channel(i)%Spect(k,n,in)%E_Ang_L_max(icc) = 6
+                       if(sum < 9000)Exit_Channel(i)%Spect(k,n,in)%E_Ang_L_max(icc) = 6
                        if(sum < 6000)Exit_Channel(i)%Spect(k,n,in)%E_Ang_L_max(icc) = 4
-                       if(sum < 4000)Exit_Channel(i)%Spect(k,n,in)%E_Ang_L_max(icc) = 2
-                       if(sum < 2000)Exit_Channel(i)%Spect(k,n,in)%E_Ang_L_max(icc) = 0
+                       if(sum < 3000)Exit_Channel(i)%Spect(k,n,in)%E_Ang_L_max(icc) = 2
+                       if(sum < 1000)Exit_Channel(i)%Spect(k,n,in)%E_Ang_L_max(icc) = 0
 !-----   Calculate average, avgerage difference from average, and expected difference
 !-----   Check if data have enough statistics to warrant more Legendre coefficients
                        if(Exit_Channel(i)%Spect(k,n,in)%E_Ang_L_max(icc) > 0)then

@@ -101,7 +101,7 @@ subroutine gauss_quad(nt,kind,alpha,beta,x,w)
 
    real(kind=8), allocatable :: d(:), e(:), z(:,:)
    real(kind=8) :: norm, int_norm
-   integer(kind=4) :: ierr
+   integer(kind=4) :: ierror
 !
 !-----    External functions
 !
@@ -133,7 +133,7 @@ subroutine gauss_quad(nt,kind,alpha,beta,x,w)
 !
 !   Find eigenvalues and eigenvectors of the tri-diagonal matrix
 !
-   call tri_eig(nt, nt, d, e, z, ierr)
+   call tri_eig(nt, nt, d, e, z, ierror)
 !
 !----    Find norm to set the weights
 !
@@ -167,7 +167,7 @@ end subroutine gauss_quad
 
 !
 !
-subroutine tri_eig(nm,n,d,e,z,ierr)
+subroutine tri_eig(nm,n,d,e,z,ierror)
 !
    implicit none
 !
@@ -214,7 +214,7 @@ subroutine tri_eig(nm,n,d,e,z,ierr)
 !
 !        d contains the eigenvalues in ascending order.  if an
 !          error exit is made, the eigenvalues are correct but
-!          unordered for indices 1,2,...,ierr-1.
+!          unordered for indices 1,2,...,ierror-1.
 !
 !        e has been destroyed.
 !
@@ -223,7 +223,7 @@ subroutine tri_eig(nm,n,d,e,z,ierr)
 !          z contains the eigenvectors associated with the stored
 !          eigenvalues.
 !
-!        ierr is set to
+!        ierror is set to
 !          zero       for normal return,
 !          j          if the j-th eigenvalue has not been
 !                     determined after 30 iterations.
@@ -248,7 +248,7 @@ subroutine tri_eig(nm,n,d,e,z,ierr)
 !
    integer(kind=4), intent(in) :: nm, n
    real(kind=8), intent(out) :: d(n), e(n), z(nm,n)
-   integer(kind=4), intent(out) :: ierr
+   integer(kind=4), intent(out) :: ierror
 !-----------------------------------------------------------------------------
    integer(kind=4) :: i, j, k, l, m, ii, l1, l2, mml
    real(kind=8) :: c, c2, c3, dl1, el1, f, g, h, p, r, s, s2, tst1, tst2
@@ -259,7 +259,7 @@ subroutine tri_eig(nm,n,d,e,z,ierr)
 !
 !*******************************************************************************
 !
-   ierr = 0
+   ierror = 0
    if(n == 1)return   !   Nothing to be done if n = 1
 !
    do i = 2, n
@@ -346,7 +346,7 @@ subroutine tri_eig(nm,n,d,e,z,ierr)
 !----   return with error flag set
 !
       if(j == 30)then
-         ierr = 1
+         ierror = 1
          return
       end if
       d(l) = d(l) + f
