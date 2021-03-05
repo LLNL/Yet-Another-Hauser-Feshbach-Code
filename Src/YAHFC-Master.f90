@@ -729,8 +729,10 @@ program YAHFC_MASTER
 !----   NEED TO MPI_BCAST num_command here
 !-----------------------------------------------------------------------------------------
 !
-      call MPI_Barrier(icomm, ierr)
-      call MPI_BCAST(num_command, MPI_INTEGER, 0, icomm, ierr)
+      if(nproc > 1)then
+         call MPI_Barrier(icomm, ierr)
+         call MPI_BCAST(num_command, MPI_INTEGER, 0, icomm, ierr)
+      end if
 !        
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !-------   Set up buffer for input commands
@@ -1833,6 +1835,10 @@ program YAHFC_MASTER
 
       if(iproc == 0)call check_directories(ntar, target_label, ilib_dir, lib_dir)
 
+      if(nproc > 1)then
+         call MPI_BCAST(ilib_dir, 1, MPI_INTEGER, 0, icomm, ierr)
+         call MPI_BCAST(lib_dir, 132, MPI_CHARACTER, 0, icomm, ierr)
+      end if
 
 !**************************************************************************
 !------    Write particle properties to file                           ---*
@@ -2345,7 +2351,7 @@ program YAHFC_MASTER
 !---------------------------------------------------------------------------------------
 !
 !         do nsamp = 1, num_mc_samp
-         do nsamp = 1, num_mc_samp, nproc
+         do nsamp = iproc, num_mc_samp, nproc
 
             fission_decay = .false.
 
@@ -3226,6 +3232,7 @@ program YAHFC_MASTER
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
       if(nproc > 1)then
+         call MPI_Barrier(icomm, ierr)
          num_data = 1
          call MPI_Allreduce(MPI_IN_PLACE, tally_norm, num_data, MPI_REAL8, MPI_SUM, icomm, ierr)
          num_data = (num_e+1)*7
@@ -3238,36 +3245,43 @@ program YAHFC_MASTER
             num_data = num_comp
             call MPI_Allreduce(MPI_IN_PLACE, FIss_J_avg(1,in),                                     &
                                num_data, MPI_REAL8, MPI_SUM, icomm, ierr)
+            num_data = num_comp
             call MPI_Allreduce(MPI_IN_PLACE, FIss_J_var(1,in),                                     &
                                num_data, MPI_REAL8, MPI_SUM, icomm, ierr)
+            num_data = num_comp
             call MPI_Allreduce(MPI_IN_PLACE, FIss_Tally(1,in),                                     &
                                num_data, MPI_REAL8, MPI_SUM, icomm, ierr)
          end if
+         if(.not. pop_calc)then
 !---  Inelastic scattering data
-         num_data = 1
-         call MPI_Allreduce(MPI_IN_PLACE, Inelastic_Total(in),                                     &
-                            num_data, MPI_REAL8, MPI_SUM, icomm, ierr)
-         num_data = (nucleus(itarget)%num_discrete+1)
-         call MPI_Allreduce(MPI_IN_PLACE, Inelastic_cs(0,in),                                      &
-                            num_data, MPI_REAL8, MPI_SUM, icomm, ierr)
-         call MPI_Allreduce(MPI_IN_PLACE, Inelastic_count(0,in),                                   &
-                            num_data, MPI_INTEGER, MPI_SUM, icomm, ierr)
+            num_data = 1
+            call MPI_Allreduce(MPI_IN_PLACE, Inelastic_Total(in),                                     &
+                               num_data, MPI_REAL8, MPI_SUM, icomm, ierr)
+            num_data = (nucleus(itarget)%num_discrete+1)
+            call MPI_Allreduce(MPI_IN_PLACE, Inelastic_cs(0,in),                                      &
+                               num_data, MPI_REAL8, MPI_SUM, icomm, ierr)
+            num_data = (nucleus(itarget)%num_discrete+1)
+            call MPI_Allreduce(MPI_IN_PLACE, Inelastic_count(0,in),                                   &
+                               num_data, MPI_INTEGER, MPI_SUM, icomm, ierr)
 !---   Pre-equilibrium data
-         num_data = 7
-         call MPI_Allreduce(MPI_IN_PLACE, preeq_css(0,in),                                         &
-                            num_data, MPI_REAL8, MPI_SUM, icomm, ierr)
-         if(.not. xs_only)then
-            num_data = 7*(num_e+1)
-            call MPI_Allreduce(MPI_IN_PLACE, preeq_spect,                                          &
+            num_data = 7
+            call MPI_Allreduce(MPI_IN_PLACE, preeq_css(0,in),                                         &
                                num_data, MPI_REAL8, MPI_SUM, icomm, ierr)
-            call MPI_Allreduce(MPI_IN_PLACE, preeq_spect_full,                                     &
-                               num_data, MPI_REAL8, MPI_SUM, icomm, ierr)
+            if(.not. xs_only)then
+               num_data = 7*(num_e+1)
+               call MPI_Allreduce(MPI_IN_PLACE, preeq_spect,                                          &
+                                  num_data, MPI_REAL8, MPI_SUM, icomm, ierr)
+               num_data = 7*(num_e+1)
+               call MPI_Allreduce(MPI_IN_PLACE, preeq_spect_full,                                     &
+                                  num_data, MPI_REAL8, MPI_SUM, icomm, ierr)
 !---   Direct and DWBA spectra
-            num_data = (num_e+1)
-            call MPI_Allreduce(MPI_IN_PLACE, direct_spectrum,                                      &
-                               num_data, MPI_REAL8, MPI_SUM, icomm, ierr)
-            call MPI_Allreduce(MPI_IN_PLACE, dwba_spectrum,                                        &
-                               num_data, MPI_REAL8, MPI_SUM, icomm, ierr)
+               num_data = (num_e+1)
+               call MPI_Allreduce(MPI_IN_PLACE, direct_spectrum,                                      &
+                                  num_data, MPI_REAL8, MPI_SUM, icomm, ierr)
+               num_data = (num_e+1)
+               call MPI_Allreduce(MPI_IN_PLACE, dwba_spectrum,                                        &
+                                  num_data, MPI_REAL8, MPI_SUM, icomm, ierr)
+            end if
          end if
 !---   Exit_Channel data
          do i = 1, num_channels
@@ -3287,6 +3301,7 @@ program YAHFC_MASTER
                      num_data = num_e + 1
                      call MPI_Allreduce(MPI_IN_PLACE,Exit_Channel(i)%Spect(k,ictype,in)%E_spec,    &
                                   num_data, MPI_REAL8, MPI_SUM, icomm, ierr)
+                     num_data = num_e + 1
                      call MPI_Allreduce(MPI_IN_PLACE,Exit_Channel(i)%Spect(k,ictype,in)%E_count,   &
                                   num_data, MPI_REAL8, MPI_SUM, icomm, ierr)
                      num_data = (max_jx_10+1)*(num_s+2)

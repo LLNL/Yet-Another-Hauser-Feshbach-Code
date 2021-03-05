@@ -417,3 +417,6 @@ Version 3.27
 4.  Minor fix to the MPI code: replaced variable mpi_error to ierr to avoid
     conflict with intrinsic and fixed an incorrect call to MPI_Bcast. Further
     integration with MPI will occur in 3.28.
+
+Version 3.28
+1.  Fixed MPI implementation

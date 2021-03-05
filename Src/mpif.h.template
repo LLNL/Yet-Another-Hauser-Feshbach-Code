@@ -5,7 +5,7 @@
   integer(kind=4),parameter :: MPI_INTEGER = 4
   integer(kind=4),parameter :: MPI_REAL = 4
   integer(kind=4),parameter :: MPI_REAL8 = 8
-  integer(kind=4),parameter :: MPI_CHARACTER = 4
+  integer(kind=4),parameter :: MPI_CHARACTER = 1
   integer(kind=4),parameter :: MPI_LOGICAL = 4
   integer(kind=4),parameter :: mpi_COMM_world = 0
   integer(kind=4),parameter :: MPI_SUM = 4

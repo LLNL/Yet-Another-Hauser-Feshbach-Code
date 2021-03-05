@@ -1,16 +1,13 @@
 
-#F77CFLAGS   = -Wall -fbounds-check -fcheck-array-temporaries -fcheck=all -g
 #F90CFLAGS   = -Wall -fbounds-check -fcheck-array-temporaries -fcheck=all -g
-F77CFLAGS   = -Wall -Ofast
-F90CFLAGS   = -Wall -Ofast
-#F77CFLAGS   = -Wall -O3
-#F90CFLAGS   = -Wall -O3
+#CFLAGS   = -Wall -Ofast
+F90CFLAGS   = "-Wall -Ofast"
 
 LFLAGS   = 
 DPLIBS   = 
 
-F77COMPILER =  gfortran
 F90COMPILER =  gfortran
+MPI90COMPILER = mpifort
 
 DEPS = modules.o
 
@@ -46,18 +43,25 @@ random.o                   \
 range_char.o               \
 spectrum.o                 
 
-%.o : %.f90 $(DEPS)
-	$(F90COMPILER) -c $(F90CFLAGS) $(<F)  
+modules.o : modules.f90
+	$(COMPILER) -c $(CFLAGS) $(<F)  
 
-%.o : %.f $(DEPS)
-	$(F77COMPILER) -c $(F77CFLAGS) $(<F)  
+%.o : %.f90 $(DEPS)
+	$(COMPILER) -c $(CFLAGS) $(<F)  
+
 
 default: $(HAUSER_OBJECTS) $(MPI_OBJECTS)
-	$(F90) -o $(EX).x $(HAUSER_OBJECTS) $(MPI_OBJECTS) $(LFLAGS) $(DPLIBS)
+	$(COMPILER) -o $(EX).x  $(HAUSER_OBJECTS) $(MPI_OBJECTS) $(LFLAGS) $(DPLIBS)
 
 YAHFC:
 	cp mpif.h.template mpif.h
-	$(MAKE) F90=$(F90COMPILER) MPI_OBJECTS=dummy_MPI_libs.o EX=$@
+	$(MAKE) COMPILER=$(F90COMPILER) CFLAGS=$(F90CFLAGS) MPI_OBJECTS=dummy_MPI_libs.o EX=$@
+	rm mpif.h
+	cp $@.x $(YAHFC_BIN_DIR)/.
+
+YAHFC-MPI:
+	cp mpif.h.template mpif.h
+	$(MAKE) COMPILER=$(MPIF90COMPILER) CFLAGS=$(F90CFLAGS) MPI_OBJECTS= EX=$@
 	rm mpif.h
 	cp $@.x $(YAHFC_BIN_DIR)/.
 
