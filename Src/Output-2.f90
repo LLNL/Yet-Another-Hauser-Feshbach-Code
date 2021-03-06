@@ -74,12 +74,12 @@ subroutine start_IO(num_comp)
       ip = projectile%particle_type
       if(print_me)then
          write(6,'(''Projectile = '',a10)')particle(ip)%name
-         write(6,'(''Min and max incidient energies: Min ='',f12.5,'//       &
+         write(6,'(''Min and max incidient energies: Min ='',f16.6,'//       &
                    ''' MeV, Max = '',f16.6,'' MeV'')')                       &
                 projectile%e_min,projectile%e_max
       end if
       write(13,'(''Projectile = '',a10)')particle(ip)%name
-      write(13,'(''Min and max incidient energies: Min ='',f12.5,'//      &
+      write(13,'(''Min and max incidient energies: Min ='',f16.6,'//      &
                 ''' MeV, Max = '',f16.6,'' MeV'')')                       &
                 projectile%e_min,projectile%e_max
    end if
@@ -828,9 +828,9 @@ subroutine output_nucleus_data(num_comp, j_max, itarget)
       write(13,*)'Electric-dipole resonance parameters'
       do k = 1, 3
          write(13,'(''Mode ='',i2,'//                             &
-                    ''' Centroid = '',f12.5,'' MeV'','//          &
-                    ''' Width = '',f12.5,'' MeV'','//             &
-                    ''' Strength = '',f12.5,'' mb'')')            &
+                    ''' Centroid = '',f16.6,'' MeV'','//          &
+                    ''' Width = '',f16.6,'' MeV'','//             &
+                    ''' Strength = '',f16.6,'' mb'')')            &
              k,                                                   &
              nucleus(i)%er_E1(k),                                 &
              nucleus(i)%gr_E1(k),                                 &
@@ -856,9 +856,9 @@ subroutine output_nucleus_data(num_comp, j_max, itarget)
          write(13,*)
          write(13,'(''Electric-'',i1,'' resonance parameters'')')  &
             l_radiation
-            write(13,'('' Centroid = '',f12.5,'' MeV'','//         &
-                       ''' Width = '',f12.5,'' MeV'','//           &
-                       ''' Strength = '',e12.6,'' mb'')')          &
+            write(13,'('' Centroid = '',f16.6,'' MeV'','//         &
+                       ''' Width = '',f16.6,'' MeV'','//           &
+                       ''' Strength = '',e15.7,'' mb'')')          &
                 nucleus(i)%er_E(l_radiation),                      &
                 nucleus(i)%gr_E(l_radiation),                      &
                 nucleus(i)%sr_E(l_radiation)
