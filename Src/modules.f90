@@ -32,7 +32,7 @@ module options
 !
    use variable_kinds
    character(len=132) :: version
-   parameter (version = 'MC-3.28')
+   parameter (version = 'MC-3.29')
    integer(kind=int_64) :: iseed_64
    integer(kind=int_32) :: iseed_32
    integer(kind=4) :: PREEQ_Model
@@ -51,6 +51,8 @@ module options
    logical :: Preeq_g_a
    logical :: use_unequal_bins
    logical :: xs_only
+   logical :: verbose
+   logical :: print_me
 !-------------------------------------------
    integer(kind=4) :: output_mode
    integer(kind=4) :: preeq_pair_model
@@ -426,6 +428,7 @@ module nuclei
       integer(kind=4) :: Z                                            !  Number of protons
       integer(kind=4) :: A                                            !  Number of nucleons
       character(len=2) atomic_symbol                               !  Character for atomic symbol
+      character(len=5) Label                               !  Character for atomic symbol
       real(kind=8) :: BE                                              !  mass excess
       real(kind=8) :: ME                                              !  mass excess
       real(kind=8) :: Mass

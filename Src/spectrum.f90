@@ -156,7 +156,8 @@ subroutine get_spectrum(data_path,len_path,overide,       &
   fexist=.false.
   inquire(file=data_path(1:len_path)//'levels-eval/'//fname(1:len_fname),exist=fexist)
   if(fexist)then
-     if(iproc == 0)write(6,'(''Looking in evaluated file for '',i3,a2)')ia,symb
+!     if(iproc == 0)write(6,'(''Looking in evaluated file for '',i3,a2)')ia,symb
+     if(iproc == 0)write(6,'(''Looking in evaluated file for '',a5)')nucleus(icomp)%Label
      open(unit=51,                                                                   &
         file=data_path(1:len_path)//'levels-eval/'//fname(1:len_fname),              &
         status='old')

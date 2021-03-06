@@ -420,3 +420,16 @@ Version 3.27
 
 Version 3.28
 1.  Fixed MPI implementation
+
+Version 3.29
+1.  Fixed bugs in MPI implementation from transfer to Quartz for parallel loop
+    over Monte Carlo sampling. Paralelization for the HF denominators and 
+    primary decay are still in the works.
+2.  Fixed unnecessary writes to screen during MPI runs
+3.  Added option for "verbose_output y/n", If "y", then periodic updates to
+    screen given during the run, e.g., current energy, and some stats on the
+    run.
+4.  Added option suppress outfile. Two mechanisms: 
+    a. Calling option "file none" 
+    b. Calling option "write_outfile y/n". Ans asnwer of "n" suppresses priting
+       of the .out file even if the option "file faile_name" is given. 

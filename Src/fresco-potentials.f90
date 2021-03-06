@@ -33,6 +33,7 @@ subroutine KD_potential(part_type, iA, iZ, energy, V_pot, R_pot, a_pot, RC, D3)
 !
 !*******************************************************************************
 !
+   use nodeinfo
    use variable_kinds
    implicit none
    integer(kind=4), intent(in) :: part_type, iA, iZ
@@ -68,7 +69,10 @@ subroutine KD_potential(part_type, iA, iZ, energy, V_pot, R_pot, a_pot, RC, D3)
    diff = (xN - xZ)/xA
 
 ! part_type = 1 (neutrons)
-   if(part_type > 2) stop 'Error in KDParam, use only for protons and neutrons, not k = '
+   if(part_type > 2)then
+      if(iproc == 0)write(6,*)'Error in KDParam, use only for protons and neutrons, not k = '
+      call MPI_Abort(icomm,301,ierr)
+   end if
    v1 = 59.30d0 - 21.0d0*diff - 2.4d-2*xA
    v2 = 7.228d-3 - 1.48d-6*xA
    v3 = 1.994d-5 - 2.0d-8*xA
@@ -163,6 +167,7 @@ subroutine maslov_03_potential(E, V_pot, R_pot, a_pot, RC)
 !
 !*******************************************************************************
 !
+   use nodeinfo
    use variable_kinds
    implicit none
    real(kind=8), intent(in) :: E
@@ -242,6 +247,7 @@ subroutine soukhovitskii_potential(part_type, iA, iZ, OM_option,        &
 !
 !*******************************************************************************
 !
+   use nodeinfo
    use variable_kinds
    use directory_structure
    use useful_data
@@ -271,7 +277,10 @@ subroutine soukhovitskii_potential(part_type, iA, iZ, OM_option,        &
    real(kind=8) :: me, be, sep(6)
    real(kind=8) :: phase
 
-   if(part_type > 2)stop 'Error in soukhovitskii_potential: part_type > 2'
+   if(part_type > 2)then
+      write(6,*)'Error in soukhovitskii_potential: part_type > 2'
+      call MPI_Abort(icomm,301,ierr)
+   end if
    onethird = 1.0d0/3.0d0
    iN = iA - iZ
    xA = real(iA,kind=8)
@@ -416,6 +425,7 @@ subroutine perey_d_potential(part_type, iA, iZ, E,           &
 !
 !*******************************************************************************
 !
+   use nodeinfo
    use variable_kinds
    implicit none
    integer(kind=4), intent(in) :: part_type, iA, iZ
@@ -436,9 +446,11 @@ subroutine perey_d_potential(part_type, iA, iZ, E,           &
    real(kind=8) :: diff
 
    if(part_type /= 3)then
-      write(6,*)'Error in perey_d_potential. Attempting to call for '
-      write(6,*)'an incident particle other than deutrons'
-      stop
+      if(iproc == 0)then
+         write(6,*)'Error in perey_d_potential. Attempting to call for '
+         write(6,*)'an incident particle other than deutrons'
+      end if
+      call MPI_Abort(icomm,301,ierr)
    end if
 
    iN = iA - iZ
@@ -501,6 +513,7 @@ subroutine becchetti_t_potential(part_type, iA, iZ, E,           &
 !
 !*******************************************************************************
 !
+   use nodeinfo
    use variable_kinds
    implicit none
    integer(kind=4), intent(in) :: part_type, iA, iZ
@@ -521,9 +534,11 @@ subroutine becchetti_t_potential(part_type, iA, iZ, E,           &
    real(kind=8) :: diff
 
    if(part_type /= 4)then
-      write(6,*)'Error in becchetti_t_potential. Attempting to call for '
-      write(6,*)'an incident particle other than tritons'
-      stop
+      if(iproc == 0)then
+         write(6,*)'Error in becchetti_t_potential. Attempting to call for '
+         write(6,*)'an incident particle other than tritons'
+      end if
+      call MPI_Abort(icomm,301,ierr)
    end if
 
    iN = iA - iZ
@@ -591,6 +606,7 @@ subroutine becchetti_h_potential(part_type, iA, iZ, E,           &
 !
 !*******************************************************************************
 !
+   use nodeinfo
    use variable_kinds
    implicit none
    integer(kind=4), intent(in) :: part_type, iA, iZ
@@ -611,9 +627,11 @@ subroutine becchetti_h_potential(part_type, iA, iZ, E,           &
    real(kind=8) :: diff
 
    if(part_type /= 5)then
-      write(6,*)'Error in becchetti_h_potential. Attempting to call for '
-      write(6,*)'an incident particle other than He-3'
-      stop
+      if(iproc == 0)then
+         write(6,*)'Error in becchetti_h_potential. Attempting to call for '
+         write(6,*)'an incident particle other than He-3'
+      end if
+      call MPI_Abort(icomm,301,ierr)
    end if
 
    iN = iA - iZ
@@ -680,6 +698,7 @@ subroutine avrigeanu_a_potential(part_type, iA, iZ, E,           &
 !
 !*******************************************************************************
 !
+   use nodeinfo
    use variable_kinds
    implicit none
    integer(kind=4), intent(in) :: part_type, iA, iZ
@@ -700,9 +719,11 @@ subroutine avrigeanu_a_potential(part_type, iA, iZ, E,           &
    real(kind=8) :: diff
 
    if(part_type /= 6)then
-      write(6,*)'Error in avrigeanu_a_potential. Attempting to call for '
-      write(6,*)'an incident particle other than alphas'
-      stop
+      if(iproc == 0)then
+         write(6,*)'Error in avrigeanu_a_potential. Attempting to call for '
+         write(6,*)'an incident particle other than alphas'
+      end if
+      call MPI_Abort(icomm,301,ierr)
    end if
 
    iN = iA - iZ

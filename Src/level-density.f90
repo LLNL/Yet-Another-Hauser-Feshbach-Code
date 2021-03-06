@@ -567,8 +567,9 @@ subroutine finish_lev_den(icomp)
 !
 !*******************************************************************************
 !
-   use nuclei
    use nodeinfo
+   use options
+   use nuclei
    use constants
    use particles_def
    implicit none
@@ -671,7 +672,7 @@ subroutine finish_lev_den(icomp)
                                sqrt(a_Sn*U)/aparam
    end if
 
-   write(6,*)'finished level_param for nucleus',icomp
+   if(print_me)write(6,*)'finished level_param for nucleus',icomp
    return
 end subroutine finish_lev_den
 !
@@ -956,6 +957,7 @@ real(kind=8) function sig2_param(E,level_param,A)
 !
 !*******************************************************************************
 !
+   use nodeinfo
    use constants
    implicit none
 !------  Passed in
@@ -1005,7 +1007,8 @@ real(kind=8) function sig2_param(E,level_param,A)
          write(6,*)spin_cut, apu, aparam
          write(6,'(''sig2'',7(1x,f10.5))')sg2cut,sig2_em,deriv,    &
             e,ecut,ematch,sig2
-         stop 'sig2 < 0'
+         if(iproc == 0)write(6,*)'sig2 < 0'
+         call MPI_Abort(icomm,401,ierr)
       end if
    else
       apu = aparam_u(U,aparam,shell,gamma)

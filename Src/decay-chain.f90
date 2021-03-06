@@ -240,8 +240,8 @@ subroutine set_up_decay_chain(Z_p, A_p, Z_t, A_t, num_comp)
       max_particle(k) = max_p(k)
    end do
 
-   if(iproc == 0)write(6,*)'Total number of compound nuclei',num_comp
-   if(iproc == 0)write(6,*)'Total number of decay paths',num_paths
+   if(print_me)write(6,*)'Total number of compound nuclei',num_comp
+   if(print_me)write(6,*)'Total number of decay paths',num_paths
 
 !--------------------------------------!
 !------    Allocate compound nuclei    !
@@ -254,7 +254,7 @@ subroutine set_up_decay_chain(Z_p, A_p, Z_t, A_t, num_comp)
    if(.not.allocated(Exit_Channel))then
       allocate(Exit_Channel(num_Channels))
    else
-      if(iproc == 0)write(6,*)'channels already allocated'
+      if(print_me)write(6,*)'channels already allocated'
       call MPI_Abort(icomm, 101, ierr)
    end if
 
@@ -342,11 +342,11 @@ subroutine set_up_decay_chain(Z_p, A_p, Z_t, A_t, num_comp)
                            nucleus(num_nuc)%lev_option = 1
                            if(A_f > 130) nucleus(num_nuc)%lev_option = 2
                            nucleus(num_nuc)%fit_aparam=.false.   !   When fitting to D0 do we adjust a-parameter
-                                                              !   or shell correction 
+                                                                 !   or shell correction 
                         else
                            nucleus(num_nuc)%lev_option = 0
                            nucleus(num_nuc)%fit_aparam = .true.    !   When fitting to D0 do we adjust a-parameter
-                                                              !   or shell correction 
+                                                                   !   or shell correction 
                         end if
                         nucleus(num_nuc)%pair_model = 1
                         nucleus(num_nuc)%level_param(1:11) = 0.0d0
@@ -359,6 +359,26 @@ subroutine set_up_decay_chain(Z_p, A_p, Z_t, A_t, num_comp)
                                                        !             or globally with fit_ematch; 0 for false, 1 for true
                         nucleus(num_nuc)%fission_read = .false.       !  Set true once fission parameters from default are read  
                         nucleus(num_nuc)%atomic_symbol = symb(Z_f)
+
+                        ifinish = 1
+                        if(A_f < 10)then
+                           write(nucleus(num_nuc)%Label(1:1),'(i1)')A_f
+                           ifinish = 1
+                        elseif(A_f < 100)then
+                           write(nucleus(num_nuc)%Label(1:2),'(i2)')A_f
+                           ifinish = 2
+                        elseif(A_f < 1000)then
+                           write(nucleus(num_nuc)%Label(1:3),'(i3)')A_f
+                           ifinish = 3
+                        end if                        
+                        if(nucleus(num_nuc)%atomic_symbol(1:1) == ' ')then
+                           nucleus(num_nuc)%Label(ifinish+1:ifinish+1) =       &
+                              nucleus(num_nuc)%atomic_symbol(2:2)
+                        else
+                           nucleus(num_nuc)%Label(ifinish+1:ifinish+2) =       &
+                              nucleus(num_nuc)%atomic_symbol(1:2)
+                        end if
+
                         nucleus(num_nuc)%BE = be_f
                         nucleus(num_nuc)%ME = me_f
                         nucleus(num_nuc)%Mass = real(A_f, kind=8)*mass_u + me_f

@@ -287,7 +287,7 @@ end subroutine print_nuke_data
 !*****************************************************************************80
 !
 subroutine print_reaction_cs(itarget, istate, ilab, file_lab, ilib_dir, lib_dir, ch_par,   &
-                             num_energies, reaction_cs, absorption_cs, SE_cs)
+                             num_energies, reaction_cs, absorption_cs, SE_cs, write_error)
    use variable_kinds
    use options
    use constants
@@ -307,6 +307,7 @@ subroutine print_reaction_cs(itarget, istate, ilab, file_lab, ilib_dir, lib_dir,
    real(kind=8), intent(in) :: reaction_cs(num_energies)
    real(kind=8), intent(in) :: absorption_cs(num_energies)
    real(kind=8), intent(in) :: SE_cs(num_energies)
+   logical, intent(out) :: write_error
 !----------------------------------------------------------------------
    integer(kind=4) :: iproj
    integer(kind=4) :: ipi, in
@@ -316,6 +317,9 @@ subroutine print_reaction_cs(itarget, istate, ilab, file_lab, ilib_dir, lib_dir,
    integer(kind=4) :: idir, ifile
    character(len=132) :: directory
    character(len=132) :: outfile
+!----------------------------------------------------------------------
+
+   write_error = .false.
 
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !---------    Total cross section          ------------------------+
@@ -433,7 +437,7 @@ end subroutine print_reaction_cs
 !*****************************************************************************80
 !
 subroutine print_preeq_cs(itarget, istate, ilab, file_lab, ilib_dir, lib_dir, ch_par,   &
-                          num_energies, reaction_cs, preeq_css)
+                          num_energies, reaction_cs, preeq_css, write_error)
    use variable_kinds
    use options
    use constants
@@ -452,6 +456,7 @@ subroutine print_preeq_cs(itarget, istate, ilab, file_lab, ilib_dir, lib_dir, ch
    integer(kind=4), intent(in) :: num_energies
    real(kind=8), intent(in) :: reaction_cs(num_energies)
    real(kind=8), intent(in) :: preeq_css(0:6,1:num_energies)
+   logical, intent(out) :: write_error
 !----------------------------------------------------------------------
    integer(kind=4) :: k, ipi, in
    real(kind=8) :: e_in, cs
@@ -461,6 +466,7 @@ subroutine print_preeq_cs(itarget, istate, ilab, file_lab, ilib_dir, lib_dir, ch
    character(len=132) :: directory
    character(len=132) :: outfile
 !----------------------------------------------------------------------
+   write_error = .false.
    directory(1:ilib_dir) = lib_dir(1:ilib_dir)
    idir = ilib_dir + 1
    directory(idir:idir) = '/'
@@ -518,7 +524,7 @@ end subroutine print_preeq_cs
 !*****************************************************************************80
 !
 subroutine print_direct_cs(itarget, istate, ilab, file_lab, ilib_dir, lib_dir, ch_par,   &
-                           num_energies, direct_cc, direct_dwba, direct_tot)
+                           num_energies, direct_cc, direct_dwba, direct_tot, write_error)
    use variable_kinds
    use options
    use constants
@@ -538,6 +544,7 @@ subroutine print_direct_cs(itarget, istate, ilab, file_lab, ilib_dir, lib_dir, c
    real(kind=8), intent(in) :: direct_cc(1:num_energies)
    real(kind=8), intent(in) :: direct_dwba(1:num_energies)
    real(kind=8), intent(in) :: direct_tot(1:num_energies)
+   logical, intent(out) :: write_error
 !----------------------------------------------------------------------
    integer(kind=4) :: ipi, in
    real(kind=8) :: e_in
@@ -547,6 +554,7 @@ subroutine print_direct_cs(itarget, istate, ilab, file_lab, ilib_dir, lib_dir, c
    character(len=132) :: directory
    character(len=132) :: outfile
 !----------------------------------------------------------------------
+   write_error = .false.
    directory(1:ilib_dir) = lib_dir(1:ilib_dir)
    idir = ilib_dir + 1
    directory(idir:idir) = '/'
@@ -604,7 +612,7 @@ end subroutine print_direct_cs
 !
 subroutine print_fission_cs(itarget, istate, ilab, file_lab, ilib_dir, lib_dir, ch_par,   &
                             num_energies, reaction_cs, fission_cs,                        &
-                            num_comp, Fiss_J_avg, Fiss_J_var, Fiss_tally)
+                            num_comp, Fiss_J_avg, Fiss_J_var, Fiss_tally, write_error)
    use variable_kinds
    use options
    use constants
@@ -627,6 +635,7 @@ subroutine print_fission_cs(itarget, istate, ilab, file_lab, ilib_dir, lib_dir, 
    real(kind=8), intent(inout) :: Fiss_J_avg(num_comp,num_energies)
    real(kind=8), intent(inout) :: Fiss_J_var(num_comp,num_energies)
    real(kind=8), intent(inout) :: Fiss_tally(num_comp,num_energies)
+   logical, intent(out) :: write_error
 !----------------------------------------------------------------------
    integer(kind=4) :: ipi, in, icomp
    real(kind=8) :: e_in
@@ -636,6 +645,7 @@ subroutine print_fission_cs(itarget, istate, ilab, file_lab, ilib_dir, lib_dir, 
    character(len=132) :: directory
    character(len=132) :: outfile
 !----------------------------------------------------------------------
+   write_error = .false.
 
    directory(1:ilib_dir) = lib_dir(1:ilib_dir)
    idir = ilib_dir + 1
@@ -708,7 +718,7 @@ end subroutine print_fission_cs
 subroutine print_elastic(itarget, istate, ilab, file_lab, ilib_dir, lib_dir, ch_par,     &
                          num_energies, Ang_L_max, max_jx_100, delta_Jx_100,              &
                          cs_threshold, SE_cs, SE_Ang, Elastic_cs, Elastic_Ang,           &
-                         nstates, Inelastic_cs, Inelastic_Ang_L, Inelastic_L_max)
+                         nstates, Inelastic_cs, Inelastic_Ang_L, Inelastic_L_max, write_error)
    use variable_kinds
    use options
    use constants
@@ -737,6 +747,7 @@ subroutine print_elastic(itarget, istate, ilab, file_lab, ilib_dir, lib_dir, ch_
    real(kind=8), intent(in) :: Inelastic_cs(0:nstates,num_energies)
    real(kind=8), intent(in) :: Inelastic_Ang_L(0:Ang_L_max,0:nstates,num_energies)
    integer(kind=4), intent(in) :: Inelastic_L_max(0:nstates,num_energies)
+   logical, intent(out) :: write_error
 !----------------------------------------------------------------------
    integer(kind=4) :: iproj
    integer(kind=4) :: ipi, ipf, in, j, jx, L
@@ -760,6 +771,7 @@ subroutine print_elastic(itarget, istate, ilab, file_lab, ilib_dir, lib_dir, ch_
 !----------------------------------------------------------------------
    real(kind=8) :: poly
 !----------------------------------------------------------------------
+   write_error = .false.
    iproj = projectile%particle_type
 
    directory(1:ilib_dir) = lib_dir(1:ilib_dir)
@@ -1369,7 +1381,7 @@ end subroutine print_elastic
 subroutine print_inelastic(itarget, istate, ilab, file_lab, ilib_dir, lib_dir, ch_par,     &
                            num_energies, Ang_L_max, max_jx_50, delta_jx_50,                &
                            cs_threshold, nstates, absorption_cs, Inelastic_cs,             &
-                           Inelastic_Ang_L, Inelastic_L_max)
+                           Inelastic_Ang_L, Inelastic_L_max, write_error)
    use variable_kinds
    use options
    use constants
@@ -1395,6 +1407,7 @@ subroutine print_inelastic(itarget, istate, ilab, file_lab, ilib_dir, lib_dir, c
    real(kind=8), intent(in) :: Inelastic_cs(0:nstates,num_energies)
    real(kind=8), intent(in) :: Inelastic_Ang_L(0:Ang_L_max,0:nstates,num_energies)
    integer(kind=4), intent(in) :: Inelastic_L_max(0:nstates,num_energies)
+   logical, intent(out) :: write_error
 !----------------------------------------------------------------------
    integer(kind=4) :: iproj
    integer(kind=4) :: inuc
@@ -1418,6 +1431,7 @@ subroutine print_inelastic(itarget, istate, ilab, file_lab, ilib_dir, lib_dir, c
    real(kind=8) :: poly
 !----------------------------------------------------------------------
 
+   write_error = .false.
    quote = "'"
    iproj = projectile%particle_type
 
@@ -1451,7 +1465,8 @@ subroutine print_inelastic(itarget, istate, ilab, file_lab, ilib_dir, lib_dir, c
          write(outfile(ifile-2:ifile),'(i3)')l
       else
          write(6,*)'too many discrete states inelastic_cs ',l
-         stop
+         write_error = .true.
+         return
       end if
 !**********************************************************************************
 !-----   Check if this state has appreciable cross section. If not, skip     -----*
@@ -1517,7 +1532,8 @@ subroutine print_inelastic(itarget, istate, ilab, file_lab, ilib_dir, lib_dir, c
          write(outfile(ifile-2:ifile),'(i3)')l
       else
          write(6,*)'too many discrete states inelastic_ANG ',l
-         stop
+         write_error = .true.
+         return
       end if
       open(unit=100, file = directory(1:idir)//outfile(1:ifile)//'.dat',status = 'unknown')
       ilab2 = ilab
@@ -1586,7 +1602,8 @@ subroutine print_inelastic(itarget, istate, ilab, file_lab, ilib_dir, lib_dir, c
          write(outfile(ifile-2:ifile),'(i3)')l
       else
          write(6,*)'too many discrete states Inelastic_ANG_Leg ',l
-         stop
+         write_error = .true.
+         return
       end if
       open(unit=100, file = directory(1:idir)//outfile(1:ifile)//'.dat',status = 'unknown')
       ilab2 = ilab
@@ -1661,7 +1678,7 @@ end subroutine print_inelastic
 !
 subroutine print_channels(itarget, istate, ilab, file_lab, ilib_dir, lib_dir, ch_par,     &
                           num_energies, num_e, max_jx_20, delta_jx_20,                    &
-                          de_spec, cs_threshold, reaction_cs)
+                          de_spec, cs_threshold, reaction_cs, write_error)
    use variable_kinds
    use options
    use constants
@@ -1684,6 +1701,7 @@ subroutine print_channels(itarget, istate, ilab, file_lab, ilib_dir, lib_dir, ch
    real(kind=8), intent(in) :: de_spec
    real(kind=8), intent(in) :: cs_threshold
    real(kind=8), intent(in) :: reaction_cs(num_energies)
+   logical, intent(out) :: write_error
 !----------------------------------------------------------------------
    integer(kind=4) :: iproj
    integer(kind=4) :: inuc
@@ -1717,6 +1735,8 @@ subroutine print_channels(itarget, istate, ilab, file_lab, ilib_dir, lib_dir, ch
 !----------------------------------------------------------------------
    real(kind=8) :: poly
 !----------------------------------------------------------------------
+
+   write_error = .false.
 
    iproj = projectile%particle_type
 
@@ -1758,7 +1778,8 @@ subroutine print_channels(itarget, istate, ilab, file_lab, ilib_dir, lib_dir, ch
             write(outfile(ifile-2:ifile),'(i3)')l
          else
             write(6,*)'too many discrete states Channel_cs ',l
-            stop
+            write_error = .true.
+            return
          end if
          open(unit=100, file = directory(1:idir)//outfile(1:ifile)//'.dat',status = 'unknown')
          file_lab2(1:20) = ' '
@@ -2560,7 +2581,7 @@ end subroutine print_channels
 !*****************************************************************************80
 !
 subroutine print_channel_gammas(itarget, ilab, file_lab, ilib_dir, lib_dir,            &
-                                ch_par, in, e_in, reaction_cs)
+                                ch_par, in, e_in, reaction_cs, write_error)
    use variable_kinds
    use options
    use constants
@@ -2576,6 +2597,7 @@ subroutine print_channel_gammas(itarget, ilab, file_lab, ilib_dir, lib_dir,     
    integer(kind=4) :: in
    real(kind=8), intent(in) :: e_in
    real(kind=8), intent(in) :: reaction_cs
+   logical, intent(out) :: write_error
 !----------------------------------------------------------------------
    integer(kind=4) :: iproj
    integer(kind=4) :: inuc
@@ -2600,6 +2622,7 @@ subroutine print_channel_gammas(itarget, ilab, file_lab, ilib_dir, lib_dir,     
    character(len=5) :: resid_label
    integer(kind=4) :: nres
 !----------------------------------------------------------------------
+   write_error = .false.
    iproj = projectile%particle_type
 
    call nucleus_label(itarget,ntar,target_label)

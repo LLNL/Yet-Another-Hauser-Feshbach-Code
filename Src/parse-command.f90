@@ -55,6 +55,7 @@ subroutine parse_command(num_comp,icommand,command,finish)
    real(kind=8) :: e_min,e_max
 !   character(len=132) :: error_line
 !   integer(kind=4) :: ierr_last
+   character(len=132) :: temp_char
 
    logical :: interact
    logical :: logic_char
@@ -79,7 +80,7 @@ subroutine parse_command(num_comp,icommand,command,finish)
    istart = 1
    istop = index(command,' ')-1
 
-   if(iproc == 0)write(6,*)command
+!   if(iproc == 0)write(6,*)command
 
    call parse_string(command,numw,startw,stopw)
 
@@ -88,7 +89,7 @@ subroutine parse_command(num_comp,icommand,command,finish)
       return
    end if
 
-   if(iproc == 0)write(6,*)'Command: ',command
+!   if(iproc == 0)write(6,*)'Command: ',command
 !
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -110,6 +111,12 @@ subroutine parse_command(num_comp,icommand,command,finish)
       nchar = stopw(2) - startw(2) + 1
 
       out_file(1:nchar) = command(startw(2):stopw(2))
+
+      temp_char(1:132) = ' '
+      temp_char(1:nchar) = out_file(1:nchar)
+      call lower_case_word(nchar,temp_char(1:nchar))
+
+      if(out_file(1:nchar) == 'none')print_output = .false.
 
       return
    end if
@@ -134,8 +141,7 @@ subroutine parse_command(num_comp,icommand,command,finish)
 
       fission = logic_char
 
-      if(iproc == 0)write(6,*)'Improper input for command "fission", no changes'
-      return      !   if it gets here a proper input wasn't given so keep default
+      return
    end if
 !
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -234,7 +240,7 @@ subroutine parse_command(num_comp,icommand,command,finish)
       if(iZ == -1 .or. iA == -1)then
          if(numw /= 3)then
             if(iproc ==0)write(6,*)'Error specifying target - not enough data'
-            call exit
+            call MPI_Abort(icomm,101,ierr)
          end if
          read(command(startw(2):stopw(2)),*)target%Z
          read(command(startw(3):stopw(3)),*)target%A
@@ -268,7 +274,7 @@ subroutine parse_command(num_comp,icommand,command,finish)
          i = particle_index(command(startw(2):stopw(2)))
          if(i < 1)then
             if(iproc ==0)write(6,*)'Particle misidentified in command "projectile"'
-            call exit
+            call MPI_Abort(icomm,101,ierr)
          end if
          projectile%particle_type = i
          projectile%Z = particle(i)%Z
@@ -324,7 +330,7 @@ subroutine parse_command(num_comp,icommand,command,finish)
       if(projectile%Z == -1 .and. projectile%A == 0)then
          if(numw < 4)then
             if(iproc ==0)write(6,*)'Not enough input in command projectile for population calculation'
-            call exit
+            call MPI_Abort(icomm,101,ierr)
          end if
          projectile%particle_type = 7
          projectile%Z = 0
@@ -372,7 +378,7 @@ subroutine parse_command(num_comp,icommand,command,finish)
                   end do
                   if(xnorm < 1.0d-6)then
                      if(iproc == 0)write(6,*)'Error!! The total population is too small < 1.0d-6'
-                     call exit
+                     call MPI_Abort(icomm,101,ierr)
                   end if
                   do i = 1, num_pop
                      Pop_data(k)%bin_pop(i) = Pop_data(k)%bin_pop(i)/xnorm
@@ -382,7 +388,7 @@ subroutine parse_command(num_comp,icommand,command,finish)
             close(unit=8)
          else
             if(iproc ==0)write(6,*)'Something wrong with Population option, no populations are specified'
-            call exit
+            call MPI_Abort(icomm,101,ierr)
          end if
          ex_set = .true.
          pop_calc = .true.
@@ -401,7 +407,7 @@ subroutine parse_command(num_comp,icommand,command,finish)
       if(projectile%Z == -1 .and. projectile%A == -1)then
          if(numw < 4)then
             if(iproc ==0)write(6,*)'Not enough input in command projectile for population calculation'
-            call exit
+            call MPI_Abort(icomm,101,ierr)
          end if
          projectile%particle_type = 7
          projectile%Z = 0
@@ -427,7 +433,7 @@ subroutine parse_command(num_comp,icommand,command,finish)
          return
       end if
       if(iproc == 0)write(6,*)'Error in specifying projectile'
-      call exit
+      call MPI_Abort(icomm,101,ierr)
       return
    end if
 !
@@ -444,7 +450,7 @@ subroutine parse_command(num_comp,icommand,command,finish)
       k = particle_index(command(startw(2):stopw(2)))
       if(k < 1)then
           if(iproc == 0)write(6,*)'Particle misidentified in command "max_particle"'
-          call exit
+          call MPI_Abort(icomm,101,ierr)
       end if
       read(command(startw(3):stopw(3)),*)i
 !---   set max_particle(k). Note if k == iproj, max_particle >=1
@@ -675,8 +681,6 @@ subroutine parse_command(num_comp,icommand,command,finish)
       end do
       return
    end if
-
-
 !
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -1121,7 +1125,7 @@ subroutine parse_command(num_comp,icommand,command,finish)
 
       if(j > 2)then
          if(iproc == 0)write(6,*)'Bad input for "lev_option"'
-         call exit
+         call MPI_Abort(icomm,101,ierr)
       end if
 
       do i = 1, num_comp
@@ -1166,7 +1170,7 @@ subroutine parse_command(num_comp,icommand,command,finish)
 
       if(j > 2)then
          if(iproc == 0)write(6,*)'Bad input for "lev_nuc_option"'
-         call exit
+         call MPI_Abort(icomm,101,ierr)
       end if
       if(iA <= 20 .and. j > 1)then
          if(iproc == 0)write(6,*)'Warning, A is too small and lev_option > 1 is dangerous'
@@ -1309,7 +1313,7 @@ subroutine parse_command(num_comp,icommand,command,finish)
 
       if(j > 3)then
          if(iproc ==0)write(6,*)'Bad input for E1_param'
-         call exit
+         call MPI_Abort(icomm,101,ierr)
       end if
       do i = 1, num_comp
          if(iZ == nucleus(i)%Z .and. iA == nucleus(i)%A)then
@@ -1347,7 +1351,7 @@ subroutine parse_command(num_comp,icommand,command,finish)
       do i = 1, num_comp
          if(iZ == nucleus(i)%Z .and. iA == nucleus(i)%A)then
             if(iproc ==0)then
-               write(6,*)'Default Fission Barriers are overridden'
+               write(6,*)'Default Fission Barriers are overridden for ', nucleus(i)%Label
                write(6,*)'New defaults established.'
                write(6,*)'Berrier heights = 6.0 MeV, hbw = 0.6 MeV, symmetric level densities'
                write(6,*)'Use input commands to specify all Fission parameters!!!'
@@ -1389,7 +1393,7 @@ subroutine parse_command(num_comp,icommand,command,finish)
          if(iZ == nucleus(i)%Z .and. iA == nucleus(i)%A)then
             if(j > nucleus(i)%F_n_barr)then
                if(iproc == 0)write(6,*)'too many barriers for F_Barrier'
-               call exit
+               call MPI_Abort(icomm,101,ierr)
             end if
             nucleus(i)%F_Barrier(j)%barrier = x(1)
             nucleus(i)%F_Barrier(j)%hbw = x(2)
@@ -1421,7 +1425,7 @@ subroutine parse_command(num_comp,icommand,command,finish)
          if(iZ == nucleus(i)%Z .and. iA == nucleus(i)%A)then
             if(j > nucleus(i)%F_n_barr)then
                if(iproc ==0)write(6,*)'too many barriers for F_Barrier'
-               call exit
+               call MPI_Abort(icomm,101,ierr)
             end if
             nucleus(i)%F_Barrier(j)%barrier_damp(2) = x(2)
             nucleus(i)%F_Barrier(j)%barrier_damp(3) = x(3)
@@ -1461,7 +1465,7 @@ subroutine parse_command(num_comp,icommand,command,finish)
             if(j > nucleus(i)%F_n_barr)then
                if(iproc == 0)write(6,*)'Error: requesting too many barriers for F_Barrier for nucleus Z = ',&
                                        iZ,' A = ',iA
-               call exit
+               call MPI_Abort(icomm,101,ierr)
             end if
             if(command(startw(nw):stopw(nw)) == 's' .or. command(startw(nw):stopw(nw)) == '1')then
                nucleus(i)%F_Barrier(j)%symmetry = 1
@@ -1514,7 +1518,7 @@ subroutine parse_command(num_comp,icommand,command,finish)
          if(iZ == nucleus(i)%Z .and. iA == nucleus(i)%A)then
             if(j > nucleus(i)%F_n_barr)then
                if(iproc == 0)write(6,*)'too many barriers for F_ecut'
-               call exit
+               call MPI_Abort(icomm,101,ierr)
             end if
             nucleus(i)%F_Barrier(j)%ecut = x(1)
             return
@@ -1544,7 +1548,7 @@ subroutine parse_command(num_comp,icommand,command,finish)
          if(iZ == nucleus(i)%Z .and. iA == nucleus(i)%A)then
             if(j > nucleus(i)%F_n_barr)then
                if(iproc == 0)write(6,*)'too many barriers for f_lev_aparam'
-               call exit
+               call MPI_Abort(icomm,101,ierr)
             end if
             nucleus(i)%F_Barrier(j)%level_param(1) = x(1)
             return
@@ -1574,7 +1578,7 @@ subroutine parse_command(num_comp,icommand,command,finish)
          if(iZ == nucleus(i)%Z .and. iA == nucleus(i)%A)then
             if(j > nucleus(i)%F_n_barr)then
                if(iproc == 0)write(6,*)'too many barriers for F_lev_spin'
-               call exit
+               call MPI_Abort(icomm,101,ierr)
             end if
             nucleus(i)%F_Barrier(j)%level_param(2) = x(1)
             return
@@ -1604,7 +1608,7 @@ subroutine parse_command(num_comp,icommand,command,finish)
          if(iZ == nucleus(i)%Z .and. iA == nucleus(i)%A)then
             if(j > nucleus(i)%F_n_barr)then
                if(iproc == 0)write(6,*)'too many barriers for F_lev_delta'
-               call exit
+               call MPI_Abort(icomm,101,ierr)
             end if
             nucleus(i)%F_Barrier(j)%level_param(3) = x(1)
             nucleus(i)%F_Barrier(j)%level_param(6) = 2.5 + 150./real(iA,kind=8) + x(1)
@@ -1636,7 +1640,7 @@ subroutine parse_command(num_comp,icommand,command,finish)
          if(iZ == nucleus(i)%Z .and. iA == nucleus(i)%A)then
             if(j > nucleus(i)%F_n_barr)then
                if(iproc == 0)write(6,*)'too many barriers for F_lev_shell'
-               call exit
+               call MPI_Abort(icomm,101,ierr)
             end if
             nucleus(i)%F_Barrier(j)%level_param(4) = x(1)
             return
@@ -1667,7 +1671,7 @@ subroutine parse_command(num_comp,icommand,command,finish)
          if(iZ == nucleus(i)%Z .and. iA == nucleus(i)%A)then
             if(j > nucleus(i)%F_n_barr)then
                if(iproc == 0)write(6,*)'too many barriers for F_lev_gamma'
-               call exit
+               call MPI_Abort(icomm,101,ierr)
             end if
             nucleus(i)%F_Barrier(j)%level_param(5) = x(1)
             return
@@ -1700,7 +1704,7 @@ subroutine parse_command(num_comp,icommand,command,finish)
          if(iZ == nucleus(i)%Z .and. iA == nucleus(i)%A)then
             if(j > nucleus(i)%F_n_barr)then
                if(iproc == 0)write(6,*)'Error in F_lev_rot_enhance index > # of barriers'
-               call exit
+               call MPI_Abort(icomm,101,ierr)
             end if
             do k = 1,3
                if(x(k) >= 0.0d0)nucleus(i)%F_Barrier(j)%rot_enh(k) = x(k)
@@ -1735,7 +1739,7 @@ subroutine parse_command(num_comp,icommand,command,finish)
          if(iZ == nucleus(i)%Z .and. iA == nucleus(i)%A)then
             if(j > nucleus(i)%F_n_barr)then
                if(iproc == 0)write(6,*)'Error in F_vib_vib_enhance index > # of barriers'
-               call exit
+               call MPI_Abort(icomm,101,ierr)
             end if
             do k = 1, 3
                if(x(k) >= 0.0d0)nucleus(i)%F_Barrier(j)%vib_enh(k) = x(k)
@@ -1768,7 +1772,7 @@ subroutine parse_command(num_comp,icommand,command,finish)
          if(iZ == nucleus(i)%Z .and. iA == nucleus(i)%A)then
             if(j > nucleus(i)%F_n_barr)then
                if(iproc == 0)write(6,*)'too many barriers for F_lev_ematch'
-               call exit
+               call MPI_Abort(icomm,101,ierr)
             end if
             if(x(1) <= nucleus(i)%F_Barrier(j)%level_param(3) + 0.25)then
                if(iproc == 0)then
@@ -1813,7 +1817,7 @@ subroutine parse_command(num_comp,icommand,command,finish)
          if(iZ == nucleus(i)%Z .and. iA == nucleus(i)%A)then
             if(j > nucleus(i)%F_n_barr)then
                if(iproc == 0)write(6,*) 'WARNING -- too many barriers for F_beta_2 in nucleus ',i
-               call exit
+               call MPI_Abort(icomm,101,ierr)
             end if
             beta_2 = x(1)
             nucleus(i)%F_Barrier(j)%beta_2 = beta_2
@@ -2367,7 +2371,7 @@ subroutine parse_command(num_comp,icommand,command,finish)
       k = particle_index(command(startw(2):stopw(2)))
       if(k < 1)then
          if(iproc == 0)write(6,*)'Particle misidentified in command "optical_potential"'
-         call exit
+         call MPI_Abort(icomm,101,ierr)
       end if
 !----   optical potential type is in 3rd word
       istart = startw(3)
@@ -2767,7 +2771,7 @@ subroutine parse_command(num_comp,icommand,command,finish)
       end if
       if(numw /= 2)then
          if(iproc == 0)write(6,*)'Wrong input for command trans_avg_l'
-         call exit
+         call MPI_Abort(icomm,101,ierr)
       end if
       trans_avg_l = .false.
 
@@ -2877,6 +2881,52 @@ subroutine parse_command(num_comp,icommand,command,finish)
       icommand = icommand + 1
       if(iproc == 0)write(6,*)'Command copied from from Fission Barrier file, ignoring'
       return
+   end if
+!
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!
+   if(command(startw(1):stopw(1)) == 'verbose_output')then
+      icommand = icommand + 1
+      if(numw < 2)then
+!         write(6,*)'Error in input for option "fission"'
+         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
+         return
+      end if
+
+      call char_logical(command(startw(2):stopw(2)), logic_char, read_error)
+
+      if(read_error)then
+         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
+         return
+      end if
+
+      verbose = logic_char
+
+      return      !   if it gets here a proper input wasn't given so keep default
+   end if
+!
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!
+   if(command(startw(1):stopw(1)) == 'write_outfile')then
+      icommand = icommand + 1
+      if(numw < 2)then
+!         write(6,*)'Error in input for option "fission"'
+         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
+         return
+      end if
+
+      call char_logical(command(startw(2):stopw(2)), logic_char, read_error)
+
+      if(read_error)then
+         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
+         return
+      end if
+
+      print_output = logic_char
+
+      return      !   if it gets here a proper input wasn't given so keep default
    end if
 !
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

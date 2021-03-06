@@ -7,6 +7,7 @@
 subroutine MPI_INIT(ierr)
   implicit none
   integer(kind=4) :: ierr
+  ierr = 0
   return
 end subroutine MPI_INIT
  
@@ -14,7 +15,9 @@ subroutine MPI_COMM_RANK(icomm, iproc, ierr)
   implicit none
   integer(kind=4) :: icomm, iproc, ierr
 !-----------------------------------------
+  icomm = 0
   iproc = 0
+  ierr = 0
   return
 end
  
@@ -22,13 +25,17 @@ subroutine MPI_COMM_SIZE(icomm, nproc, ierr)
   implicit none
   integer(kind=4) :: icomm, nproc, ierr
 !-----------------------------------------
+  icomm = 0
   nproc = 1
+  ierr = 0
   return
 end
  
 subroutine MPI_Barrier(icomm,ierr)
   implicit none
   integer(kind=4) :: icomm, ierr
+  icomm = 0
+  ierr = 0
 !-----------------------------------------
   return
 end
@@ -38,6 +45,7 @@ subroutine MPI_Finalize(ierr)
   implicit none
   integer(kind=4) :: ierr
 !-----------------------------------------
+  ierr = 0
   return
 end
 

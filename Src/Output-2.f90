@@ -55,17 +55,17 @@ subroutine start_IO(num_comp)
    do i=1,num_comp
       char_start = 1
       if(nucleus(i)%atomic_symbol(1:1) == ' ')char_start = 2
-      if(char_start == 1)write(6,'(''Nucleus # '',i3,2x,i3,a2)')          &
+      if(char_start == 1 .and. print_me)write(6,'(''Nucleus # '',i3,2x,i3,a2)')     &
          i,nucleus(i)%A,nucleus(i)%atomic_symbol(char_start:2)
-      if(char_start == 2)write(6,'(''Nucleus # '',i3,2x,i3,a1)')          &
+      if(char_start == 2 .and. print_me)write(6,'(''Nucleus # '',i3,2x,i3,a1)')     &
          i,nucleus(i)%A,nucleus(i)%atomic_symbol(char_start:2)
-      write(6,*)'Maximum excitation energy = ',        &
+      if(print_me)write(6,*)'Maximum excitation energy = ',               &
          nucleus(i)%Ex_max
       if(char_start == 1)write(13,'(''Nucleus # '',i3,2x,i3,a2)')         &
          i,nucleus(i)%A,nucleus(i)%atomic_symbol(char_start:2)
       if(char_start == 2)write(13,'(''Nucleus # '',i3,2x,i3,a1)')         &
          i,nucleus(i)%A,nucleus(i)%atomic_symbol(char_start:2)
-      write(13,*)'Maximum excitation energy = ',       &
+      write(13,*)'Maximum excitation energy = ',                          &
          nucleus(i)%Ex_max
       write(13,*)'Energy grid set up with de = ',de
    end do
@@ -73,12 +73,12 @@ subroutine start_IO(num_comp)
    if(.not.pop_calc)then
       ip=projectile%particle_type
       write(6,'(''Projectile = '',a10)')particle(ip)%name
-      write(6,'(''Min and max incidient energies: Min ='',f12.5,'//  &
-                ''' MeV, Max = '',f12.5,'' MeV'')')                  &
+      write(6,'(''Min and max incidient energies: Min ='',f12.5,'//       &
+                ''' MeV, Max = '',f12.5,'' MeV'')')                       &
                 projectile%e_min,projectile%e_max
       write(13,'(''Projectile = '',a10)')particle(ip)%name
-      write(13,'(''Min and max incidient energies: Min ='',f12.5,'// &
-                ''' MeV, Max = '',f12.5,'' MeV'')')                  &
+      write(13,'(''Min and max incidient energies: Min ='',f12.5,'//      &
+                ''' MeV, Max = '',f12.5,'' MeV'')')                       &
                 projectile%e_min,projectile%e_max
    end if
    i=target%icomp

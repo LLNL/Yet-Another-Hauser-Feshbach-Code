@@ -108,12 +108,11 @@ subroutine optical_setup(data_path, len_path, iproj, itarget,                  &
    len_prn = 0
    bigblank(1:80) = ' ' 
 
-   write(6,*)'iproj = ',iproj
 
    do k = 1, 6                  !   loop over particles
       isp = nint(2.0d0*particle(k)%spin)
       if(.not.particle(k)%in_decay .and. k /= iproj)cycle        !   if not in decay chain cycle over
-      write(6,*)'Setting up transmission coefficients for ',particle(k)%name
+      if(print_me)write(6,*)'Setting up transmission coefficients for ',particle(k)%name
 !
 !----------   Setup grids energy grids for transmission coefficients 
 !----------   for each particle type
@@ -203,10 +202,12 @@ subroutine optical_setup(data_path, len_path, iproj, itarget,                  &
 
 
       if(particle(k)%e_grid(nume) < particle(k)%max_e)then        ! Needs in calculation are incompatible 
-         write(6,*)'Warning requested maximum energy is ',     &  ! with data file, need to remake
-                   'greater than the maximum energy in'
-         write(6,*)'the transmission coefficient file'
-         write(6,*)'Will try to call tco subroutine to build'
+         if(iproc == 0)then
+            write(6,*)'Warning requested maximum energy is ',     &  ! with data file, need to remake
+                      'greater than the maximum energy in'
+            write(6,*)'the transmission coefficient file'
+            write(6,*)'Will try to call tco subroutine to build'
+         end if
          tco_exist=.false.
          Ang_exist = .false.
          deallocate(particle(k)%e_grid)
@@ -285,13 +286,15 @@ subroutine optical_setup(data_path, len_path, iproj, itarget,                  &
 !----   A dynamic fix is difficult since many arrays are allocated with
 !----   Ang_L_max before optical_setup is run.
          if(OpticalCS%max_L > Ang_L_max)then
-            write(6,*)'---- WARNING ---- WARNING ---- WARNING ---- WARNING ---- WARNING ----'
-            write(6,*)'Issue in optical-setup.f90'
-            write(6,*)'OpticalCS%max_L > Ang_L_max for Legendre expansion of elastic scattering'
-            write(6,*)'This is indicative of a mismatch in versions as they should be the same'
-            write(6,*)'For the time being, setting OpticalCS%max_L = Ang_L_max'
-            write(6,*)'But, you should rerun FRESCO and start over'
-            write(6,*)'---- WARNING ---- WARNING ---- WARNING ---- WARNING ---- WARNING ----'
+            if(iproc == 0)then
+               write(6,*)'---- WARNING ---- WARNING ---- WARNING ---- WARNING ---- WARNING ----'
+               write(6,*)'Issue in optical-setup.f90'
+               write(6,*)'OpticalCS%max_L > Ang_L_max for Legendre expansion of elastic scattering'
+               write(6,*)'This is indicative of a mismatch in versions as they should be the same'
+               write(6,*)'For the time being, setting OpticalCS%max_L = Ang_L_max'
+               write(6,*)'But, you should rerun FRESCO and start over'
+               write(6,*)'---- WARNING ---- WARNING ---- WARNING ---- WARNING ---- WARNING ----'
+            end if
             OpticalCS%max_L = Ang_L_max
          end if
 !
@@ -319,13 +322,17 @@ subroutine optical_setup(data_path, len_path, iproj, itarget,                  &
          end do
 
          if(particle(iproj)%do_dwba .and. .not. check_dwba)then
-            write(6,*)'ERROR!!!  -  do_dwba = .true. but Optical Model calculation was performed without DWBA states'
-            write(6,*)'Edit command file and set do_dwba = .false. with the command "do_dwba n"'
-            stop
+            if(iproc == 0)then
+               write(6,*)'ERROR!!!  -  do_dwba = .true. but Optical Model calculation was performed without DWBA states'
+               write(6,*)'Edit command file and set do_dwba = .false. with the command "do_dwba n"'
+            end if
+            call MPI_Abort(icomm,101,ierr)
          else if(.not. particle(iproj)%do_dwba .and. check_dwba)then
-            write(6,*)'ERROR!!!  -  do_dwba = .false. but Optical Model calculation was performed with DWBA states'
-            write(6,*)'Edit command file and set do_dwba = .true. with the command "do_dwba y"'
-            stop
+            if(iproc == 0)then
+               write(6,*)'ERROR!!!  -  do_dwba = .false. but Optical Model calculation was performed with DWBA states'
+               write(6,*)'Edit command file and set do_dwba = .true. with the command "do_dwba y"'
+            end if
+            call MPI_Abort(icomm,101,ierr)
          end if
 
 
@@ -395,8 +402,8 @@ subroutine optical_setup(data_path, len_path, iproj, itarget,                  &
                if(abs(nucleus(jtarget)%state(j)%spin - OpticalCS%state(in)%spin) > 1.0d-3)match = .false.
                if(abs(nucleus(jtarget)%state(j)%energy - OpticalCS%state(in)%energy) > 1.0d-4)match = .false.
                if(.not. match)then
-                  write(6,*)'Error in coupled channels, state = ',in,' does not match with a state in target nucleus'
-                  stop
+                  if(iproc ==0)write(6,*)'Error in coupled channels, state = ',in,' does not match with a state in target nucleus'
+                  call MPI_Abort(icomm,101,ierr)
                end if
              end if
          end do
@@ -479,9 +486,11 @@ subroutine optical_setup(data_path, len_path, iproj, itarget,                  &
 
 !------    Check if we want to scale the elastic cross section -  Engineering fix.
    if(scale_elastic)then
-      write(6,*)'***************************************'
-      write(6,*)'scale_elastic',scale_elastic
-      write(6,*)'***************************************'
+      if(print_me)then
+         write(6,*)'***************************************'
+         write(6,*)'scale_elastic =',scale_elastic
+         write(6,*)'***************************************'
+      end if
 
       mass_target = nucleus(jtarget)%mass + nucleus(jtarget)%state(istate)%energy
       mass_proj = particle(iproj)%mass
@@ -506,9 +515,9 @@ subroutine optical_setup(data_path, len_path, iproj, itarget,                  &
          new_absorption_cs = total_cs - sum_direct - new_elastic_cs
          T_factor = new_absorption_cs/absorption_cs
          OpticalCS%optical_cs(ie,n_elastic) = new_elastic_cs
-         write(6,*)'***************************************'
-         write(6,*)'T_factor = ',T_factor
-         write(6,*)'***************************************'
+!         write(6,*)'***************************************'
+!         write(6,*)'T_factor = ',T_factor
+!         write(6,*)'***************************************'
          do l = 0, particle(iproj)%lmax
             do j = 0, isp
                particle(iproj)%trans_read(ie,j,l) =               &
@@ -519,9 +528,9 @@ subroutine optical_setup(data_path, len_path, iproj, itarget,                  &
          new_absorption_cs = comp_cs(ie,jtarget,istate,iproj)
          new_total_cs = new_elastic_cs + sum_direct + new_absorption_cs
  
-         write(6,*)'Incident Energy = ',E_in, 'E_rel = ',particle(iproj)%e_grid(ie)
-         write(6,*)'Before ',total_cs, elastic_cs, sum_direct, absorption_cs
-         write(6,*)'After ',new_total_cs, new_elastic_cs, sum_direct, new_absorption_cs
+!         write(6,*)'Incident Energy = ',E_in, 'E_rel = ',particle(iproj)%e_grid(ie)
+!         write(6,*)'Before ',total_cs, elastic_cs, sum_direct, absorption_cs
+!         write(6,*)'After ',new_total_cs, new_elastic_cs, sum_direct, new_absorption_cs
       end do
    end if
 
@@ -583,6 +592,7 @@ real(kind=8) function tco_interpolate(e,nume,e_grid,tco)
 !
 !*******************************************************************************
 !
+   use nodeinfo
    use variable_kinds
    implicit none
    real(kind=8), intent(in) :: e
@@ -613,8 +623,10 @@ real(kind=8) function tco_interpolate(e,nume,e_grid,tco)
       i2 = i1 + 1
    end if
 
-   if(i1 >= nume)stop 'Error in log_tco_interpolate e > egrid(nume)'
-
+   if(i1 >= nume)then
+      if(iproc == 0)write(6,*)'Error in log_tco_interpolate e > egrid(nume)'
+      call MPI_Abort(icomm,101,ierr)
+   end if
 
    x1 = log(e_grid(i1))
    x2 = log(e_grid(i2))

@@ -6,7 +6,6 @@ subroutine PREEQ_sample(iproj, in, itarget, istate, e_in, ex_tot,      &
                         Ix_f, l_f, ip_f, nbin_f, idb,                  &
                         n_dat, dim_part, num_part_type, part_fact,     &
                         num_part, part_data,                           &
-                        Ang_L_max, part_Ang_data,                      &
                         num_theta, extra_angle_data)
 !
 !*******************************************************************************
@@ -50,8 +49,6 @@ subroutine PREEQ_sample(iproj, in, itarget, istate, e_in, ex_tot,      &
    real(kind=8), intent(inout) :: part_fact(0:7)
    integer(kind=4), intent(out) :: num_part
    real(kind=8), intent(out) :: part_data(n_dat,dim_part)
-   integer(kind=4), intent(in) :: Ang_L_max
-   real(kind=8), intent(out) :: part_Ang_data(0:Ang_L_max,dim_part)
    integer(kind=4), intent(in) :: num_theta
    real(kind=8), intent(inout) :: extra_angle_data(3*num_theta,dim_part)
 !--------------------------------    Internal data
@@ -196,11 +193,13 @@ subroutine PREEQ_sample(iproj, in, itarget, istate, e_in, ex_tot,      &
 !
      theta_0 = 0.0d0
 
-     part_Ang_data(0:Ang_L_max,num_part) = 0.0d0
      do nang = 1, num_theta
-        call PREEQ_Angular(icomp_i, icomp_f, iproj, e_in, k, energy,            &
-                           dim_part, num_part, Ang_L_max, part_Ang_data, x_Ang)
-        if(abs(x_Ang) > 1.0d0)stop 'cos(theta) wrong in PREEQ_sample'
+        call PREEQ_Angular(icomp_i, icomp_f, iproj, e_in, k, energy, x_Ang)
+        if(abs(x_Ang) > 1.0d0)then
+           write(6,*)'cos(theta) wrong in PREEQ_sample'
+           write(6,*)'iproc = ',iproc
+           call MPI_Abort(icomm,101,ierr)
+        end if
         extra_angle_data(nang,num_part) = acos(x_Ang)
      end do
      theta_0 = extra_angle_data(1,num_part)
@@ -428,8 +427,7 @@ end subroutine PREEQ_Sample
 !
 !*******************************************************************************
 !
-subroutine PREEQ_Angular(icomp_C, icomp_B, iproj, E_A, ieject, E_B,           &
-                         dim_part, num_part, Ang_L_max, part_Ang_data, x_Ang)
+subroutine PREEQ_Angular(icomp_C, icomp_B, iproj, E_A, ieject, E_B, x_Ang)
 !
 !*******************************************************************************
 !
@@ -465,9 +463,9 @@ subroutine PREEQ_Angular(icomp_C, icomp_B, iproj, E_A, ieject, E_B,           &
    real(kind=8), intent(in) :: E_A
    integer(kind=4), intent(in) :: ieject
    real(kind=8), intent(in) :: E_B
-   integer(kind=4), intent(in) :: dim_part, num_part
-   integer(kind=4), intent(in) :: Ang_L_max
-   real(kind=8), intent(inout) :: part_Ang_data(0:Ang_L_max,dim_part)
+!   integer(kind=4), intent(in) :: dim_part, num_part
+!   integer(kind=4), intent(in) :: Ang_L_max
+!   real(kind=8), intent(inout) :: part_Ang_data(0:Ang_L_max,dim_part)
    real(kind=8), intent(out) :: x_Ang
 !-------------------   Internal data
    real(kind=8) :: a, E1, E3, eap, ebp, Sa, Sb

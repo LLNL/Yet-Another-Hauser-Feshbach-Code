@@ -47,7 +47,7 @@ subroutine HF_denominator(icomp)
    implicit none
    integer(kind=4), intent(in) :: icomp
 !-------------------------------------------------------------------------+
-   integer(kind=4) j, k, l, jj, nnn, nnnn
+   integer(kind=4) j, k, l, nnn, nnnn
    integer(kind=4) :: Ix_i_max, Ix_i
    integer(kind=4) :: Ix_f_min, Ix_f_max, Ix_f
    real(kind=8) :: xI_i, xI_i_shift
@@ -67,7 +67,6 @@ subroutine HF_denominator(icomp)
    real(kind=8) :: cpar2
    real(kind=8) :: trans, trans_eff
    real(kind=8) :: F_trans(4)
-   real(kind=8) :: ex
 
    real(kind=8) :: xZ_i, xA_i, xZ_part, xA_part
    real(kind=8) :: Coulomb_Barrier(6)
@@ -83,8 +82,6 @@ subroutine HF_denominator(icomp)
    integer(kind=4) :: itemp, idb
 
    real(kind=8) :: prob, prob_sum, prob_norm
-
-   integer(kind=4) :: iprint
 
 !-------------------------------------------------------------------------+
 !------     Function declarations
@@ -920,54 +917,11 @@ subroutine HF_denominator(icomp)
             nnn = nucleus(icomp)%num_decay
             if(nucleus(icomp)%fission)nnn = nnn + 1
 
-
-            iprint = 0
- 
-            if(iprint == 1)then
-
-
-               write(40,'(''Start'',1x,i5,1x,f5.1,1x,f4.1,1x,i6,1x,f9.4,1x,e15.7)')icomp,xI_i,par_i,n,       &
-                   nucleus(icomp)%e_grid(n),nucleus(icomp)%bins(Ix_i,ip,n)%HF_den
- 
-               do if1 = 1, nucleus(icomp)%bins(Ix_i,ip,n)%num_decay
-                  prob = nucleus(icomp)%bins(Ix_i,ip,n)%HF_prob(if1)
-                  if(if1 > 1)prob = prob - nucleus(icomp)%bins(Ix_i,ip,n)%HF_prob(if1-1)
-                  write(40,'(''if1'',1x,i6,1x,i6,2(1x,e15.7))')if1,nucleus(icomp)%bins(Ix_i,ip,n)%decay_to(if1),   &
-                        prob,nucleus(icomp)%bins(Ix_i,ip,n)%HF_prob(if1)
-               end do
-               do if1 = 1, nucleus(icomp)%bins(Ix_i,ip,n)%num_decay
-                  prob = nucleus(icomp)%bins(Ix_i,ip,n)%HF_prob(if1)
-                  if(if1 > 1)prob = prob - nucleus(icomp)%bins(Ix_i,ip,n)%HF_prob(if1-1)
-                  i_f = nucleus(icomp)%bins(Ix_i,ip,n)%decay_to(if1)
-
-                  write(40,*)'Num decays',nucleus(icomp)%bins(Ix_i,ip,n)%nuke_decay(if1)%num_decay
-   
-                  do jj = 1, nucleus(icomp)%bins(Ix_i,ip,n)%nuke_decay(if1)%num_decay
-                     itemp = nucleus(icomp)%bins(Ix_i,ip,n)%nuke_decay(if1)%decay_list(jj)
- 
-                     call unpack_data(Ix_f, ip_f, n_f, idb, l, iss, itemp)
-
-                     prob = nucleus(icomp)%bins(Ix_i,ip,n)%nuke_decay(if1)%decay_prob(jj)
-                     if(jj > 1)prob = prob - nucleus(icomp)%bins(Ix_i,ip,n)%nuke_decay(if1)%decay_prob(jj-1)
-
-                     xI_f = real(Ix_f) + nucleus(i_f)%jshift
-                     par_f = 2*ip_f - 1
-                     if(idb == 0)ex = nucleus(i_f)%e_grid(n_f)
-                     if(idb == 1)ex = nucleus(i_f)%state(n_f)%energy
-
-                     write(40,'(i5,1x,i7,1x,f5.1,1x,f4.1,1x,i6,3(1x,i4),1x,f8.4,2(1x,e15.7))')i_f,jj,xI_f,    &
-                          par_f, n_f, idb, l, iss,     &
-                          ex,prob,nucleus(icomp)%bins(Ix_i,ip,n)%nuke_decay(if1)%decay_prob(jj)
-                  end do
-               end do
-               flush(40)
-            end if
 !---------------------------------------------------------------------------------------------
          end do                         !   do Ix_i = Ix_i_max,0,-1
       end do                            !   Finish: ip = 0, 1 
    end do                               !   Finish: do n = 1,nbin 
-   write(6,*)'Total number = ', num_tot
-   write(6,*)'Finished'
+   if(print_me)write(6,*)'Total number = ', num_tot
 return
 end subroutine HF_denominator
 !

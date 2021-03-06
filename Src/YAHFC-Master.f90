@@ -46,6 +46,7 @@ program YAHFC_MASTER
       character(len=132) blank132
       logical :: call_tco
       logical :: e_in_problem
+      logical :: write_error
 !-----------------------------------------------------------------------
       character(len=80) directory
       integer(kind=4) ifile, idir, core_file
@@ -443,6 +444,8 @@ program YAHFC_MASTER
       event_generator = .false.
       use_unequal_bins = .false.
       xs_only = .false.
+      verbose = .true.
+      if(nproc > 1) verbose = .false.
 !
 !----   Start with no optical potentials being set
 !----   later they may be set with a choice of an option
@@ -567,9 +570,9 @@ program YAHFC_MASTER
       ifresco_shape = 13
 
 
-      trans_p_cut = 1.0d-6
+      trans_p_cut = 1.0d-7
       trans_e_cut = 1.0d-15
-      prob_cut = 1.0d-6
+      prob_cut = 1.0d-7
 
       num_mc_samp = 1000000
 !
@@ -627,7 +630,7 @@ program YAHFC_MASTER
             write(6,*)'Environment variable for data is not set correctly'
             write(6,*)'Program exiting'
          end if
-         call exit
+         call MPI_Abort(icomm,101,ierr)
       end if
       KE = 0.0d0
 
@@ -645,7 +648,6 @@ program YAHFC_MASTER
       E1_model = 2
       e_l_max = 3
       m_l_max = 2
-      out_file = 'YAHFC-Calc'
       primary_setup = .false.
       target%specified = .false.
       fission = .true.
@@ -731,7 +733,7 @@ program YAHFC_MASTER
 !
       if(nproc > 1)then
          call MPI_Barrier(icomm, ierr)
-         call MPI_BCAST(num_command, MPI_INTEGER, 0, icomm, ierr)
+         call MPI_BCAST(num_command, 1, MPI_INTEGER, 0, icomm, ierr)
       end if
 !        
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -838,20 +840,22 @@ program YAHFC_MASTER
                call get_lev_den(data_path,len_path,                &
                                 symb(Z_f),Z_f,A_f,icomp)
                if(nucleus(icomp)%fit_ematch)call fit_lev_den(icomp)
-               nucleus(icomp)%fission=.false.
+               nucleus(icomp)%fission = .false.
                if(fission .and. nucleus(icomp)%Z >= 80)then
                   call Fission_data(data_path,len_path,icomp)
                end if
             end do
-            spin_target=nucleus(itarget)%state(target%istate)%spin
+            spin_target = nucleus(itarget)%state(target%istate)%spin
             spin_proj = 0.0
-            if(.not.pop_calc)spin_proj=particle(iproj)%spin
+            if(.not. pop_calc)spin_proj = particle(iproj)%spin
             compound_setup=.true.
          end if
       end do
 
       num_theta = num_theta_angles
       if(xs_only)num_theta = 1
+      print_me = .false.
+      if(iproc == 0 .and. verbose)print_me = .true.
 
 !------  After everything is set up, also check if preequilibrium model parameters
 !------  makes sense. In particular, the finite well parameter, can't have
@@ -905,7 +909,7 @@ program YAHFC_MASTER
                      write(6,*)'Cannot continue with this calculation'
                      write(6,*)'**************************************************'
                   end if
-                  call exit
+                  call MPI_Abort(icomm,101,ierr)
                end if
             end do
             call Fission_levels(icomp)
@@ -931,11 +935,11 @@ program YAHFC_MASTER
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
       if(.not.target%specified)then
          if(iproc == 0)write(6,*)'Target nucleus not specified, quitting'
-         call exit
+         call MPI_Abort(icomm,101,ierr)
       end if
       if(.not.projectile%specified)then
          if(iproc == 0)write(6,*)'Projectile nucleus not specified, quitting'
-         call exit
+         call MPI_Abort(icomm,101,ierr)
       end if
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !-------    Check to see if we need to overide fission
@@ -960,7 +964,7 @@ program YAHFC_MASTER
 
       ifile=index(out_file,' ') - 1
       if(print_output)then
-         if(iproc ==0)open(unit=13,file=out_file(1:ifile)//'.out',status='unknown')
+         if(iproc == 0)open(unit=13,file=out_file(1:ifile)//'.out',status='unknown')
          open(unit=400,file=out_file(1:ifile)//'.bad_energy',status='unknown')
          open(unit=15,file=out_file(1:ifile)//'_e_avg.dat',status='unknown')
          open(unit=16,file=out_file(1:ifile)//'_j_avg.dat',status='unknown')
@@ -970,7 +974,7 @@ program YAHFC_MASTER
 
       mass_proj = particle(iproj)%mass
       mass_target = nucleus(itarget)%mass + nucleus(itarget)%state(target%istate)%energy
-      if(iproc == 0)write(6,*)'Q-values for each channel'
+      if(print_me)write(6,*)'Q-values for each channel'
       do i = 1, num_channels
          inuc = Exit_Channel(i)%Final_nucleus
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -992,7 +996,7 @@ program YAHFC_MASTER
          if(abs(Q) < 1.0d-6)Q = 0.0d0
 
          ilast = index(Exit_Channel(i)%Channel_Label,' ')
-         if(iproc == 0)write(6,'(''channel '',i4,1x,a20,f15.7)')i, Exit_Channel(i)%Channel_Label,Q
+         if(print_me)write(6,'(''channel '',i4,1x,a20,f15.7)')i, Exit_Channel(i)%Channel_Label,Q
  
          Exit_Channel(i)%Q_value = Q
 
@@ -1136,6 +1140,7 @@ program YAHFC_MASTER
       e_in_problem = .false.
       xmu = dfloat(target%A)/dfloat(target%A + projectile%A)
       itarget = target%icomp
+
       do in = 1, num_energies
          e_in = projectile%energy(in)
 
@@ -1242,7 +1247,7 @@ program YAHFC_MASTER
                write(6,'(''*  e_min >= '',1pe15.7,''                 *'')')particle(iproj)%min_e
                write(6,'(''*********************************************'')')
             end if
-            call exit
+            call MPI_Abort(icomm,101,ierr)
          end if
       else
          do k = 1, 6
@@ -1514,7 +1519,7 @@ program YAHFC_MASTER
        
       num_e = int(ee_max/de_spec) + 3
 
-      if(iproc == 0)write(6,*)'de = ',de, 'de_spec = ',de_spec,'num_e = ', num_e
+      if(print_me)write(6,*)'de = ',de, 'de_spec = ',de_spec,'num_e = ', num_e
 
       if(.not. pop_calc)then
           if(PREEQ_Model > 0)then
@@ -1531,8 +1536,9 @@ program YAHFC_MASTER
 !------                                                                   +
 !-------------------------------------------------------------------------+
 
+       if(iproc == 0)write(6,*)'Calculating HF probabilities'
        do i = 1, num_comp
-          if(iproc == 0)write(6,*)'HF-denominators for nucleus #',i
+          if(print_me)write(6,*)'HF-denominators for nucleus #',i
           call HF_denominator(i)
        end do
 
@@ -1542,7 +1548,7 @@ program YAHFC_MASTER
 !-----     Print data to .out file
 !
 
-      if(iproc == 0)then
+      if(iproc == 0 .and. print_output)then
          call start_IO(num_comp)
          call output_trans_coef
 !---------   Print out data used in the calculation for each              +
@@ -1885,6 +1891,7 @@ program YAHFC_MASTER
 !-----    Start loop over initial Energies 
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
+      if(iproc == 0)write(6,*)'Starting energy loop with ',num_energies,' values'
       do in = 1, num_energies
          hang = 0
          sum_ce = 0
@@ -1904,7 +1911,7 @@ program YAHFC_MASTER
                              nucleus(itarget)%state(target%istate)%energy
 
             if(ex_tot < nucleus(1)%e_grid(1))then
-                if(iproc ==0)write(6,*)'This incident energy would populate discrete states only - skipping'
+                if(iproc == 0)write(6,*)'This incident energy would populate discrete states only - skipping'
                 cycle
             end if
 
@@ -1937,27 +1944,34 @@ program YAHFC_MASTER
 
          end if
 !-------------------------------------------------
-         if(iproc == 0)then
-            write(6,*)
-            if(.not. pop_calc)then
+         if(.not. pop_calc)then
+            if(print_me)then
+               write(6,*)
                write(6,'(''-----------------------------------------------------------------------------'')')
                write(6,'(''*****************************************************************************'')')
                write(6,'(''-----------------------------------------------------------------------------'')')
                write(6,'(''Incident energy ='',1x,1pe15.7,'' MeV'')')E_in
                write(6,'(''Center-of-mass E ='',1x,1pe15.7,'' MeV'')')e_rel
-               write(6,'(''Delta_E ='',1x,1pe15.7,'' MeV'')')de         
+               write(6,'(''Delta_E ='',1x,1pe15.7,'' MeV'')')de
+            elseif(iproc == 0 .and. print_output)then
+               write(13,*)
                write(13,'(''-----------------------------------------------------------------------------'')')
                write(13,'(''*****************************************************************************'')')
                write(13,'(''-----------------------------------------------------------------------------'')')
                write(13,'(''Incident energy ='',1x,1pe15.7,'' MeV'')')E_in
                write(13,'(''Center-of-mass E ='',1x,1pe15.7,'' MeV'')')e_rel
-               write(13,'(''Delta_E ='',1x,1pe15.7,'' MeV'')')de         
-            else
+               write(13,'(''Delta_E ='',1x,1pe15.7,'' MeV'')')de
+            end if
+         else
+            if(print_me)then
+               write(6,*)
                write(6,'(''-----------------------------------------------------------------------------'')')
                write(6,'(''*****************************************************************************'')')
                write(6,'(''-----------------------------------------------------------------------------'')')
                write(6,'(''Initial energy ='',1x,1pe15.7,'' MeV'')')E_in
                write(6,'(''Delta_E ='',1x,1pe15.7,'' MeV'')')de
+            elseif(iproc == 0 .and. print_output)then
+               write(13,*)
                write(13,'(''-----------------------------------------------------------------------------'')')
                write(13,'(''*****************************************************************************'')')
                write(13,'(''-----------------------------------------------------------------------------'')')
@@ -1991,7 +2005,7 @@ program YAHFC_MASTER
             call compound_xs(e_in,itarget,istate,iproj,absorption_cs(in),  &
                              num_channel,channel_prob,ichannel)
 
-            if(iproc == 0)write(6,'(''Reaction cross section = '',1x,1pe15.7,1x,a2)')absorption_cs(in)*cs_scale,cs_units
+            if(print_me)write(6,'(''Reaction cross section = '',1x,1pe15.7,1x,a2)')absorption_cs(in)*cs_scale,cs_units
             do nn = 1, num_channel
                ipar = 2*ichannel(4,nn)-1
                population = 0.0
@@ -2084,7 +2098,7 @@ program YAHFC_MASTER
                   target%pop_xjpi(j,ip) = Pop_data(in)%bin_pop(i)/pop_sum
                end do
 
-               if(iproc == 0)then
+               if(iproc == 0 .and. print_output)then
                   write(13,'(''Initial populations for incident energy ='',1x,1pe15.7)')e_in
                   do ip = 0, 1
                      do j = 0, nucleus(1)%j_max
@@ -2118,7 +2132,7 @@ program YAHFC_MASTER
                   end do
                end do
 
-               if(iproc == 0)then
+               if(iproc == 0 .and. print_output)then
                   write(13,'(''Initial populations for incident energy ='',1x,1pe15.7)')e_in
                   do ip =0, 1
                      do j = 0, nucleus(1)%j_max
@@ -2221,21 +2235,23 @@ program YAHFC_MASTER
             end do
 
 
-            if(iproj == 1 .and. iproc ==0)then
+            if(iproj == 1 .and. print_me)then
                write(6,'(''Total cross section ='',1x,1pe15.7,1x,a2)')(reaction_cs(in) + SE_cs(in))*cs_scale,cs_units
                write(6,'(''Total Reaction cross section ='',1x,1pe15.7,1x,a2)')reaction_cs(in)*cs_scale,cs_units
                write(6,'(''Compound cross section ='',1x,1pe15.7,1x,a2)')absorption_cs(in)*cs_scale,cs_units
                write(6,'(''Direct excitation cross section ='',1x,1pe15.7,1x,a2)')tot_direct*cs_scale,cs_units
                write(6,'(''Shape Elastic cross section ='',1x,1pe15.7,1x,a2)')SE_cs(in)*cs_scale,cs_units
+            elseif(iproj == 0 .and. iproc == 0 .and. print_output)then
                write(13,'(''Total cross section ='',1x,1pe15.7,1x,a2)')(reaction_cs(in) + SE_cs(in))*cs_scale,cs_units
                write(13,'(''Total Reaction cross section ='',1x,1pe15.7,1x,a2)')reaction_cs(in)*cs_scale,cs_units
                write(13,'(''Compound cross section ='',1x,1pe15.7,1x,a2)')absorption_cs(in)*cs_scale,cs_units
                write(13,'(''Direct excitation cross section ='',1x,1pe15.7,1x,a2)')tot_direct*cs_scale,cs_units
                write(13,'(''Shape Elastic cross section ='',1x,1pe15.7,1x,a2)')SE_cs(in)*cs_scale,cs_units
-            elseif(iproj > 1 .and. iproc == 0)then
+            elseif(iproj > 1 .and. print_me)then
                write(6,'(''Total Reaction cross section ='',1x,1pe15.7,1x,a2)')reaction_cs(in)*cs_scale,cs_units
                write(6,'(''Compound cross section ='',1x,1pe15.7,1x,a2)')absorption_cs(in)*cs_scale,cs_units
                write(6,'(''Direct excitation cross section ='',1x,1pe15.7,1x,a2)')tot_direct*cs_scale,cs_units
+            elseif(iproj > 1 .and. iproc == 0 .and. print_output)then
                write(13,'(''Total Reaction cross section ='',1x,1pe15.7,1x,a2)')reaction_cs(in)*cs_scale,cs_units
                write(13,'(''Compound cross section ='',1x,1pe15.7,1x,a2)')absorption_cs(in)*cs_scale,cs_units
                write(13,'(''Direct excitation cross section ='',1x,1pe15.7,1x,a2)')tot_direct*cs_scale,cs_units
@@ -2244,10 +2260,11 @@ program YAHFC_MASTER
 !******************************************************************************
 !------   If absorption_cs is too small skip all the decays as nothing can happen anyway
             if(absorption_cs(in) < cs_threshold)then
-               if(iproc == 0)then
+               if(print_me)then
                   write(6,'(''******************************************************************************'')')
                   write(6,'(''*  Absorption cross section < '',e12.5,'', skipping decay processes   *'')')cs_threshold
                   write(6,'(''******************************************************************************'')')
+               elseif(iproc == 0 .and. print_output)then
                   write(13,'(''******************************************************************************'')')
                   write(13,'(''*  Absorption cross section < '',e12.5,'', skipping decay processes   *'')')cs_threshold
                   write(13,'(''******************************************************************************'')')
@@ -2258,7 +2275,7 @@ program YAHFC_MASTER
 !*****************************************************************************
 !------
          else
-            if(iproc == 0)write(6,*)'Total population',absorption_cs(in)
+            if(print_me)write(6,*)'Total population',absorption_cs(in)
          end if
 
          ifile = core_file
@@ -2488,7 +2505,6 @@ program YAHFC_MASTER
                                        Ix_f, l_f, ip_f, nbin_f, idb,                     &
                                        n_dat, dim_part, num_part_type, part_fact,        &
                                        num_part, part_data,                              &
-                                       Ang_L_max, part_Ang_data,                         &
                                        num_theta, extra_angle_data)
 
                   else                                                                          !  Normal compound nucleus decay
@@ -2722,7 +2738,7 @@ program YAHFC_MASTER
                   write(89,'(1x,i5,21(2x,f12.5))')i,(part_data(k,i), k = 1, n_dat)
                end do
                flush(89)
-               call exit
+               call MPI_ABort(icomm,101,ierr)
             end if
 
 
@@ -2731,9 +2747,9 @@ program YAHFC_MASTER
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
             do while(idb /= 1)
                if(Ix_i > j_max)then
-                  if(iproc ==0)write(6,*)'error Ix_i > j_max , Ix_i = ',Ix_i
+                  if(iproc == 0)write(6,*)'error Ix_i > j_max , Ix_i = ',Ix_i
                   flush(6)
-                  call exit
+                  call MPI_ABort(icomm,101,ierr)
                end if
                call MC_decay_bin(icomp_i, Ix_i, ip_i, nbin_i,                   &
                                  icomp_f, Ix_f, ip_f, nbin_f, idb,              &
@@ -3060,7 +3076,7 @@ program YAHFC_MASTER
                   write(6,*)'Check: cc_decay = ',cc_decay
                   write(6,*)'Check: dwba_decay = ',dwba_decay
                   write(6,*)'idb = ',idb
-                  stop
+                  call MPI_Abort(icomm,101,ierr)
                end if
 
 
@@ -3240,6 +3256,7 @@ program YAHFC_MASTER
                             num_data, MPI_REAL8, MPI_SUM, icomm, ierr)
 !---  Fission information
          if(fission)then
+            num_data = 1
             call MPI_Allreduce(MPI_IN_PLACE, fission_cs(in),                                       &
                                        num_data, MPI_REAL8, MPI_SUM, icomm, ierr)
             num_data = num_comp
@@ -3480,7 +3497,7 @@ program YAHFC_MASTER
                   end do
                end if
             end do
-            if(iproc ==0)then
+            if(iproc == 0)then
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !------   Pre-equilibrium decays                                                         +
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -3512,18 +3529,22 @@ program YAHFC_MASTER
 !--------------------   Distribute cs hung in discrete states to final states            +
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-         if(iproc == 0)then
-            if(biased_sampling)then
+         if(biased_sampling)then
+            if(print_me)then
                write(6,*)'Statistics on continuous bin with hung decays'
                write(6,'(''                                         #hung              #total      fraction'')')
                write(6,'(''                              ----------------    ----------------    ----------'')')
+            elseif(iproc == 0 .and. print_output)then
                write(13,*)'Statistics on continuous bin with hung decays'
                write(13,'(''                                         #hung              #total      fraction'')')
                write(13,'(''                              ----------------    ----------------    ----------'')')
-            else
+            end if
+         else
+            if(print_me)then
                write(6,*)'Statistics on continuous bin with hung decays'
                write(6,'(''                                         #hung              #total      fraction       Num events'')')
                write(6,'(''                              ----------------    ----------------    ----------     ------------'')')
+            elseif(iproc == 0 .and. print_output)then
                write(13,*)'Statistics on continuous bin with hung decays'
                write(13,'(''                                         #hung              #total      fraction       Num events'')')
                write(13,'(''                              ----------------    ----------------    ----------     ------------'')')
@@ -3539,23 +3560,21 @@ program YAHFC_MASTER
             ilast = index(Exit_Channel(ichann)%Channel_Label,' ') - 1
             if(sum > 0.0d0)ratio = Exit_Channel(ichann)%Channel_cs(-1,in)/sum
             if(biased_sampling)then
-               if(iproc ==0)write(6,'(''Channel: '',i4,1x,a12,2(4x,f16.3),4x,f10.4''%'')')          &
+               if(print_me)write(6,'(''Channel: '',i4,1x,a12,2(4x,f16.3),4x,f10.4''%'')')          &
                    ichann, Exit_Channel(ichann)%Channel_Label(1:ilast), hang, sum, ratio*100.
-               if(iproc ==0)write(13,'(''Channel: '',i4,1x,a12,2(4x,f16.3),4x,f10.4''%'')')         &
+               if(iproc == 0 .and. print_output)write(13,'(''Channel: '',i4,1x,a12,2(4x,f16.3),4x,f10.4''%'')')         &
                    ichann, Exit_Channel(ichann)%Channel_Label(1:ilast), hang, sum, ratio*100.
             else
-               if(iproc ==0)write(6,'(''Channel: '',i4,1x,a12,2(4x,f16.3),4x,f10.4''%'',4x,i12)')   &
+               if(print_me)write(6,'(''Channel: '',i4,1x,a12,2(4x,f16.3),4x,f10.4''%'',4x,i12)')   &
                    ichann, Exit_Channel(ichann)%Channel_Label(1:ilast),                             &
                    hang, sum, ratio*100., Exit_Channel(ichann)%num_event
-               if(iproc ==0)write(13,'(''Channel: '',i4,1x,a12,2(4x,f16.3),4x,f10.4''%'',4x,i12)')  &
+               if(iproc == 0 .and. print_output)write(13,'(''Channel: '',i4,1x,a12,2(4x,f16.3),4x,f10.4''%'',4x,i12)')  &
                    ichann, Exit_Channel(ichann)%Channel_Label(1:ilast),                             &
                    hang, sum, ratio*100., Exit_Channel(ichann)%num_event
             end if
          end do
-         if(iproc ==0)then
-            write(6,*)'Hung bins are forced to decay to discrete states randomly'
-            write(13,*)'Hung bins are forced to decay to discrete states randomly'
-         end if
+         if(print_me)write(6,*)'Hung bins are forced to decay to discrete states randomly'
+         if(iproc == 0 .and. print_output)write(13,*)'Hung bins are forced to decay to discrete states randomly'
 
          icharr = 32
          out_buff(1:icharr) = 'For more details consult file : '
@@ -3564,7 +3583,7 @@ program YAHFC_MASTER
          icharr = icharr + il1
          out_buff(icharr+1:icharr+15) = '.sample_trouble'
          icharr = icharr + 15
-         if(re_baseline > 0 .and. iproc == 0)then
+         if(re_baseline > 0 .and. print_me)then
            write(6,*)
            write(6,'(''*********************************************************************************'')')
            write(6,'(i10,'' Decays out of '',i10,'' had to be re-baselined due to energy'')')re_baseline, num_mc_samp
@@ -3767,7 +3786,7 @@ program YAHFC_MASTER
 
         check_sum = check_sum + sum_inelastic
         if(fission)check_sum = check_sum + fission_cs(in)
-        if(iproc == 0)then
+        if(print_me)then
            write(6,*)
            write(6,*)'Check that all events are accounted for'
            write(6,'('' Check_sum = '',f12.8)') check_sum
@@ -3833,6 +3852,9 @@ program YAHFC_MASTER
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
       end do               !   End of incident energy loop
+
+      if(iproc == 0)write(6,*)'Finished energy loop'
+
 !
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !---------    Finished incident Energy Loop     ----------------------+
@@ -3842,10 +3864,10 @@ program YAHFC_MASTER
 
      if(num_bad_e > 0)then
         ifile=index(out_file,' ') - 1
-        if(iproc == 0)write(6,*)'There were ',num_bad_e,' events that violated energy conservation by 0.1 keV or more'
-        if(iproc == 0)write(6,*)'Events written to ',out_file(1:ifile)//'.bad_energy'
+        if(print_me)write(6,*)'There were ',num_bad_e,' events that violated energy conservation by 0.1 keV or more'
+        if(print_me)write(6,*)'Events written to ',out_file(1:ifile)//'.bad_energy'
      else
-        if(iproc == 0)write(6,*)'There were no events that violated energy conservation at 0.1 keV level'
+        if(print_me)write(6,*)'There were no events that violated energy conservation at 0.1 keV level'
      end if
 
 
@@ -3866,7 +3888,7 @@ program YAHFC_MASTER
          write(6,*)'----   Finished simulating and writing events.   ---'
          write(6,*)'----   All finished.                             ---'
          write(6,*)'****************************************************'
-         call exit
+         call MPI_Abort(icomm,101,ierr)
       end if
 
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -3886,56 +3908,112 @@ program YAHFC_MASTER
       idir = ilib_dir + 1
       directory(idir:idir) = '/'
 
-      if(iproc ==0 .and. print_libraries)then
+      if(print_libraries)then
+         if(iproc == 0)write(6,*)'Writing data libraries'
          if(.not. pop_calc)then
-            call print_reaction_cs(itarget, istate, ilab, file_lab, ilib_dir, lib_dir, ch_par,  &
-                                   num_energies, reaction_cs, absorption_cs, SE_cs)
+            write_error = .false.
+            if(iproc == 0)call print_reaction_cs(itarget, istate, ilab, file_lab,               &
+                                                ilib_dir,lib_dir, ch_par, num_energies,         &
+                                                reaction_cs, absorption_cs, SE_cs, write_error)
+            if(nproc > 1)then
+               call MPI_Barrier(icomm, ierr)
+               call MPI_BCAST(write_error, 1, MPI_LOGICAL, 0, icomm, ierr)
+            end if
+            if(write_error)call MPI_Abort(icomm,51,ierr)
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !---------   Preequilibrium cross section       ----------------------+
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-            if(PREEQ_Model > 0)call print_preeq_cs(itarget, istate, ilab, file_lab,             &
+            write_error = .false.
+            if(PREEQ_Model > 0 .and. iproc == 0)                                                &
+                               call print_preeq_cs(itarget, istate, ilab, file_lab,             &
                                                    ilib_dir, lib_dir, ch_par,                   &
-                                                   num_energies, reaction_cs, preeq_css)
+                                                   num_energies, reaction_cs, preeq_css,        &
+                                                   write_error)
+            if(nproc > 1)then
+               call MPI_Barrier(icomm, ierr)
+               call MPI_BCAST(write_error, 1, MPI_LOGICAL, 0, icomm, ierr)
+            end if
+            if(write_error)call MPI_Abort(icomm,51,ierr)
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !---------    Direct cross sections           ------------------------+
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-            call print_direct_cs(itarget, istate, ilab, file_lab, ilib_dir, lib_dir, ch_par,    &
-                                 num_energies, direct_cc, direct_dwba, direct_tot)
+            write_error = .false.
+            if(iproc == 0)call print_direct_cs(itarget, istate, ilab, file_lab,                 &
+                                               ilib_dir, lib_dir, ch_par,                       &
+                                               num_energies, direct_cc, direct_dwba,            &
+                                               direct_tot, write_error)
+            if(nproc > 1)then
+               call MPI_Barrier(icomm, ierr)
+               call MPI_BCAST(write_error, 1, MPI_LOGICAL, 0, icomm, ierr)
+            end if
+            if(write_error)call MPI_Abort(icomm,51,ierr)
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !---------  Elastic channels               ---------------------------+
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-            call print_elastic(itarget, istate, ilab, file_lab, ilib_dir, lib_dir, ch_par,      &
-                               num_energies, Ang_L_max, max_jx_100, delta_Jx_100,               &
-                               cs_threshold, SE_cs, SE_Ang, Elastic_cs, Elastic_Ang,            &
-                               nucleus(itarget)%num_discrete, Inelastic_cs, Inelastic_Ang_L,    &
-                               Inelastic_L_max)
+            write_error = .false.
+            if(iproc == 0)call print_elastic(itarget, istate, ilab, file_lab,                   &
+                                             ilib_dir, lib_dir, ch_par,                         &
+                                             num_energies, Ang_L_max, max_jx_100, delta_Jx_100, &
+                                             cs_threshold, SE_cs, SE_Ang,                       &
+                                             Elastic_cs, Elastic_Ang,                           &
+                                             nucleus(itarget)%num_discrete, Inelastic_cs,       &
+                                             Inelastic_Ang_L, Inelastic_L_max, write_error)
+            if(nproc > 1)then
+               call MPI_Barrier(icomm, ierr)
+               call MPI_BCAST(write_error, 1, MPI_LOGICAL, 0, icomm, ierr)
+            end if
+            if(write_error)call MPI_Abort(icomm,51,ierr)
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !---------  Inelastic channels                 -----------------------+
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-            call print_inelastic(itarget, istate, ilab, file_lab, ilib_dir, lib_dir, ch_par,    &
-                                 num_energies, Ang_L_max, max_jx_50, delta_jx_50,               &
-                                 cs_threshold, nucleus(itarget)%num_discrete,                   &
-                                 absorption_cs, Inelastic_cs,Inelastic_Ang_L, Inelastic_L_max)
+            write_error = .false.
+            if(iproc == 0)call print_inelastic(itarget, istate, ilab, file_lab,                 &
+                                               ilib_dir, lib_dir, ch_par,                       &
+                                               num_energies, Ang_L_max, max_jx_50, delta_jx_50, &
+                                               cs_threshold, nucleus(itarget)%num_discrete,     &
+                                               absorption_cs, Inelastic_cs,Inelastic_Ang_L,     &
+                                               Inelastic_L_max, write_error)
+            if(nproc > 1)then
+               call MPI_Barrier(icomm, ierr)
+               call MPI_BCAST(write_error, 1, MPI_LOGICAL, 0, icomm, ierr)
+            end if
+            if(write_error)call MPI_Abort(icomm,51,ierr)
          end if
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !---------    Channel cross section data      ------------------------+
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-         call print_channels(itarget, istate, ilab, file_lab, ilib_dir, lib_dir, ch_par,        &
-                             num_energies, num_e, max_jx_20, delta_jx_20,                       &
-                             de_spec, cs_threshold, reaction_cs)
+         write_error = .false.
+         if(iproc == 0)call print_channels(itarget, istate, ilab, file_lab,                     &
+                                           ilib_dir, lib_dir, ch_par,                           &
+                                           num_energies, num_e, max_jx_20, delta_jx_20,         &
+                                           de_spec, cs_threshold, reaction_cs, write_error)
+            if(nproc > 1)then
+               call MPI_Barrier(icomm, ierr)
+               call MPI_BCAST(write_error, 1, MPI_LOGICAL, 0, icomm, ierr)
+            end if
+         if(write_error)call MPI_Abort(icomm,51,ierr)
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !---------    Fission cross section           ------------------------+
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-         if(fission)call print_fission_cs(itarget, istate, ilab, file_lab,                      &
-                                          ilib_dir, lib_dir, ch_par,                            &
-                                          num_energies, reaction_cs, fission_cs,                &
-                                          num_comp, Fiss_J_avg, Fiss_J_var, Fiss_tally)
+         write_error = .false.
+         if(iproc == 0 .and. fission)call print_fission_cs(itarget, istate, ilab, file_lab,        &
+                                                           ilib_dir, lib_dir, ch_par,              &
+                                                           num_energies, reaction_cs, fission_cs,  &
+                                                           num_comp, Fiss_J_avg, Fiss_J_var,       &
+                                                           Fiss_tally, write_error)
 
+            if(nproc > 1)then
+               call MPI_Barrier(icomm, ierr)
+               call MPI_BCAST(write_error, 1, MPI_LOGICAL, 0, icomm, ierr)
+            end if
+         if(write_error)call MPI_Abort(icomm,51,ierr)
       end if
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !------------    Finished Library output    -----------------------------------+
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !---------------------------------------------------------------------+
+     if(iproc == 0)write(6,*)'That'//quote//'s all Folks'
+
 !
 end program YAHFC_MASTER
 !
@@ -4045,6 +4123,7 @@ real(kind=8) function interpolate(itype, x_in, num, grid, vec)
 !
 !*****************************************************************************80
 !
+   use nodeinfo
    implicit none
    integer(kind=4) :: itype          !   if itype == 0, linear in y, itype == 1, log in y
    real(kind=8) :: x_in
@@ -4063,11 +4142,17 @@ real(kind=8) function interpolate(itype, x_in, num, grid, vec)
 !------------------------------------------------------
 
   i0 = 0
-  if(x_in < grid(1))stop 'E_in smaller than input grid'
+  if(x_in < grid(1))then
+     if(iproc == 0)write(6,*) 'E_in smaller than input grid'
+     call MPI_Abort(icomm,101,ierr)
+  end if
   if(x_in > grid(num))then
-     write(6,*)num
-     write(6,*)x_in,grid(num)
-     stop 'E_in larger than input grid'
+     if(iproc == 0)then
+        write(6,*)num
+        write(6,*)x_in,grid(num)
+        write(6,*)'E_in larger than input grid'
+     end if
+     call MPI_Abort(icomm,101,ierr)
   end if
   do i = 1, num - 1                                  !  start from the bottom of the grid
      if(x_in == grid(i))then                  !  it is exactly on a grid point
@@ -4713,7 +4798,7 @@ subroutine fit_nuke_Gamma_gamma(num_comp)
       call Gamma_gamma(icomp, 1, Gamma_g, g_error)
       nucleus(icomp)%Gamma_g_1 = Gamma_g
 
-      if(nucleus(icomp)%Gamma_g > -1.0 .and. iproc ==0)then
+      if(nucleus(icomp)%Gamma_g > -1.0 .and. print_me)then
          num_res = nucleus(icomp)%num_res
          write(6,*)
          ich = 1
@@ -4889,9 +4974,9 @@ subroutine memory_used(num_comp)
          mem_icomp = mem_icomp + mem_bins
 
          mem_tot = mem_tot + mem_icomp
-         if(iproc == 0)write(6,'(''Memory used for compound nucleus#'',i3,'' = '',f14.2,'' kbytes'')')icomp,mem_icomp/1.0d3 
+         if(print_me)write(6,'(''Memory used for compound nucleus#'',i3,'' = '',f14.2,'' kbytes'')')icomp,mem_icomp/1.0d3 
       end do
-      if(iproc ==0)write(6,'(''Memory used = '',f14.3,'' kbytes'')')mem_tot/1.0d3
+      if(print_me)write(6,'(''Memory used = '',f14.3,'' kbytes'')')mem_tot/1.0d3
 
    return
 end subroutine memory_used

@@ -210,7 +210,11 @@
 
    end if
 
-   if(icomp_f < 1) stop 'icomp_f < 1 after attempting to decay'
+   if(icomp_f < 1)then
+      write(6,*)'icomp_f < 1 after attempting to decay'
+      write(6,*)'iproc = ',iproc
+      call MPI_Abort(icomm,201,ierr)
+   end if
 
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !--------  Next, find which state it decays to
@@ -251,7 +255,8 @@
       write(6,*)'Error nbin_f = 0 in MC_decay_bin'
       write(6,*)nucleus(icomp_i)%A, Ix_i, ip_i, nbin_i
       write(6,*)idb,l,k
-      stop
+      write(6,*)'iproc = ',iproc
+      call MPI_Abort(icomm,201,ierr)
    end if
 
 
@@ -275,7 +280,9 @@
          write(6,*)'Final Bin energy = ', nucleus(icomp_f)%e_grid(nbin_f)
          write(6,*)'Energy bin width = ', de
          write(6,*)'num_part = ', num_part
-         stop 'e_f < -de/2 in MC_decay_bin (1)'
+         write(6,*)'e_f < -de/2 in MC_decay_bin (1)'
+         write(6,*)'iproc = ',iproc
+         call MPI_Abort(icomm,201,ierr)
       end if
    else  
       e_f = ex_i - nucleus(icomp_i)%sep_e(k) -         &
@@ -293,12 +300,18 @@
          write(6,*)'Final State energy = ', nucleus(icomp_f)%state(nbin_f)%energy
          write(6,*)'Energy bin width = ', de
          write(6,*)'num_part = ', num_part
-         stop 'e_f < 0.0 in MC_decay_bin (1)'
+         write(6,*)'e_f < 0.0 in MC_decay_bin (1)'
+         write(6,*)'iproc = ',iproc
+         call MPI_Abort(icomm,201,ierr)
       end if
    end if
 
    num_part = num_part +1
-   if(num_part > dim_part) stop 'num_part > dim_part'
+   if(num_part > dim_part)then
+      write(6,*)'num_part > dim_part'
+      write(6,*)'iproc = ',iproc
+      call MPI_Abort(icomm,201,ierr)
+   end if
 
    part_data(1,num_part) = real(icomp_f,kind=8)
    part_data(2,num_part) = real(k,kind=8)
@@ -482,7 +495,11 @@
       e_gamma = nucleus(icomp_i)%state(istate)%energy - nucleus(icomp_i)%state(n_f)%energy
 
       num_part = num_part +1
-      if(num_part > dim_part) stop 'num_part > dim_part'
+      if(num_part > dim_part)then
+         write(6,*)'num_part > dim_part'
+         write(6,*)'iproc = ',iproc
+         call MPI_Abort(icomm,201,ierr)
+      end if
 
       part_data(1,num_part) = real(icomp_i,kind=8)
       part_data(2,num_part) = real(k,kind=8)
@@ -573,7 +590,11 @@
    e_gamma = nucleus(icomp_i)%state(istate)%energy - nucleus(icomp_i)%state(n_f)%energy
 
    num_part = num_part + 1
-   if(num_part > dim_part) stop 'num_part > dim_part'
+   if(num_part > dim_part)then
+      write(6,*)'num_part > dim_part'
+      write(6,*)'iproc = ',iproc
+      call MPI_Abort(icomm,201,ierr)
+   end if
 
    part_data(1,num_part) = real(icomp_i,kind=8)
    part_data(2,num_part) = real(k,kind=8)
@@ -586,7 +607,12 @@
 
 !   costhp = 2.0d0*random_64(iseed_64) - 1.0d0
    costhp = 2.0d0*random_32(iseed_32) - 1.0d0
-   if(abs(costhp) > 1.0d0)stop 'cos(theta) wrong in MC_decay_state #2'
+   if(abs(costhp) > 1.0d0)then
+      write(6,*)'cos(theta) wrong in MC_decay_state #2'
+      write(6,*)'iproc = ',iproc
+      call MPI_Abort(icomm,201,ierr)
+   end if
+
    theta_0 = acos(costhp)
    phi_0 = two_pi*random_32(iseed_32)
 !   phi_0 = two_pi*random_64(iseed_64)
@@ -643,6 +669,7 @@
 !
 !*******************************************************************************
 !
+   use nodeinfo
    use variable_kinds
    implicit none
    integer(kind=4), intent(in) :: num
@@ -659,8 +686,9 @@
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    p_norm = prob_array(num)
    if(p_norm <= 1.0d-20)then
-       write(6,*)'p_norm too small in find_prob = ',p_norm
-       stop
+      write(6,*)'p_norm too small in find_prob = ',p_norm
+      write(6,*)'iproc = ',iproc
+      call MPI_Abort(icomm,201,ierr)
    end if
    upper = num
    lower = 1
@@ -733,6 +761,7 @@
 !
 !*******************************************************************************
 !
+   use nodeinfo
    use variable_kinds
    implicit none
    integer(kind=4), intent(in) :: num
@@ -973,7 +1002,11 @@
                   prob, idex)
 
    num_part = num_part +1
-   if(num_part > dim_part) stop 'num_part > dim_part'
+   if(num_part > dim_part)then
+      write(6,*)'num_part > dim_part'
+      write(6,*)'iproc = ',iproc
+      call MPI_Abort(icomm,201,ierr)
+   end if
 
    mask6 = 2**6 - 1
    mask10 = 2**9 - 1
@@ -992,12 +1025,20 @@
       e_f = ex_i - nucleus(icomp_i)%sep_e(k) -                           &
                    nucleus(icomp_f)%e_grid(nbin_f)
       ex_f = nucleus(icomp_f)%e_grid(nbin_f)
-      if(e_f < 0.0d0)stop 'problem with primary decay: e_f < 0 in MC_primary_decay'
+      if(e_f < 0.0d0)then
+         write(6,*)'problem with primary decay: e_f < 0 in MC_primary_decay'
+         write(6,*)'iproc = ',iproc
+         call MPI_Abort(icomm,201,ierr)
+      end if
    else  
       e_f = ex_i - nucleus(icomp_i)%sep_e(k) -                           &
                    nucleus(icomp_f)%state(nbin_f)%energy
       ex_f = nucleus(icomp_f)%state(nbin_f)%energy
-      if(e_f < 0.0d0)stop 'A problem arose with a decay to a discrete state with e_f < 0.0d0 in MC_primary_decay'
+      if(e_f < 0.0d0)then
+         write(6,*)'A problem arose with a decay to a discrete state with e_f < 0.0d0 in MC_primary_decay'
+         write(6,*)'iproc = ',iproc
+         call MPI_Abort(icomm,201,ierr)
+      end if
    end if
 
 
@@ -1306,6 +1347,7 @@ subroutine Boost_frame(e_f, mass_1, mass_2, theta_0, phi_0,                   &
 !
 !*******************************************************************************
 !
+   use nodeinfo
    use variable_kinds
    use constants
    implicit none
