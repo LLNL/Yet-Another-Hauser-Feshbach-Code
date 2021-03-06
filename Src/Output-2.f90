@@ -52,7 +52,7 @@ subroutine start_IO(num_comp)
    write(13,*)
    write(13,*)'Complete list of compound nuclei'
    write(13,*)'Complete list of compound nuclei'
-   do i=1,num_comp
+   do i = 1, num_comp
       char_start = 1
       if(nucleus(i)%atomic_symbol(1:1) == ' ')char_start = 2
       if(char_start == 1 .and. print_me)write(6,'(''Nucleus # '',i3,2x,i3,a2)')     &
@@ -71,43 +71,49 @@ subroutine start_IO(num_comp)
    end do
    write(6,*)
    if(.not.pop_calc)then
-      ip=projectile%particle_type
-      write(6,'(''Projectile = '',a10)')particle(ip)%name
-      write(6,'(''Min and max incidient energies: Min ='',f12.5,'//       &
-                ''' MeV, Max = '',f12.5,'' MeV'')')                       &
+      ip = projectile%particle_type
+      if(print_me)then
+         write(6,'(''Projectile = '',a10)')particle(ip)%name
+         write(6,'(''Min and max incidient energies: Min ='',f12.5,'//       &
+                   ''' MeV, Max = '',f16.6,'' MeV'')')                       &
                 projectile%e_min,projectile%e_max
+      end if
       write(13,'(''Projectile = '',a10)')particle(ip)%name
       write(13,'(''Min and max incidient energies: Min ='',f12.5,'//      &
-                ''' MeV, Max = '',f12.5,'' MeV'')')                       &
+                ''' MeV, Max = '',f16.6,'' MeV'')')                       &
                 projectile%e_min,projectile%e_max
    end if
-   i=target%icomp
+   i = target%icomp
    char_start = 1
    if(nucleus(i)%atomic_symbol(1:1) == ' ')char_start = 2
    if(.not.pop_calc)then
-      if(char_start == 1)write(6,'(''Target nucleus = '',i3,a2)')                       &
-              nucleus(i)%A,nucleus(i)%atomic_symbol(char_start:2)
-      if(char_start == 2)write(6,'(''Target nucleus = '',i3,a1)')                       &
-              nucleus(i)%A,nucleus(i)%atomic_symbol(char_start:2)
+      if(print_me)then
+         if(char_start == 1)write(6,'(''Target nucleus = '',i3,a2)')                    &
+                 nucleus(i)%A,nucleus(i)%atomic_symbol(char_start:2)
+         if(char_start == 2)write(6,'(''Target nucleus = '',i3,a1)')                    &
+                 nucleus(i)%A,nucleus(i)%atomic_symbol(char_start:2)
+      end if
       if(char_start == 1)write(13,'(''Target nucleus = '',i3,a2)')                      &
               nucleus(i)%A,nucleus(i)%atomic_symbol(char_start:2)
       if(char_start == 2)write(13,'(''Target nucleus = '',i3,a1)')                      &
               nucleus(i)%A,nucleus(i)%atomic_symbol(char_start:2)
    else
-      if(char_start == 1)write(6,'(''Initial nucleus = '',i3,a2)')                      &
-              nucleus(i)%A,nucleus(i)%atomic_symbol(char_start:2)
-      if(char_start == 1)write(13,'(''Initial nucleus = '',i3,a2)')                     &
-              nucleus(i)%A,nucleus(i)%atomic_symbol(char_start:2)
-      if(char_start == 2)write(6,'(''Initial nucleus = '',i3,a1)')                      &
-              nucleus(i)%A,nucleus(i)%atomic_symbol(char_start:2)
+      if(print_me)then
+         if(char_start == 1)write(6,'(''Initial nucleus = '',i3,a2)')                   &
+                 nucleus(i)%A,nucleus(i)%atomic_symbol(char_start:2)
+         if(char_start == 2)write(6,'(''Initial nucleus = '',i3,a1)')                      &
+                 nucleus(i)%A,nucleus(i)%atomic_symbol(char_start:2)
+      end if
+      if(char_start == 1)write(13,'(''Initial nucleus = '',i3,a2)')                  &
+                 nucleus(i)%A,nucleus(i)%atomic_symbol(char_start:2)
       if(char_start == 2)write(13,'(''Initial nucleus = '',i3,a1)')                     &
               nucleus(i)%A,nucleus(i)%atomic_symbol(char_start:2)
    end if
    write(6,'(''Tracking the following emitted particles'')')
    write(13,'(''Tracking the following emitted particles'')')
-   do ip=0,6
+   do ip = 0, 6
       if(particle(ip)%in_decay)then
-         write(6,'(a10)')particle(ip)%name
+         if(print_me)write(6,'(a10)')particle(ip)%name
          write(13,'(a10)')particle(ip)%name
       end if
    end do
