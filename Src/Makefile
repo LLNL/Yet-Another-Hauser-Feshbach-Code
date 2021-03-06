@@ -43,9 +43,6 @@ random.o                   \
 range_char.o               \
 spectrum.o                 
 
-modules.o : modules.f90
-	$(COMPILER) -c $(CFLAGS) $(<F)  
-
 %.o : %.f90 $(DEPS)
 	$(COMPILER) -c $(CFLAGS) $(<F)  
 
