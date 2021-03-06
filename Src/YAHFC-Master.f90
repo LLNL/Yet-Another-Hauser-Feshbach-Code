@@ -788,6 +788,7 @@ program YAHFC_MASTER
       icommand=1
       finish=.false.
 
+
       iproj = -10
       do i = 1, num_command
          call parse_command(num_comp,icommand,command_buffer(i),finish)
