@@ -72,7 +72,6 @@ subroutine HF_denominator(icomp)
    real(kind=8) :: xZ_i, xA_i, xZ_part, xA_part
    real(kind=8) :: Coulomb_Barrier(6)
 
-
 !--------------------------------------------------------------------------
 
    integer(kind=4) :: num_j
