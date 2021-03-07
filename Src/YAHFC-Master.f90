@@ -1520,7 +1520,7 @@ program YAHFC_MASTER
        
       num_e = int(ee_max/de_spec) + 3
 
-      if(print_me)write(6,'(''de = '',f16.9,'' de_spec = '',f16.9,'' num = '',i6)')de, de_spec, num_e
+      if(print_me)write(6,'(''de = '',f16.9,''    de_spec = '',f16.9,''    num = '',i6)')de, de_spec, num_e
 
       if(.not. pop_calc)then
           if(PREEQ_Model > 0)then

@@ -732,8 +732,8 @@ subroutine make_fresco_tco(data_path, len_path, tco_file, len_tco,       &
 
      unix_command(1:132) = ' '
      istart = 1
-     istop = 6
-     unix_command(1:6) = 'mkdir '
+     istop = 9
+     unix_command(1:6) = 'mkdir -p '
      istart = istop + 1
      istop = istart + 12
      unix_command(istart:istop) = fresco_dir(1:12)

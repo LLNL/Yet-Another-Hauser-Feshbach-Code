@@ -53,8 +53,8 @@ subroutine check_directories(ntar, target_label, ilib_dir, lib_dir)
    ilib_dir = ntar
    inquire(file = lib_dir(1:ilib_dir), exist = f_exist)
    if(.not. f_exist)then
-      icmd = 6
-      unix_cmd(1:icmd) = 'mkdir '
+      icmd = 9
+      unix_cmd(1:icmd) = 'mkdir -p '
       icmd = icmd + 1
       unix_cmd(icmd:icmd + ilib_dir) = lib_dir(1:ilib_dir)
       icmd = icmd + ilib_dir
@@ -73,8 +73,8 @@ subroutine check_directories(ntar, target_label, ilib_dir, lib_dir)
    end if
    inquire(file = lib_dir(1:ilib_dir), exist = f_exist)
    if(.not. f_exist)then
-      icmd = 6
-      unix_cmd(1:icmd) = 'mkdir '
+      icmd = 9
+      unix_cmd(1:icmd) = 'mkdir -p '
       icmd = icmd + 1
       unix_cmd(icmd:icmd + ilib_dir) = lib_dir(1:ilib_dir)
       icmd = icmd + ilib_dir
@@ -91,8 +91,8 @@ subroutine check_directories(ntar, target_label, ilib_dir, lib_dir)
          file_check(if_check:if_check) = 'f'
          inquire(file = file_check(1:if_check), exist = f_exist)
          if(.not. f_exist)then
-            icmd = 6
-            unix_cmd(1:icmd) = 'mkdir '
+            icmd = 9
+            unix_cmd(1:icmd) = 'mkdir -p '
             icmd = icmd + 1
             unix_cmd(icmd:icmd + if_check) = file_check(1:if_check)
             icmd = icmd + if_check
@@ -111,8 +111,8 @@ subroutine check_directories(ntar, target_label, ilib_dir, lib_dir)
          if_check = if_check + ilast
          inquire(file = file_check(1:if_check), exist = f_exist)
          if(.not. f_exist)then
-            icmd = 6
-            unix_cmd(1:icmd) = 'mkdir '
+            icmd = 9
+            unix_cmd(1:icmd) = 'mkdir -p '
             icmd = icmd + 1
             unix_cmd(icmd:icmd + if_check) = file_check(1:if_check)
             icmd = icmd + if_check
@@ -131,8 +131,8 @@ subroutine check_directories(ntar, target_label, ilib_dir, lib_dir)
    if_check = if_check + ilast
    inquire(file = file_check(1:if_check), exist = f_exist)
    if(.not. f_exist)then
-      icmd = 6
-      unix_cmd(1:icmd) = 'mkdir '
+      icmd = 9
+      unix_cmd(1:icmd) = 'mkdir -p '
       icmd = icmd + 1
       unix_cmd(icmd:icmd + if_check) = file_check(1:if_check)
       icmd = icmd + if_check
@@ -153,8 +153,8 @@ subroutine check_directories(ntar, target_label, ilib_dir, lib_dir)
       if_check = if_check + ilast
       inquire(file = file_check(1:if_check), exist = f_exist)
       if(.not. f_exist)then
-         icmd = 6
-         unix_cmd(1:icmd) = 'mkdir '
+         icmd = 9
+         unix_cmd(1:icmd) = 'mkdir -p '
          icmd = icmd + 1
          unix_cmd(icmd:icmd + if_check) = file_check(1:if_check)
          icmd = icmd + if_check

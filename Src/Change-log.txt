@@ -435,5 +435,6 @@ Version 3.29
        of the .out file even if the option "file faile_name" is given. 
 
 Version 3.30
-1.  Added MPI parallelization to subroutine HF_denominator()
+1.  Added MPI parallelization to subroutine HF_denominator().
+2.  Minor fixes to prints, etc.
 
