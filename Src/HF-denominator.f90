@@ -975,17 +975,19 @@ subroutine HF_denominator(icomp)
                 call MPI_BCAST(nucleus(icomp)%bins(Ix_i,ip,n)%nuke_decay(ifi)%num_decay, num_data, &
                                MPI_INTEGER, my_proc, icomm, ierr)
                 num_data = nucleus(icomp)%bins(Ix_i,ip,n)%nuke_decay(ifi)%num_decay
-                if(.not. allocated(nucleus(icomp)%bins(Ix_i,ip,n)%nuke_decay(ifi)%decay_prob))     &
-                    allocate(nucleus(icomp)%bins(Ix_i,ip,n)%nuke_decay(ifi)%decay_prob(num_data))
-                call MPI_Barrier(icomm,ierr)
-                call MPI_BCAST(nucleus(icomp)%bins(Ix_i,ip,n)%nuke_decay(ifi)%decay_prob, num_data,&
-                               MPI_REAL8, my_proc, icomm, ierr)
-                num_data = nucleus(icomp)%bins(Ix_i,ip,n)%nuke_decay(ifi)%num_decay
-                if(.not. allocated(nucleus(icomp)%bins(Ix_i,ip,n)%nuke_decay(ifi)%decay_list))     &
-                    allocate(nucleus(icomp)%bins(Ix_i,ip,n)%nuke_decay(ifi)%decay_list(num_data))
-                call MPI_Barrier(icomm,ierr)
-                call MPI_BCAST(nucleus(icomp)%bins(Ix_i,ip,n)%nuke_decay(ifi)%decay_list, num_data,&
-                               MPI_INTEGER, my_proc, icomm, ierr)
+                if(num_data >= 0)then
+                   if(.not. allocated(nucleus(icomp)%bins(Ix_i,ip,n)%nuke_decay(ifi)%decay_prob))     &
+                       allocate(nucleus(icomp)%bins(Ix_i,ip,n)%nuke_decay(ifi)%decay_prob(num_data))
+                   call MPI_Barrier(icomm,ierr)
+                   call MPI_BCAST(nucleus(icomp)%bins(Ix_i,ip,n)%nuke_decay(ifi)%decay_prob, num_data,&
+                                  MPI_REAL8, my_proc, icomm, ierr)
+                   num_data = nucleus(icomp)%bins(Ix_i,ip,n)%nuke_decay(ifi)%num_decay
+                   if(.not. allocated(nucleus(icomp)%bins(Ix_i,ip,n)%nuke_decay(ifi)%decay_list))     &
+                       allocate(nucleus(icomp)%bins(Ix_i,ip,n)%nuke_decay(ifi)%decay_list(num_data))
+                   call MPI_Barrier(icomm,ierr)
+                   call MPI_BCAST(nucleus(icomp)%bins(Ix_i,ip,n)%nuke_decay(ifi)%decay_list, num_data,&
+                                  MPI_INTEGER, my_proc, icomm, ierr)
+               end if
             end do
          end do
       end do

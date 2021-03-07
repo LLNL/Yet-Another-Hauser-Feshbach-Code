@@ -570,9 +570,9 @@ program YAHFC_MASTER
       ifresco_shape = 13
 
 
-      trans_p_cut = 1.0d-7
+      trans_p_cut = 1.0d-6
       trans_e_cut = 1.0d-15
-      prob_cut = 1.0d-7
+      prob_cut = 1.0d-6
 
       num_mc_samp = 1000000
 !
@@ -1520,7 +1520,7 @@ program YAHFC_MASTER
        
       num_e = int(ee_max/de_spec) + 3
 
-      if(print_me)write(6,*)'de = ',de, 'de_spec = ',de_spec,'num_e = ', num_e
+      if(print_me)write(6,'(''de = '',f16.9,'' de_spec = '',f16.9,'' num = '',i6)')de, de_spec, num_e
 
       if(.not. pop_calc)then
           if(PREEQ_Model > 0)then
