@@ -45,6 +45,7 @@ subroutine HF_denominator(icomp)
    use channel_info
    use nodeinfo
    implicit none
+   include 'mpif.h'
    integer(kind=4), intent(in) :: icomp
 !-------------------------------------------------------------------------+
    integer(kind=4) j, k, l, nnn, nnnn
@@ -80,6 +81,11 @@ subroutine HF_denominator(icomp)
    integer(kind=4) :: num_prob
    integer(kind=8) :: num_tot
    integer(kind=4) :: itemp, idb
+   integer(kind=4) :: ndecay
+   integer(kind=4) :: num_Ix_ip
+   integer(kind=4) :: iloop
+   integer(kind=4) :: num_data
+   integer(kind=4) :: my_proc
 
    real(kind=8) :: prob, prob_sum, prob_norm
 
@@ -135,27 +141,48 @@ subroutine HF_denominator(icomp)
 !-----                                                                             +
 !----------------------------------------------------------------------------------+
 
+   ndecay = nucleus(icomp)%num_decay
+   do n = 1, nbin
+      do ip = 0, 1
+         do Ix_i = 0, Ix_i_max
+            if(.not. allocated(nucleus(icomp)%bins(Ix_i,ip,n)%HF_prob))                  &
+                allocate(nucleus(icomp)%bins(Ix_i,ip,n)%HF_prob(ndecay+1))
+            if(.not. allocated(nucleus(icomp)%bins(Ix_i,ip,n)%decay_to))                 &
+                allocate(nucleus(icomp)%bins(Ix_i,ip,n)%decay_to(ndecay+1))
+            if(.not. allocated(nucleus(icomp)%bins(Ix_i,ip,n)%decay_particle))           &
+                allocate(nucleus(icomp)%bins(Ix_i,ip,n)%decay_particle(ndecay+1))
+            if(.not. allocated(nucleus(icomp)%bins(Ix_i,ip,n)%HF_trans))                 &
+                allocate(nucleus(icomp)%bins(Ix_i,ip,n)%HF_trans(ndecay+3))      ! added to see effect of each barrier
+            if(.not. allocated(nucleus(icomp)%bins(Ix_i,ip,n)%nuke_decay))               &
+                allocate(nucleus(icomp)%bins(Ix_i,ip,n)%nuke_decay(ndecay+1))
+            nucleus(icomp)%bins(Ix_i,ip,n)%HF_prob(1:ndecay+1) = 0.0d0
+            nucleus(icomp)%bins(Ix_i,ip,n)%HF_trans(1:ndecay+3) = 0.0d0
+            nucleus(icomp)%bins(Ix_i,ip,n)%num_decay = 0
+            nucleus(icomp)%bins(Ix_i,ip,n)%decay_to(1:ndecay+1) = 0
+            nucleus(icomp)%bins(Ix_i,ip,n)%decay_particle(1:ndecay+1) = 0
+         end do
+      end do
+   end do
+
+
+   num_Ix_ip = 2*(Ix_i_max+1)-1
    do n = 1, nbin                  
       ibin = nbin - n + 1
       energy = nucleus(icomp)%e_grid(n)
-      do ip = 0, 1 
+!      do ip = 0, 1 
+!         par = 2.0d0*real(ip) - 1.0d0
+!         par_i = par
+!         do Ix_i = Ix_i_max, 0, -1                                                             !  start at maximum angular momentum
+!      do iloop = 0, num_Ix_ip
+      do iloop = iproc, num_Ix_ip, nproc
+         Ix_i = mod(iloop,Ix_i_max+1)
+         ip = iloop/(Ix_i_max+1)
          par = 2.0d0*real(ip) - 1.0d0
          par_i = par
-         do Ix_i = Ix_i_max, 0, -1                                                             !  start at maximum angular momentum
+
             xI_i = real(Ix_i,kind=8)+xI_i_shift
             hf_prob(0:7) = 0.0d0
             hf_den2 = 0.0d0
-
-            allocate(nucleus(icomp)%bins(Ix_i,ip,n)%HF_prob(nucleus(icomp)%num_decay+1))
-            allocate(nucleus(icomp)%bins(Ix_i,ip,n)%decay_to(nucleus(icomp)%num_decay+1))
-            allocate(nucleus(icomp)%bins(Ix_i,ip,n)%decay_particle(nucleus(icomp)%num_decay+1))
-            allocate(nucleus(icomp)%bins(Ix_i,ip,n)%HF_trans(nucleus(icomp)%num_decay+3))      ! added to see effect of each barrier
-            allocate(nucleus(icomp)%bins(Ix_i,ip,n)%nuke_decay(nucleus(icomp)%num_decay+1))
-            nucleus(icomp)%bins(Ix_i,ip,n)%HF_prob(1:nucleus(icomp)%num_decay+1) = 0.0d0
-            nucleus(icomp)%bins(Ix_i,ip,n)%HF_trans(1:nucleus(icomp)%num_decay+3) = 0.0d0
-            nucleus(icomp)%bins(Ix_i,ip,n)%num_decay = 0
-            nucleus(icomp)%bins(Ix_i,ip,n)%decay_to(1:nucleus(icomp)%num_decay+1) = 0
-            nucleus(icomp)%bins(Ix_i,ip,n)%decay_particle(1:nucleus(icomp)%num_decay+1) = 0
 
             do if1 = 1, nucleus(icomp)%num_decay                                               !  loop over nuclei in the decay chain
                prob_sum = 0.0d0
@@ -174,7 +201,6 @@ subroutine HF_denominator(icomp)
                      e_f = energy - nucleus(icomp)%sep_e(k) -                             &
                                 nucleus(i_f)%state(ns_f)%energy
                      if(e_f - Coulomb_Barrier(k) <= 1.0d-6)cycle
-!                     if(e_f <= 1.0d-6)cycle
                      xI_f = nucleus(i_f)%state(ns_f)%spin
                      Ix_f = nint(xI_f - nucleus(i_f)%jshift)
                      xj_f_min = abs(xI_f - xI_i)
@@ -220,7 +246,6 @@ subroutine HF_denominator(icomp)
                         e_f = energy - nucleus(icomp)%sep_e(k) -                             &
                                        nucleus(i_f)%state(ns_f)%energy
                         if(e_f - Coulomb_Barrier(k) <= 1.0d-6)cycle
-!                        if(e_f <= 1.0d-6)cycle
                         xI_f = nucleus(i_f)%state(ns_f)%spin
                         Ix_f = nint(xI_f - nucleus(i_f)%jshift)
                         xj_f_min = abs(xI_f - xI_i)
@@ -256,7 +281,6 @@ subroutine HF_denominator(icomp)
                      e_f = energy - nucleus(icomp)%sep_e(k) -       &
                                     nucleus(i_f)%e_grid(n_f)
                      if(e_f - Coulomb_Barrier(k) <= 1.0d-6)cycle
-!                     if(e_f <= 1.0d-6)cycle
 
                      do l = 0, particle(k)%lmax                                               !  loop over l-partial wave
                         cpar2 = par*(-1.0d0)**l                                               !  Parity of nucleus and emitted part
@@ -524,7 +548,6 @@ subroutine HF_denominator(icomp)
                            e_f = energy - nucleus(icomp)%sep_e(k)-           &
                                           nucleus(i_f)%state(ns_f)%energy
                            if(e_f - Coulomb_Barrier(k) <= 1.0d-6)cycle
-!                           if(e_f <= 1.0d-6)cycle
                            xI_f = nucleus(i_f)%state(ns_f)%spin
                            Ix_f = nint(xI_f - nucleus(i_f)%jshift)
                            xj_f_min = abs(xI_f - xI_i)
@@ -574,7 +597,6 @@ subroutine HF_denominator(icomp)
                         e_f = energy-nucleus(icomp)%sep_e(k) -                            &
                               nucleus(i_f)%e_grid(n_f)
                         if(e_f - Coulomb_Barrier(k) <= 1.0d-6)cycle
-!                        if(e_f <= 1.0d-6)cycle
 
                         do l = 0, particle(k)%lmax                                            !  loop over l-partial wave
                            xj_f = real(l,kind=8) - p_spin
@@ -918,9 +940,61 @@ subroutine HF_denominator(icomp)
             if(nucleus(icomp)%fission)nnn = nnn + 1
 
 !---------------------------------------------------------------------------------------------
-         end do                         !   do Ix_i = Ix_i_max,0,-1
+!         end do                         !   do Ix_i = Ix_i_max,0,-1
       end do                            !   Finish: ip = 0, 1 
    end do                               !   Finish: do n = 1,nbin 
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!----   Now that the decay probabilities have been computed on separate nodes
+!----   They need to be sent to all the other nodes
+!----   my_proc is the processor that worked on the (Ix_i,ip,n) block of data above
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+   if(nproc > 1) then
+      do n = 1, nbin                  
+         do iloop = 0, num_Ix_ip
+            my_proc = mod(iloop,nproc)
+            Ix_i = mod(iloop,Ix_i_max+1)
+            ip = iloop/(Ix_i_max+1)
+!----   Sync the MPI processes to be ready to Bcast data
+            call MPI_Barrier(icomm,ierr)
+            num_data = ndecay + 1
+            call MPI_BCAST(nucleus(icomp)%bins(Ix_i,ip,n)%HF_prob, num_data, MPI_REAL8, my_proc,   &
+                           icomm, ierr)
+            num_data = ndecay + 3
+            call MPI_BCAST(nucleus(icomp)%bins(Ix_i,ip,n)%HF_trans, num_data, MPI_REAL8, my_proc,  &
+                           icomm, ierr)
+            num_data = 1
+            call MPI_BCAST(nucleus(icomp)%bins(Ix_i,ip,n)%num_decay, num_data, MPI_INTEGER,        &
+                           my_proc, icomm, ierr)
+            num_data = ndecay + 1
+            call MPI_BCAST(nucleus(icomp)%bins(Ix_i,ip,n)%decay_to, num_data, MPI_INTEGER,         &
+                           my_proc, icomm, ierr)
+            num_data = ndecay + 1
+            call MPI_BCAST(nucleus(icomp)%bins(Ix_i,ip,n)%decay_particle, num_data, MPI_INTEGER,   &
+                           my_proc, icomm, ierr)
+            do ifi = 1, ndecay + 1
+                num_data = 1
+                call MPI_BCAST(nucleus(icomp)%bins(Ix_i,ip,n)%nuke_decay(ifi)%num_decay, num_data, &
+                               MPI_INTEGER, my_proc, icomm, ierr)
+                num_data = nucleus(icomp)%bins(Ix_i,ip,n)%nuke_decay(ifi)%num_decay
+                if(.not. allocated(nucleus(icomp)%bins(Ix_i,ip,n)%nuke_decay(ifi)%decay_prob))     &
+                    allocate(nucleus(icomp)%bins(Ix_i,ip,n)%nuke_decay(ifi)%decay_prob(num_data))
+                call MPI_Barrier(icomm,ierr)
+                call MPI_BCAST(nucleus(icomp)%bins(Ix_i,ip,n)%nuke_decay(ifi)%decay_prob, num_data,&
+                               MPI_REAL8, my_proc, icomm, ierr)
+                num_data = nucleus(icomp)%bins(Ix_i,ip,n)%nuke_decay(ifi)%num_decay
+                if(.not. allocated(nucleus(icomp)%bins(Ix_i,ip,n)%nuke_decay(ifi)%decay_list))     &
+                    allocate(nucleus(icomp)%bins(Ix_i,ip,n)%nuke_decay(ifi)%decay_list(num_data))
+                call MPI_Barrier(icomm,ierr)
+                call MPI_BCAST(nucleus(icomp)%bins(Ix_i,ip,n)%nuke_decay(ifi)%decay_list, num_data,&
+                               MPI_INTEGER, my_proc, icomm, ierr)
+            end do
+         end do
+      end do
+   end if
+
+   call MPI_Barrier(icomm,ierr)
+   num_data = 1
+   call MPI_Allreduce(MPI_IN_PLACE, num_tot, num_data, MPI_INTEGER, MPI_SUM, icomm, ierr)
    if(print_me)write(6,*)'Total number = ', num_tot
 return
 end subroutine HF_denominator
