@@ -2042,8 +2042,7 @@ program YAHFC_MASTER
                end if
             end if 
 
-            call HF_primary_decay_setup(e_in,iproj,itarget,1,istate,        &
-                                        ex_tot,nbin,de)
+            call HF_primary_decay_setup(e_in,iproj,itarget,1,istate,ex_tot)
          else
 
             reaction_cs(in) = 1.0d0

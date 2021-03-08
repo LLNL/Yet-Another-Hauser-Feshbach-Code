@@ -32,7 +32,7 @@ module options
 !
    use variable_kinds
    character(len=132) :: version
-   parameter (version = 'MC-3.30')
+   parameter (version = 'MC-3.31')
    integer(kind=int_64) :: iseed_64
    integer(kind=int_32) :: iseed_32
    integer(kind=4) :: PREEQ_Model
@@ -247,6 +247,7 @@ module Channel_info
 
    type channel_data
       real(kind=8) :: Channel_HFden
+      real(kind=8) :: Channel_exp_gamma
       integer(kind=4) :: num_decay
       integer(kind=4), allocatable, dimension (:) :: decay_to
       integer(kind=4), allocatable, dimension (:) :: decay_particle

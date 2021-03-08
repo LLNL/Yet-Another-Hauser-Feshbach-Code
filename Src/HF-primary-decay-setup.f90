@@ -1,8 +1,7 @@
 !
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
-subroutine HF_primary_decay_setup(e_in,iproj,itarget,icomp,istate,        &
-                                  energy, nbin_x)
+subroutine HF_primary_decay_setup(e_in,iproj,itarget,icomp,istate,energy)
 !
 !*******************************************************************************
 !
@@ -41,12 +40,11 @@ subroutine HF_primary_decay_setup(e_in,iproj,itarget,icomp,istate,        &
    integer(kind=4), intent(in) :: iproj,itarget,istate
    integer(kind=4), intent(in) :: icomp
    real(kind=8), intent(in) :: energy
-   integer(kind=4), intent(inout) :: nbin_x
 !------------------------------------    Internal Data
    integer(kind=4) :: i, j, k, l, ii
    integer(kind=4) :: j_max
    integer(kind=4) :: lmin, lmax, le_min, lm_min
-   integer(kind=4) :: nbin, ibin
+   integer(kind=4) :: nbin
    real(kind=8) :: xI_i,xI_i_min,xI_i_max
    real(kind=8) :: xI_f,xI_f_min,xI_f_max,xI_f_max1
    integer(kind=4) :: Ix_i,Ix_i_min,Ix_i_max
@@ -136,13 +134,6 @@ subroutine HF_primary_decay_setup(e_in,iproj,itarget,icomp,istate,        &
    end if
 
 
-!   if(e_in >= delta_e)then
-!      nbin_x = nint((energy - nucleus(icomp)%e_grid(1))/delta_e) + 1
-!   else
-!      nbin_x = nint((energy - nucleus(icomp)%e_grid(1))/delta_e) + 1
-!   end if
-   ibin = nucleus(icomp)%nbin - nbin_x + 1
-
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !-------      Loop over possible entrance channel spins                +
 !-------      (projectile+target)                                      +
@@ -156,70 +147,18 @@ subroutine HF_primary_decay_setup(e_in,iproj,itarget,icomp,istate,        &
 !-------   First check to see if HF Denominator > 70. If so, turn     +
 !-------   width fluctuations off.                                    +
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   WF_calc = 1
-   if(WF_model > 0)then
-      do l_proj = 0, particle(iproj)%lmax
-         par = cpar*(-1)**l_proj
-         ip_i = (par+1)/2
-         xj_i = real(l_proj,kind=8) - spin_proj
-         do is_i = 0, isp_max
-            xj_i = xj_i + real(is_i,kind=8)
-            if(xj_i < 0.0d0)cycle
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!-------      Loop over possible entrance orbital angiular momenta     +
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-            xI_i_min = abs(xj_i - spin_target)
-            xI_i_max = xj_i + spin_target
-            Ix_i_min = max(nint(xI_i_min - nucleus(icomp)%jshift),0)
-            Ix_i_max = min(nint(xI_i_max - nucleus(icomp)%jshift),nucleus(icomp)%j_max)
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!-------      Loop over Compound nucleus angular momenta               +
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-            do Ix_i = Ix_i_min,Ix_i_max
- 
-               xI_i = dfloat(Ix_i) + nucleus(icomp)%jshift
+   WF_calc = 0
 
-               if(.not.allocated(Channel(l_proj,is_i,Ix_i)%Channel_prob))                 &
-                  allocate(Channel(l_proj,is_i,Ix_i)%Channel_prob(1:nucleus(icomp)%num_decay+1))
-               if(.not.allocated(Channel(l_proj,is_i,Ix_i)%Channel_decay))                &
-                  allocate(Channel(l_proj,is_i,Ix_i)%Channel_decay(nucleus(icomp)%num_decay+1))
-               if(.not.allocated(Channel(l_proj,is_i,Ix_i)%Channel_trans))                &
-                  allocate(Channel(l_proj,is_i,Ix_i)%Channel_trans(1:nucleus(icomp)%num_decay+1))
-               Channel(l_proj,is_i,Ix_i)%Channel_prob(1:nucleus(icomp)%num_decay+1) = 0.0d0
-               Channel(l_proj,is_i,Ix_i)%Channel_trans(1:nucleus(icomp)%num_decay+1) = 0.0d0
-               Channel(l_proj,is_i,Ix_i)%Channel_decay(1:nucleus(icomp)%num_decay+1)%num_decay = 0 
-
-               WF = 1.0d0
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!-----   This part is to just check if this entrance l-value can be    +
-!-----   skipped because it is too small.                              +
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-               cs_fac = jhat(xI_i)/(jhat(spin_target)*jhat(spin_proj))
-               tcoef = tco_interpolate(e_rel,particle(iproj)%nume,                        &
-                                       particle(iproj)%e_grid,                            &
-                                       particle(iproj)%trans_read(1,is_i,l_proj))
-
-               if(tcoef*cs*cs_fac <= 1.0d-7)cycle
-!++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!------   First compute the Hauser-Feshbach denominator
-!++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-               call sum_HFden(icomp, xI_i, par, energy, HFden, exp_gamma)
-               if(HFden > 100.0d0)WF_calc = 0
-            end do
-         end do
-      end do
-   end if
-
-  if(print_me)then
-     write(6,*)'****************************************************************************'
-     if(WF_model == 1 .and. WF_calc == 0)write(6,*)'*  Width fluctuation corrections are not being applied - too small         *'
-     if(WF_model == 1 .and. WF_calc == 1)write(6,*)'*  Width fluctuation corrections are being applied                         *'
-     if(WF_model == 0)then
-        write(6,*)'*  Width fluctuation corrections are not being applied - option not active *'
-        write(6,*)'*  If desired use option "wf_model 1" (default)                            *'
-     end if
-     write(6,*)'****************************************************************************'
-   end if
+   if(print_me)then
+         write(6,*)'****************************************************************************'
+      if(WF_model == 0)then
+         write(6,*)'*  Width fluctuation corrections are not being applied - option not active *'
+         write(6,*)'*  If desired use option "wf_model 1" (default)                            *'
+      else
+         write(6,*)'*  Width fluctuation corrections are being applied                         *'
+      end if
+         write(6,*)'****************************************************************************'
+    end if
 
    do l_proj = 0, particle(iproj)%lmax
       par = cpar*(-1)**l_proj
@@ -269,12 +208,16 @@ subroutine HF_primary_decay_setup(e_in,iproj,itarget,icomp,istate,        &
                                     particle(iproj)%e_grid,                               &
                                     particle(iproj)%trans_read(1,is_i,l_proj))
 
-
             if(tcoef*cs*cs_fac <= 1.0d-7)cycle
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !------   First compute the Hauser-Feshbach denominator
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
             call sum_HFden(icomp, xI_i, par, energy, HFden, exp_gamma)
+            Channel(l_proj,is_i,Ix_i)%Channel_HFden = HFden
+            Channel(l_proj,is_i,Ix_i)%Channel_exp_gamma = exp_gamma
+
+            WF_calc = 0
+            if(WF_model > 0 .and. HFden < 100.0d0)WF_calc = 1
 
             CHnorm2 = 0.0d0
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -295,11 +238,10 @@ subroutine HF_primary_decay_setup(e_in,iproj,itarget,icomp,istate,        &
 !------     Start loop over final states, first loop over final        +
 !------     energy bins                                                +
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-                  do n_f = nucleus(i_f)%nbin - ibin + 1, 1, -1                        !  loop over final excitation energies
+                  do n_f = 1, nucleus(i_f)%nbin                        !  loop over final excitation energies
                      e_f = energy - nucleus(icomp)%sep_e(k)-                &
                            nucleus(i_f)%e_grid(n_f)
-                     if(e_f - Coulomb_Barrier(k) <= 1.0d-6)cycle
-!                     if(e_f <= 1.0d-6)cycle
+                     if(e_f - Coulomb_Barrier(k) <= 1.0d-6)exit
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !------    Loop over orbital angular momenta of emitted particle       +
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -341,8 +283,7 @@ subroutine HF_primary_decay_setup(e_in,iproj,itarget,icomp,istate,        &
                   do n_f = 1, num_discrete
                      e_f = energy-nucleus(icomp)%sep_e(k)-                                &
                                nucleus(i_f)%state(n_f)%energy
-                     if(e_f - Coulomb_Barrier(k) <= 1.0d-6)cycle
-!                     if(e_f <= 1.0d-6)cycle
+                     if(e_f - Coulomb_Barrier(k) <= 1.0d-6)exit
                      xI_f = nucleus(i_f)%state(n_f)%spin
                      Ix_f = nint(xI_f - nucleus(i_f)%jshift)
                      xj_f_min = abs(xI_f - xI_i)
@@ -375,9 +316,9 @@ subroutine HF_primary_decay_setup(e_in,iproj,itarget,icomp,istate,        &
                   end do
                else                                              !  photons
 !---------------------------   gamma decay to continuous level bins
-                  do n_f = nucleus(i_f)%nbin - ibin, 1, -1                                     !  loop over final excitation energies
+                  do n_f = 1, nucleus(i_f)%nbin                                     !  loop over final excitation energies
                      e_gamma = energy - nucleus(i_f)%e_grid(n_f)
-                     if(e_gamma <= 1.0d-6)cycle
+                     if(e_gamma <= 1.0d-6)exit
                      EM_k = 1
                      do l = 1,nucleus(i_f)%lmax_E                                              !  loop over EL decays
                         trans = EL_trans(i_f, l, e_gamma, energy)
@@ -502,11 +443,10 @@ subroutine HF_primary_decay_setup(e_in,iproj,itarget,icomp,istate,        &
 !------     Start loop over final states, first loop over final        +
 !------     energy bins                                                +
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-                     do n_f = nucleus(i_f)%nbin - ibin + 1, 1,-1                    !  loop over final excitation energies
+                     do n_f = 1, nucleus(i_f)%nbin                                   !  loop over final excitation energies
                         e_f = energy-nucleus(icomp)%sep_e(k)-                     &
                               nucleus(i_f)%e_grid(n_f)
-                        if(e_f - Coulomb_Barrier(k) <= 1.0d-6)cycle
-!                        if(e_f <= 1.0d-6)cycle
+                        if(e_f - Coulomb_Barrier(k) <= 1.0d-6)exit
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !------    Loop over orbital angular momenta of emitted particle       +
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -545,7 +485,7 @@ subroutine HF_primary_decay_setup(e_in,iproj,itarget,icomp,istate,        &
                                                       iproj,l_proj,xj_i,istate,           &
                                                       spin_target,tcoef,                  &
                                                       k,l,xj_f,-n_f,xI_f,                 &
-                                                      ibin,ip_i,xI_i,energy,              &
+                                                      ip_i,xI_i,energy,                   &
                                                       exp_gamma,HFden,F_trans,CHnorm2,WF)
                                  end if
                                  num = num + 1
@@ -567,8 +507,7 @@ subroutine HF_primary_decay_setup(e_in,iproj,itarget,icomp,istate,        &
                      do n_f = 1, num_discrete
                         e_f = energy-nucleus(icomp)%sep_e(k)-                             &
                               nucleus(i_f)%state(n_f)%energy
-                        if(e_f - Coulomb_Barrier(k) <= 1.0d-6)cycle
-!                        if(e_f <= 1.0d-6)cycle
+                        if(e_f - Coulomb_Barrier(k) <= 1.0d-6)exit
                         xI_f = nucleus(i_f)%state(n_f)%spin
                         Ix_f = nint(xI_f - nucleus(i_f)%jshift)
                         xj_f_min = abs(xI_f - xI_i)
@@ -601,7 +540,7 @@ subroutine HF_primary_decay_setup(e_in,iproj,itarget,icomp,istate,        &
                                  call  Moldauer_WF(icomp,                                       &
                                                    iproj,l_proj,xj_i,istate,spin_target,tcoef,  &
                                                    k,l,xj_f,n_f,xI_f,                           &
-                                                   ibin,ip_i,xI_i,energy,                       &
+                                                   ip_i,xI_i,energy,                            &
                                                    exp_gamma,HFden,F_trans,CHnorm2,WF)
                               end if
                               num = num + 1
@@ -621,7 +560,6 @@ subroutine HF_primary_decay_setup(e_in,iproj,itarget,icomp,istate,        &
 
                   else                                              !  photons
 !---------------------------   gamma decay to continuous level bins
-                     n_f = nucleus(i_f)%nbin - ibin
                      EM_k = 1
                      WF = WF_def
                      n_f = 1
@@ -631,12 +569,12 @@ subroutine HF_primary_decay_setup(e_in,iproj,itarget,icomp,istate,        &
                         call Moldauer_WF(icomp,                                           &
                                          iproj,l_proj,xj_i,istate,spin_target,tcoef,      &
                                          0,l,xj_f,-n_f,xI_f_min,                          &
-                                         ibin,ip_i,xI_i,energy,                           &
+                                         ip_i,xI_i,energy,                                &
                                          exp_gamma,HFden,F_trans,CHnorm2,WF)
                      end if
-                     do n_f = nucleus(i_f)%nbin, 1, -1                                              !  loop over final excitation energies
+                     do n_f = 1, nucleus(i_f)%nbin                                                   !  loop over final excitation energies
                         e_gamma = energy - nucleus(i_f)%e_grid(n_f)
-                        if(e_gamma <= 1.0d-6)cycle
+                        if(e_gamma <= 1.0d-6)exit
                         EM_k = 1
                         do l = 1,nucleus(i_f)%lmax_E                                                !  loop over EL decays
                            trans = EL_trans(i_f, l, e_gamma, energy)
@@ -701,7 +639,7 @@ subroutine HF_primary_decay_setup(e_in,iproj,itarget,icomp,istate,        &
                      do n_f = 1, num_discrete
                         e_f = energy - nucleus(i_f)%state(n_f)%energy
                         e_gamma = e_f
-                        if(e_gamma <= 1.0d-6)cycle
+                        if(e_gamma <= 1.0d-6)exit
                         xI_f = nucleus(i_f)%state(n_f)%spin
                         if(xI_i < 1.0d-5.and. xI_f <= 1.0d-5)cycle                         !  O -> 0 not allowed
                         lmin = max(1,int(abs(xI_f - xI_i)))                                !   can't have L=0
@@ -801,7 +739,7 @@ subroutine HF_primary_decay_setup(e_in,iproj,itarget,icomp,istate,        &
                      call Moldauer_WF(icomp,                                              &
                                       iproj,l_proj,xj_i,istate,spin_target,tcoef,         &
                                       0,l,xj_f,-n_f,xI_f_min,                             &
-                                      ibin,ip_i,xI_i,energy,                              &
+                                      ip_i,xI_i,energy,                                   &
                                       exp_gamma,HFden,F_trans,CHnorm2,WF)
                   end if
                   prob = F_trans(4)/CHnorm2
@@ -949,11 +887,10 @@ subroutine sum_HFden(icomp, xI_i, par, energy, HFden, exp_gamma)
 !------     Start loop over final states, first loop over final        +
 !------     energy bins                                                +
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-         do n_f = nucleus(i_f)%nbin,1,-1                                          !  loop over final excitation energies
+         do n_f = 1, nucleus(i_f)%nbin                                          !  loop over final excitation energies
             e_f = energy - nucleus(icomp)%sep_e(k) -      &
                   nucleus(i_f)%e_grid(n_f)
-            if(e_f - Coulomb_Barrier(k) <= 1.0d-6)cycle
-!            if(e_f <= 1.0d-6)cycle
+            if(e_f - Coulomb_Barrier(k) <= 1.0d-6)exit
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !------    Loop over orbital angular momenta of emitted particle       +
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -994,11 +931,9 @@ subroutine sum_HFden(icomp, xI_i, par, energy, HFden, exp_gamma)
          num_discrete = nucleus(i_f)%ncut
          if(All_gammas)num_discrete = nucleus(i_f)%num_discrete
          do n_f = 1, num_discrete
-!         do n_f = 1,nucleus(i_f)%num_discrete
             e_f = energy-nucleus(icomp)%sep_e(k) -          &
             nucleus(i_f)%state(n_f)%energy
-            if(e_f - Coulomb_Barrier(k) <= 1.0d-6)cycle
-!            if(e_f <= 1.0d-6)cycle
+            if(e_f - Coulomb_Barrier(k) <= 1.0d-6)exit
             xI_f = nucleus(i_f)%state(n_f)%spin
             Ix_f = nint(xI_f - nucleus(i_f)%jshift)
             xj_f_min = abs(xI_f - xI_i)
@@ -1033,9 +968,9 @@ subroutine sum_HFden(icomp, xI_i, par, energy, HFden, exp_gamma)
 
       else                                                                    !  photons
 !---------------------------   gamma decay to continuous level bins
-         do n_f = nucleus(i_f)%nbin,1,-1                                      !  loop over final excitation energies
+         do n_f = 1, nucleus(i_f)%nbin                                      !  loop over final excitation energies
             e_gamma = energy - nucleus(i_f)%e_grid(n_f)
-            if(e_gamma <= 0.0d0)cycle
+            if(e_gamma <= 0.0d0)exit
             do l = 1,nucleus(i_f)%lmax_E                   !  loop over EL decays
 
                trans = EL_trans(i_f, l, e_gamma, energy)
@@ -1078,7 +1013,7 @@ subroutine sum_HFden(icomp, xI_i, par, energy, HFden, exp_gamma)
          do n_f = 1, num_discrete
             e_f = energy - nucleus(i_f)%state(n_f)%energy
             e_gamma = e_f
-            if(e_gamma <= 0.0d0)cycle
+            if(e_gamma <= 0.0d0)exit
             xI_f = nucleus(i_f)%state(n_f)%spin
             if(xI_i < 1.0d-5.and. xI_f <= 1.0d-5)cycle                          !  O -> 0 not allowed
             lmin = max(1,int(abs(xI_f - xI_i)))                                 !   can't have L=0

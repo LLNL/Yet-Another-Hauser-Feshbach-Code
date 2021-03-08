@@ -4,7 +4,7 @@
 subroutine Moldauer_WF(icomp,                                       &
                        k_a,l_a,xj_a,istate_a,xI_a,trans_a,          &
                        k_b,l_b,xj_b,istate_b,xI_b,                  &
-                       ibin,ip,xI,energy,                           &
+                       ip,xI,energy,                                &
                        exp_gamma,HF_den,F_trans,CHnorm,WF)
 !
 !*******************************************************************************
@@ -31,20 +31,21 @@ subroutine Moldauer_WF(icomp,                                       &
 !
 !*******************************************************************************
 !
+   use nodeinfo
    use variable_kinds
    use options
    use nuclei
    use particles_def
    use constants 
-   use nodeinfo
    use Gauss_integration
    implicit none
+   include 'mpif.h'
    integer(kind=4), intent(in) :: icomp
    integer(kind=4), intent(in) :: k_a, l_a, istate_a
    real(kind=8), intent(in) :: xj_a, xI_a, trans_a
    integer(kind=4), intent(in) :: k_b, l_b, istate_b
    real(kind=8), intent(in) :: xj_b, xI_b
-   integer(kind=4), intent(in) :: ibin, ip
+   integer(kind=4), intent(in) :: ip
    real(kind=8), intent(in) :: xI
    real(kind=8), intent(in) :: energy, exp_gamma, HF_den, F_trans(4)
    real(kind=8), intent(in) :: CHnorm
@@ -85,19 +86,20 @@ subroutine Moldauer_WF(icomp,                                       &
    factor = 1.0d0
    elastic = 0.0d0
    if(k_a == k_b .and. istate_a == istate_b .and. l_a == l_b .and.       &
-      (abs(xj_a - xj_b) < 1.0d-3) .and. (abs(xI_a - xI_b) < 1.0d-3) )       &
+      (abs(xj_a - xj_b) < 1.0d-3) .and. (abs(xI_a - xI_b) < 1.0d-3) )    &
        elastic = 1.0d0
    xnu_a = xnu(trans_a,HF_den)
    factor = factor + elastic*2.0d0/xnu_a
 
    xxxx = 0.0d0
    yyxx = 0.0d0
-   do ix = 1, ndata
+!   do ix = 1, ndata
+   do ix = iproc + 1, ndata, nproc
       x = xx(ix)
       call Moldauer_product(icomp,                                       &
                             k_a,l_a,xj_a,istate_a,                       &
                             k_b,l_b,xj_b,istate_b,xI_b,                  &
-                            ibin,ip,xI,energy,                           &
+                            ip,xI,energy,                                &
                             HF_den,F_trans,x,CHnorm,Product_p)
       Product_g = exp(-exp_gamma*x)
       Product = Product_p*Product_g*factor
@@ -105,24 +107,28 @@ subroutine Moldauer_WF(icomp,                                       &
       xxxx = xxxx + xx(ix)**2
       yyxx = yyxx + yy(ix)*xx(ix)
    end do
+   if(nproc > 1)then
+      call MPI_Allreduce(MPI_IN_PLACE, xxxx, 1, MPI_REAL8, MPI_SUM, icomm, ierr)
+      call MPI_Allreduce(MPI_IN_PLACE, yyxx, 1, MPI_REAL8, MPI_SUM, icomm, ierr)
+   end if
 
    afit = abs(yyxx/xxxx)
 
    WF = 0.0d0
-   do ix = 1, n_glag
+!   do ix = 1, n_glag
+   do ix = iproc + 1, n_glag, nproc
       x = x_glag(ix)/afit
       call Moldauer_product(icomp,                                       &
                             k_a,l_a,xj_a,istate_a,                       &
                             k_b,l_b,xj_b,istate_b,xI_b,                  &
-                            ibin,ip,xI,energy,                           &
+                            ip,xI,energy,                                &
                             HF_den,F_trans,x,CHnorm,Product_p)
       Product_g = exp(-exp_gamma*x)
       Product = Product_p*Product_g*factor
       WF = WF + Product/exp(-afit*x)*w_glag(ix)
    end do
+   if(nproc > 1)call MPI_Allreduce(MPI_IN_PLACE, WF, 1, MPI_REAL8, MPI_SUM, icomm, ierr)
    WF = WF/afit
-
-
 
 return
 end subroutine Moldauer_WF
@@ -168,7 +174,7 @@ end function xnu
 subroutine Moldauer_product(icomp,                               &
                             k_a,l_a,xj_a,istate_a,               &
                             k_b,l_b,xj_b,istate_b,xI_b,          &
-                            ibin,ip,xI,energy,                   &
+                            ip,xI,energy,                        &
                             HF_den,F_trans,x,CHnorm,Product)
 !
 !*******************************************************************************
@@ -195,19 +201,20 @@ subroutine Moldauer_product(icomp,                               &
 !
 !*******************************************************************************
 !
+   use nodeinfo
    use variable_kinds
    use options
    use nuclei
    use particles_def
-   use constants 
-   use nodeinfo
+   use constants
+   use Channel_info
    implicit none
    integer(kind=4), intent(in) :: icomp
    integer(kind=4), intent(in) :: k_a,l_a,istate_a
    real(kind=8), intent(in) :: xj_a
    integer(kind=4), intent(in) :: k_b,l_b,istate_b
    real(kind=8), intent(in) :: xj_b,xI_b
-   integer(kind=4), intent(in) :: ibin,ip
+   integer(kind=4), intent(in) :: ip
    real(kind=8), intent(in) :: xI
    real(kind=8), intent(in) :: energy, HF_den, F_trans(4)
    real(kind=8), intent(in) :: x
@@ -249,6 +256,8 @@ subroutine Moldauer_product(icomp,                               &
    real(kind=8) :: e1, b, bbb, mode
    real(kind=8) :: E0, T, E11,ecut
 !   integer(kind=4) :: j_min
+   real(kind=8) :: xZ_i, xA_i, xZ_part, xA_part
+   real(kind=8) :: Coulomb_Barrier(6)
 
 !-------------------------------------------------------------------------+
 !------     Function declarations
@@ -263,6 +272,19 @@ subroutine Moldauer_product(icomp,                               &
 !--------------------   Start subroutine                                  +
 !------                                                                   +
 !-------------------------------------------------------------------------+
+   Coulomb_barrier(1:6) = 0.0d0
+   if(Apply_Coulomb_Barrier)then
+      do k_c = 1, 6
+         xZ_part = real(particle(k_c)%Z,kind=8)
+         xA_part = real(particle(k_c)%A,kind=8)
+         xZ_i = real(nucleus(icomp)%Z,kind=8)
+         xA_i = real(nucleus(icomp)%A,kind=8)
+         Coulomb_Barrier(k_c) = 0.6d0*e_sq*(xZ_i-xZ_part)*xZ_part/               &
+            (1.2d0*((xA_i-xA_part)**(1.0d0/3.0d0) + xA_part**(1.0d0/3.0d0)))
+      end do
+   end if
+
+
    sum_n = 0.0d0
    sum_p = 0.0d0
    sum_Tg = 0.0d0
@@ -274,7 +296,7 @@ subroutine Moldauer_product(icomp,                               &
    num = 0
    num_bin = 0
    par = 2.0*real(ip)-1.0
-   do if1=1,nucleus(icomp)%num_decay                       !  loop over nuclei in the decay chain
+   do if1 = 1, nucleus(icomp)%num_decay                       !  loop over nuclei in the decay chain
       i_c = nucleus(icomp)%decay_to(if1)
       k_c = nucleus(icomp)%decay_particle(if1)
       if(k_c == 0)cycle                                    ! particle n,p,d,t,h,a  ! Skip photons - treated woth exp(-exp_gamma*x)
@@ -283,10 +305,10 @@ subroutine Moldauer_product(icomp,                               &
       EM_c = 0
 !--------------------------   particle decay to continuous level bins
       p_spin = particle(k_c)%spin
-      do n_c = nucleus(i_c)%nbin - ibin,1, -1                !  loop over final excitation energies
+      do n_c = 1, nucleus(i_c)%nbin                          !  loop over final excitation energies
          e_f = energy - nucleus(icomp)%sep_e(k_c) -                                       &
                nucleus(i_c)%e_grid(n_c)
-         if(e_f <= 0.0d0)cycle
+         if(e_f - Coulomb_Barrier(k_c) <= 1.0d-6)exit
          do l_c = 0, particle(k_c)%lmax                      !  loop over l-partial wave
             cpar2 = par*particle(k_c)%par*(-1.0d0)**l_c      !  parity for channel c
             ip_c = nint((cpar2 + 1.0d0)/2.0d0)                     !  parity index for channel c
@@ -326,7 +348,7 @@ subroutine Moldauer_product(icomp,                               &
       if(All_gammas)num_discrete = nucleus(i_c)%num_discrete
       do n_c = 1, num_discrete
          E_c = energy - nucleus(icomp)%sep_e(k_c) - nucleus(i_c)%state(n_c)%energy
-         if(E_c < 0.0)cycle
+         if(E_c < 1.0d-6)exit
          xI_c = nucleus(i_c)%state(n_c)%spin
          xj_c_min = abs(xI - xI_c)
          xj_c_max = xI + xI_c
