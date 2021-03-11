@@ -181,6 +181,12 @@ program YAHFC_MASTER
       integer(kind=4) :: inuc
       integer(kind=4) :: max_num
 !---------------------------------------------------------------------
+      integer(kind=4) :: state_map(1000)
+      integer(kind=4) :: ibranch, numd, nnd
+!      integer(kind=4) :: lev_below
+      integer(kind=4) :: JJ
+      logical :: check
+!---------------------------------------------------------------------
       character(len=2) char_pos,char_neg
       real(kind=8) :: t12_isomer
       real(kind=8) :: apu
@@ -1308,14 +1314,69 @@ program YAHFC_MASTER
       end if        
 
 !
-!-----  Now check if any discrete are higher, and set to maximum spin of discrete states
+!-----  Now check for any discrete states have J greater than max_J_allowed or any states
+!-----  that decay to a state greater than max_J_allowed. If so, remove them the list of discrete states
 !
       do i = 1, num_comp
+         numd = 0
          do n = 1, nucleus(i)%num_discrete
             J = nint(nucleus(i)%state(n)%spin - nucleus(i)%jshift)
-            if(J > max_J_allowed)max_J_allowed = J
+            state_map(n) = -1
+            if(J <= max_J_allowed)then            !   J is below max_J_allowed
+               check = .true.
+               do m = 1, nucleus(i)%state(n)%nbranch
+                  ibranch = nucleus(i)%state(n)%ibranch(m) 
+                  JJ = nint(nucleus(i)%state(ibranch)%spin - nucleus(i)%jshift)
+                  if(JJ > max_J_allowed)check = .false.
+               end do
+               if(check)then
+                  numd = numd + 1
+                  state_map(n) = numd
+               end if
+            end if
          end do
+         nnd = 0         
+         do n = 1, nucleus(i)%num_discrete
+            if(state_map(n) > 0)then
+               nnd = nnd + 1
+               if(state_map(n) /= n)then     !   put state n into state nnd
+                  nucleus(i)%state(nnd)%energy = nucleus(i)%state(n)%energy
+                  nucleus(i)%state(nnd)%spin = nucleus(i)%state(n)%spin
+                  nucleus(i)%state(nnd)%parity = nucleus(i)%state(n)%parity
+                  nucleus(i)%state(nnd)%t12 = nucleus(i)%state(n)%t12
+                  nucleus(i)%state(nnd)%isomer = nucleus(i)%state(n)%isomer
+                  nucleus(i)%state(nnd)%nbranch = nucleus(i)%state(n)%nbranch
+                  nucleus(i)%state(nnd)%exit_lab = nucleus(i)%state(n)%exit_lab
+                  deallocate(nucleus(i)%state(nnd)%ibranch)
+                  allocate(nucleus(i)%state(nnd)%ibranch(nucleus(i)%state(nnd)%nbranch))
+                  deallocate(nucleus(i)%state(nnd)%branch)
+                  allocate(nucleus(i)%state(nnd)%branch(nucleus(i)%state(nnd)%nbranch))
+                  deallocate(nucleus(i)%state(nnd)%p_gamma)
+                  allocate(nucleus(i)%state(nnd)%p_gamma(nucleus(i)%state(nnd)%nbranch))
+                  deallocate(nucleus(i)%state(nnd)%p_ic)
+                  allocate(nucleus(i)%state(nnd)%p_ic(nucleus(i)%state(nnd)%nbranch))
+                  deallocate(nucleus(i)%state(nnd)%cs)
+                  allocate(nucleus(i)%state(nnd)%cs(nucleus(i)%state(nnd)%nbranch))
+                  do m = 1, nucleus(i)%state(n)%nbranch
+                     ibranch = nucleus(i)%state(n)%ibranch(m)
+                     nucleus(i)%state(nnd)%ibranch(m) = state_map(ibranch)
+                     nucleus(i)%state(nnd)%branch(m) = nucleus(i)%state(n)%branch(m)
+                     nucleus(i)%state(nnd)%p_gamma(m) = nucleus(i)%state(n)%p_gamma(m)
+                     nucleus(i)%state(nnd)%p_ic(m) = nucleus(i)%state(n)%p_ic(m)
+                  end do
+               end if
+            end if
+         end do
+         do n = numd + 1, nucleus(i)%num_discrete
+            deallocate(nucleus(i)%state(n)%ibranch)
+            deallocate(nucleus(i)%state(n)%branch)
+            deallocate(nucleus(i)%state(n)%p_gamma)
+            deallocate(nucleus(i)%state(n)%p_ic)
+            deallocate(nucleus(i)%state(n)%cs)
+         end do
+         nucleus(i)%num_discrete = numd
       end do
+
 !-------------------------------------------------------------------------+
 !
 !-----   Set maximum angular momentum for each nucleus 

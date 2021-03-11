@@ -444,6 +444,16 @@ Version 3.31
 2.  Added MPI to the width fluctuation integral.
 
 
-
-
-1.  
+Version 3.32
+1.  Modified how the maximum angular momentum is used, through the parameter
+    max_J_allowed. The maximum angular momentum in the reaction (through
+    coupling j=l+s with target spin) is used to dynamically set max_J_allowed.
+    However, with the option to include all discrete states with complete 
+    gamma paths decay paths, there are discrete states with J higher than this 
+    value. Previously, the maximum angular momentum for the continuous 
+    energy bins was extended to include these states. Since, they are likely
+    never to be populated, instead they are removed from the calculation. This
+    reduces the memory used for cases like n+238U.
+2.  Implemented more efficient search for angles in subroutine HF_primary_decay
+    and fixed a sampling bug, where it seems the extra angles were the same as
+    the first.

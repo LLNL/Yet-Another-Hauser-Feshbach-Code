@@ -1,6 +1,5 @@
 
-#F90CFLAGS   = -Wall -fbounds-check -fcheck-array-temporaries -fcheck=all -g
-#CFLAGS   = -Wall -Ofast
+#F90CFLAGS   = '-Wall -fbounds-check -fcheck-array-temporaries -fcheck=all -g'
 F90CFLAGS   = '-Wall -Ofast'
 MPIF90CFLAGS = '-Ofast'
 

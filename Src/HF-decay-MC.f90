@@ -684,12 +684,14 @@
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !-----   Check if at extremes  -------------------------------------+
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
    p_norm = prob_array(num)
-   if(p_norm <= 1.0d-20)then
-      write(6,*)'p_norm too small in find_prob = ',p_norm
-      write(6,*)'iproc = ',iproc
-      call MPI_Abort(icomm,201,ierr)
-   end if
+!  write(6,*)num,p_norm
+!   if(p_norm <= 1.0d-20)then
+!      write(6,*)'p_norm too small in find_prob = ',p_norm
+!      write(6,*)'iproc = ',iproc
+!      call MPI_Abort(icomm,201,ierr)
+!   end if
    upper = num
    lower = 1
 
@@ -900,15 +902,19 @@
    real(kind=8) :: spin_proj, spin_eject, spin_target_4
    integer(kind=4) :: L_ang, max_L
    real(kind=8) :: factor
-   real(kind=8) :: x, check, sum, ran
+   real(kind=8) :: x, sum, ran
 !   real(kind=8) :: x, x1, check, sum, ran
-
+!   real(kind=8) :: check
    real(kind=8) :: theta_0, phi_0
    integer(kind=4) :: nang
 
    real(kind=8) :: tally_prob
    real(kind=8) :: xnnn
 !   real(kind=8) :: alf, bet
+
+   real(kind=8) :: ang_prob(0:ixx_max)
+   real(kind=8) :: pnorm
+   real(kind=8) :: shift
 
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !----------   External Functions
@@ -1059,7 +1065,7 @@
 
    part_Ang_data(0,num_part) = 0.5d0
 !   ran = random_64(iseed_64)
-   ran = random_32(iseed_32)
+!   ran = random_32(iseed_32)
 
    max_L = 0
 
@@ -1082,39 +1088,39 @@
             racahr(xI_i,xj_f,xI_i,xj_f,xI_f,xL_Ang)*                     &
             racahr(xj_f,xj_f,xl_f,xl_f,xL_Ang,spin_eject)
       end do
+      ang_prob(0:ixx_max) = 0.0d0
+      do i = 1, ixx_max
+         sum = 0.5d0*(Leg_poly(0,i) + Leg_poly(0,i-1))
+         do L_ang = 2, max_L, 2
+            sum = sum + part_Ang_data(L_ang,num_part)*                   &
+                       (Leg_poly(L_ang,i) + Leg_poly(L_ang,i-1))
+         end do
+         ang_prob(i) = ang_prob(i-1) + 0.5d0*sum*delta_x
+      end do
    end if
+   pnorm = ang_prob(ixx_max)
+   ang_prob = ang_prob/pnorm
 
    theta_0 = 0.0d0
    phi_0 = 0.0d0
 
    if(.not. xs_only)then
       do nang = 1, num_theta
+         ran = random_32(iseed_32)
          if(k == 0)then
-!            x = 2.0d0*random_64(iseed_64) - 1.0d0
-!            x = 2.0d0*random_32(iseed_32) - 1.0d0
             x = 2.0d0*ran - 1.0d0
          else
-            check = 0.0d0
-            do i = 1, ixx_max
-               x = real(i,kind=8)*delta_x - 1.0d0
-               sum = 0.5d0*(Leg_poly(0,i) + Leg_poly(0,i-1))
-               do L_ang = 2, max_L, 2
-                  sum = sum + part_Ang_data(L_ang,num_part)*                          &
-                             (Leg_poly(L_ang,i) + Leg_poly(L_ang,i-1))
-               end do
-               check = check + 0.5d0*sum*delta_x
-               if(check >= ran)exit
-            end do
-            x = x - random_32(iseed_32)*delta_x*0.9999999d0
-!            x = x - random_64(iseed_64)*delta_x*0.9999999d0
-            if(abs(x) > 1.0d0)then
-               write(6,*) 'cos(theta) =',x,' wrong in primary decay'
-               call MPI_Abort(icomm,101,ierr)
-            end if
-            if(abs(x) < -1.0d0)then
-               write(6,*) 'cos(theta) =',x,' wrong in primary decay'
-               call MPI_Abort(icomm,101,ierr)
-            end if
+            call find_prob(ixx_max, ang_prob(1), ran, i)
+!            if(abs(x) > 1.0d0)then
+!               write(6,*) 'cos(theta) =',x,' wrong in primary decay'
+!               call MPI_Abort(icomm,101,ierr)
+!            end if
+!            if(abs(x) < -1.0d0)then
+!               write(6,*) 'cos(theta) =',x,' wrong in primary decay'
+!               call MPI_Abort(icomm,101,ierr)
+!            end if
+            shift = random_32(iseed_32)*delta_x*0.9999999d0
+            x = real(i,kind=8)*delta_x - 1.0d0 - shift
          end if
          extra_angle_data(nang,num_part) = acos(x)
       end do
