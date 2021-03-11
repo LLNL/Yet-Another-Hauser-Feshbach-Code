@@ -1379,9 +1379,9 @@ subroutine Boost_frame(e_f, mass_1, mass_2, theta_0, phi_0,                   &
 
    e_f1 = max(e_f, 1.0d-5)
 
-   E_T = e_f1 + mass_1 + mass_2                                        !  Total energy
+   E_T = e_f1 + mass_1 + mass_2                                   !  Total energy
    EE = sqrt(E_T**2 - (mass_1**2 + mass_2**2))
-   pp = sqrt((EE**4 - 4.0d0*mass_1**2*mass_2**2)/(4.0d0*E_T**2))       !  momentum
+   pp = sqrt((EE**4 - 4.0d0*mass_1**2*mass_2**2)/(4.0d0*E_T**2))  !  momentum
 
 
    ptemp(0) = sqrt(pp**2 + mass_1**2)                             !  momentum four-vector of emitted particle
@@ -1398,8 +1398,8 @@ subroutine Boost_frame(e_f, mass_1, mass_2, theta_0, phi_0,                   &
    p_1 = matmul(Boost_COM,ptemp)
 
 !---------------------------   Kinetic energies in COM frame
-   T_1 = p_1(0) - mass_1                                 !   Kinetic energy of emitted particle
-   T_2 = p_2(0) - mass_2                                 !   Kinetic energy of residual nucleus
+   T_1 = p_1(0) - mass_1                                     !   Kinetic energy of emitted particle
+   T_2 = p_2(0) - mass_2                                     !   Kinetic energy of residual nucleus
    pp = 0.0d0
    do i = 1, 3
       pp = pp + p_1(i)*p_1(i)                                !  magnitude of vector momentum
