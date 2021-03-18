@@ -464,7 +464,9 @@ Version 3.33
     coupled-channels or DWBA states.
 2.  Implemented pre-equilibrium photon emission. It is dominated by the direct
     component.
-3.  Fixed bug where Ix_f (the index for the final angular momentum) wasn't 
+3.  Changed allocation of arrays used in pre-equilibrium model. Allocated
+    in the main, and kept throughout the calculation.  
+4.  Fixed bug where Ix_f (the index for the final angular momentum) wasn't 
     set properly in HF_primary_decay_setup when decaying to a discrete state. 
     This got caught in an error trap in an N14 calculation where the spins are
     low, and Ix_f > J_max_allowed. Technically, this incorrect setting didn't 
