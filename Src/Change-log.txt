@@ -466,8 +466,11 @@ Version 3.33
     component.
 3.  Changed allocation of arrays used in pre-equilibrium model. Allocated
     in the main, and kept throughout the calculation. Before, they were
-    allocated at each call for each incident energy. 
-4.  Fixed bug where Ix_f (the index for the final angular momentum) wasn't 
+    allocated at each call for each incident energy.
+4.  Fixed bug where number of arguments in print_channel_gammas was incorrect in
+    the main call, which was masked by an incorrect length in the character
+    string lib_dir (compiler should have caught this).
+5.  Fixed bug where Ix_f (the index for the final angular momentum) wasn't 
     set properly in HF_primary_decay_setup when decaying to a discrete state. 
     This got caught in an error trap in an N14 calculation where the spins are
     low, and Ix_f > J_max_allowed. Technically, this incorrect setting didn't 
