@@ -465,7 +465,8 @@ Version 3.33
 2.  Implemented pre-equilibrium photon emission. It is dominated by the direct
     component.
 3.  Changed allocation of arrays used in pre-equilibrium model. Allocated
-    in the main, and kept throughout the calculation.  
+    in the main, and kept throughout the calculation. Before, they were
+    allocated at each call for each incident energy. 
 4.  Fixed bug where Ix_f (the index for the final angular momentum) wasn't 
     set properly in HF_primary_decay_setup when decaying to a discrete state. 
     This got caught in an error trap in an N14 calculation where the spins are
