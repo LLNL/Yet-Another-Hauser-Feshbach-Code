@@ -327,6 +327,7 @@ subroutine output_nucleus_data(num_comp, j_max, itarget)
    real(kind=8) :: sum_rho
    real(kind=8) :: K_vib, K_rot
    real(kind=8) :: f_E, str_E, f_M, str_M
+   real(kind=8) :: EL_cs, ML_cs
    character(len=1) :: char
    character(len=1) :: char_pos,char_neg
    integer(kind=4) :: lev_below, char_start
@@ -337,6 +338,8 @@ subroutine output_nucleus_data(num_comp, j_max, itarget)
    real(kind=8) :: spin_fac, parity_fac
    real(kind=8) :: EL_f, EL_trans
    real(kind=8) :: ML_f, ML_trans
+   real(kind=8) :: EL_absorption
+   real(kind=8) :: ML_absorption
 
 !--------------   Start subrotuine
    num_points = int(30.0d0/de,kind=4) + 1
@@ -837,15 +840,16 @@ subroutine output_nucleus_data(num_comp, j_max, itarget)
              nucleus(i)%sr_E1(k)
             end do
       write(13,'(''E1 strength function'')')
-      write(13,'(''     Energy         F               T'')')
-      write(13,'(''  ---------   -------------   -------------'')')
+      write(13,'(''     Energy         F               T         absorption(b)'')')
+      write(13,'(''  ---------   -------------   -------------   -------------'')')
       l_radiation = 1
       do j = 0, nucleus(i)%nbin_em
          energy = dfloat(j)*de
          f_E = EL_f(i, l_radiation, energy, nucleus(i)%sep_e(1))
          str_E = EL_trans(i, l_radiation, energy, nucleus(i)%sep_e(1))
-         write(13,'(1x,f10.5,(2(1x,e15.7)))')                     &
-              energy, f_E, str_E
+         EL_cs = EL_absorption(i, l_radiation, energy, nucleus(i)%sep_e(1))
+         write(13,'(1x,f10.5,(3(1x,e15.7)))')                     &
+              energy, f_E, str_E, EL_cs
 !              energy,nucleus(i)%f_E(j,1),nucleus(i)%str_E(j,1)
       end do
 !------------------------------------------------------------------
@@ -863,14 +867,15 @@ subroutine output_nucleus_data(num_comp, j_max, itarget)
                 nucleus(i)%gr_E(l_radiation),                      &
                 nucleus(i)%sr_E(l_radiation)
          write(13,'(''E'',i1,'' Strength function'')')l_radiation
-         write(13,'(''     Energy         F               T'')')
-         write(13,'(''  ---------   -------------   -------------'')')
+         write(13,'(''     Energy         F               T         absorption(b)'')')
+         write(13,'(''  ---------   -------------   -------------   -------------'')')
          do j = 0, nucleus(i)%nbin_em
             energy = dfloat(j)*de
             f_E = EL_f(i, l_radiation, energy, nucleus(i)%sep_e(1))
             str_E = EL_trans(i, l_radiation, energy, nucleus(i)%sep_e(1))
-            write(13,'(1x,f10.5,(2(1x,e15.7)))')                   &
-                 energy, f_E, str_E
+            EL_cs = EL_absorption(i, l_radiation, energy, nucleus(i)%sep_e(1))
+            write(13,'(1x,f10.5,(3(1x,e15.7)))')                     &
+              energy, f_E, str_E, EL_cs
 !            write(13,'(1x,f10.5,(20(1x,e15.7)))')     &
 !                   energy,                            &
 !                   nucleus(i)%f_E(j,l_radiation),     &
@@ -889,14 +894,15 @@ subroutine output_nucleus_data(num_comp, j_max, itarget)
                 nucleus(i)%gr_M(l_radiation),                      &
                 nucleus(i)%sr_M(l_radiation)
          write(13,'(''M'',i1,'' Strength function'')')l_radiation
-         write(13,'(''     Energy         F               T'')')
-         write(13,'(''  ---------   -------------   -------------'')')
+         write(13,'(''     Energy         F               T         absorption(b)'')')
+         write(13,'(''  ---------   -------------   -------------   -------------'')')
          do j = 0, nucleus(i)%nbin_em
             energy = dfloat(j)*de
             f_M = ML_f(i, l_radiation, energy)
             str_M = ML_trans(i, l_radiation, energy)
-            write(13,'(1x,f10.5,(2(1x,e15.7)))')                   &
-                 energy, f_M, str_M
+            ML_cs = ML_absorption(i, l_radiation, energy)
+            write(13,'(1x,f10.5,(3(1x,e15.7)))')                     &
+              energy, f_M, str_M, ML_cs
 !            write(13,'(1x,f10.5,(20(1x,e15.7)))')                  &
 !                  energy,                                          &
 !                  nucleus(i)%f_M(j,l_radiation),                   &

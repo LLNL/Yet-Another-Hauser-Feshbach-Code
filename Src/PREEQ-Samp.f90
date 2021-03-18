@@ -68,6 +68,15 @@ subroutine PREEQ_sample(iproj, in, itarget, istate, e_in, ex_tot,      &
    real(kind=8) :: x_Ang
    integer(kind=4) :: nang
 
+   real(kind=8) :: e_state
+   integer(kind=4) :: closest
+   real(kind=8) :: e_closest
+   real(kind=8) :: e_diff
+   real(kind=8) :: xI_state
+   integer(kind=4) :: ip_state
+
+   real(kind=8) :: base_prob, tally_norm
+
 
    real(kind=8) :: dee
 
@@ -130,7 +139,7 @@ subroutine PREEQ_sample(iproj, in, itarget, istate, e_in, ex_tot,      &
      prob = 0.0d0
 
      if(biased_sampling)then
-     prob = 0.0d0
+        prob = 0.0d0
         do kk = 1, nucleus(icomp_i)%num_decay                       !   Loop over particle allowed to decay from this nucleus
            k = nucleus(icomp_i)%decay_particle(kk)
            icomp_f = nucleus(icomp_i)%decay_to(kk)
@@ -141,31 +150,30 @@ subroutine PREEQ_sample(iproj, in, itarget, istate, e_in, ex_tot,      &
      else
         prob_part(0:6) = 0.0d0
         sum_prob = 0.0d0
+        tally_norm = 0.0d0
         do kk = 1, nucleus(icomp_i)%num_decay
            k = nucleus(icomp_i)%decay_particle(kk)
            if(nucleus(icomp_i)%PREEQ_part_cs(kk,in)/preeq_cs >= 1.0d-6)then
               prob_part(k) = 1.0d0
+              tally_norm = tally_norm + nucleus(icomp_i)%PREEQ_part_cs(kk,in)
+              sum_prob = sum_prob + 1.0d0
            end if
-           sum_prob = sum_prob + prob_part(k)
         end do
+        base_prob = 1.0d0/sum_prob
+        tally_norm = 1.0d0/tally_norm
         prob = 0.0d0
         do kk = 1, nucleus(icomp_i)%num_decay                       !   Loop over particle allowed to decay from this nucleus
            if(nucleus(icomp_i)%PREEQ_part_cs(kk,in)/preeq_cs < 1.0-6)cycle
            k = nucleus(icomp_i)%decay_particle(kk)
            icomp_f = nucleus(icomp_i)%decay_to(kk)
-           prob = prob + prob_part(k)/sum_prob
+           prob = prob + prob_part(k)*base_prob
            if(ran < prob)exit
         end do
-        tally_prob = (nucleus(icomp_i)%PREEQ_part_cs(kk,in)/preeq_cs)*sum_prob
+        tally_prob = nucleus(icomp_i)%PREEQ_part_cs(kk,in)*tally_norm*sum_prob
 !        tally_prob = (nucleus(icomp_i)%PREEQ_part_cs(kk,in)/preeq_cs)*(prob_part(k)/sum_prob)
      end if
 
      if(k == -1)stop 'k not set properly in PREEQ_Samp'
-
-     if(k > 0 .and. k <= 6)then
-        num_part_type(k) = num_part_type(k) + 1
-        if(num_part_type(k) >= max_particle(k))part_fact(k) = 0.0d0
-     end if
 
 !     ran = random_64(iseed_64)
      ran = random_32(iseed_32)
@@ -179,7 +187,6 @@ subroutine PREEQ_sample(iproj, in, itarget, istate, e_in, ex_tot,      &
         energy = dfloat(m)*de
         ex_final = ex_tot - energy - nucleus(icomp_i)%sep_e(k)
         prob = prob + nucleus(icomp_i)%PREEQ_part_spectrum(kk,m)*de
-!   write(20,*)kk,m,prob,ran
         if(ran <= prob)exit
      end do
 
@@ -194,36 +201,39 @@ subroutine PREEQ_sample(iproj, in, itarget, istate, e_in, ex_tot,      &
      theta_0 = 0.0d0
 
      do nang = 1, num_theta
-        call PREEQ_Angular(icomp_i, icomp_f, iproj, e_in, k, energy, x_Ang)
-        if(abs(x_Ang) > 1.0d0)then
-           write(6,*)'cos(theta) wrong in PREEQ_sample'
-           write(6,*)'iproc = ',iproc
-           call MPI_Abort(icomm,101,ierr)
+        if(k > 0)then
+           call PREEQ_Angular(icomp_i, icomp_f, iproj, e_in, k, energy, x_Ang)
+           if(abs(x_Ang) > 1.0d0)then
+              write(6,*)'cos(theta) wrong in PREEQ_sample'
+              write(6,*)'iproc = ',iproc
+              call MPI_Abort(icomm,101,ierr)
+           end if
+           extra_angle_data(nang,num_part) = acos(x_Ang)
+        else               !   make photons isotropic for now
+           extra_angle_data(nang,num_part) = two_pi*random_32(iseed_32)
         end if
-        extra_angle_data(nang,num_part) = acos(x_Ang)
      end do
      theta_0 = extra_angle_data(1,num_part)
      phi_0 = two_pi*random_32(iseed_32)
 
 !-----------------------------------------  Find energy bin, or discrete state
-!     ex_min_bin = nucleus(icomp_f)%e_grid(1) - de/2.0d0
      ex_min_bin = nucleus(icomp_f)%e_grid(1) - 0.5d0*nucleus(icomp_f)%delta_e(1)
 
 !------
 !------   Decay to a continuous energy bin, defined by nbin_f
 !------
+     xj_f = -1.0d0
+     xI_f = -1.0d0
+     xj_f_min = -1.0d0
+     xj_f_max = -1.0d0
+     xI_f_min = -1.0d0
+     xI_f_max = -1.0d0
+     ixI_f_min = -1
+     ixI_f_max = -1
 
      if(ex_final > e_cut .and. ex_final > ex_min_bin)then     !  energy bin
-!        nbin_f = int((ex_final - ex_min_bin)/de) + 1
-!----   find nbin_f
-!----   Now, must search e_grid since we are allowing for the possibility of 
-!----   unequal bins
-!----   start from the bottom
-
         nbin_f = 0
-
         nbin_f = find_ibin(ex_final,icomp_f)
-
 !-------
         if(nbin_f <= 0) nbin_f = 1
         idb = 0
@@ -233,52 +243,50 @@ subroutine PREEQ_sample(iproj, in, itarget, istate, e_in, ex_tot,      &
         if(energy <= 0.0d0)nbin_f = nbin_f -1
         ex_final = nucleus(icomp_f)%e_grid(nbin_f)
         energy = ex_tot - ex_final - nucleus(icomp_i)%sep_e(k)
-
-        mass_e = particle(k)%mass
-
 !------
 !------   Estimate of angular momentum for emitted particle based on the 
 !------   emitted angle and assuming the reaction occurs near the surface
 !------   l_f is outgoing orbital angular momentum
 !------
-
-        l_f = preeq_l(l_i, mass_p, E_in, mass_e, energy, theta_0, A_p, A_t)
-
-
-        if(l_f > particle(k)%lmax)then
-           if(iproc == 0)then
-              write(6,*)'*******  Warning l_f > particle%lmax in PREEQ_samp  ******'
-              write(6,*)'*******  l_f set = particle%lmax                    ******'
-              write(6,*)particle(k)%name
-              write(6,*)energy, theta_0
-              write(6,*)l_i, l_f, particle(k)%lmax
+        if(k > 0)then
+           mass_e = particle(k)%mass
+           l_f = preeq_l(l_i, mass_p, E_in, mass_e, energy, theta_0, A_p, A_t)
+           if(l_f > particle(k)%lmax)then
+              if(iproc == 0)then
+                 write(6,*)'*******  Warning l_f > particle%lmax in PREEQ_samp  ******'
+                 write(6,*)'*******  l_f set = particle%lmax                    ******'
+                 write(6,*)particle(k)%name
+                 write(6,*)energy, theta_0
+                 write(6,*)l_i, l_f, particle(k)%lmax
+              end if
+              l_f = particle(k)%lmax
            end if
-           l_f = particle(k)%lmax
-        end if
-
-        cpar2 = par*(-1.0d0)**l_f                        !  Parity of nucleus and emitted particle
-        par_f = cpar2*particle(k)%par                 !  Parity of final nucleus
-        ip_f = nint((par_f + 1.0d0)/2.0d0)
-
+           cpar2 = par*(-1.0d0)**l_f                        !  Parity of nucleus and emitted particle
+           par_f = cpar2*particle(k)%par                 !  Parity of final nucleus
+           ip_f = nint((par_f + 1.0d0)/2.0d0)
 !------
 !------   With estimate of outgoing orbital angular momentum, couple to spin
 !------   and initial angular momentum to find possible final angular momenta
 !------   Then choose final angular momentum based on density of states within
 !------   the min and max ranges
 !------
-
-        xj_f_min = abs(real(l_f,kind=8) - particle(k)%spin)
-        xj_f_max = real(l_f,kind=8) + particle(k)%spin
-
-        xI_f_min = min(abs(xI_i - xj_f_min),abs(xI_i - xj_f_max))
-        xI_f_max = xI_i + xj_f_max
-
-        ixI_f_min = nint(xI_f_min - nucleus(icomp_f)%jshift)
-        ixI_f_max = min(nint(xI_f_max - nucleus(icomp_f)%jshift), nucleus(icomp_f)%j_max)
+           xj_f_min = abs(real(l_f,kind=8) - particle(k)%spin)
+           xj_f_max = real(l_f,kind=8) + particle(k)%spin
+           xI_f_min = min(abs(xI_i - xj_f_min),abs(xI_i - xj_f_max))
+           xI_f_max = xI_i + xj_f_max
+           ixI_f_min = nint(xI_f_min - nucleus(icomp_f)%jshift)
+           ixI_f_max = min(nint(xI_f_max - nucleus(icomp_f)%jshift), nucleus(icomp_f)%j_max)
+        elseif(k == 0)then
+           par_f = -par
+           ip_f = nint((par_f + 1.0d0)/2.0d0)
+           xI_f_min = abs(xI_i - 1.0d0)
+           xI_f_max = xI_i + 1.0d0
+           ixI_f_min = nint(xI_f_min - nucleus(icomp_f)%jshift)
+           ixI_f_max = min(nint(xI_f_max - nucleus(icomp_f)%jshift), nucleus(icomp_f)%j_max)
+        end if
 !
 !---- Distribute J and parity according to level density
 !
-
         rho_sum = 0.0d0
         do Ix_f = ixI_f_min, ixI_f_max
            rho_sum = rho_sum + nucleus(icomp_f)%bins(Ix_f, ip_f, nbin_f)%rho
@@ -288,7 +296,6 @@ subroutine PREEQ_sample(iproj, in, itarget, istate, e_in, ex_tot,      &
 !---- randomly with probability defined by the density of states
 !----
         if(rho_sum >= 1.0d-6)then
-!           ran = random_64(iseed_64)
            ran = random_32(iseed_32)
            prob = 0.0d0
            do Ix_f = ixI_f_min, ixI_f_max
@@ -296,14 +303,12 @@ subroutine PREEQ_sample(iproj, in, itarget, istate, e_in, ex_tot,      &
               if(ran <= prob)exit
            end do
         else
-!
 !---- If rho_sum = 0.0, then this decay can't happen due to no states
 !---- being in the angular momentum window. Generally rare, but possible
 !---- for lighter nuclei with lower level densities, high emission energy,
 !---- and higher initial angular momentum. In this case, reduce spin to
 !---- first angular momentum bin with non-zero level density. If, for some
 !---- reason it still can't be distributed, start over.
-!----
            do Ix_f = iXI_f_min, 0, -1
               if(nucleus(icomp_f)%bins(Ix_f, ip_f, nbin_f)%rho > 1.0d-6)exit
            end do
@@ -311,75 +316,93 @@ subroutine PREEQ_sample(iproj, in, itarget, istate, e_in, ex_tot,      &
         end if
         xI_f = Ix_f + nucleus(icomp_f)%jshift
         xj_f = xj_f_min
-
      else                         ! Discrete state
 !----- Trap that ex_final is actually greater than e_cut
-!        if(ex_final > e_cut)ex_final = e_cut - de*random_64(iseed_64)
         if(ex_final > e_cut)ex_final = e_cut - nucleus(icomp_f)%delta_e(1)*random_32(iseed_32)
-!        if(ex_final > e_cut)ex_final = e_cut - nucleus(icomp_f)%delta_e(1)*random_64(iseed_64)
-
-        dee = 0.5d0*nucleus(icomp_f)%delta_e(1)
+        dee = 0.5d0*de
         idb = 1
         nbin_f = 0
-        frac = 0
-        do i = 1, nucleus(icomp_f)%num_discrete     ! start with 1st excited state - inelastic
-           if(nucleus(icomp_f)%state(i)%energy + dee >= ex_final .and.           &
-              nucleus(icomp_f)%state(i)%energy -dee <= ex_final)frac = frac + 1
-        end do
-        if(frac > 0.0d0)then
-           frac=1.0d0/frac
-!           ran = random_64(iseed_64)
-           ran = random_32(iseed_32)
-           prob = 0.0d0
-           do i = 1, nucleus(icomp_f)%num_discrete 
-              if(nucleus(icomp_f)%state(i)%energy + dee >= ex_final .and.        &
-                 nucleus(icomp_f)%state(i)%energy - dee <= ex_final)then
-                 prob = prob + frac
-                 if(ran <= prob)then
+        if(k > 0)then
+           frac = 0
+           do i = 1, nucleus(icomp_f)%num_discrete     ! start with 1st excited state - inelastic
+              e_state = nucleus(icomp_f)%state(i)%energy
+              if(e_state + dee >= ex_final .and. e_state - dee <= ex_final)frac = frac + 1
+           end do
+           if(frac > 0.0d0)then
+              frac=1.0d0/frac
+              ran = random_32(iseed_32)
+              prob = 0.0d0
+              do i = 1, nucleus(icomp_f)%num_discrete
+                 e_state = nucleus(icomp_f)%state(i)%energy
+                 if(e_state + dee >= ex_final .and. e_state - dee <= ex_final)then
+                    prob = prob + frac
+                    if(ran <= prob)then
+                       nbin_f = i
+                       exit
+                    end if
+                 end if
+               end do
+           else            ! special case where there are no states, Force into closest level below ex-final
+              do i = nucleus(icomp_f)%num_discrete,1,-1
+                 if(nucleus(icomp_f)%state(i)%energy < ex_final)then
                     nbin_f = i
                     exit
                  end if
-              end if
-            end do
-        else            ! special case where there are no states, Force into closest level below ex-final
-           do i = nucleus(icomp_f)%num_discrete,1,-1
-
-              if(nucleus(icomp_f)%state(i)%energy < ex_final)then
-                 nbin_f = i
-                 exit
-              end if
-           end do
+              end do
 !------------   Lastly, it is possible due to roundoff error that the energy could fall just below the 
 !------------   tolerance for the ground-state, returning nbin_f = 0, which will cause a seg fault
 !------------   force decay to ground state
-           if(nbin_f == 0) nbin_f = 2                !   lowest state has to be first excited state
-        end if
+              if(nbin_f == 0)nbin_f = 2                !   lowest state has to be first excited state
+           end if
 
-        ex_final = nucleus(icomp_f)%state(nbin_f)%energy
-        energy = ex_tot - ex_final - nucleus(icomp_i)%sep_e(k)
+           ex_final = nucleus(icomp_f)%state(nbin_f)%energy
+           energy = ex_tot - ex_final - nucleus(icomp_i)%sep_e(k)
 
-        xI_f = nucleus(icomp_f)%state(nbin_f)%spin
-        ip_f = nint((nucleus(icomp_f)%state(nbin_f)%parity+1.0d0)/2.0d0)
-        xj_f_min = abs(xI_i - xI_f)
-        xj_f_max = xI_i + xI_f
-        l_min = nint(min(abs(xj_f_min - particle(k)%spin),abs(xj_f_max - particle(k)%spin)))
-        l_max = nint(xj_f_max + particle(k)%spin)
-        do l = l_min, l_max
-           par_f = (-1.0d0)**l*nucleus(icomp_f)%state(nbin_f)%parity*particle(k)%par
-           if(par_f == par)exit
-        end do
-        l_f = l
-        if(l_f == 0)then
-           xj_f = particle(k)%spin
-        else
-!           if(random_64(iseed_64) <= 0.5)then
-           if(random_32(iseed_32) <= 0.5)then
-              xj_f = real(l_f) + particle(k)%spin
+           xI_f = nucleus(icomp_f)%state(nbin_f)%spin
+           ip_f = nint((nucleus(icomp_f)%state(nbin_f)%parity+1.0d0)/2.0d0)
+           xj_f_min = abs(xI_i - xI_f)
+           xj_f_max = xI_i + xI_f
+           l_min = nint(min(abs(xj_f_min - particle(k)%spin),abs(xj_f_max - particle(k)%spin)))
+           l_max = nint(xj_f_max + particle(k)%spin)
+           do l = l_min, l_max
+              par_f = (-1.0d0)**l*nucleus(icomp_f)%state(nbin_f)%parity*particle(k)%par
+              if(par_f == par)exit
+           end do
+           l_f = l
+           if(l_f == 0)then
+              xj_f = particle(k)%spin
            else
+              if(random_32(iseed_32) <= 0.5)then
+                 xj_f = real(l_f) + particle(k)%spin
+              else
               xj_f = real(l_f) - particle(k)%spin
+              end if
+           end if
+        elseif(k == 0)then                       !   E1 decay, more restrictive, so force decay to closest discrete state
+           xI_f_min = abs(xI_i - 1.0d0)
+           xI_f_max = xI_i + 1.0d0
+           par_f = -par
+           ip_f = nint((par_f + 1.0d0)/2.0d0)
+           e_closest = 99999.0d0
+           closest = -1
+           do i = 1, nucleus(icomp_f)%num_discrete
+              e_diff = abs(ex_final - nucleus(icomp_f)%state(i)%energy)
+              xI_state = nucleus(icomp_f)%state(i)%spin
+              ip_state = nint((nucleus(icomp_f)%state(i)%parity + 1.0d0)/2.0d0)
+              if((xI_state >= xI_f_min .and. xI_state <= xI_f_max) .and. ip_f == ip_state .and.     &
+                  e_diff < e_closest)then
+                  closest = i
+                  e_closest = e_diff
+              end if
+           end do
+           if(closest > 0)then
+              nbin_f = closest
+              xI_f = nucleus(icomp_f)%state(closest)%spin
+              ex_final = nucleus(icomp_f)%state(closest)%energy
+           else
+              goto 22                                         !  It didn't work, so start over
            end if
         end if
-
      end if
 !
 !----   Store date for decay in part_data, specifying all aspects of this decay
@@ -393,7 +416,7 @@ subroutine PREEQ_sample(iproj, in, itarget, istate, e_in, ex_tot,      &
      part_data(7,num_part) = real(l_f,kind=8)
      part_data(9,num_part) = energy
 
-     if( k == 0)then
+     if(k == 0)then
         part_data(8,num_part) = 0.0d0     !  set to zero for now because no photons in preeq
      else
         part_data(8,num_part) = xj_f
@@ -421,6 +444,13 @@ subroutine PREEQ_sample(iproj, in, itarget, istate, e_in, ex_tot,      &
      part_data(23,num_part) = nucleus(itarget)%state(istate)%parity
      part_data(24,num_part) = istate
 !     nucleus(icomp_f)%Kinetic_Energy = T_2
+!
+!----    Before leaving update number of particles for this decay type
+!
+     if(k > 0 .and. k <= 6)then
+        num_part_type(k) = num_part_type(k) + 1
+        if(num_part_type(k) >= max_particle(k))part_fact(k) = 0.0d0
+     end if
 
    return
 end subroutine PREEQ_Sample

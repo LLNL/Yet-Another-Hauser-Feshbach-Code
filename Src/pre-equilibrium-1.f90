@@ -48,12 +48,12 @@ subroutine pre_equilibrium_1(icomp, istate, in, E_inc,    &
    real(kind=8), intent(in) :: de, reac_cs
 !-----------------------------------------------------------
    integer(kind=4) :: iproj
-   integer(kind=4) :: i,j,k,m,kk
+   integer(kind=4) :: j, k, m, kk
    integer(kind=4) :: h
    integer(kind=4) :: pn, pp, hn, hp, pn_tot, pp_tot
-   integer(kind=4) :: pn_res, pp_res
+   integer(kind=4) :: pn_res, pp_res, hn_res, hp_res
    integer(kind=4) :: pn_calc, pp_calc
-   integer(kind=4) :: p_tot, h_tot, n_tot
+   integer(kind=4) :: p_tot, h_tot, n_tot, n0_tot
    integer(kind=4) :: pn_min, pp_min
    integer(kind=4) :: z_k, n_k, Z, N, A, Ap, Zf, Nf, Af
    integer(kind=4) :: j_max
@@ -70,13 +70,12 @@ subroutine pre_equilibrium_1(icomp, istate, in, E_inc,    &
    real(kind=8) :: Msq
    real(kind=8) :: xA
    real(kind=8) :: xAp
-   real(kind=8) :: ratio
    real(kind=8) :: Msq_pp, Msq_pn, Msq_np, Msq_nn
    real(kind=8) :: sum,sum2
    real(kind=8) :: L_p_p_an, L_p_n_an, L_0_pn_an, L_0_np_an
    real(kind=8) :: A_Pauli, B_Pauli
    real(kind=8) :: denom
-   real(kind=8) :: omdenom, om
+   real(kind=8) :: omdenom, om, om1, om2
    real(kind=8) :: Sep
    real(kind=8) :: gp,gn, g
    real(kind=8) :: gpp, gnn, gg
@@ -85,16 +84,15 @@ subroutine pre_equilibrium_1(icomp, istate, in, E_inc,    &
    real(kind=8) :: Delta
 
    real(kind=8) :: V1, V3, xK
-   real(kind=8), allocatable :: Vwell(:)
 
    real(kind=8) :: stest,stest2
 
-   integer(kind=4) :: nbin_f,nbin_end
+   integer(kind=4) :: nbin_end
    real(kind=8)    :: ex_final, e_max, e_bin
    real(kind=8)    :: xji
    integer(kind=4) :: h_max
+   real(kind=8) :: direct, semi_direct, term
 
-   real(kind=8)    :: frac
    integer(kind=4) :: ifinal
    real(kind=8) :: e_cut
 
@@ -104,8 +102,7 @@ subroutine pre_equilibrium_1(icomp, istate, in, E_inc,    &
    character(len=20) :: outfile
 
    real(kind=8) :: xZ_i, xA_i, xZ_part, xA_part
-   real(kind=8) :: Coulomb_Barrier(6)
-
+   real(kind=8) :: Coulomb_Barrier(0:6)
 !--------   External Functions   ---------------------------
    real(kind=8) :: compound_cs
    real(kind=8) :: omega2
@@ -115,6 +112,8 @@ subroutine pre_equilibrium_1(icomp, istate, in, E_inc,    &
    real(kind=8) :: Prob_func
    real(kind=8) :: finite_well
    real(kind=8) :: aparam_u
+   real(kind=8) :: EL_absorption
+!   real(kind=8) :: photo_absorption
 !--------   Start Calculation    ---------------------------
 
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -122,7 +121,7 @@ subroutine pre_equilibrium_1(icomp, istate, in, E_inc,    &
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
-   Coulomb_barrier(1:6) = 0.0d0
+   Coulomb_barrier(0:6) = 0.0d0
    if(Apply_Coulomb_Barrier)then
       do k = 1, 6
          xZ_part = real(particle(k)%Z,kind=8)
@@ -149,30 +148,16 @@ subroutine pre_equilibrium_1(icomp, istate, in, E_inc,    &
    gnn = dfloat(N)/Preeq_g_div
    gpp = dfloat(Z)/Preeq_g_div
    gg = gpp + gnn
+
+
    pn_min = p0(1)
    pp_min = p0(2)
-
+   n0_tot = p0(1) + p0(2)
    pn_calc = pn_max
    pp_calc = pp_max
-   allocate(dWk(0:pn_max+1,0:pp_max+1,0:nucleus(1)%nbin_part,0:6))
-   allocate(Wk(0:pn_max+1,0:pp_max+1,0:6))
-   allocate(W(0:pn_max+1,0:pp_max+1))
-   allocate(tau(0:pn_max+1,0:pp_max+1))
-   allocate(taup(0:pn_max+1,0:pp_max+1))
-   allocate(Pre_Prob(0:pn_max+1,0:pp_max+1))
-   allocate(Gam_p(0:pn_max+1,0:pp_max+1))
-   allocate(Gam_n(0:pn_max+1,0:pp_max+1))
-   allocate(Gam_pp(0:pn_max+1,0:pp_max+1))
-   allocate(Gam_pn(0:pn_max+1,0:pp_max+1))
-   allocate(Gam_0_pn(0:pn_max+1,0:pp_max+1))
-   allocate(Gam_0_np(0:pn_max+1,0:pp_max+1))
-   allocate(Lamb_p_p(0:pn_max+1,0:pp_max+1))
-   allocate(Lamb_p_n(0:pn_max+1,0:pp_max+1))
-   allocate(Lamb_0_pn(0:pn_max+1,0:pp_max+1))
-   allocate(Lamb_0_np(0:pn_max+1,0:pp_max+1))
+ 
 
    h_max = pn_max + pp_max
-   allocate(Vwell(0:h_max))
 
    tau(0:pn_max+1,0:pp_max+1) = 0.0d0
    taup(0:pn_max+1,0:pp_max+1) = 0.0d0
@@ -204,6 +189,7 @@ subroutine pre_equilibrium_1(icomp, istate, in, E_inc,    &
    do h = 0, h_max
       if(preeq_fwell == 0 .or. preeq_fwell == 2)Vwell(h) = Well(h,A,E_inc,V1,V3,xK)
       if(preeq_fwell == 1)Vwell(h) = V3
+      Vwell_g(h) = V3
    end do
 
    do pn = p0(1), pn_max
@@ -287,7 +273,7 @@ subroutine pre_equilibrium_1(icomp, istate, in, E_inc,    &
      
          do kk = 1, nucleus(icomp)%num_decay                       !   Loop over particle allowed to decay from this nucleus
             k = nucleus(icomp)%decay_particle(kk)
-            if(k == 0)cycle
+!            if(k == 0)cycle
             if(k > 0 .and. pn == p0(1) .and. pp == p0(2))cycle        !  only photons as there are no hole states, and thus emission 
                                                                    ! from here is just elastic scattering
             ifinal = nucleus(icomp)%decay_to(kk)
@@ -323,40 +309,92 @@ subroutine pre_equilibrium_1(icomp, istate, in, E_inc,    &
 
             nbin_end = min(int(e_bin/de),nucleus(icomp)%nbin_part)
 
+            factor1 = barn_eq_fmsq/((pi*hbar_c)**2*hbar)
+
             do m = 1, nbin_end                        !  loop over output energies
                energy = dfloat(m)*de
-               if(energy < Coulomb_Barrier(k))cycle
+               if(energy - Coulomb_Barrier(k) <= 1.0d-6)cycle
                Ex_final = Ex_tot - energy - Sep
-               if(energy > Ex_tot - nucleus(icomp)%sep_e(k)+0.5d0*de)exit         !  Check if there is enough energy to emit this particle
+!               if(energy > Ex_tot - nucleus(icomp)%sep_e(k)+0.5d0*de)exit         !  Check if there is enough energy to emit this particle
                Delta = Delta_pre(pn_res,hn,pp_res,hp,Zf,Af,gpf,gnf,Ex_final)
                gnf = aparam_u(Ex_final, gnnf, shell, gamma)
                gpf = aparam_u(Ex_final, gppf, shell, gamma)
                gf = gnf + gpf
-               mass_t = nucleus(ifinal)%Mass + ex_final
-               mass_rel = mass_i*mass_t/(mass_t+mass_i)
-               sig_inv = 0.0d0
-               do ipar = 0, 1                                              !   parity of compound nucleus
-                  do j = 0, j_max                                          !   loop over J values
-                     xji = real(j,kind=8) + nucleus(icomp)%jshift
-                     sig_inv = sig_inv + compound_cs(energy,ipar,xji,ifinal,1,k)
+               term = 0.0d0
+               semi_direct = 0.0d0
+               direct = 0.0d0
+               om = 0.0d0
+               om1 = 0.0d0
+               om2 = 0.0d0
+               if(k > 0)then
+                  mass_t = nucleus(ifinal)%Mass + ex_final
+                  mass_rel = mass_i*mass_t/(mass_t+mass_i)
+                  sig_inv = 0.0d0
+                  do ipar = 0, 1                                              !   parity of compound nucleus
+                     do j = 0, j_max                                          !   loop over J values
+                        xji = real(j,kind=8) + nucleus(icomp)%jshift
+                        sig_inv = sig_inv + compound_cs(energy,ipar,xji,ifinal,1,k)
+                     end do
                   end do
-               end do
-               factor1 = (2.0d0*spin_proj+1.0d0)*mass_rel*barn_eq_fmsq/((pi*hbar_c)**2*hbar)
-               factor = factor1*energy*sig_inv
-               pn_res = pn - n_k
-               pp_res = pp - z_k
-               om = omega2(pn_res,hn,pp_res,hp,Zf,Af,gpf,gnf,Ex_final,Delta,h_max,Vwell)
+                  factor = factor1*(2.0d0*spin_proj+1.0d0)*mass_rel*energy*sig_inv
+                  pn_res = pn - n_k
+                  pp_res = pp - z_k
+                  hn_res = hn
+                  hp_res = hp
+                  Delta = Delta_pre(pn_res,hn_res,pp_res,hp_res,Zf,Af,gpf,gnf,Ex_final)
+                  om = omega2(pn_res,hn_res,pp_res,hp_res,Zf,Af,gpf,gnf,Ex_final,Delta,h_max,Vwell)
+                  term = om
+               else
+!----    Inverse cross section, uses photo-absorption
+!----    TALYS uses total, including all multipoles
+!                  sig_inv = photo_absorption(ifinal, nucleus(ifinal)%lmax_E, nucleus(ifinal)%lmax_M,    &
+!                                             energy, Ex_final)
+!----   Assumption is that pre-equilibrium photon emission is just E1
+!----   Since E1 i s
+                  sig_inv = EL_absorption(ifinal, 1, energy, nucleus(icomp)%sep_e(k)) 
+                  factor = factor1*energy**2*sig_inv
+!----    Semi-direct component
+                  semi_direct = 0.0d0
+                  if(n_tot >= n0_tot + 2)then
+                     pn_res = pn - 1
+                     pp_res = pp
+                     hn_res = hn - 1
+                     hp_res = hp
+                     Delta = Delta_pre(pn_res,hn_res,pp_res,hp_res,Zf,Af,gpf,gnf,Ex_final)
+                     om1 = omega2(pn_res,hn_res,pp_res,hp_res,Zf,Af,gpf,gnf,Ex_final,Delta,h_max,Vwell_g)
+                     pn_res = pn
+                     pp_res = pp - 1
+                     hn_res = hn
+                     hp_res = hp - 1
+                     Delta = Delta_pre(pn_res,hn_res,pp_res,hp_res,Zf,Af,gpf,gnf,Ex_final)
+                     om2 = omega2(pn_res,hn_res,pp_res,hp_res,Zf,Af,gpf,gnf,Ex_final,Delta,h_max,Vwell_g)
+                     semi_direct = 0.5d0*gf*energy*(om1 + om2)/(xn - 2.0d0 + gf*energy)
+                  end if
+!----   Direct component 
+                  direct = 0.0d0
+                  pn_res = pn
+                  pp_res = pp
+                  hn_res = hn
+                  hp_res = hp
+                  Delta = Delta_pre(pn_res,hn_res,pp_res,hp_res,Zf,Af,gpf,gnf,Ex_final)
+                  om = omega2(pn_res,hn_res,pp_res,hp_res,Zf,Af,gpf,gnf,Ex_final,Delta,h_max,Vwell_g)
+                  direct = xn*om/(xn + gf*energy)
+                  term = Preeq_gam_fact*(direct + semi_direct)
+               end if
 
-               ratio = om/omdenom
-               dWk(pn,pp,m,k) = factor*ratio                              !   decay rate for each particle type and energy
+               dWk(pn,pp,m,k) = factor*term/omdenom                            !   decay rate for each particle type and energy
 
                Wk(pn,pp,k) = Wk(pn,pp,k) + dWk(pn,pp,m,k)*de                          !   its integral
-
-!   write(100,'(4(1x,i4),4(1x,1pe12.5))')pn, pp, k, m,energy, Coulomb_Barrier(k),sig_inv,dWk(pn,pp,m,k)
-
-
+!   write(100,'(4(1x,i4),2(1x,f15.5),6(1x,1pe12.5))')pn, pp, k, m, energy, Coulomb_Barrier(k),sig_inv,   &
+!                                        om/omdenom,                                                     &
+!                                        0.5d0*(om1+om2)/omdenom,                                        &
+!                                        Preeq_gam_fact*factor*direct/omdenom,                           &
+!                                        Preeq_gam_fact*factor*semi_direct/omdenom,                      &
+!                                        dWk(pn,pp,m,k)
             end do
+
             W(pn,pp) = W(pn,pp) + Wk(pn,pp,k)
+
 !   write(100,*)'Total = ',W(pn,pp)
          end do
          
@@ -414,15 +452,16 @@ subroutine pre_equilibrium_1(icomp, istate, in, E_inc,    &
       z_k = particle(k)%Z
       n_k = particle(k)%A - z_k
       ifinal = nucleus(icomp)%decay_to(kk)
-      if(k == 0)cycle                                     !  We don't do photons yet
+!      if(k == 0)cycle                                     !  We don't do photons yet
       e_max = ex_tot - nucleus(icomp)%sep_e(k)
       e_cut = nucleus(ifinal)%level_param(7)
       e_bin = e_max
       nbin_end = min(int(e_bin/de),nucleus(icomp)%nbin_part)
       do m = 0, nbin_end                           !  loop over output energies
          energy = dfloat(m)*de
+         if(energy - Coulomb_Barrier(k) <= 1.0d-6)cycle
          nucleus(icomp)%PREEQ_part_spectrum(kk,m)=0.0d0
-         if(energy > ex_tot - nucleus(icomp)%sep_e(k)+de/2.0) exit
+!         if(energy > ex_tot - nucleus(icomp)%sep_e(k)+de/2.0) exit
          ex_final = ex_tot - energy - nucleus(icomp)%sep_e(k)
          pn_min = max(p0(1),n_k)
          pp_min = max(p0(2),z_k)
@@ -434,31 +473,18 @@ subroutine pre_equilibrium_1(icomp, istate, in, E_inc,    &
                n_tot = pn + hn + pp + hp
                if(k > 0 .and. pn == p0(1) .and. pp == p0(2))cycle                       !  Particle emission only for n_tot >= 3
                sum = sum + dWk(pn,pp,m,k)*tau(pn,pp)*Pre_Prob(pn,pp)
+
+!    write(130,'(3(1x,i4),1x,f10.5,4(1x,e17.7))')k,pn,pp,energy,tau(pn,pp),Pre_Prob(pn,pp),dWk(pn,pp,m,k),   &
+!              dWk(pn,pp,m,k)*tau(pn,pp)*Pre_Prob(pn,pp)
+
            end do
          end do
-         if(ex_final > e_cut)then
-            nbin_f = nint((ex_final-nucleus(ifinal)%e_grid(1))/de)
-            nucleus(icomp)%PREEQ_part_spectrum(kk,m) = reac_cs*sum
-            pre_eq_cs(k) = pre_eq_cs(k) + reac_cs*sum*de
-         else
-            frac = 0.0d0
-            do i = 1, nucleus(ifinal)%num_discrete
-               if(nucleus(ifinal)%state(i)%energy >= ex_final .and.                     &
-                  nucleus(ifinal)%state(i)%energy <= ex_final + de)frac = frac + 1.0d0
-            end do
-            if(frac > 0.0d0)then
-               frac = 1.0d0/frac
-               do i = 1, nucleus(ifinal)%num_discrete
-                  if(nucleus(ifinal)%state(i)%energy >= ex_final .and.                  &
-                     nucleus(ifinal)%state(i)%energy < ex_final + de )then
-                        nucleus(icomp)%PREEQ_part_spectrum(kk,m) =                      &
-                           nucleus(icomp)%PREEQ_part_spectrum(kk,m) + reac_cs*sum*frac
-                        pre_eq_cs(k) = pre_eq_cs(k) + reac_cs*sum*de*frac
-                  end if
-               end do
-            end if
-         end if
+         nucleus(icomp)%PREEQ_part_spectrum(kk,m) = reac_cs*sum
+         pre_eq_cs(k) = pre_eq_cs(k) + nucleus(icomp)%PREEQ_part_spectrum(kk,m)*de
+!    write(130,'(1x,i4,1x,f10.5,2(1x,e15.6))')k,energy,nucleus(icomp)%PREEQ_part_spectrum(kk,m),pre_eq_cs(k)
       end do
+
+!    write(130,*)'pe_eq_cs , k = ',k,pre_eq_cs(k)
 
       sum = 0.0d0
       do m = 0, nbin_end
@@ -472,27 +498,10 @@ subroutine pre_equilibrium_1(icomp, istate, in, E_inc,    &
       end if
       nucleus(icomp)%PREEQ_part_cs(kk,in) = pre_eq_cs(k)
       nucleus(icomp)%PREEQ_cs(in) = nucleus(icomp)%PREEQ_cs(in) + pre_eq_cs(k)
+!  write(6,*)k,nucleus(icomp)%PREEQ_part_cs(kk,in)
    end do
+!  write(6,*)nucleus(icomp)%PREEQ_cs(in)
 
-
-   deallocate(dWk)
-   deallocate(Wk)
-   deallocate(W)
-   deallocate(tau)
-   deallocate(taup)
-   deallocate(Pre_Prob)
-   deallocate(Gam_p)
-   deallocate(Gam_n)
-   deallocate(Gam_pp)
-   deallocate(Gam_pn)
-   deallocate(Gam_0_pn)
-   deallocate(Gam_0_np)
-   deallocate(Lamb_p_p)
-   deallocate(Lamb_p_n)
-   deallocate(Lamb_0_pn)
-   deallocate(Lamb_0_np)
-
-   deallocate(Vwell)
 
    return
 end subroutine pre_equilibrium_1
@@ -567,7 +576,7 @@ real(kind=8) function omega2(pn,hn,pp,hp,Z,A,gp,gn,Ex,Delta,h_max,Vwell)
 !----------  Input Data          -------------------------------------
    use variable_kinds
    use constants
-   use pre_equilibrium_no_1
+!   use pre_equilibrium_no_1
    implicit none
    integer(kind=4), intent(in) :: pn,hn,pp,hp,Z,A
    real(kind=8), intent(in) :: gp,gn

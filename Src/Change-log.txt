@@ -457,3 +457,18 @@ Version 3.32
 2.  Implemented more efficient search for angles in subroutine HF_primary_decay
     and fixed a sampling bug, where it seems the extra angles were the same as
     the first.
+
+Version 3.33
+1.  Fixed potential problem with max_J_allowed caused by fix 1 in V3.32. It is
+    necessary that max_J_allowed cannot be less than the maximum J in the
+    coupled-channels or DWBA states.
+2.  Implemented pre-equilibrium photon emission. It is dominated by the direct
+    component.
+3.  Fixed bug where Ix_f (the index for the final angular momentum) wasn't 
+    set properly in HF_primary_decay_setup when decaying to a discrete state. 
+    This got caught in an error trap in an N14 calculation where the spins are
+    low, and Ix_f > J_max_allowed. Technically, this incorrect setting didn't 
+    affect the subsequent decays, if it got past the error trap, since this 
+    state decays by the discrete decay branching ratios and the actual state
+    angular momentum is used. 
+    state 

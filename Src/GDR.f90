@@ -151,7 +151,7 @@ real(kind=8) function E1_f_mode(e_gam, T, e1_model, er, gr, sr)
    end if
    str = M_lorentzian(e_gam,er,gam)
    str = e_gam*str
-   if(e1_model > 1)str = str + 0.7*gr*(2.0*pi*T)**2/er**5      !  from RIPL handbook
+   if(e1_model > 1)str = str + 0.7*gr*(2.0*pi*T)**2/er**5      !  from RIPL handbook, note er**5
    E1_f_mode = sr*gr*str
    return
 end function E1_f_mode
@@ -655,9 +655,10 @@ real (kind=8) function EL_f(i_f, l_radiation , e_gamma, energy)
    if(l_radiation == 1)then
       EL_f = E1_f(i_f,energy,e_gamma)
    else
-      EL_f = Kxl(l_radiation)*                                                         &
+      EL_f = Kxl(l_radiation)*                                                       &
            Lorentzian(e_gamma,nucleus(i_f)%er_E(l_radiation),                        &
-                      nucleus(i_f)%gr_E(l_radiation))*nucleus(i_f)%sr_E(l_radiation)
+                      nucleus(i_f)%gr_E(l_radiation))*                               &
+           nucleus(i_f)%sr_E(l_radiation)
    end if
    return
 
@@ -781,5 +782,142 @@ real (kind=8) function ML_trans(i_f, l_radiation , e_gamma)
    return
 
 end function ML_trans
+
+!
+!++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!
+real (kind=8) function EL_absorption(icomp, L, egamma, ex)
+!
+!*******************************************************************************
+!
+!  Discussion:
+!
+!    This function computes the E(L) photoabsorption cross section
+!
+!  Licensing:
+!
+!    This code is distributed under the GNU LGPL version 2 license. 
+!
+!  Date:
+!
+!    25 September 2019
+!
+!  Author:
+!
+!      Erich Ormand, LLNL
+!
+!*******************************************************************************
+!
+   use variable_kinds
+   use nuclei
+   implicit none
+   integer(kind=4),intent(in) :: icomp
+   integer(kind=4),intent(in) :: L
+   real(kind=8),intent(in) :: egamma
+   real(kind=8),intent(in) :: ex
+!------------------------------------------------------------------------------
+   real(kind=8) :: EL_f
+   real(kind=8) :: Kxl
+
+   EL_absorption = 0.001d0*egamma*EL_f(icomp, L, egamma, ex)/Kxl(l)
+
+   return
+
+end function EL_absorption
+
+!
+!++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!
+real (kind=8) function ML_absorption(icomp, L, egamma)
+!
+!*******************************************************************************
+!
+!  Discussion:
+!
+!    This function computes the M(L) photoabsorption cross section
+!
+!  Licensing:
+!
+!    This code is distributed under the GNU LGPL version 2 license. 
+!
+!  Date:
+!
+!    25 September 2019
+!
+!  Author:
+!
+!      Erich Ormand, LLNL
+!
+!*******************************************************************************
+!
+   use variable_kinds
+   use nuclei
+   implicit none
+   integer(kind=4),intent(in) :: icomp
+   integer(kind=4),intent(in) :: L
+   real(kind=8),intent(in) :: egamma
+!------------------------------------------------------------------------------
+   real(kind=8) :: ML_f
+   real(kind=8) :: Kxl
+
+   ML_absorption = 0.001d0*egamma*ML_f(icomp, L, egamma)/Kxl(l)
+
+   return
+
+end function ML_absorption
+
+!
+!++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!
+real (kind=8) function photo_absorption(icomp, lmax_E, lmax_M, egamma, ex)
+!
+!*******************************************************************************
+!
+!  Discussion:
+!
+!    This function computes the M(L) photoabsorption cross section
+!
+!  Licensing:
+!
+!    This code is distributed under the GNU LGPL version 2 license. 
+!
+!  Date:
+!
+!    25 September 2019
+!
+!  Author:
+!
+!      Erich Ormand, LLNL
+!
+!*******************************************************************************
+!
+   use variable_kinds
+   use nuclei
+   implicit none
+   integer(kind=4),intent(in) :: icomp
+   integer(kind=4),intent(in) :: lmax_E
+   integer(kind=4),intent(in) :: lmax_M
+   real(kind=8),intent(in) :: egamma
+   real(kind=8),intent(in) :: ex
+!------------------------------------------------------------------------------
+   integer(kind=4) :: L
+   real(kind=8) :: sum
+!------------------------------------------------------------------------------
+   real(kind=8) :: EL_absorption
+   real(kind=8) :: ML_absorption
+
+   sum = 0.0d0
+   do L = 1, lmax_E
+      sum = sum + EL_absorption(icomp, L, egamma, ex)
+   end do
+   do L = 1, lmax_M
+      sum = sum + ML_absorption(icomp, L, egamma)
+   end do
+   
+   photo_absorption = sum
+
+   return
+
+end function photo_absorption
 
 

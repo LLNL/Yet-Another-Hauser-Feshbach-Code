@@ -641,6 +641,7 @@ subroutine HF_primary_decay_setup(e_in,iproj,itarget,icomp,istate,energy)
                         e_gamma = e_f
                         if(e_gamma <= 1.0d-6)exit
                         xI_f = nucleus(i_f)%state(n_f)%spin
+                        Ix_f = nint(xI_f - nucleus(i_f)%jshift)
                         if(xI_i < 1.0d-5.and. xI_f <= 1.0d-5)cycle                         !  O -> 0 not allowed
                         lmin = max(1,int(abs(xI_f - xI_i)))                                !   can't have L=0
                         ip_f = iabs(nint((nucleus(i_f)%state(n_f)%parity+1)/2.))

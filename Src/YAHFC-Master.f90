@@ -553,9 +553,6 @@ program YAHFC_MASTER
       max_jx_100 = 100
       delta_jx_100 = 2.0d0/real(max_jx_100,kind=8)
 
-      pp_max = 6
-      pn_max = 6
-
       part_lmax = 20
 
       d_zero = 0.0d0
@@ -898,6 +895,9 @@ program YAHFC_MASTER
 
          call finish_lev_den(icomp)
 
+!----   Check if fission is actually possible, i.e., barriers are below maximum
+!----   excitation energies
+
          if(nucleus(icomp)%fission)then
             do i = 1, nucleus(icomp)%F_n_barr
 
@@ -962,13 +962,6 @@ program YAHFC_MASTER
          end do         
       end if
 
-      nucleus(1:num_comp)%PREEQ=.false.
-      if(.not. pop_calc .and. PREEQ_Model == 1)then
-         p0(2) = projectile%Z
-         p0(1) = projectile%A - p0(2)
-         nucleus(1)%PREEQ = .true.
-      end if
-
       ifile=index(out_file,' ') - 1
       if(print_output)then
          if(iproc == 0)open(unit=13,file=out_file(1:ifile)//'.out',status='unknown')
@@ -1017,51 +1010,6 @@ program YAHFC_MASTER
       end if
       num_energies = projectile%num_e
 
-
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!
-!--------    Allocate arrays for each nucleus to store calculated 
-!--------    cross sections
-!
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-      if(fission)then
-         allocate(fission_cs(1:num_energies))
-         fission_cs(1:num_energies) = 0.0d0
-      end if
-      if(.not. pop_calc)then
-         allocate(direct_tot(1:num_energies))
-         allocate(direct_cc(1:num_energies))
-         allocate(direct_dwba(1:num_energies))
-      end if
-      allocate(reaction_cs(1:num_energies))
-      allocate(absorption_cs(1:num_energies))
-      do icomp = 1, num_comp
-         nucleus(icomp)%num_cs = 1
-         do i = 2,nucleus(icomp)%num_discrete            ! Loop over discrete states to check for isomers
-            if(nucleus(icomp)%state(i)%isomer)nucleus(icomp)%num_cs = nucleus(icomp)%num_cs + 1
-         end do
-         allocate(nucleus(icomp)%hang_cs(1:num_energies))
-         nucleus(icomp)%hang_cs(1:num_energies) = 0.0d0
-         if(nucleus(icomp)%PREEQ .and. PREEQ_Model > 0)then
-            allocate(nucleus(icomp)%PREEQ_cs(1:num_energies))
-            nucleus(icomp)%PREEQ_cs(1:num_energies) = 0.0d0
-            allocate(nucleus(icomp)%PREEQ_part_cs(1:nucleus(icomp)%num_decay,1:num_energies))
-            nucleus(icomp)%PREEQ_part_cs(1:nucleus(icomp)%num_decay,1:num_energies) = 0.0d0
-         end if
-         if(nucleus(icomp)%fission)then
-            allocate(nucleus(icomp)%fission_cs(1:num_energies))
-            nucleus(icomp)%fission_cs(1:num_energies) = 0.0d0
-         end if
-         allocate(nucleus(icomp)%state_lab(nucleus(icomp)%num_cs))
-         nucleus(icomp)%state_lab(1) = 1                 !  index of the state being tracked
-         icount = 1
-         do i = 2, nucleus(icomp)%num_discrete
-            if(nucleus(icomp)%state(i)%isomer)then
-               icount = icount + 1
-               nucleus(icomp)%state_lab(icount) = i
-            end if
-         end do
-      end do
 
       pop_input = .false.
       if(pop_calc)then
@@ -1119,14 +1067,89 @@ program YAHFC_MASTER
 !----------------------    Allocate arrays for particle spectra
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
+!++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!-------------------------------------------------------------------------+
+!----------------------    Allocate arrays for pre-equilibrium model
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+     if(.not. pop_calc .and. PREEQ_Model == 1)then
+        nucleus(1)%PREEQ = .true.
+        pp_max = 6
+        pn_max = 6
+        p0(2) = projectile%Z
+        p0(1) = projectile%A - p0(2)
+        Preeq_gam_fact = 1.0d0
+!-------------------------------------------------------------------------+
+!----------------------    Allocate arrays for particle spectra
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        do icomp = 1, num_comp
+           Ef = (4.0d0/real(nucleus(icomp)%A,kind=8))*Init_Kinetic_Energy
+           Ex = (sqrt(nucleus(icomp)%Ex_max)+sqrt(Ef))**2
+           nucleus(icomp)%nbin_part = int(Ex/de) + 1
+           if(nucleus(icomp)%PREEQ .and. PREEQ_Model > 0)then
+              allocate(nucleus(icomp)%PREEQ_part_spectrum(1:nucleus(icomp)%num_decay,0:nucleus(icomp)%nbin_part))
+              nucleus(icomp)%PREEQ_part_spectrum(1:nucleus(icomp)%num_decay,0:nucleus(icomp)%nbin_part) = 0.0d0
+              allocate(nucleus(icomp)%PREEQ_cs(1:num_energies))
+              nucleus(icomp)%PREEQ_cs(1:num_energies) = 0.0d0
+              allocate(nucleus(icomp)%PREEQ_part_cs(1:nucleus(icomp)%num_decay,1:num_energies))
+              nucleus(icomp)%PREEQ_part_cs(1:nucleus(icomp)%num_decay,1:num_energies) = 0.0d0
+           end if
+        end do
+        if(.not. allocated(dWk))allocate(dWk(0:pn_max+1,0:pp_max+1,0:nucleus(1)%nbin_part,0:6))
+        if(.not. allocated(Wk))allocate(Wk(0:pn_max+1,0:pp_max+1,0:6))
+        if(.not. allocated(W))allocate(W(0:pn_max+1,0:pp_max+1))
+        if(.not. allocated(tau))allocate(tau(0:pn_max+1,0:pp_max+1))
+        if(.not. allocated(taup))allocate(taup(0:pn_max+1,0:pp_max+1))
+        if(.not. allocated(Pre_Prob))allocate(Pre_Prob(0:pn_max+1,0:pp_max+1))
+        if(.not. allocated(Gam_p))allocate(Gam_p(0:pn_max+1,0:pp_max+1))
+        if(.not. allocated(Gam_n))allocate(Gam_n(0:pn_max+1,0:pp_max+1))
+        if(.not. allocated(Gam_pp))allocate(Gam_pp(0:pn_max+1,0:pp_max+1))
+        if(.not. allocated(Gam_pn))allocate(Gam_pn(0:pn_max+1,0:pp_max+1))
+        if(.not. allocated(Gam_0_pn))allocate(Gam_0_pn(0:pn_max+1,0:pp_max+1))
+        if(.not. allocated(Gam_0_np))allocate(Gam_0_np(0:pn_max+1,0:pp_max+1))
+        if(.not. allocated(Lamb_p_p))allocate(Lamb_p_p(0:pn_max+1,0:pp_max+1))
+        if(.not. allocated(Lamb_p_n))allocate(Lamb_p_n(0:pn_max+1,0:pp_max+1))
+        if(.not. allocated(Lamb_0_pn))allocate(Lamb_0_pn(0:pn_max+1,0:pp_max+1))
+        if(.not. allocated(Lamb_0_np))allocate(Lamb_0_np(0:pn_max+1,0:pp_max+1))
+        if(.not. allocated(Vwell))allocate(Vwell(0:(pn_max+pp_max)))
+        if(.not. allocated(Vwell_g))allocate(Vwell_g(0:(pn_max+pp_max)))
+     end if
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!
+!--------    Allocate arrays for each nucleus to store calculated 
+!--------    cross sections
+!
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+      if(fission)then
+         allocate(fission_cs(1:num_energies))
+         fission_cs(1:num_energies) = 0.0d0
+      end if
+      if(.not. pop_calc)then
+         allocate(direct_tot(1:num_energies))
+         allocate(direct_cc(1:num_energies))
+         allocate(direct_dwba(1:num_energies))
+      end if
+      allocate(reaction_cs(1:num_energies))
+      allocate(absorption_cs(1:num_energies))
       do icomp = 1, num_comp
-         Ef = (4.0d0/real(nucleus(icomp)%A,kind=8))*Init_Kinetic_Energy
-         Ex = (sqrt(nucleus(icomp)%Ex_max)+sqrt(Ef))**2
-         nucleus(icomp)%nbin_part = int(Ex/de) + 1
-         if(nucleus(icomp)%PREEQ .and. PREEQ_Model > 0)then
-            allocate(nucleus(icomp)%PREEQ_part_spectrum(1:nucleus(icomp)%num_decay,0:nucleus(icomp)%nbin_part))
-            nucleus(icomp)%PREEQ_part_spectrum(1:nucleus(icomp)%num_decay,0:nucleus(icomp)%nbin_part)=0.0d0
+         nucleus(icomp)%num_cs = 1
+         do i = 2,nucleus(icomp)%num_discrete            ! Loop over discrete states to check for isomers
+            if(nucleus(icomp)%state(i)%isomer)nucleus(icomp)%num_cs = nucleus(icomp)%num_cs + 1
+         end do
+         allocate(nucleus(icomp)%hang_cs(1:num_energies))
+         nucleus(icomp)%hang_cs(1:num_energies) = 0.0d0
+         if(nucleus(icomp)%fission)then
+            allocate(nucleus(icomp)%fission_cs(1:num_energies))
+            nucleus(icomp)%fission_cs(1:num_energies) = 0.0d0
          end if
+         allocate(nucleus(icomp)%state_lab(nucleus(icomp)%num_cs))
+         nucleus(icomp)%state_lab(1) = 1                 !  index of the state being tracked
+         icount = 1
+         do i = 2, nucleus(icomp)%num_discrete
+            if(nucleus(icomp)%state(i)%isomer)then
+               icount = icount + 1
+               nucleus(icomp)%state_lab(icount) = i
+            end if
+         end do
       end do
 
 !-----    Set up excitation energy bins for each nucleus
@@ -1296,23 +1319,28 @@ program YAHFC_MASTER
          end do
 
          sum = 0.0d0
-         do j = 0, max_J                                          !   loop over J values
+         do J = 0, max_J                                          !   loop over J values
             do ipar = 0, 1                                              !   parity of compound nucleus
-               xji = real(j,kind=8) + nucleus(1)%jshift
+               xji = real(J,kind=8) + nucleus(1)%jshift
                sum = sum + compound_cs(e_in,ipar,xji,itarget,istate,iproj)
             end do
-            if(abs(sum - test_sigma) < 1.d-5)exit
+            if(abs(sum - test_sigma) < 1.d-7)exit
          end do
          max_J = J
-!----
-         if(max_J > 60 .and. iproc == 0)then
-            write(6,*)'***************************************************'
-            write(6,*)'*-----     max_J_allowed is limited to 60    -----*'
-            write(6,*)'***************************************************'
-         end if
-         max_J_allowed = min(max_J,60)
-      end if        
+         do n = 1, OpticalCS%numcc
+            xI_f = OpticalCS%state(n)%spin
+            J = nint(xI_f - nucleus(itarget)%jshift)
+            if(J > max_J)max_J = J
+         end do
 
+!----
+!         if(max_J > 60 .and. iproc == 0)then
+!            write(6,*)'***************************************************'
+!            write(6,*)'*-----     max_J_allowed is limited to 60    -----*'
+!            write(6,*)'***************************************************'
+!         end if
+         max_J_allowed = max_J
+      end if        
 !
 !-----  Now check for any discrete states have J greater than max_J_allowed or any states
 !-----  that decay to a state greater than max_J_allowed. If so, remove them the list of discrete states
@@ -2784,21 +2812,22 @@ program YAHFC_MASTER
             nbin_f =0
 
             if(Ix_i > nucleus(icomp_i)%j_max)then
-               write(6,*)'Ix_i > j_max before decay loop, Ix_i =', Ix_i
+               write(6,*)'Ix_i > j_max before decay loop, Ix_i =', Ix_i,' j_max = ',nucleus(icomp_i)%j_max
                write(6,*)'Processor # ',iproc
-               write(6,*)'Check: pop_calc = ',pop_calc
-               write(6,*)'Check: compound = ',compound
+               write(6,*)'Check: pop_calc = ', pop_calc
+               write(6,*)'Check: compound = ', compound
                write(6,*)'Check: preeq_decay = ', preeq_decay
-               write(6,*)'Check: direct = ',direct
-               write(6,*)'Check: cc_decay = ',cc_decay
-               write(6,*)'Check: dwba_decay = ',dwba_decay
-               write(6,*)'idb = ',idb
-               write(89,'(2(1x,i10),3(1x,f10.5))')nsamp, num_part, E_in,                  &
-                    nucleus(1)%Kinetic_Energy, tally_weight
-               do i = 1, num_part
-                  write(89,'(1x,i5,21(2x,f12.5))')i,(part_data(k,i), k = 1, n_dat)
-               end do
-               flush(89)
+               write(6,*)'Check: direct = ', direct
+               write(6,*)'Check: cc_decay = ', cc_decay
+               write(6,*)'Check: dwba_decay = ', dwba_decay
+               write(6,*)'icomp = ', icomp_i
+               write(6,*)'nbin_i = ', nbin_i
+               write(6,*)'idb = ', idb
+               write(6,'(2(1x,i10),3(1x,f10.5))')nsamp, num_part
+!               do i = 1, num_part
+!                  write(6,'(1x,i5,21(2x,f12.5))')i,(part_data(k,i), k = 1, n_dat)
+!               end do
+!               flush(89)
                call MPI_ABort(icomm,101,ierr)
             end if
 
@@ -2918,7 +2947,6 @@ program YAHFC_MASTER
                   write(28,*)'E_in = ',E_in,' nsamp = ',nsamp,' iproc = ',iproc
                   write(28,*)'Ex_tot = ',ex_tot,' Sum_e ',sum_e
                   write(28,*)'Diff = ',e_diff
-                  write(28,*)'Ix_I > j_max before decay loop, Ix_i =', Ix_i
                   write(28,*)'Check: pop_cal = ',pop_calc
                   write(28,*)'Check: compound = ',compound
                   write(28,*)'Check: preeq_decay = ', preeq_decay
@@ -3129,7 +3157,6 @@ program YAHFC_MASTER
 
                if(num_part == 0)then
                   write(6,*)'num_part == 0'
-                  write(6,*)'Ix_I > j_max before decay loop, Ix_i =', Ix_i
                   write(6,*)'Check: pop_calc = ',pop_calc
                   write(6,*)'Check: compound = ',compound
                   write(6,*)'Check: preeq_decay = ', preeq_decay
@@ -3259,7 +3286,6 @@ program YAHFC_MASTER
                         x_particle_spectrum(icc,k) = x_particle_spectrum(icc,k) + tally_weight
                      else
                         write(20,*)'num_part = ', num_part
-                        write(20,*)'Ix_I > j_max before decay loop, Ix_i =', Ix_i
                         write(20,*)'Check: pop_calc = ',pop_calc
                         write(20,*)'Check: compound = ',compound
                         write(20,*)'Check: preeq_decay = ', preeq_decay
@@ -3661,7 +3687,7 @@ program YAHFC_MASTER
 
         if(fission)fission_cs(in) = fission_cs(in)/tally_norm
         if(PREEQ_Model > 0)then
-           do k = 1, 6
+           do k = 0, 6
               preeq_css(k,in) = preeq_css(k,in)/tally_norm
            end do
         end if
@@ -3730,7 +3756,7 @@ program YAHFC_MASTER
            if(.not.allocated(xvalue))allocate(xvalue(0:max_jx_10))
            do jx = 0, max_jx_10
               xvalue(jx) = real(jx,kind=8)*delta_jx_10 - 1.0d0
-           end do
+           end do  
 !---  Loop over channels
            do i = 1, num_channels
               inuc = Exit_Channel(i)%Final_nucleus
@@ -3862,7 +3888,7 @@ program YAHFC_MASTER
 
          if(track_gammas .and. .not. event_generator .and. iproc == 0)                          &
              call print_channel_gammas(itarget, ilab, file_lab, ilib_dir, lib_dir,              &
-                                       ch_par, in, e_in, reaction_cs(in))
+                                       ch_par, in, e_in, reaction_cs(in), write_error)
 
  1901    continue
 
@@ -3930,8 +3956,28 @@ program YAHFC_MASTER
      else
         if(print_me)write(6,*)'There were no events that violated energy conservation at 0.1 keV level'
      end if
-
-
+!++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!----   Deallocate arrays needed for pre-equilibrium model
+!++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+     if(.not. pop_calc .and. PREEQ_Model == 1)then
+        if(allocated(dWk))deallocate(dWk)
+        if(allocated(Wk))deallocate(Wk)
+        if(allocated(W))deallocate(W)
+        if(allocated(tau))deallocate(tau)
+        if(allocated(taup))deallocate(taup)
+        if(allocated(Pre_Prob))deallocate(Pre_Prob)
+        if(allocated(Gam_p))deallocate(Gam_p)
+        if(allocated(Gam_n))deallocate(Gam_n)
+        if(allocated(Gam_pp))deallocate(Gam_pp)
+        if(allocated(Gam_pn))deallocate(Gam_pn)
+        if(allocated(Gam_0_pn))deallocate(Gam_0_pn)
+        if(allocated(Gam_0_np))deallocate(Gam_0_np)
+        if(allocated(Lamb_p_p))deallocate(Lamb_p_p)
+        if(allocated(Lamb_p_n))deallocate(Lamb_p_n)
+        if(allocated(Lamb_0_pn))deallocate(Lamb_0_pn)
+        if(allocated(Lamb_0_np))deallocate(Lamb_0_np)
+        if(allocated(Vwell))deallocate(Vwell)
+     end if
 !
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

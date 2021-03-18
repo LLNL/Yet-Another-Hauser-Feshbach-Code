@@ -70,7 +70,6 @@
    real(kind=8) :: costhp, theta_0, phi_0
    integer(kind=4) :: nang
 
-
    real(kind=8) :: tally_prob
    real(kind=8) :: xnnn
 
@@ -160,7 +159,8 @@
       check_prob = 0.0d0
       do if1 = 1, nucleus(icomp_i)%bins(Ix_i,ip_i,nbin_i)%num_decay
          k = nucleus(icomp_i)%bins(Ix_i,ip_i,nbin_i)%decay_particle(if1)
-         check_prob = check_prob + base_prob*part_fact(k)*tally_norm
+         check_prob = check_prob + base_prob*part_fact(k)
+!         check_prob = check_prob + base_prob*part_fact(k)*tally_norm
          if(prob <= check_prob)exit
       end do
       tally_prob = nucleus(icomp_i)%bins(Ix_i,ip_i,nbin_i)%HF_prob(if1)*xnnn*tally_norm
@@ -240,9 +240,6 @@
       num_part_type(k) = num_part_type(k) + 1
       if(num_part_type(k) >= max_particle(k))part_fact(k) = 0.0d0
    end if
-
-
-
 
    mask6 = 2**6 - 1
    mask10 = 2**9 - 1
@@ -1020,6 +1017,15 @@
    itemp = Channel(l_i,is_i,Ix_i)%Channel_decay(if1)%decay_list(idex)
 
    call unpack_data(Ix_f, ip_f, nbin_f, idb, l_f, iss, itemp)
+
+!   if(Ix_f > max_J_allowed)then
+!       write(6,*)Ix_f
+!       write(6,*)icomp_f
+!       write(6,*)idb
+!       write(6,*)nbin_f
+!       write(6,*)nucleus(icomp_f)%state(nbin_f)%energy
+!       write(6,*)nucleus(icomp_f)%state(nbin_f)%spin
+!   end if
 
    xl_f = l_f
    xI_f = real(Ix_f,kind=8) + real(nucleus(icomp_f)%jshift,kind=8)

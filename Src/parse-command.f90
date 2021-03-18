@@ -2064,6 +2064,20 @@ subroutine parse_command(num_comp,icommand,command,finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
+   if(command(startw(1):stopw(1)) == 'preeq_gam_fact')then
+      icommand = icommand + 1
+      if(numw < 2)then
+         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
+         return
+      end if
+      read(command(startw(2):stopw(2)),*)x(1)
+      Preeq_gam_fact = x(1)
+      return
+   end if
+!
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!
    if(command(startw(1):stopw(1)) == 'preeq_well_v1')then
       icommand = icommand + 1
       if(numw < 2)then

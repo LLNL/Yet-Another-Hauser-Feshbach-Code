@@ -32,7 +32,7 @@ module options
 !
    use variable_kinds
    character(len=132) :: version
-   parameter (version = 'MC-3.31')
+   parameter (version = 'MC-3.33')
    integer(kind=int_64) :: iseed_64
    integer(kind=int_32) :: iseed_32
    integer(kind=4) :: PREEQ_Model
@@ -584,27 +584,6 @@ module nuclei
 !---------  projectile variable
 !
    type(projectile_nucleus) projectile
-!
-!---------   Arrays needed for pre-equilibrium models
-!
-   integer(kind=4) :: pp_max,pn_max
-   real(kind=8), allocatable, dimension (:,:,:,:) :: dWk
-   real(kind=8), allocatable, dimension (:,:,:) :: Wk
-   real(kind=8), allocatable, dimension (:,:) :: W
-   real(kind=8), allocatable, dimension (:,:) :: tau
-   real(kind=8), allocatable, dimension (:,:) :: taup
-   real(kind=8), allocatable, dimension (:,:) :: Pre_Prob
-   real(kind=8), allocatable, dimension (:,:) :: Gam_p
-   real(kind=8), allocatable, dimension (:,:) :: Gam_n
-   real(kind=8), allocatable, dimension (:,:) :: Gam_pp
-   real(kind=8), allocatable, dimension (:,:) :: Gam_pn
-   real(kind=8), allocatable, dimension (:,:) :: Gam_0_pn
-   real(kind=8), allocatable, dimension (:,:) :: Gam_0_np
-   real(kind=8), allocatable, dimension (:,:) :: Lamb_p_p
-   real(kind=8), allocatable, dimension (:,:) :: Lamb_p_n
-   real(kind=8), allocatable, dimension (:,:) :: Lamb_0_pn
-   real(kind=8), allocatable, dimension (:,:) :: Lamb_0_np
-   integer(kind=4) :: p0(2)
 end module nuclei
 !
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -889,4 +868,28 @@ module pre_equilibrium_no_1
    real(kind=8) :: M2_Rnn
    real(kind=8) :: M2_Rpn
    real(kind=8) :: M2_Rnp
+   real(kind=8) :: Preeq_gam_fact
+   integer(kind=4) :: pp_max,pn_max
+!
+!---------   Arrays needed for pre-equilibrium models
+!
+   integer(kind=4), dimension(2) :: p0
+   real(kind=8), allocatable, dimension (:,:,:,:) :: dWk
+   real(kind=8), allocatable, dimension (:,:,:) :: Wk
+   real(kind=8), allocatable, dimension (:,:) :: W
+   real(kind=8), allocatable, dimension (:,:) :: tau
+   real(kind=8), allocatable, dimension (:,:) :: taup
+   real(kind=8), allocatable, dimension (:,:) :: Pre_Prob
+   real(kind=8), allocatable, dimension (:,:) :: Gam_p
+   real(kind=8), allocatable, dimension (:,:) :: Gam_n
+   real(kind=8), allocatable, dimension (:,:) :: Gam_pp
+   real(kind=8), allocatable, dimension (:,:) :: Gam_pn
+   real(kind=8), allocatable, dimension (:,:) :: Gam_0_pn
+   real(kind=8), allocatable, dimension (:,:) :: Gam_0_np
+   real(kind=8), allocatable, dimension (:,:) :: Lamb_p_p
+   real(kind=8), allocatable, dimension (:,:) :: Lamb_p_n
+   real(kind=8), allocatable, dimension (:,:) :: Lamb_0_pn
+   real(kind=8), allocatable, dimension (:,:) :: Lamb_0_np
+   real(kind=8), allocatable, dimension (:) :: Vwell
+   real(kind=8), allocatable, dimension (:) :: Vwell_g
 end module pre_equilibrium_no_1
