@@ -1,7 +1,7 @@
 !
 !*******************************************************************************
 !
-subroutine parse_command(num_comp,icommand,command,finish)
+subroutine parse_command(icommand, command, finish)
 !
 !*******************************************************************************
 !
@@ -39,18 +39,17 @@ subroutine parse_command(num_comp,icommand,command,finish)
 !---------------------------------------------------------------------
    implicit none
 !---------------------------------------------------------------------
-   integer(kind=4), intent(in) :: num_comp
    integer(kind=4), intent(inout) :: icommand
    character(len=132), intent(inout) :: command
 !---------------------------------------------------------------------
    integer(kind=4) :: numw
    integer(kind=4) :: startw(66), stopw(66)
-   logical finish
+   logical :: finish
    character(len=50) :: read_file
 !---------------------------------------------------------------------
-   integer(kind=4) i, j, k, n, num, itemp_read
+   integer(kind=4) :: i, j, k, n, num, itemp_read
    integer(kind=4) :: nread
-   integer(kind=4) istart, istop, ilast
+   integer(kind=4) :: istart, istop, ilast
    integer(kind=4) :: ibegin, iend
    real(kind=8) :: e_min,e_max
 !   character(len=132) :: error_line
@@ -272,7 +271,7 @@ subroutine parse_command(num_comp,icommand,command,finish)
       icommand = icommand + 1
       if(numw == 2)then
          i = particle_index(command(startw(2):stopw(2)))
-         if(i < 1)then
+         if(i < 0)then
             if(iproc ==0)write(6,*)'Particle misidentified in command "projectile"'
             call MPI_Abort(icomm,101,ierr)
          end if
@@ -281,7 +280,7 @@ subroutine parse_command(num_comp,icommand,command,finish)
          projectile%A = particle(i)%A
          projectile%specified = .true.
          particle(i)%do_dwba = .false.
-         if(i <= 2)particle(i)%do_dwba = .true.
+!         if(i > 0 .and. i <= 2)particle(i)%do_dwba = .true.
 !-----    Set values for pree-equilibrium model for incident neutrons and protons
          if(i == 1)then
             Preeq_V = 38.0d0
@@ -292,6 +291,11 @@ subroutine parse_command(num_comp,icommand,command,finish)
             Preeq_V1 = 22.0d0
             Preeq_K = 450.0d0
          end if
+!------   If user didn't specify either proj_e_file or proj_eminmax
+!------   set up default incident energy grid
+
+  write(6,*)'Calling incident_energy_setup'
+         if(.not. energy_input)call incident_energy_setup
 !
 !------   Make sure max_particle(iproj) >= 1
 !
@@ -317,6 +321,9 @@ subroutine parse_command(num_comp,icommand,command,finish)
                  Preeq_V1 = 22.0d0
                  Preeq_K = 450.0d0
               end if
+!------   If user didn't specify either proj_e_file or proj_eminmax
+!------   set up default incident energy grid
+              if(.not. energy_input)call incident_energy_setup
 !
 !------   Make sure max_particle(iproj) >= 1
 !
@@ -332,7 +339,7 @@ subroutine parse_command(num_comp,icommand,command,finish)
             if(iproc ==0)write(6,*)'Not enough input in command projectile for population calculation'
             call MPI_Abort(icomm,101,ierr)
          end if
-         projectile%particle_type = 7
+         projectile%particle_type = -2
          projectile%Z = 0
          projectile%A = 0
          j_pop_calc = .false.
@@ -360,12 +367,44 @@ subroutine parse_command(num_comp,icommand,command,finish)
             read(8,*)nread
             k = 0
             do j = 1, nread
-               read(8,*)x(1), x(2)            
+!               read(8,*)x(1), x(2)  
+!-----   Read line with energy, energy spread, and possibly the overall normalization          
+               read(8,'(a)')temp_char
+               call parse_string(temp_char,numw,startw,stopw)
+               if(k == 1 .and. numw == 2)then
+                  pop_calc_prob = .true.
+               elseif(k == 1 .and. numw == 3)then
+                  pop_calc_prob = .false.
+               end if
+!----  Read in number of J^pi populations to be read in
                read(8,*)n
                if(n > 0)then
+!----   First check if the proper amount of data is on line for the two types of calculation
+                  if(numw < 2)then
+                     if(iproc == 0)then
+                        write(6,*)'Error in setting energy for population calculation, not enough data for entry #',n
+                        call MPI_Abort(icomm, 101, ierr)
+                     end if
+                  end if
+!----   Error for failure to enter a normalization for any subsequent entry if
+!----   first one is set, and therefore pop_calc_prob = .false.
+                  if(numw == 2 .and. .not. pop_calc_prob)then
+                     if(iproc == 0)then
+                        write(6,*)'Error: No input for population normalization for entry #',n
+                        call MPI_Abort(icomm, 101, ierr)
+                     end if
+                  end if
+!----   Increment population counter and fill arrays 
                   k = k + 1
-                  Pop_data(k)%Ex_pop = x(1)
-                  Pop_data(k)%dEx_pop = x(2)
+                  read(temp_char(startw(1):stopw(1)),*)Pop_data(k)%Ex_pop
+                  read(temp_char(startw(2):stopw(2)),*)Pop_data(k)%dEx_pop
+                  if(numw == 3)then
+                     read(temp_char(startw(3):stopw(3)),*)Pop_data(k)%Norm_pop
+                  else
+                     Pop_data(k)%Norm_pop = 1.0d0
+                  end if
+!                  Pop_data(k)%Ex_pop = x(1)
+!                  Pop_data(k)%dEx_pop = x(2)
                   Pop_data(k)%num_pop = n
                   if(.not.allocated(Pop_data(k)%j_pop))allocate(Pop_data(k)%j_pop(n))
                   if(.not.allocated(Pop_data(k)%par_pop))allocate(Pop_data(k)%par_pop(n))
@@ -380,7 +419,7 @@ subroutine parse_command(num_comp,icommand,command,finish)
                      if(iproc == 0)write(6,*)'Error!! The total population is too small < 1.0d-6'
                      call MPI_Abort(icomm,101,ierr)
                   end if
-                  do i = 1, num_pop
+                  do i = 1, Pop_data(k)%num_pop
                      Pop_data(k)%bin_pop(i) = Pop_data(k)%bin_pop(i)/xnorm
                   end do     
                end if
@@ -406,10 +445,10 @@ subroutine parse_command(num_comp,icommand,command,finish)
 !
       if(projectile%Z == -1 .and. projectile%A == -1)then
          if(numw < 4)then
-            if(iproc ==0)write(6,*)'Not enough input in command projectile for population calculation'
+            if(iproc ==0)write(6,*)'Not enough input in command projectile for LD population calculation'
             call MPI_Abort(icomm,101,ierr)
          end if
-         projectile%particle_type = 7
+         projectile%particle_type = -2
          projectile%Z = 0
          projectile%A = 0
          pop_calc = .true.
@@ -419,6 +458,12 @@ subroutine parse_command(num_comp,icommand,command,finish)
          read(command(startw(4):stopw(4)),*)Pop_data(1)%Ex_pop
          Pop_data(1)%dEx_pop = 0.0d0
          if(numw == 5)read(command(startw(5):stopw(5)),*)Pop_data(1)%dEx_pop
+         Pop_data(1)%Norm_pop = 1
+         pop_calc_prob = .true. 
+         if(numw == 6)then
+            read(command(startw(6):stopw(6)),*)Pop_data(1)%Norm_pop
+            pop_calc_prob = .false.
+         end if
 
          Pop_data(1)%num_pop = 0
 
@@ -426,10 +471,9 @@ subroutine parse_command(num_comp,icommand,command,finish)
 
          projectile%specified=.true.
          projectile%num_e = num_pop_e
+
          if(.not.allocated(projectile%energy))allocate(projectile%energy(num_pop_e))
-         do i = 1, num_pop_e
-            projectile%energy(i) = Pop_data(i)%Ex_pop
-         end do
+         projectile%energy(1) = Pop_data(1)%Ex_pop
          return
       end if
       if(iproc == 0)write(6,*)'Error in specifying projectile'
@@ -474,7 +518,7 @@ subroutine parse_command(num_comp,icommand,command,finish)
          return
       end if
       read_file(1:50)=' '
-      iend=101
+      iend = 101
       ibegin = 101
       do n = 100, istop + 1, -1
          if(command(n:n) /= ' ')then
@@ -502,13 +546,13 @@ subroutine parse_command(num_comp,icommand,command,finish)
          read(8,*)projectile%energy(i)
       end do
       close(unit=8)
-      e_min=1000000.
-      e_max=-1000000.
-      do i=1,num
+      e_min = 1000000.
+      e_max = -1000000.
+      do i = 1, num
          if(projectile%energy(i) < e_min)    &
-            e_min=projectile%energy(i)
+            e_min = projectile%energy(i)
             if(projectile%energy(i) > e_max) &
-            e_max=projectile%energy(i)
+            e_max = projectile%energy(i)
       end do
       projectile%e_min = e_min
       projectile%e_max = e_max
@@ -761,7 +805,7 @@ subroutine parse_command(num_comp,icommand,command,finish)
                      exit
                   end if
                end do
-               if(.not. All_gammas)then
+               if(.not. all_discrete_states)then
                   nucleus(i)%num_discrete = j - 1
                end if
                return
@@ -785,7 +829,7 @@ subroutine parse_command(num_comp,icommand,command,finish)
          return
       end if
 
-     do i = 1, num_comp
+      do i = 1, num_comp
          if(iZ == nucleus(i)%Z .and. iA == nucleus(i)%A)then
             if(nint(x(1)) == 1) nucleus(i)%level_param(16) = 1.0d0
             if(nint(x(1)) == -1) nucleus(i)%level_param(16) = 2.0d0
@@ -937,8 +981,8 @@ subroutine parse_command(num_comp,icommand,command,finish)
       if(iproc ==0)then
          write(6,*)
          write(6,*)'---------------------------------------------'
-         write(6,*)'---  The command fit_aparam is obsolete   ---'
-         write(6,*)'---- Use lev_fit_d0 or lev_fit_aparam     ---'
+         write(6,*)'---  The command "fit_aparam" is obsolete ---'
+         write(6,*)'---- Use "lev_fit_d0" or "lev_fit_aparam" ---'
          write(6,*)'---- See manual for input guidance        ---'
          write(6,*)'---------------------------------------------'
          write(6,*)'*********************************************'
@@ -1368,7 +1412,7 @@ subroutine parse_command(num_comp,icommand,command,finish)
             return
          end if
       end do
-      if(iproc ==0)write(6,*)'Nucleus not found: f_Num_Barrier'
+      if(iproc ==0)write(6,*)'Nucleus not found: f_Num_Barrier',' Z = ',iZ,' A = ',iA
       return
    end if
 !
@@ -1392,7 +1436,7 @@ subroutine parse_command(num_comp,icommand,command,finish)
       do i = 1, num_comp
          if(iZ == nucleus(i)%Z .and. iA == nucleus(i)%A)then
             if(j > nucleus(i)%F_n_barr)then
-               if(iproc == 0)write(6,*)'too many barriers for F_Barrier'
+               if(iproc == 0)write(6,*)'too many barriers for F_Barrier',' Z = ',iZ,' A = ',iA
                call MPI_Abort(icomm,101,ierr)
             end if
             nucleus(i)%F_Barrier(j)%barrier = x(1)
@@ -1400,7 +1444,7 @@ subroutine parse_command(num_comp,icommand,command,finish)
             return
          end if
       end do
-      if(iproc == 0)write(6,*)'Nucleus not found: f_Barrier'
+      if(iproc == 0)write(6,*)'Nucleus not found: f_Barrier',' Z = ',iZ,' A = ',iA
       return
    end if
 !
@@ -1424,7 +1468,7 @@ subroutine parse_command(num_comp,icommand,command,finish)
       do i = 1, num_comp
          if(iZ == nucleus(i)%Z .and. iA == nucleus(i)%A)then
             if(j > nucleus(i)%F_n_barr)then
-               if(iproc ==0)write(6,*)'too many barriers for F_Barrier'
+               if(iproc ==0)write(6,*)'too many barriers for F_Barrier',' Z = ',iZ,' A = ',iA
                call MPI_Abort(icomm,101,ierr)
             end if
             nucleus(i)%F_Barrier(j)%barrier_damp(2) = x(2)
@@ -1435,7 +1479,7 @@ subroutine parse_command(num_comp,icommand,command,finish)
             return
          end if
       end do
-      if(iproc ==0)write(6,*)'Nucleus not found: F_Barrier_damp'
+      if(iproc ==0)write(6,*)'Nucleus not found: F_Barrier_damp',' Z = ',iZ,' A = ',iA
       return
    end if
 !
@@ -1492,7 +1536,7 @@ subroutine parse_command(num_comp,icommand,command,finish)
          end if
       end do
       if(iproc ==0)then
-         write(6,*)'Nucleus not found: f_barrier_symmetry'
+         write(6,*)'Nucleus not found: f_barrier_symmetry',' Z = ',iZ,' A = ',iA
          write(6,*)'Keeping the default value for this nucleus and barrier'
       end if
       return
@@ -1517,14 +1561,14 @@ subroutine parse_command(num_comp,icommand,command,finish)
       do i = 1, num_comp
          if(iZ == nucleus(i)%Z .and. iA == nucleus(i)%A)then
             if(j > nucleus(i)%F_n_barr)then
-               if(iproc == 0)write(6,*)'too many barriers for F_ecut'
+               if(iproc == 0)write(6,*)'too many barriers for F_ecut',' Z = ',iZ,' A = ',iA
                call MPI_Abort(icomm,101,ierr)
             end if
             nucleus(i)%F_Barrier(j)%ecut = x(1)
             return
          end if
       end do
-      if(iproc == 0)write(6,*)'Nucleus not found: F_ecut'
+      if(iproc == 0)write(6,*)'Nucleus not found: F_ecut',' Z = ',iZ,' A = ',iA
       return
    end if
 !
@@ -1547,14 +1591,14 @@ subroutine parse_command(num_comp,icommand,command,finish)
       do i = 1, num_comp
          if(iZ == nucleus(i)%Z .and. iA == nucleus(i)%A)then
             if(j > nucleus(i)%F_n_barr)then
-               if(iproc == 0)write(6,*)'too many barriers for f_lev_aparam'
+               if(iproc == 0)write(6,*)'too many barriers for f_lev_aparam',' Z = ',iZ,' A = ',iA
                call MPI_Abort(icomm,101,ierr)
             end if
             nucleus(i)%F_Barrier(j)%level_param(1) = x(1)
             return
          end if
       end do
-      if(iproc == 0)write(6,*)'Nucleus not found: f_lev_aparam'
+      if(iproc == 0)write(6,*)'Nucleus not found: f_lev_aparam',' Z = ',iZ,' A = ',iA
       return
    end if
 !
@@ -1577,14 +1621,14 @@ subroutine parse_command(num_comp,icommand,command,finish)
       do i = 1, num_comp
          if(iZ == nucleus(i)%Z .and. iA == nucleus(i)%A)then
             if(j > nucleus(i)%F_n_barr)then
-               if(iproc == 0)write(6,*)'too many barriers for F_lev_spin'
+               if(iproc == 0)write(6,*)'too many barriers for F_lev_spin',' Z = ',iZ,' A = ',iA
                call MPI_Abort(icomm,101,ierr)
             end if
             nucleus(i)%F_Barrier(j)%level_param(2) = x(1)
             return
          end if
       end do
-      if(iproc == 0)write(6,*)'Nucleus not found: F_lev_spin'
+      if(iproc == 0)write(6,*)'Nucleus not found: F_lev_spin',' Z = ',iZ,' A = ',iA
       return
    end if
 !
@@ -1607,7 +1651,7 @@ subroutine parse_command(num_comp,icommand,command,finish)
       do i = 1, num_comp
          if(iZ == nucleus(i)%Z .and. iA == nucleus(i)%A)then
             if(j > nucleus(i)%F_n_barr)then
-               if(iproc == 0)write(6,*)'too many barriers for F_lev_delta'
+               if(iproc == 0)write(6,*)'too many barriers for F_lev_delta',' Z = ',iZ,' A = ',iA
                call MPI_Abort(icomm,101,ierr)
             end if
             nucleus(i)%F_Barrier(j)%level_param(3) = x(1)
@@ -1615,7 +1659,7 @@ subroutine parse_command(num_comp,icommand,command,finish)
             return
          end if
       end do
-      if(iproc == 0)write(6,*)'Nucleus not found: F_lev_delta'
+      if(iproc == 0)write(6,*)'Nucleus not found: F_lev_delta',' Z = ',iZ,' A = ',iA
       return
    end if
 !
@@ -1639,14 +1683,14 @@ subroutine parse_command(num_comp,icommand,command,finish)
       do i = 1, num_comp
          if(iZ == nucleus(i)%Z .and. iA == nucleus(i)%A)then
             if(j > nucleus(i)%F_n_barr)then
-               if(iproc == 0)write(6,*)'too many barriers for F_lev_shell'
+               if(iproc == 0)write(6,*)'too many barriers for F_lev_shell',' Z = ',iZ,' A = ',iA
                call MPI_Abort(icomm,101,ierr)
             end if
             nucleus(i)%F_Barrier(j)%level_param(4) = x(1)
             return
          end if
       end do
-      if(iproc == 0)write(6,*)'Nucleus not found: F_lev_shell'
+      if(iproc == 0)write(6,*)'Nucleus not found: F_lev_shell',' Z = ',iZ,' A = ',iA
       return
    end if
 !
@@ -1677,7 +1721,7 @@ subroutine parse_command(num_comp,icommand,command,finish)
             return
          end if
       end do
-      if(iproc == 0)write(6,*)'Nucleus not found: F_lev_gamma'
+      if(iproc == 0)write(6,*)'Nucleus not found: F_lev_gamma',' Z = ',iZ,' A = ',iA
       return
    end if
 !
@@ -1712,7 +1756,7 @@ subroutine parse_command(num_comp,icommand,command,finish)
             return
          end if
       end do
-      if(iproc == 0)write(6,*)'Nucleus not found: F_lev_rot_enhance'
+      if(iproc == 0)write(6,*)'Nucleus not found: F_lev_rot_enhance',' Z = ',iZ,' A = ',iA
       return
    end if
 !
@@ -1747,7 +1791,7 @@ subroutine parse_command(num_comp,icommand,command,finish)
             return
          end if
       end do
-      if(iproc == 0)write(6,*)'Nucleus not found: F_lev_vib_enhance'
+      if(iproc == 0)write(6,*)'Nucleus not found: F_lev_vib_enhance',' Z = ',iZ,' A = ',iA
       return
    end if
 !
@@ -1792,7 +1836,7 @@ subroutine parse_command(num_comp,icommand,command,finish)
             return
          end if
       end do
-      if(iproc == 0)write(6,*)'Nucleus not found: F_lev_ematch'
+      if(iproc == 0)write(6,*)'Nucleus not found: F_lev_ematch',' Z = ',iZ,' A = ',iA
       return
    end if
 !
@@ -1828,7 +1872,7 @@ subroutine parse_command(num_comp,icommand,command,finish)
             return
          end if
       end do
-      if(iproc == 0)write(6,*)'Nucleus not found: f_beta2'
+      if(iproc == 0)write(6,*)'Nucleus not found: f_beta2',' Z = ',iZ,' A = ',iA
       return
    end if
 !
@@ -1889,7 +1933,7 @@ subroutine parse_command(num_comp,icommand,command,finish)
          end if
       end do
 
-      if(iproc == 0)write(6,*)'Nucleus not found: F_Barr_levels'
+      if(iproc == 0)write(6,*)'Nucleus not found: F_Barr_levels',' Z = ',iZ,' A = ',iA
       return
    end if
 !
@@ -2644,7 +2688,20 @@ subroutine parse_command(num_comp,icommand,command,finish)
          call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
          return
       end if
-      All_gammas = .false.
+         write(6,*)
+         write(6,*)'---------------------------------------------'
+         write(6,*)'---  The command "all_gammas" is obsolete ---'
+         write(6,*)'---- Use "all_discrete_states"            ---'
+         write(6,*)'---- See manual for input guidance        ---'
+         write(6,*)'---------------------------------------------'
+         write(6,*)'*********************************************'
+         write(6,*)'**** Continuing as if:                    ***'
+         write(6,*)'**** "all_discrete_states y"              ***'
+         write(6,*)'*********************************************'
+         write(6,*)
+
+      all_discrete_states = .false.
+!      All_gammas = .false.
 
       call char_logical(command(startw(2):stopw(2)),logic_char,read_error)
 
@@ -2653,7 +2710,53 @@ subroutine parse_command(num_comp,icommand,command,finish)
          return
       end if
 
-      All_gammas = logic_char
+      all_discrete_states = logic_char
+
+      return
+   end if
+!
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!
+   if(command(startw(1):stopw(1)) == 'all_discrete_states')then
+      icommand=icommand+1
+      if(numw < 2)then
+         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
+         return
+      end if
+      all_discrete_states = .false.
+
+      call char_logical(command(startw(2):stopw(2)),logic_char,read_error)
+
+      if(read_error)then
+         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
+         return
+      end if
+
+      all_discrete_states = logic_char
+
+      return
+   end if
+!
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!
+   if(command(startw(1):stopw(1)) == 'primary_decay')then
+      icommand=icommand+1
+      if(numw < 2)then
+         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
+         return
+      end if
+      primary_decay = .false.
+
+      call char_logical(command(startw(2):stopw(2)),logic_char,read_error)
+
+      if(read_error)then
+         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
+         return
+      end if
+
+      primary_decay = logic_char
 
       return
    end if
@@ -2797,29 +2900,6 @@ subroutine parse_command(num_comp,icommand,command,finish)
       end if
 
       trans_avg_l = logic_char
-
-      return
-   end if
-!
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!
-   if(command(startw(1):stopw(1)) == 'out_gammas_vs_e')then
-      icommand = icommand + 1
-      if(numw < 2)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
-      end if
-      Out_gammas_vs_E = .false.
-
-      call char_logical(command(startw(2):stopw(2)),logic_char,read_error)
-
-      if(read_error)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
-      end if
-
-      Out_gammas_vs_E = logic_char
 
       return
    end if
@@ -3031,7 +3111,7 @@ subroutine lower_case_word(nchar,word)
 !
 !    This subroutine changes all lower case characters in a string 
 !    to upper case
-!
+!****************
 !  Licensing:
 !
 !    This code is distributed under the GNU LGPL version 2 license. 
@@ -3219,6 +3299,14 @@ integer(kind=4) function rank_commands(command)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'all_gammas')then
+      rank_commands = 0 
+      return
+   end if
+!
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!
+   if(command(startw(1):stopw(1)) == 'all_discrete_states')then
       rank_commands = 0 
       return
    end if
@@ -3632,6 +3720,7 @@ integer function particle_index(char)
    implicit none
    character(len=1) char
    particle_index = -1
+   if(char == '0' .or. char == 'g')particle_index = 0 
    if(char == '1' .or. char == 'n')particle_index = 1 
    if(char == '2' .or. char == 'p')particle_index = 2 
    if(char == '3' .or. char == 'd')particle_index = 3 
@@ -3877,5 +3966,50 @@ subroutine print_command_error(nchar,word)
    if(iproc == 0)write(6,*)error_line(1:ierr_last)//word(1:nchar)//'"'
    return
 end subroutine print_command_error
+!
+!*****************************************************************************80
+!
+!  Discussion:
+!
+!    This Subroutine to setup the incident energy grid in the event that the
+!    user doesnot specify it with either proj_e_file or proj_eminmax 
+!
+!  Licensing:
+!
+!    This code is distributed under the GNU LGPL version 2 license. 
+!
+!  Date:
+!
+!    25 September 2019
+!
+!  Author:
+!
+!      Erich Ormand, LLNL
+!
+!*****************************************************************************80
+!
+subroutine incident_energy_setup
+   use nodeinfo
+   use options
+   use nuclei
+!-----------------------------------------------------
+   integer(kind=4) :: i, num
+   num = 221
+   if(.not. allocated(projectile%energy))allocate(projectile%energy(num))
+   projectile%energy(1) = 1.0d-4
+   projectile%energy(2) = 1.0d-3
+   do i = 3, 22
+      projectile%energy(i) = projectile%energy(i-1) + 5.0d-3
+   end do
+   do i = 23, 221
+      projectile%energy(i) = projectile%energy(i-1) + 1.0d-1
+   end do
+   projectile%num_e = num
+   projectile%e_min = projectile%energy(1)
+   projectile%e_max = projectile%energy(221)
+   ex_set = .true.
+   return
+end subroutine incident_energy_setup
+
 
 

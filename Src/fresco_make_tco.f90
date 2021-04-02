@@ -1,9 +1,5 @@
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-
-!subroutine make_fresco_tco(data_path, len_path, tco_file, len_tco,       &
-!                           de, pindex, iproj, itarget, istate, Ang_L_max)
-subroutine make_fresco_tco(data_path, len_path, tco_file, len_tco,       &
+subroutine fresco_make_tco(data_path, len_path, tco_file, len_tco,           &
                            pindex, iproj, itarget, istate, Ang_L_max)
 !
 !*******************************************************************************
@@ -147,6 +143,8 @@ subroutine make_fresco_tco(data_path, len_path, tco_file, len_tco,       &
   real(kind=8) :: ang_theta, ang_rad
   real(kind=8) :: sum, xnorm, value
 
+  real(kind=8) :: cc_energy, cc_spin, cc_par
+
   real(kind=8) :: cross
 
   logical read_file
@@ -158,7 +156,7 @@ subroutine make_fresco_tco(data_path, len_path, tco_file, len_tco,       &
 
   integer(kind=4) :: kp, ncc, nccba, nex
   integer(kind=4) :: num_cc, num_dwba, num_read, num_tot, num_cc_read
-  real(kind=8) :: emin, emax
+  real(kind=8) :: emin, emax, elab_max
   real(kind=8) :: x, y
   integer(kind=4) :: nume
   real(kind=8) :: xnume
@@ -189,6 +187,7 @@ subroutine make_fresco_tco(data_path, len_path, tco_file, len_tco,       &
 !  real(kind=8) :: Legendre
   real(kind=8) :: poly
   real(kind=8) :: interp
+  integer(kind=4) :: state_index
 !-rem  real(kind=8) :: clebr
 
 !-----   set up templates for protons and neutrons so that we can run 
@@ -305,7 +304,7 @@ subroutine make_fresco_tco(data_path, len_path, tco_file, len_tco,       &
      open(unit = 21,file = cc_file(1:ilen_cc_file),status = 'old')
 
      num_states = nucleus(itarget)%ncut
-     if(All_gammas)num_states = nucleus(itarget)%num_discrete
+     if(all_discrete_states)num_states = nucleus(itarget)%num_discrete
 
   do while(.not. cc_found)      !   - loop is on iz and ia nuclei not on lines in file
      read(21,'(a)')line
@@ -349,25 +348,22 @@ subroutine make_fresco_tco(data_path, len_path, tco_file, len_tco,       &
         do i = 1, num_cc_read
            read(21,'(a)')line
            call parse_string(line, numw, startw, stopw)
-           read(line(startw(1):stopw(1)),*)jndex
-!----   Make sure that the discrete state in the coupled channels calculation
-!----   is in the calculation, the endsf index is stored in state(i)%ensdf_index
-           do n = 1, num_states
-              jjndex = nucleus(itarget)%state(n)%ensdf_index
-              if(jndex == jjndex)then
-                 if(nucleus(itarget)%state(n)%energy > nucleus(itarget)%level_param(7) &
-                    .and. .not. All_gammas)exit
-                 xJ = nucleus(itarget)%state(n)%spin
-                 if(xJ < K_band)then
-                    K_band = xJ
-                    par_band = nint(nucleus(itarget)%state(n)%parity)
-                 end if
-                 num_cc = num_cc + 1
-                 num_tot = num_tot + 1
-                 exit
-             end if
-           end do
-        end do
+           read(line(startw(2):stopw(2)),*)cc_energy
+           read(line(startw(3):stopw(3)-1),*)cc_spin
+           if(line(stopw(3):stopw(3)) == '+')cc_par = 1.0d0
+           if(line(stopw(3):stopw(3)) == '-')cc_par = -1.0d0
+           jndex = state_index(itarget,cc_spin,cc_par,cc_energy)
+           if(jndex >= 1)then
+              if((cc_energy <= nucleus(itarget)%level_param(7) .or.                     &
+                 (cc_energy > nucleus(itarget)%level_param(7) .and. all_discrete_states)) .and.  &
+                 cc_spin < K_band)then
+                    K_band = cc_spin
+                    par_band = nint(cc_par)
+               end if
+               num_cc = num_cc + 1
+               num_tot = num_tot + 1
+           end if
+        end do 
 !----  Now we have K, read in DWBA states and work out couplings to get total
 !----  number of states that will be in full FRESCO calculation
         do i = 1, num_dwba
@@ -381,7 +377,7 @@ subroutine make_fresco_tco(data_path, len_path, tco_file, len_tco,       &
                  jjndex = nucleus(itarget)%state(n)%ensdf_index
                  if(jndex == jjndex)then
                     if(nucleus(itarget)%state(n)%energy > nucleus(itarget)%level_param(7) &
-                       .and. .not. All_gammas)exit
+                       .and. .not. all_discrete_states)exit
                     num_tot = num_tot + 1
                     exit
                  end if
@@ -426,40 +422,43 @@ subroutine make_fresco_tco(data_path, len_path, tco_file, len_tco,       &
         do i = 1, num_cc_read
            read(21,'(a)')line
            call parse_string(line, numw, startw, stopw)
-           read(line(startw(1):stopw(1)),*)jndex
-           if(jndex <= 0)then
-              if(iproc == 0)then
-                 write(6,*)'Error in coupled channels, this state has an improper cc_index'
-                 write(6,'(a)')line(1:stopw(numw))
-              end if
-              call MPI_Abort(icomm, 101, ierr)
-           end if
+           read(line(startw(2):stopw(2)),*)cc_energy
+           read(line(startw(3):stopw(3)-1),*)cc_spin
+           if(line(stopw(3):stopw(3)) == '+')cc_par = 1.0d0
+           if(line(stopw(3):stopw(3)) == '-')cc_par = -1.0d0
 !-----  See if state in cc list is in calculation
 !-----  Check against all discrete states for target - jndex is index in ensdf evaluated file
 !-----  This is stored in %state(n)%ensdf_index
 !-----  The loop n is over all descrete states
-           do n = 1, num_states
-              jjndex = nucleus(itarget)%state(n)%ensdf_index
-              if(jndex == jjndex)then
-                 if(nucleus(itarget)%state(n)%energy > nucleus(itarget)%level_param(7) &
-                    .and. .not. All_gammas)exit
-                 cc_index(i) = n
-                 ii = cc_index(i)
-                 if(ii == istate)then
-                    if_state = i
-                 end if
-                 cc_state_j(i) = nucleus(itarget)%state(ii)%spin
-                 cc_state_e(i) = nucleus(itarget)%state(ii)%energy
-                 cc_state_par(i) = nint(nucleus(itarget)%state(ii)%parity)
-                 cc_state_type(i) = 1
-                 cc_state_kpp(i) = 1
-                 cc_state_k(i) = 0
-                 cc_state_str(i) = 0.0d0
-                 ncount = ncount + 1
-                 exit
+           jndex = state_index(itarget,cc_spin,cc_par,cc_energy)
+           if(jndex <= 0)then
+              if(iproc == 0)then
+                 write(6,*)'Error in coupled channels, this state has an improper cc_index'
+                 write(6,'(a)')line(1:stopw(numw))
+                 write(6,*)'Possible fixes:'
+                 write(6,*)'1. Use option "all_discrete_states"'
+                 write(6,*)'2. Compare energy, J^pi between RIPL-3 file and Coupled-Channels.txt'
+                 write(6,*)'3. Check coupled-channels state has valid decay path, update in evaluated RIPL-3 file'
               end if
-           end do
-       end do
+              call MPI_Abort(icomm, 101, ierr)
+           end if
+           if(cc_energy <= nucleus(itarget)%level_param(7) .or.                     &
+              (cc_energy > nucleus(itarget)%level_param(7) .and. all_discrete_states))then
+              cc_index(i) = jndex
+              ii = cc_index(i)
+              if(ii == istate)then
+                 if_state = i
+              end if
+              cc_state_j(i) = nucleus(itarget)%state(ii)%spin
+              cc_state_e(i) = nucleus(itarget)%state(ii)%energy
+              cc_state_par(i) = nint(nucleus(itarget)%state(ii)%parity)
+              cc_state_type(i) = 1
+              cc_state_kpp(i) = 1
+              cc_state_k(i) = 0
+              cc_state_str(i) = 0.0d0
+              ncount = ncount + 1
+           end if
+        end do
 !------    read in information for DWBA states
         do i = 1, num_dwba
            read(21,'(a)')line
@@ -475,7 +474,7 @@ subroutine make_fresco_tco(data_path, len_path, tco_file, len_tco,       &
               do n = 1, num_states
                  if(jndex == nucleus(itarget)%state(n)%ensdf_index)then
                     if(nucleus(itarget)%state(n)%energy > nucleus(itarget)%level_param(7) &
-                       .and. .not. All_gammas)exit
+                       .and. .not. all_discrete_states)exit
                     ncount = ncount + 1
                     cc_index(ncount) = n
                     ii = cc_index(ncount)
@@ -604,7 +603,7 @@ subroutine make_fresco_tco(data_path, len_path, tco_file, len_tco,       &
   do while(n <= nex)
      remove = .false.
      if(cc_state_type(n) == 1)then
-        if(cc_state_e(n) > e_cut .and. .not. All_gammas)then    ! remove from the list, push others down
+        if(cc_state_e(n) > e_cut .and. .not. all_discrete_states)then    ! remove from the list, push others down
            do i = n + 1,nex
               cc_index(i-1) = cc_index(i)
               cc_state_e(i-1) = cc_state_e(i)
@@ -655,9 +654,11 @@ subroutine make_fresco_tco(data_path, len_path, tco_file, len_tco,       &
 
 
   emax = max(e_max + 5.0d0, 25.0d0)
-  do while(ener < emax)
+  elab_max = emax*(mass_target + mass_proj)/mass_target
+  do while(ener < elab_max)
      nume = nume + 1
      ener = ener*factor
+  write(6,*)ener, emax
   end do
 
   allocate(energy(nume))
@@ -1033,289 +1034,4 @@ subroutine make_fresco_tco(data_path, len_path, tco_file, len_tco,       &
   if(allocated(cc_state_str))deallocate(cc_state_str)
 
   return
-end subroutine make_fresco_tco
-
-
-subroutine run_fresco(ener, fresco_dir, len_fresco, fresco_name, iendf, fname, err_name, symb,      &
-                      pindex, mass_proj, iZ, iA, namet, mass_target, beta, deformed, J_gs, K_band,  &
-                      V_pot, R_pot, a_pot, RC, ncc, nex, if_state,                                  &
-                      cc_state_par, cc_state_type, cc_state_k, cc_state_kpp,                        &
-                      cc_state_j, cc_state_e, cc_state_str)
-   use constants
-   use particles_def
-   use options
-   implicit none
-   real(kind=8), intent(in) :: ener
-   character(len=132), intent(in) :: fresco_dir
-   integer(kind=4), intent(in) :: len_fresco
-   character(len=100), intent(in) :: fresco_name
-   integer(kind=4), intent(in) :: iendf
-   character(len=6), intent(in) :: fname
-   character(len=100), intent(in) :: err_name
-   character(len=2), intent(in) :: symb
-   integer(kind=4), intent(in) :: pindex
-   real(kind=8), intent(in) :: mass_proj
-   integer(kind=4), intent(in) :: iZ, iA
-   character(len=8), intent(in) :: namet
-   real(kind=8), intent(in) :: mass_target
-   real(kind=8), intent(in) :: beta(6)
-   logical, intent(in) :: deformed
-   real(kind=8), intent(in) :: J_gs
-   real(kind=8), intent(in) :: K_band
-   real(kind=8), intent(in) :: V_pot(2,3)
-   real(kind=8), intent(in) :: R_pot(2,3)
-   real(kind=8), intent(in) :: A_pot(2,3)
-   real(kind=8), intent(in) :: RC
-   integer(kind=4), intent(in) :: ncc, nex, if_state
-   integer(kind=4), intent(in) :: cc_state_par(nex), cc_state_type(nex)
-   integer(kind=4), intent(in) :: cc_state_k(nex), cc_state_kpp(nex)
-   real(kind=8), intent(in) :: cc_state_j(nex), cc_state_e(nex) 
-   real(kind=8), intent(in) :: cc_state_str(nex)
-!-------    End of in and out variables
-!----------------------------------------------------------------------------------------
-   integer(kind=4) :: ipot
-   real(kind=8) :: th_min, th_max, th_inc
-   integer(kind=4) :: zpart, apart
-   real(kind=8) :: A, Z, Ap, AAp
-   real(kind=8) :: ac
-   real(kind=8) :: absend
-   integer(kind=4) :: kp
-   integer(kind=8) :: ifirst, ilast, ipot_end
-   integer(kind=4) :: i, k
-   character(len=2) :: opt_label
-   real(kind=8) :: K_state, J_state
-   real(kind=8) :: xk_factor
-   character(len=15) char_energy
-   character(len=132) command, line
-   integer(kind=4) :: istart, istop, iend_err
-   real(kind=8) :: jtmin, jtmax
-   real(kind=8) :: rmatch
-   integer(kind=4) :: iter
-   character(len=1) :: label
-   integer(kind=4) :: len_dir
-   real(kind=8) :: zzero
-   real(kind=8) :: spin
-   real(kind=8) :: mass_rel, e_rel, momentum, wave_number
-   real(kind=8) :: hcm, hcm_check
-!----------    External functions   -------------------
-   real(kind=8) :: clebr
-
-   write(char_energy,'(e15.7)')ener
-
-   len_dir = index(fresco_dir,' ') - 1
-   if(len_dir == 0)len_dir = 132
-
-   zzero = 0.0d0
-   jtmin = 0
-   jtmax = particle(pindex)%lmax
-   absend = 0.001d0
-   rmatch = 20.0d0
-
-   A = real(iA,kind=8)
-   Z = real(iZ,kind=8)
-   ac = A**(1.0d0/3.0d0)
-
-   mass_rel = mass_proj*mass_target*mass_u/(mass_proj + mass_target)
-   e_rel = ener*mass_target/(mass_target + mass_proj)
-   momentum = dsqrt(2.0d0*e_rel*mass_rel)
-   wave_number = momentum/hbar_c
-   hcm_check = 0.2/wave_number
-   hcm = 0.1d0
-   if(hcm_check < 0.1d0)then
-      hcm = 0.05d0
-   elseif(hcm_check < 0.05d0)then
-      hcm = 0.01d0
-   elseif(hcm_check < 0.01d0)then
-      hcm = 0.005d0
-   end if
-
-!   write(6,*)hcm_check
-   
-   th_min = 0.0d0
-   th_max = 180.0d0
-   th_inc = 1.0d0
-
-   label = particle(pindex)%label
-   zpart = particle(pindex)%Z
-   apart = particle(pindex)%A
-   Ap = real(apart,kind=8)
-   AAp = Ap
-   if(pindex < 6)AAp = 0.0d0
-!   mass_proj = particle(pindex)%mass/mass_u
-   spin = particle(pindex)%spin
-!---------    Coupled channels control
-!---------    ncc = total number of coupled channles
-!---------    nex = total number of excited states in calculaiton including CCBA states
-!---------    if ncc /= nex run one iteration after coupled channels for DWBA states.
-  iter = 0
-  if(ncc /= nex)iter = 1
-
-
-!----    Open and create fresco input file for this energy
-     open(unit=20,file = fresco_dir(1:len_dir)//'/'//fresco_name(1:len_fresco)//'.in', status='unknown')
-!----   write fresco input
-     if(particle(pindex)%opt_pot < 10)then
-        write(opt_label(1:1),'(i1)')particle(pindex)%opt_pot
-        ipot_end = 1
-     else
-        write(opt_label(1:2),'(i2)')particle(pindex)%opt_pot
-        ipot_end = 2
-     end if
-
-     write(20,'(a)') fname(1:iendf)//' with potential #'//opt_label(1:ipot_end)//', at E_lab ='//char_energy
-     write(20,'(a)') 'NAMELIST'
-     write(20,'('' &Fresco  hcm= '',f6.4, '' rmatch= '',f7.3)')hcm, rmatch
-     absend = 1.0d-4
-     if(ener <= 0.5d0)absend = 1.0d-6
-     write(20,'(''    jtmin= '',f5.2,'' jtmax = '',f5.2,'' absend = '',f10.7)')jtmin,jtmax,absend
-     write(20,14) th_min, th_inc, th_max, ncc
-14      format('    thmin= ',f3.1,' thinc= ',f3.1,' thmax= ',f5.1,' iblock= ',i3)
-     write(20,'(''    chans= 1 smats= 2 xstabl= 1 tcfile= 3 iter= '',i2)')iter
-     write(20,15) ener
-15      format('    elab=',e15.7,'  pel= 1 exl= 1 lab= 1 lin= 1 lex= 1 /')
-     write(20,*) 
-     if(ncc == nex)then
-        write(20,16) label, mass_proj, zpart, nex
-16         format('&Partition  namep=''',a1,'       '' massp= ',f12.8,' zp= ',i3,' nex=',i3)
-     else
-        write(20,166) label, mass_proj, zpart, nex
-166        format('&Partition  namep=''',a1,'       '' massp= ',f12.8,' zp= ',i3,' nex=',i3,4x,'mixpot=2')
-     end if
-     write(20,17) namet, mass_target, iZ
-17      format('            namet=''',a8,''' masst= ',f12.8,' zt= ',i3,' qval=  0.000/')
-     write(20,18)spin,1, cc_state_kpp(1), cc_state_j(1), cc_state_par(1), cc_state_e(1), K_band
-18      format('&States jp= ',f3.1,' ptyp=',i2,' ep=  0.000000  cpot='i3,' jt=',f4.1,' ptyt=',i2,' et=',f8.4,' kkt = ',f4.1,'/')
-
-     do i = 2, ncc
-        write(20,21)cc_state_kpp(i), cc_state_j(i), cc_state_par(i), cc_state_e(i),K_band
-21      format('&States copyp= 1                       cpot=',i3,' jt=',f4.1,' ptyt=',i2,' et=',f8.4,' kkt = ',f4.1,'/')
-     end do
-     write(20,*)
-     do i = ncc + 1, nex
-        write(20,21)cc_state_kpp(i), cc_state_j(i), cc_state_par(i), cc_state_e(i),K_band
-     end do
-
-     write(20,'(''&Partition /'')')
-     write(20,*)
-
-30   format('&POT kp=',i3,' type =',i2,' shape=',i2,' p(1:3)=',3f10.5,'/')
-31   format('&POT kp=',i3,' type =',i2,' shape=',i2,' p(1:6)=',6f10.5,'/')
-32   format('&POT /'/)
-!---------    Write data to generate potential
-     kp = 1                           !   potential for coupled-channels states
-!---------    First print Coulomb
-     write(20,30) kp, 0, 0, A, AAp, RC
-!++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!---------   Now loop over indvidual components of nuclear potentials
-!---------   ipot = 1, 6
-!---------   ipot = 1 : Volume
-!---------   ipot = 2 : derivative - surface
-!---------   ipot = 3 : Spin-orbit
-!++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-     do ipot = 1, 3
-        if(abs(V_pot(1,ipot)) > 1.0d-6)then
-           write(20,31) kp,ipot,0,V_pot(1,ipot),R_pot(1,ipot),a_pot(1,ipot),0.,0.,0.
-           if(ipot /= 3 .and. deformed)write(20,31)kp,11,ifresco_shape,(beta(k)*ac*R_pot(1,ipot),k=1,6)
-        end if     
-        if(abs(V_pot(2,ipot)) > 1.0d-6)then
-           write(20,31) kp,ipot,0,0.,0.,0.,V_pot(2,ipot),R_pot(2,ipot),a_pot(2,ipot)
-           if(ipot /= 3 .and. deformed)write(20,31)kp,11,ifresco_shape,(beta(k)*ac*R_pot(2,ipot),k=1,6)
-        end if     
-     end do
-     if(ncc /= nex)then
-        write(20,*)
-        kp = 2
-        write(20,30) kp,0,0,A,AAp,RC
-        ipot = 1
-        write(20,31) kp,ipot,0,V_pot(1,ipot),R_pot(1,ipot),a_pot(1,ipot),V_pot(2,ipot),R_pot(2,ipot),a_pot(2,ipot)
-        ipot = 2
-        write(20,31) kp,-ipot,0,V_pot(1,ipot),R_pot(1,ipot),a_pot(1,ipot),V_pot(2,ipot),R_pot(2,ipot),a_pot(2,ipot)
-        write(20,31)kp,13,10,0.0,0.5,0.5,0.5,0.0,0.0
-
- 33  format('  &step ib=',i3,1x,'ia= ',i2,1x,'k=',i2,' str=',f10.6,1x'/')
- 34  format('  &step /')
-        do i = ncc + 1, nex
-           xk_factor = sqrt(2.0d0*J_gs + 1.0d0)
-           if(cc_state_type(i) == 0)then
-              K_state = real(cc_state_k(i),kind=8)
-              J_state = real(cc_state_j(i),kind=8)
-              xk_factor = sqrt(2.0d0*J_gs + 1.0d0)*clebr(J_gs,K_band,K_state,zzero,J_state,K_band)
-           end if
-           write(20,33)i,if_state,cc_state_k(i),cc_state_str(i)*ac*R_pot(1,1)*xk_factor*cc_scale
-        end do
-        write(20,34)
-        ipot = 3
-        write(20,31) kp,ipot,0,V_pot(1,ipot),R_pot(1,ipot),a_pot(1,ipot),V_pot(2,ipot),R_pot(2,ipot),a_pot(2,ipot)
-     end if
-     write(20,*)     
-     write(20,32)
-     write(20,'(''&Overlap /'')')
-     write(20,'(''&Coupling /'')')
-
-     close(unit=20)
-
-!-------     Now run fresco
-     write(6,*)'**********************************************'
-     write(6,*)'Calling unix system command to execute fresco'
-
-     line(1:132) = ' '
-     ifirst = 1
-     ilast = 12
-     line(ifirst:ilast) = 'Calculating '
-     ifirst = 13
-     ilast = 13
-     line(ifirst:ilast) = particle(pindex)%label
-     ifirst = 14
-     ilast = 16
-     line(ifirst:ilast) = ' + '
-     ifirst = 17
-     if(iA < 10)then
-        ilast = 18
-        write(line(ifirst:ilast),'(i1)')iA
-     elseif(iA < 100)then
-        ilast = 19
-        write(line(ifirst:ilast),'(i2)')iA
-     elseif(iA < 1000)then
-        ilast = 20
-        write(line(ifirst:ilast),'(i3)')iA
-     end if
-     ifirst = ilast + 1
-     if(symb(1:1).ne.' ')then
-        ilast = ifirst + 1
-        line(ifirst:ilast) = symb
-     else
-        ilast = ifirst
-        line(ifirst:ilast) = symb(2:2)
-     end if
-  
-
-     write(6,'(a)')line(1:ilast)//', at E_lab ='//char_energy
-
-     iend_err = index(err_name,' ') - 1
- 
-     command(1:132) = ' '
-     istart = 1
-     istop = 10
-     command(istart:istop) = 'frescox < '
-     istart = istop + 1
-     istop = istop + len_dir + 1 + len_fresco + 3
-     command(istart:istop) = fresco_dir(1:len_dir)//'/'//fresco_name(1:len_fresco)//'.in'
-!     command(istart:istop) = fresco_name(1:len_fresco)//'.in'
-     istart = istop + 1
-     istop = istart + 2
-     command(istart:istop) = ' > '
-     istart = istop + 1
-     istop = istart + len_dir + 1 + len_fresco + 4
-     command(istart:istop) = fresco_dir(1:len_dir)//'/'//fresco_name(1:len_fresco)//'.out'
-!     command(istart:istop) = fresco_name(1:len_fresco)//'.out'
-     istart = istop + 1
-     istop = istart + 4
-     command(istart:istop) = ' 2>> '
-     istart = istop + 1
-     istop = istart + len_dir + 1 + iend_err - 1
-     command(istart:istop) = fresco_dir(1:len_dir)//'/'//err_name(1:iend_err)
-
-     write(6,'(a)')command(1:istop)
-     call system(command(1:istop))
-
-end subroutine run_fresco
+end subroutine fresco_make_tco

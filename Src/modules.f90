@@ -32,7 +32,7 @@ module options
 !
    use variable_kinds
    character(len=132) :: version
-   parameter (version = 'MC-3.33')
+   parameter (version = 'MC-3.34')
    integer(kind=int_64) :: iseed_64
    integer(kind=int_32) :: iseed_32
    integer(kind=4) :: PREEQ_Model
@@ -41,19 +41,23 @@ module options
    logical :: channels
    logical :: dump_events
    logical :: binary_event_file
-   logical :: track_gammas, track_primary_gammas
+   logical :: track_gammas
+   logical :: track_primary_gammas
    logical :: pop_calc
    logical :: j_pop_calc
    logical :: fit_Gamma_gamma
-   logical :: All_gammas
-   logical :: Out_gammas_vs_E
+   logical :: all_discrete_states
    logical :: explicit_channels
    logical :: Preeq_g_a
    logical :: use_unequal_bins
+   logical :: primary_decay
    logical :: xs_only
    logical :: verbose
    logical :: print_me
+   logical :: energy_input
+   logical :: pop_calc_prob
 !-------------------------------------------
+   integer(kind=4) :: num_comp
    integer(kind=4) :: output_mode
    integer(kind=4) :: preeq_pair_model
    real(kind=8) :: preeq_delta
@@ -70,11 +74,12 @@ module options
    integer(kind=4) :: E1_model
    integer(kind=4)  e_l_max, m_l_max
    character(len=50) ex_pop_file
-   integer(kind=4) :: num_pop_e,num_pop
+   integer(kind=4) :: num_pop_e, num_pop
    real(kind=8) :: rho_cut
    type Pop_type
       real(kind=8) :: Ex_pop
       real(kind=8) :: dEx_pop
+      real(kind=8) :: Norm_pop
       integer(kind=4) :: num_pop
       real(kind=8), allocatable, dimension(:) :: j_pop
       real(kind=8), allocatable, dimension(:) :: par_pop
@@ -366,6 +371,7 @@ module nuclei
 
    type bin_data
       real(kind=8) :: rho
+      real(kind=8) :: pop
       real(kind=8) :: HF_den
       integer(kind=4) :: num_decay
       integer(kind=4), allocatable, dimension (:) :: decay_to
@@ -389,9 +395,17 @@ module nuclei
       real(kind=8) :: spin                                            !  angular momentum
       real(kind=8) :: parity                                          !  parity
       real(kind=8) :: t12                                             !  half life
-      logical isomer                                          !  logical identifying it as an isomer or not
+      real(kind=8) :: shift                                             !  half life
+      logical :: state_modified                                             !  half life
+      integer(kind=4) :: iband
+      logical :: isomer                                          !  logical identifying it as an isomer or not
+      logical :: level_float                                          !  logical identifying it as an isomer or not
       integer(kind=4) :: exit_lab
       real(kind=8) :: pop
+      integer(kind=4) :: num_decay
+      real(kind=8), allocatable, dimension (:) :: decay_prob                !  array with branching ratios for discrete gamma decays
+      integer(kind=4), allocatable, dimension (:) :: decay_type                !  array with branching ratios for discrete gamma decays
+      integer(kind=4), allocatable, dimension (:) :: decay_to                !  array with branching ratios for discrete gamma decays
       integer(kind=4) :: nbranch                                      !  # of states it gamma decays to
       integer(kind=4), allocatable, dimension (:) :: ibranch            !  array identifying states it gamma decays to
       real(kind=8), allocatable, dimension (:) :: branch                !  array with branching ratios for discrete gamma decays
@@ -399,6 +413,7 @@ module nuclei
       real(kind=8), allocatable, dimension (:) :: egamma                !  array with gamma-ray energies for decay
       real(kind=8), allocatable, dimension (:) :: p_ic                   !  array with internal conversion coefficients
       real(kind=8), allocatable, dimension (:) :: cs                    !  array with gamma-ray energies for decay
+      logical, allocatable, dimension (:) :: branch_modified                    !  array with gamma-ray energies for decay
    end type discrete_state
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !---------    Derived type for Fission-barrier properties
@@ -442,16 +457,17 @@ module nuclei
       real(kind=8) :: Ex_max                                          !  maximum excitation energy
       real(kind=8) :: Kinetic_energy                                  !  Lab kinetic energy of nucleus
       real(kind=8) :: dKinetic_energy                                 !  Lab kinetic energy of nucleus
-      logical PREEQ
+      logical :: PREEQ
+      logical :: modified
 !-----  Info definging bin structure
       integer(kind=4) :: nbin                                         !  number of excitation energy bins
       real(kind=8) :: jshift                                          !  = 0.5 of odd A = 0 for even A
       integer(kind=4) :: j_max                                        !  number of angular momentum bins
       real(kind=8), allocatable, dimension (:) :: e_grid              !  Energies for the level density grid
       real(kind=8), allocatable, dimension (:) :: delta_e             !  Energy spacing for the grid point - useful for unequal bins
-      real(kind=8), allocatable, dimension (:,:,:) :: pop             !  Populations (E,J,pi)
+!      real(kind=8), allocatable, dimension (:,:,:) :: pop             !  Populations (E,J,pi)
       real(kind=8), allocatable, dimension (:,:) :: PREEQ_pop         !  Populations removed from compound due to pree-equilibirum for J,pi states
-      real(kind=8), allocatable, dimension (:,:,:) :: rho             !  level densities (E,J,pi)
+!      real(kind=8), allocatable, dimension (:,:,:) :: rho             !  level densities (E,J,pi)
       real(kind=8), allocatable, dimension (:,:,:) :: HF_den          !  Hauser-Feshbach denominators for each bin
       real(kind=8), allocatable, dimension (:,:,:,:) :: HF_prob       !  Hauser-Feshbach decay prob for particle type
       type(bin_data), allocatable, dimension(:,:,:) :: bins
@@ -634,10 +650,6 @@ module particles_def
       real(kind=8), allocatable, dimension (:,:,:) :: trans_read
       integer(kind=4) :: nbin
       real(kind=8), allocatable, dimension (:,:,:) :: trans
-      integer(kind=4) :: nbin_spectrum
-      real(kind=8), allocatable, dimension (:) :: Lab_spectrum
-      real(kind=8), allocatable, dimension (:) :: COM_spectrum
-      real(kind=8), allocatable, dimension (:) :: PREEQ_spectrum
    end type particles
 !----------------------------------------------------------------------
    type(particles), allocatable, dimension (:) :: particle

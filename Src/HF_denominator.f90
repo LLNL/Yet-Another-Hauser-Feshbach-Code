@@ -200,7 +200,7 @@ subroutine HF_denominator(icomp)
 !
 !               do ns_f = 1, nucleus(i_f)%num_discrete
                num_discrete = nucleus(i_f)%ncut
-               if(All_gammas)num_discrete = nucleus(i_f)%num_discrete
+               if(all_discrete_states)num_discrete = nucleus(i_f)%num_discrete
                do ns_f = 1, num_discrete
                   e_f = energy - nucleus(icomp)%sep_e(k) -                             &
                              nucleus(i_f)%state(ns_f)%energy
@@ -272,7 +272,7 @@ subroutine HF_denominator(icomp)
 !-------   Start with discrete states below ecut
 !               do ns_f = 1, nucleus(i_f)%num_discrete
                num_discrete = nucleus(i_f)%ncut
-               if(All_gammas)num_discrete = nucleus(i_f)%num_discrete
+               if(all_discrete_states)num_discrete = nucleus(i_f)%num_discrete
                do ns_f = 1, num_discrete
                   e_f = energy - nucleus(i_f)%state(ns_f)%energy
                   e_gamma = e_f
@@ -399,7 +399,7 @@ subroutine HF_denominator(icomp)
 !
 !                  do ns_f = 1, nucleus(i_f)%num_discrete
                   num_discrete = nucleus(i_f)%ncut
-                  if(All_gammas)num_discrete = nucleus(i_f)%num_discrete
+                  if(all_discrete_states)num_discrete = nucleus(i_f)%num_discrete
                   do ns_f = 1, num_discrete
                      e_f = energy - nucleus(icomp)%sep_e(k)-           &
                                     nucleus(i_f)%state(ns_f)%energy
@@ -495,7 +495,7 @@ subroutine HF_denominator(icomp)
 !
 !                  do ns_f = 1, nucleus(i_f)%num_discrete
                   num_discrete = nucleus(i_f)%ncut
-                  if(All_gammas)num_discrete = nucleus(i_f)%num_discrete
+                  if(all_discrete_states)num_discrete = nucleus(i_f)%num_discrete
                   do ns_f = 1, num_discrete
                      e_f = energy - nucleus(i_f)%state(ns_f)%energy
                      e_gamma = e_f
@@ -791,82 +791,3 @@ subroutine HF_denominator(icomp)
 
 return
 end subroutine HF_denominator
-!
-!*******************************************************************************
-!
-subroutine pack_data(Ix_f, ip_f, n_f, idb, l, iss, itemp)
-!
-!*******************************************************************************
-!
-!  Discussion:
-!
-!    This subroutine packs integer data defining aspects of a decay
-!    into a single integer(kind=4) itemp
-!
-!  Licensing:
-!    This code is distributed under the GNU LGPL version 2 license. 
-!
-!  Date:
-!
-!    25 September 2019
-!
-!  Author:
-!
-!      Erich Ormand, LLNL
-!
-!*******************************************************************************
-!
-   use variable_kinds
-   implicit none
-   integer(kind=4), intent(in) :: Ix_f, ip_f, n_f, idb, l, iss
-   integer(kind=4), intent(out) :: itemp
-
-
-   itemp = Ix_f
-   itemp = ior(itemp,ishft(ip_f,6))
-   itemp = ior(itemp,ishft(n_f,7))
-   itemp = ior(itemp,ishft(idb,21))
-   itemp = ior(itemp,ishft(l,22))
-   itemp = ior(itemp,ishft(iss,28))
-   return
-end subroutine pack_data 
- 
-subroutine unpack_data(Ix_f, ip_f, n_f, idb, l, iss, itemp)
-!
-!*******************************************************************************
-!
-!  Discussion:
-!
-!    This subroutine unpacks data in the integer(kind=4) itemp
-!    that was packed into it using the subroutine pack_data
-!
-!  Licensing:
-!
-!    This code is distributed under the GNU LGPL version 2 license. 
-!
-!  Date:
-!
-!    25 September 2019
-!
-!  Author:
-!
-!      Erich Ormand, LLNL
-!
-!*******************************************************************************
-!
-   use variable_kinds
-   implicit none
-   integer(kind=4), intent(out) :: Ix_f, ip_f, n_f, idb, l, iss
-   integer(kind=4), intent(in) :: itemp
-
-
-   Ix_f = iand(itemp,2**6-1)
-   ip_f = iand(ishft(itemp,-6),1)
-   n_f = iand(ishft(itemp,-7),2**14-1)
-   idb = iand(ishft(itemp,-21),1)
-   l = iand(ishft(itemp,-22),2**6-1)
-   iss = iand(ishft(itemp,-28),2**5-1)
-
-   return
-end subroutine unpack_data 
- 

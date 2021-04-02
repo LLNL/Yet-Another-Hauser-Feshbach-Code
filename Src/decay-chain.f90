@@ -1,4 +1,4 @@
-subroutine set_up_decay_chain(Z_p, A_p, Z_t, A_t, num_comp)
+subroutine set_up_decay_chain(Z_p, A_p, Z_t, A_t)
 !
 !*******************************************************************************
 !
@@ -32,7 +32,6 @@ subroutine set_up_decay_chain(Z_p, A_p, Z_t, A_t, num_comp)
    use constants
    implicit none
    integer(kind=4), intent(in) :: Z_p, A_p, Z_t, A_t
-   integer(kind=4), intent(out) :: num_comp
 !-------------------------------------------------------
    integer(kind=4) :: inuc, inucp, num_nuc
    integer(kind=4) :: Z_i, A_i
@@ -41,7 +40,7 @@ subroutine set_up_decay_chain(Z_p, A_p, Z_t, A_t, num_comp)
    integer(kind=4) :: Z_f, N_f, A_f
    integer(kind=4) :: Z_pp, N_pp, A_pp
    real(kind=8) :: D_p, D_n
-   real(kind=8) :: me, be, sep(6), me_f, be_f, sep_f(6)
+   real(kind=8) :: me, be, sep(0:6), me_f, be_f, sep_f(0:6)
    real(kind=8) :: sep_tot
    real(kind=8) :: emax
    integer(kind=4) ::  N_i, d_i, t_i, h_i, alpha_i

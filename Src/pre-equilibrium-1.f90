@@ -503,6 +503,9 @@ subroutine pre_equilibrium_1(icomp, istate, in, E_inc,    &
 !  write(6,*)nucleus(icomp)%PREEQ_cs(in)
 
 
+
+
+
    return
 end subroutine pre_equilibrium_1
 !

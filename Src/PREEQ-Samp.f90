@@ -45,7 +45,7 @@ subroutine PREEQ_sample(iproj, in, itarget, istate, e_in, ex_tot,      &
    integer(kind=4), intent(in) :: l_i, is_i, Ix_i, ip_i, icomp_i
    integer(kind=4), intent(out) :: icomp_f, Ix_f, l_f, ip_f, nbin_f, idb
    integer(kind=4), intent(in) :: n_dat, dim_part
-   integer(kind=4), intent(inout) :: num_part_type(6)
+   integer(kind=4), intent(inout) :: num_part_type(0:6)
    real(kind=8), intent(inout) :: part_fact(0:7)
    integer(kind=4), intent(out) :: num_part
    real(kind=8), intent(out) :: part_data(n_dat,dim_part)
@@ -92,6 +92,7 @@ subroutine PREEQ_sample(iproj, in, itarget, istate, e_in, ex_tot,      &
    real(kind=8) :: random_32
    integer(kind=4) :: preeq_l
    integer(kind=4) :: find_ibin
+   logical :: real8_equal
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !--------------------------------    Start Calculation
 
@@ -366,7 +367,8 @@ subroutine PREEQ_sample(iproj, in, itarget, istate, e_in, ex_tot,      &
            l_max = nint(xj_f_max + particle(k)%spin)
            do l = l_min, l_max
               par_f = (-1.0d0)**l*nucleus(icomp_f)%state(nbin_f)%parity*particle(k)%par
-              if(par_f == par)exit
+!              if(par_f == par)exit
+              if(real8_equal(par_f,par))exit
            end do
            l_f = l
            if(l_f == 0)then
@@ -399,6 +401,7 @@ subroutine PREEQ_sample(iproj, in, itarget, istate, e_in, ex_tot,      &
               nbin_f = closest
               xI_f = nucleus(icomp_f)%state(closest)%spin
               ex_final = nucleus(icomp_f)%state(closest)%energy
+              energy = ex_tot - ex_final - nucleus(icomp_i)%sep_e(k)
            else
               goto 22                                         !  It didn't work, so start over
            end if
@@ -447,9 +450,9 @@ subroutine PREEQ_sample(iproj, in, itarget, istate, e_in, ex_tot,      &
 !
 !----    Before leaving update number of particles for this decay type
 !
-     if(k > 0 .and. k <= 6)then
+     if(k >= 0 .and. k <= 6)then
         num_part_type(k) = num_part_type(k) + 1
-        if(num_part_type(k) >= max_particle(k))part_fact(k) = 0.0d0
+        if(k > 0 .and. num_part_type(k) >= max_particle(k))part_fact(k) = 0.0d0
      end if
 
    return
@@ -503,9 +506,6 @@ subroutine PREEQ_Angular(icomp_C, icomp_B, iproj, E_A, ieject, E_B, x_Ang)
    real(kind=8) :: A_C, A_B, Z_C, Z_B, N_C, N_B, Ia, Ib
 
    real(kind=8) :: ex1, ex2, ex4
-
-   integer(kind=4) :: numx
-   parameter (numx = 200)
 
 !   integer(kind=4) :: L
 !   real(kind=8) :: xL
@@ -742,13 +742,25 @@ real(kind=8) function expdev(iseed_32,a)
 !-------------------------
    real(kind=8) dum
    real(kind=8) random_32
+   logical :: real8_equal
 !   real(kind=8) random_64
 !------------------------------
- 1 dum = 1.0d0 - random_32(iseed_32)*(1.0d0-exp(-2.0d0*a))
-! 1 dum = 1.0d0 - random_64(iseed_64)*(1.0d0-exp(-2.0d0*a))
-   if(dum == 0.0d0) goto 1
-   expdev = -log(dum)/a
-   expdev = -(expdev - 1.0d0)
-   if(abs(expdev) > 1.0d0)goto 1
+!! 1 dum = 1.0d0 - random_32(iseed_32)*(1.0d0-exp(-2.0d0*a))
+!! 1 dum = 1.0d0 - random_64(iseed_64)*(1.0d0-exp(-2.0d0*a))
+!   if(dum == 0.0d0) goto 1
+!   expdev = -log(dum)/a
+!   expdev = -(expdev - 1.0d0)
+!   if(abs(expdev) > 1.0d0)goto 1
+
+   expdev = 10.0d0
+   do while(expdev > 1.0d0)
+      dum = 1.0d0 - random_32(iseed_32)*(1.0d0-exp(-2.0d0*a))
+      do while(real8_equal(dum,0.0d0))
+         dum = 1.0d0 - random_32(iseed_32)*(1.0d0-exp(-2.0d0*a))
+      end do
+      expdev = -log(dum)/a
+      expdev = -(expdev - 1.0d0)
+   end do
+
    return
 end function expdev

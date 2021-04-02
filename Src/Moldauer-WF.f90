@@ -267,6 +267,7 @@ subroutine Moldauer_product(icomp,                               &
    real(kind=8) :: spin_fac
    real(kind=8) :: parity_fac
    real(kind=8) :: HW_trans
+   logical :: real8_equal
 !-------------------------------------------------------------------------+
 !------                                                                   +
 !--------------------   Start subroutine                                  +
@@ -345,7 +346,7 @@ subroutine Moldauer_product(icomp,                               &
       end do
 !---------------------------   particle decay to discrete states
       num_discrete = nucleus(i_c)%ncut
-      if(All_gammas)num_discrete = nucleus(i_c)%num_discrete
+      if(all_discrete_states)num_discrete = nucleus(i_c)%num_discrete
       do n_c = 1, num_discrete
          E_c = energy - nucleus(icomp)%sep_e(k_c) - nucleus(i_c)%state(n_c)%energy
          if(E_c < 1.0d-6)exit
@@ -431,8 +432,10 @@ subroutine Moldauer_product(icomp,                               &
          do j = 1, nucleus(icomp)%F_Barrier(1)%num_discrete
             par = -1.0d0
             if(ip == 1) par = 1.0d0
-            if(nucleus(icomp)%F_barrier(ib)%state_j(j) == xI .and.                        &
-               nucleus(icomp)%F_barrier(ib)%state_pi(j) == par)then
+!            if(nucleus(icomp)%F_barrier(ib)%state_j(j) == xI .and.                        &
+!               nucleus(icomp)%F_barrier(ib)%state_pi(j) == par)then
+            if(real8_equal(nucleus(icomp)%F_barrier(ib)%state_j(j),xI) .and.                        &
+               real8_equal(nucleus(icomp)%F_barrier(ib)%state_pi(j),par))then
                F_Barrier = nucleus(icomp)%F_Barrier(ib)%barrier
                F_Barrier = F_Barrier*aa*exp(-cc**2*(energy-bb)**2)
                if(Max_J > 0.0d0)then

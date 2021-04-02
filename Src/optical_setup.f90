@@ -2,7 +2,7 @@
 !*******************************************************************************
 !
 subroutine optical_setup(data_path, len_path, iproj, itarget,                  &
-                         istate, de, num_comp, Ang_L_max)
+                         istate, de, Ang_L_max)
 !
 !*******************************************************************************
 !
@@ -36,7 +36,6 @@ subroutine optical_setup(data_path, len_path, iproj, itarget,                  &
    integer(kind=4), intent(in) :: len_path
    integer(kind=4), intent(in) :: iproj, itarget, istate
    real(kind=8), intent(in) :: de
-   integer(kind=4), intent(in) :: num_comp
    integer(kind=4), intent(in) :: Ang_L_max
 
 !-------------------------------   Internal data
@@ -47,6 +46,7 @@ subroutine optical_setup(data_path, len_path, iproj, itarget,                  &
    integer(kind=4) :: len_prn             ! length of tc_file 
    logical tco_exist, Ang_exist
    integer(kind=4), allocatable :: cc_index(:)
+   integer(kind=4) :: temp_index
    logical optical_run 
 !-------------------------
    integer(kind=4) :: i, j, k, l, n, idummy, in, isp
@@ -99,6 +99,7 @@ subroutine optical_setup(data_path, len_path, iproj, itarget,                  &
    real(kind=8) :: tco_interpolate
    real(kind=8) :: clebr
    real(kind=8) :: comp_cs
+   integer(kind=4) :: state_index
 !
 !-------------------------------------------------------------------------------+
 !-------                   Execute subroutine                                   +
@@ -168,7 +169,7 @@ subroutine optical_setup(data_path, len_path, iproj, itarget,                  &
 !-------------------------------------------------------------------------+
 !         call make_fresco_tco(data_path,len_path,tco_file,len_tco,      &
 !                              de,k,iproj,jtarget,jstate,Ang_L_max)
-         call make_fresco_tco(data_path,len_path,tco_file,len_tco,      &
+         call fresco_make_tco(data_path,len_path,tco_file,len_tco,        &
                               k,iproj,jtarget,jstate,Ang_L_max)
       end if
 !***********************************************************************
@@ -199,7 +200,6 @@ subroutine optical_setup(data_path, len_path, iproj, itarget,                  &
 !         read(50,'(10(1x,1pe16.9))')(particle(k)%e_grid(i),i = minl, maxl)
          read(50,*)(particle(k)%e_grid(i),i = minl, maxl)
       end do
-
 
       if(particle(k)%e_grid(nume) < particle(k)%max_e)then        ! Needs in calculation are incompatible 
          if(iproc == 0)then
@@ -315,7 +315,9 @@ subroutine optical_setup(data_path, len_path, iproj, itarget,                  &
 
          check_dwba = .false.
          do i = 1, OpticalCS%numcc
-            read(50,*)idummy, cc_index(i), OpticalCS%state(i)%spin,OpticalCS%state(i)%parity,    &
+!            read(50,*)idummy, cc_index(i), OpticalCS%state(i)%spin,OpticalCS%state(i)%parity,    &
+!                      OpticalCS%state(i)%K, OpticalCS%state(i)%energy, OpticalCS%state(i)%state_type
+            read(50,*)idummy, temp_index, OpticalCS%state(i)%spin,OpticalCS%state(i)%parity,    &
                       OpticalCS%state(i)%K, OpticalCS%state(i)%energy, OpticalCS%state(i)%state_type
 !            if(OpticalCS%state(i)%state_type < 1)particle(k)%do_dwba = .true.
             if(OpticalCS%state(i)%state_type < 1)check_dwba = .true.
@@ -339,8 +341,28 @@ subroutine optical_setup(data_path, len_path, iproj, itarget,                  &
          rewind(50)
          read(50,*)
          do i = 1, OpticalCS%numcc
-            read(50,*)idummy, cc_index(i), OpticalCS%state(i)%spin,OpticalCS%state(i)%parity,    &
+!            read(50,*)idummy, cc_index(i), OpticalCS%state(i)%spin,OpticalCS%state(i)%parity,    &
+!                      OpticalCS%state(i)%K, OpticalCS%state(i)%energy, OpticalCS%state(i)%state_type
+            read(50,*)idummy, temp_index, OpticalCS%state(i)%spin, OpticalCS%state(i)%parity,       &
                       OpticalCS%state(i)%K, OpticalCS%state(i)%energy, OpticalCS%state(i)%state_type
+!-----    find cc_index for discrete states - allows for changes in spectrum file without having to 
+!-----    rerun fresco---
+            if(OpticalCS%state(i)%state_type == 1)then
+               cc_index(i) = state_index(itarget,OpticalCS%state(i)%spin,OpticalCS%state(i)%parity, &
+                                         OpticalCS%state(i)%energy)
+               if(cc_index(i) == -1)then
+                  if(iproc == 0)then
+                     write(6,'(''***********************************************************************'')')
+                     write(6,'(''ERROR -- Unable to find coupled-shannels state - Abort calculation'')')
+                     write(6,'(''J = '',f5.1,1x,''Parity = '',f4.1,1x,''Energy = '',f12.5)')        &
+                           OpticalCS%state(i)%spin,OpticalCS%state(i)%parity,                       &
+                           OpticalCS%state(i)%energy
+                     write(6,'(''***********************************************************************'')')
+                  end if
+                  call MPI_Abort(icomm,101,ierr)
+               end if
+            end if
+
 !
 !----   Changed 5-21-2020 not to tie the DWBA calculation to the xplicit energy grid.
 !----
@@ -560,89 +582,3 @@ subroutine optical_setup(data_path, len_path, iproj, itarget,                  &
    return
 
 end subroutine optical_setup
-!
-!
-!*******************************************************************************
-!
-real(kind=8) function tco_interpolate(e,nume,e_grid,tco)
-!
-!*******************************************************************************
-!
-!  Discussion:
-!
-!    This subroutine finds the transmission coeeficient at a 
-!    specific energy e by interpolating from a list of nume values 
-!    in the array tco on a energy grid defined by e_grid 
-!    Interpolate using a log-log linear approximation
-!    
-!    Improved 6 Jan 2021 making use of the constant grid in log(e) to
-!    find mid points. Sped up by 6x.
-!
-!  Licensing:
-!
-!    This code is distributed under the GNU LGPL version 2 license. 
-!
-!  Date:
-!
-!    25 September 2019
-!
-!  Author:
-!
-!      Erich Ormand, LLNL
-!
-!*******************************************************************************
-!
-   use nodeinfo
-   use variable_kinds
-   implicit none
-   real(kind=8), intent(in) :: e
-   integer(kind=4), intent(in) :: nume
-   real(kind=8), intent(in) :: e_grid(nume),tco(nume)
-!-----------------------------------------------------------------------------
-   integer(kind=4) :: i1, i2 
-!   real(kind=8) :: tco_1,tco_2
-   real(kind=8) :: x1, x2, y1, y2, x, y, a, b 
-   real(kind=8), parameter :: tolerance = 1.0d-5
-
-   real(kind=8) :: delta
-!-----------------------------------------------------------------------------
-   tco_interpolate = 1.0d-9
-   if(e <= 0.0d0)return
-   tco_interpolate = tco(1)
-   if(e <= e_grid(1))return
-!   if(abs(log(e) - log(e_grid(i1))) <= tolerance)return
-
-   x = log(e)
-   x1 = log(e_grid(1))
-
-   delta = log(e_grid(2)) - x1
-   i1 = int((x - x1)/delta) + 1
-   i2 = i1 + 1
-
-!   if(i1 >= nume)then
-!      if(iproc == 0)write(6,*)'Error in log_tco_interpolate e > egrid(nume)'
-!      call MPI_Abort(icomm,101,ierr)
-!   end if
-
-   x1 = log(e_grid(i1))
-   x2 = log(e_grid(i2))
-!------   Put in lower threshold
-!   tco_1 = max(tco(i1),1.0d-9)
-!   tco_2 = max(tco(i2),1.0d-9)
-!   y1 = log(tco_1)  
-!   y2 = log(tco_2)
-   y1 = log(max(tco(i1),1.0d-9))
-   y2 = log(max(tco(i2),1.0d-9))
-   a = (y2-y1)/(x2-x1)
-   b = y1 - a*x1
-   y = a*x + b
-   tco_interpolate = exp(y)
-
-!  write(6,*)'LOG'
-!  write(6,*)i1,i2
-!  write(6,*)x,x1,x2,y1,y2
-!  write(6,*)a,b,y
-
-  return
-end function tco_interpolate
-

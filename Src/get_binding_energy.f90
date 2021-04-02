@@ -32,7 +32,7 @@ subroutine get_binding_energy(data_path, len_path,         &
   character(len=200), intent(in) :: data_path
   integer(kind=4), intent(in) :: len_path
   integer(kind=4), intent(in) :: iz1,ia1
-  real(kind=8), intent(out) :: me, be, sep_e(6)
+  real(kind=8), intent(out) :: me, be, sep_e(0:6)
 !-------------------------------------------------------------------
   integer(kind=4) :: in1
   integer(kind=4), allocatable, dimension(:) :: istart    !  starting position for Z
@@ -137,6 +137,7 @@ subroutine get_binding_energy(data_path, len_path,         &
  101  continue
 !----   now for the separation energies
 !   write(6,*)'iz1 ',iz1, ia1
+  sep_e(0) = 0.0d0
   do j = 1, 6
      iz2 = iz1 - particle(j)%Z
      ia2 = ia1 - particle(j)%A
@@ -152,4 +153,4 @@ subroutine get_binding_energy(data_path, len_path,         &
      end if
   end do
   return
-end
+end subroutine get_binding_energy

@@ -478,3 +478,97 @@ Version 3.33
     state decays by the discrete decay branching ratios and the actual state
     angular momentum is used. 
     state 
+
+Version 3.34
+1.  Fixed bug causing infinite loop running fresco for n+14N with alphas. Proper
+    check on max energy in the Lab frame is made.
+2.  Fixed issues with population calculations with new version. Segmentation 
+    fault with subscripts out of bounds.
+3.  Fixed issues with population energies that are below E_cut and not aligned
+    with excitation energy grid, and removed redundant excitation energies
+4.  Added calculation of particle multiplicities, average and variance.
+5.  Added Channel probabilities for population calculation. They are summed over
+    subchannels that end up in the ground state or isomers.
+6.  Addressed potential issue with selecting index using random numbers if
+    ran = 1.000000000.
+7.  Fixed potential problems with checking equivalence of two real(kind=8)
+    numbers. Instead of if(x == y) make check on difference
+    if(abs(x-y) < tol), tol=1.0d-8. Also, several cases involved equivalence
+    with an integer variable; level_param. Changed to if(nint(x) == i)    
+8.  Reorganized some subrotuine files, renaming them to reflect the subroutine
+    or function contained in the file.
+9.  Fixed misalignment in energy grid. Intention was to align first grid with
+    S_projectile (got damaged when unequal bins were implemented).
+10. Added feature to have a default set of energies if the user does not
+    specify incident energies with either proj_e_file or proj_eminmax.
+11. Converted to 2020 RIPL-3 spectra files. Was using older files, and some
+    e&m transitions weren't noted correctly - they had pg and icc, with pe=0. 
+12. Reworked subroutine spectrum to account for changes in format for RIPL-3
+    files and change in the way floating bands were treated when the first
+    version of YAHFC was written. 
+13. Added tracking capability for modifications to RIPL-3 structure files placed
+    in the levels-eval directory, which are printed in output files.
+14. Added core capability to track different decay type for states in RIPL-3
+    file. Not active in 3.34 for anything other than gamma decay. At this 
+    point, states decaying by means other than gammas, are not included. Can
+    affect very light nuclei.
+15. Switched coupled-channels identification from a state label to check on
+    J, parity, and Ex. Tolerance on energy is set to 1 keV. Change made due to
+    index changes in the RIPL-3 files that would require rerunning FRESCO
+    and relabeling all coupled-channels states when RIPL-3 files are updated.
+16. Updated and checked examples in Runs directory.
+17. Fixed error in fit_nuke_Gamma_gamma where the variable g_error was declared 
+    real(kind=8), but was integer(kind=4) in subroutine Gamma_gamma.
+18. Fixed bug where maximum index for spectra was not set for the appropriate
+    maximum excitation energy. Some pre-equilibrium gammas, would go off scale.
+19. Fixed incorrect energy being set for high-energy pre-equilibrium photons
+    where the decay was forced to the nearest available discrete state; this
+    caused energy conservation issue for main decay, which was printed to 
+    fort.28.
+20. Put counter on writes to unit=28 with energy conservation problems and
+    warning.
+21. Put warning output if energy conservation is an issue while sampling angles 
+    and adding spread to particles to collect spectra and angular 
+    distributions. Generally, this is not likely if the main decaay is OK.
+22. Added option "all_discrete_states" meant to replace less obvious option
+    "all_gammas".
+23. Added precalculated transmission coefficients with coupled channels and
+    DWBA states for several actinide nuclei. With DWBA, these can take up to
+    three hours. They are stored in $YAHFC_DATA/Trans_coeff/CC and 
+    $YAHFC_DATA/Trans_coeff/CC-DWBA
+24. Added Z and A information when parse-command can't find a nucleus. Most 
+    likely this will occur when incident energy won't use that state, but is 
+    in file for later runs. In this case, it is just a notification. But, 
+    the user could also incorrectly specify a nucleus, so warning is issued.
+25. Adjusted formatting in output file. Made it adjustable to actual number of
+    data written to each line for transmission coefficients and level density
+    arrays.
+26. Added feature to stop calculation after the first, or primary decay. The 
+    state populations following the decay are printed for each nucleus and
+    incident energy in the directory "Primary-decay" in the standard 
+    library directory.
+27. No longer defaults to DWBA calculation being the default. Led to issues with
+    whether it was on or off for light nuclei. Must be turned on. If the
+    transmission coefficients were computed with DWBA on, the user is notified
+    of the inconsistency and instructed to turn DWBA on with "do_dwba y". If
+    this command is left out, the default is "do_dwba n", even for actinides.
+28. Added ability to normalize a population calculation to a cross section
+    value. Previously, all population calculations were treated as a probability
+    and normalized to unity. If a normalization is added, it is treated as a
+    cross section, and outputs reflect that. The norm is added to energy input
+    line in the population input file. There are three entries:
+        Ex, Ex, and Norm
+    where Ex is the excitation energy for the calculation, dEx is a
+    width sampled a Gaussian centered on Ex. Norm is the norm for this energy.
+    The Norm entry is optional, but dEx is NOT (for backward compatibility).
+    If Norm is not entered, the overall norm is unity. A normalization (optional)
+    may also be entered with the command
+         projectile -1 -1 Ex dEx Norm
+    which sets up a population calculation with a single excitation energy
+    Ex sampled with a Gaussian width dEx, and the J^pi populations are
+    based on the angular momentum distribution.
+29. Added back Readme.txt to the main YAHFC directory for the gitLab
+    distribution.
+
+
+

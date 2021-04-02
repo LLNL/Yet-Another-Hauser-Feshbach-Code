@@ -88,7 +88,8 @@ real(kind=8) function wigner3j(j1,j2,j3,m1,m2,m3)
 
    wigner3j = 0.0d0
 
-   if((m1 + m2 + m3) /= 0.0d0)return    !   check on z-component 
+!   if((m1 + m2 + m3) /= 0.0d0)return    !   check on z-component 
+   if(abs(m1 + m2 + m3) > 1.0d-6)return    !   check on z-component 
    if(triangle(j3,j1,j2))return            !   angular momenta can't couple
    if(j1 - abs(m1) < 0)return           !   m1 > j1 - not allowed
    if(j2 - abs(m2) < 0)return           !   m2 > j1 - not allowed

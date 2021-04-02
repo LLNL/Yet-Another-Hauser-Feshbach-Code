@@ -42,7 +42,7 @@
 !-----------  Input  ------------------------------------------------
    integer(kind=4), intent(in) :: icomp_i, Ix_i, ip_i, nbin_i 
    integer(kind=4), intent(out) :: icomp_f, Ix_f, ip_f, nbin_f, idb
-   integer(kind=4), intent(inout) :: num_part_type(6)
+   integer(kind=4), intent(inout) :: num_part_type(0:6)
    real(kind=8), intent(inout) :: part_fact(0:7)
    integer(kind=4), intent(in) :: n_dat, dim_part
    integer(kind=4), intent(inout) :: num_part
@@ -103,8 +103,6 @@
 !-----   part_data(22,num_part) = xI_i         !--------   Spin of initial state
 !-----   part_data(23,num_part) = xip_i        !--------   parity of final state
 !-----   part_data(24,num_part) = nbin_i       !--------   Bin or state number of initial state
-
-
 
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !----------   Start Program
@@ -194,7 +192,7 @@
 
    if(icomp_f < 1)then
       write(6,*)xnnn, base_prob
-      do k = 1,6
+      do k = 1, 6
          write(6,*)num_part_type(k),max_particle(k)
          write(6,*)k,part_fact(k)
       end do
@@ -236,9 +234,9 @@
 
    k = nucleus(icomp_i)%bins(Ix_i,ip_i,nbin_i)%decay_particle(if1)
 
-   if(k > 0 .and. k <= 6)then
+   if(k >= 0 .and. k <= 6)then
       num_part_type(k) = num_part_type(k) + 1
-      if(num_part_type(k) >= max_particle(k))part_fact(k) = 0.0d0
+      if(k > 0 .and. num_part_type(k) >= max_particle(k))part_fact(k) = 0.0d0
    end if
 
    mask6 = 2**6 - 1
@@ -570,6 +568,7 @@
                tally_weight = tally_weight*part_data(19,n)
             end do
          end if
+
          Exit_channel(ichan)%state(istate)%cs(j,in) =                           &  
                       Exit_channel(ichan)%state(istate)%cs(j,in) + tally_weight
 
@@ -870,7 +869,7 @@
 !-----------  Output ------------------------------------------------
    integer(kind=4), intent(out) :: icomp_f, Ix_f, ip_f, nbin_f, idb
    integer(kind=4), intent(in) :: n_dat, dim_part
-   integer(kind=4), intent(inout) :: num_part_type(6)
+   integer(kind=4), intent(inout) :: num_part_type(0:6)
    real(kind=8), intent(inout) :: part_fact(0:7)
    integer(kind=4), intent(inout) :: num_part
    real(kind=8), intent(inout) :: part_data(n_dat,dim_part)
@@ -952,7 +951,12 @@
       end do
    else
       xnnn = Channel(l_i,is_i,Ix_i)%num_decay
-      if1 = int(random_32(iseed_32)*xnnn) + 1
+      ran = random_32(iseed_32)
+      if1 = min(int(ran*xnnn)+1,Channel(l_i,is_i,Ix_i)%num_decay)  !  just in case ran = 1.0
+!      if(if1 > Channel(l_i,is_i,Ix_i)%num_decay)then
+!         write(6,*)'xnnn, ran, if1 ',xnnn, ran, if1
+!         write(6,*)'l_i, is_i, Ix_i ',l_i,is_i,Ix_i
+!      end if
 !      if1 = int(random_64(iseed_64)*xnnn) + 1
       tally_prob = Channel(l_i,is_i,Ix_i)%Channel_prob(if1)
       if(if1 > 1) tally_prob = tally_prob - Channel(l_i,is_i,Ix_i)%Channel_prob(if1-1)
@@ -982,9 +986,9 @@
    icomp_f = Channel(l_i,is_i,Ix_i)%decay_to(if1)
    k = Channel(l_i,is_i,Ix_i)%decay_particle(if1)
 
-   if(k > 0 .and. k <= 6)then
+   if(k >= 0 .and. k <= 6)then
       num_part_type(k) = num_part_type(k) + 1
-      if(num_part_type(k) >= max_particle(k))part_fact(k) = 0.0d0
+      if(k > 0 .and. num_part_type(k) >= max_particle(k))part_fact(k) = 0.0d0
    end if
 
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -1052,7 +1056,6 @@
          call MPI_Abort(icomm,201,ierr)
       end if
    end if
-
 
    part_data(1,num_part) = real(icomp_f,kind=8)
    part_data(2,num_part) = real(k,kind=8)

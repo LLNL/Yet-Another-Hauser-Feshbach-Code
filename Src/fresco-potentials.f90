@@ -274,7 +274,7 @@ subroutine soukhovitskii_potential(part_type, iA, iZ, OM_option,        &
    real(kind=8) :: Cwiso, Wad, d1loc, d2loc, d3loc
    real(kind=8) :: vso1loc, vso2loc, wso1loc, wso2loc
    real(kind=8) :: onethird
-   real(kind=8) :: me, be, sep(6)
+   real(kind=8) :: me, be, sep(0:6)
    real(kind=8) :: phase
 
    if(part_type > 2)then

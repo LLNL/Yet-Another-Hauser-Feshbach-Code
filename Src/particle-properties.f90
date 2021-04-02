@@ -27,7 +27,21 @@ subroutine particle_data
    use directory_structure
    implicit none
 !--------------   data for emitted particle types
-   allocate(particle(-1:7))
+   allocate(particle(-2:7))
+   particle(-2:7)%name = '        '
+!--------------   Blank - used for population calculations
+   particle(-2)%Z = 0
+   particle(-2)%A = 0
+   particle(-2)%spin = 0.0
+   particle(-2)%par = 0.0
+   particle(-2)%ME = 0.0d0
+   particle(-2)%mass = 0.0d0
+   particle(-2)%label = 'X'
+   particle(-2)%name = 'PopDecay'
+   particle(-2)%opt_pot_set = .false.
+   particle(-2)%max_opt_pot = 1
+   particle(-2)%om_option = 0  
+   particle(-2)%nume = 0
 !--------------   electron
    particle(-1)%Z = 0
    particle(-1)%A = 0
@@ -132,15 +146,15 @@ subroutine particle_data
    particle(6)%max_opt_pot = 1
    particle(6)%om_option = 0  
    particle(6)%nume = 0
-!--------------   Blank - used for population calculations
+!--------------   Blank - used to define fission
    particle(7)%Z = 0
    particle(7)%A = 0
    particle(7)%spin = 0.0
    particle(7)%par = 0.0
    particle(7)%ME = 0.0d0
    particle(7)%mass = 0.0d0
-   particle(7)%label = 'X'
-   particle(7)%name = 'PopDecay'
+   particle(7)%label = 'f'
+   particle(7)%name = 'fission'
    particle(7)%opt_pot_set = .false.
    particle(7)%max_opt_pot = 1
    particle(7)%om_option = 0  

@@ -1,8 +1,8 @@
 !
 !*******************************************************************************
 !
-subroutine compound_xs(e_in,itarget,istate,iproj,sigma,    &
-                       num_channel,channel_prob,ichannel)
+subroutine compound_xs(e_in, itarget, istate, iproj, sigma,      &
+                       num_channel, channel_prob, ichannel)
 !
 !*******************************************************************************
 !
@@ -90,7 +90,7 @@ subroutine compound_xs(e_in,itarget,istate,iproj,sigma,    &
 
             channel_xs = cs*cs_fac*tcoef
 
-            if(channel_xs < 1.0d-6)cycle
+            if(channel_xs < 1.0d-7)cycle
             sum = sum + channel_xs
             num_channel = num_channel + 1
          end do
@@ -115,12 +115,12 @@ subroutine compound_xs(e_in,itarget,istate,iproj,sigma,    &
          Ix_max = min(nint(xI_max-nucleus(1)%jshift),nucleus(1)%j_max)
          do Ix = Ix_min, Ix_max
             xI = dfloat(Ix) + nucleus(1)%jshift
-            cs_fac=jhat(xI)/(jhat(spin_target)*jhat(spin_proj))
-            tcoef=tco_interpolate(e_rel,nume,                      &
-                                  particle(iproj)%e_grid,          &
-                                  particle(iproj)%trans_read(1,i,l))
+            cs_fac = jhat(xI)/(jhat(spin_target)*jhat(spin_proj))
+            tcoef = tco_interpolate(e_rel,nume,                      &
+                                    particle(iproj)%e_grid,          &
+                                    particle(iproj)%trans_read(1,i,l))
             channel_xs = cs*cs_fac*tcoef
-            if(channel_xs < 1.0d-6)cycle
+            if(channel_xs < 1.0d-7)cycle
             sum = sum + channel_xs
             nn = nn + 1
             channel_prob(nn) = sum/sigma
@@ -306,13 +306,13 @@ real(kind=8) function compound_cs(e_in,ipar,xI,itarget,istate,iproj)
          xj = xj + real(i,kind=8)
          if(xj < 0.0d0)cycle
          if(xI < abs(xj - spin_target) .or. xI > xj + spin_target)cycle    
-         tcoef = tco_interpolate(e_rel,nume,                      &
-                                 particle(iproj)%e_grid,          &
+         tcoef = tco_interpolate(e_rel,nume,                         &
+                                 particle(iproj)%e_grid,             &
                                  particle(iproj)%trans_read(1,i,l))
 
          channel_xs = cs*cs_fac*tcoef
 
-         if(channel_xs < 1.0d-6)cycle
+         if(channel_xs < 1.0d-7)cycle
          sum = sum + channel_xs
       end do
    end do
@@ -321,5 +321,151 @@ real(kind=8) function compound_cs(e_in,ipar,xI,itarget,istate,iproj)
 
    return
 end function compound_cs
+!
+!*******************************************************************************
+!
+subroutine photo_xs(e_in, itarget, istate, sigma,                 &
+                    num_channel, channel_prob, ichannel)
+!
+!*******************************************************************************
+!
+!  Discussion:
+!
+!    This subroutine calculates reaction cross section
+!
+!  Licensing:
+!
+!    This code is distributed under the GNU LGPL version 2 license. 
+!
+!  Date:
+!
+!    25 September 2019
+!
+!  Author:
+!
+!      Erich Ormand, LLNL
+!
+!*******************************************************************************
+!
+   use variable_kinds
+   use options
+   use nuclei
+   use particles_def
+   use constants 
+   use nodeinfo
+   implicit none
+   real(kind=8), intent(in) :: e_in
+   integer(kind=4), intent(in) :: itarget, istate
+   real(kind=8), intent(out) :: sigma
+   integer(kind=4), intent(out) :: num_channel
+   real(kind=8), pointer, dimension(:) :: channel_prob
+   integer(kind=4), pointer, dimension(:,:) :: ichannel
+!----------------------------------------------------------
+   real(kind=8) :: ex
+   real(kind=8) :: cs, channel_xs
+   real(kind=8) :: spin_target
+   real(kind=8) :: xI, xI_min, xI_max
+   integer(kind=4) :: Ix, Ix_min, Ix_max
+   integer(kind=4) :: nn
+   real(kind=8) :: sum
+   real(kind=8) :: xL
+   integer(kind=4) :: L, Lmax
+   integer(kind=4) :: cpar, par
+!----------   External functions
+   real(kind=8) :: jhat
+   real(kind=8) :: EL_absorption
+   real(kind=8) :: ML_absorption
+!-----------------------------------------------------------
+   spin_target = nucleus(itarget)%state(istate)%spin
+   cpar = nint(nucleus(itarget)%state(istate)%parity)
+!   ex = nucleus(itarget)%state(istate)%energy
+   ex = nucleus(itarget)%sep_e(1)
+
+   cs = 0.0d0
+!----   Count channels and allocate arrays
+!----   Electric modes
+   num_channel = 0
+   Lmax = nucleus(itarget)%lmax_E
+   do L = 1, Lmax
+      xL = real(L,kind=8)
+      xI_min = abs(spin_target - L)
+      xI_max = spin_target + xL
+      Ix_min = nint(xI_min - nucleus(itarget)%jshift)
+      Ix_max = nint(xI_max - nucleus(itarget)%jshift)
+      Ix_max = min(Ix_max,nucleus(itarget)%j_max)
+      num_channel = num_channel + Ix_max - Ix_min + 1
+      channel_xs = EL_absorption(itarget, L, e_in, ex)
+      cs = cs + channel_xs
+   end do
+!----   Magnetic modes
+   Lmax = nucleus(itarget)%lmax_M
+   do L = 1, Lmax
+      xL = real(L,kind=8)
+      xI_min = abs(spin_target - xL)
+      xI_max = spin_target + xL
+      Ix_min = nint(xI_min - nucleus(itarget)%jshift)
+      Ix_max = nint(xI_max - nucleus(itarget)%jshift)
+      Ix_max = min(Ix_max,nucleus(itarget)%j_max)
+      num_channel = num_channel + Ix_max - Ix_min + 1
+      channel_xs = ML_absorption(itarget, L, e_in)
+      cs = cs + channel_xs
+   end do
+
+   sigma = cs
+
+   allocate(channel_prob(num_channel))
+   allocate(ichannel(4,num_channel))
+
+!----   Calculate the probabilities for each channel
+   nn = 0
+!----   Electric modes
+   sum = 0.0d0
+   Lmax = nucleus(itarget)%lmax_E
+   do L = 1, Lmax
+      xL = real(L,kind=8)
+      xI_min = abs(spin_target - xL)
+      xI_max = spin_target + xL
+      Ix_min = nint(xI_min - nucleus(itarget)%jshift)
+      Ix_max = nint(xI_max - nucleus(itarget)%jshift)
+      Ix_max = min(Ix_max,nucleus(itarget)%j_max)
+      channel_xs = EL_absorption(itarget, L, e_in, ex)
+      par = cpar*(-1)**L
+      do Ix = Ix_min, Ix_max
+         xI = real(Ix,kind=8) + nucleus(itarget)%jshift
+         nn = nn + 1
+         sum = sum + channel_xs*jhat(xI)/(jhat(spin_target)*jhat(xL))
+         channel_prob(nn) = sum/cs
+         ichannel(1,nn) = L
+         ichannel(2,nn) = 0
+         ichannel(3,nn) = Ix
+         ichannel(4,nn) = (par+1)/2
+      end do
+   end do
+!----   Magnetic modes
+   Lmax = nucleus(itarget)%lmax_M
+   do L = 1, Lmax
+      xL = real(L,kind=8)
+      xI_min = abs(spin_target - xL)
+      xI_max = spin_target + xL
+      Ix_min = nint(xI_min - nucleus(itarget)%jshift)
+      Ix_max = nint(xI_max - nucleus(itarget)%jshift)
+      Ix_max = min(Ix_max,nucleus(itarget)%j_max)
+      channel_xs = ML_absorption(itarget, L, e_in)
+      par = -cpar*(-1)**L
+      do Ix = Ix_min, Ix_max
+         xI = real(Ix,kind=8) + nucleus(itarget)%jshift
+         nn = nn + 1
+         sum = sum + channel_xs*jhat(xI)/(jhat(spin_target)*jhat(xL))
+         channel_prob(nn) = sum/cs
+         ichannel(1,nn) = L
+         ichannel(2,nn) = 1
+         ichannel(3,nn) = Ix
+         ichannel(4,nn) = (par+1)/2
+      end do
+   end do
+
+   return
+
+end subroutine photo_xs
 
 

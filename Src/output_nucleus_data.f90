@@ -1,279 +1,7 @@
 !
 !*******************************************************************************
 !
-subroutine start_IO(num_comp)
-!
-!*******************************************************************************
-!
-!  Discussion:
-!
-!    This subroutine prints out data defining the Hauser-Feshbach calculation,
-!    basically printing all the otpions, etc. onto the main output file
-!
-!  Licensing:
-!
-!    This code is distributed under the GNU LGPL version 2 license. 
-!
-!  Date:
-!
-!    25 September 2019
-!
-!  Author:
-!
-!      Erich Ormand, LLNL
-!
-!*******************************************************************************
-!
-   use variable_kinds
-   use nodeinfo
-   use options
-   use pre_equilibrium_no_1
-   use print_control
-   use useful_data
-   use nuclei
-   use Channel_info
-   use particles_def
-   use directory_structure
-   use constants
-   implicit none
-!-------------------------------------------------------
-   integer(kind=4), intent(in) :: num_comp
-!-------------------------------------------------------
-   integer(kind=4) :: i, ip
-   integer(kind=4) char_start
-   integer(kind=4) :: ilast
-
-   ilast = index(version,' ')-1
-
-   write(13,*)'**********************************************'
-   write(13,*)'* Livermore Monte Carlo Hauser-Feshbach code'
-   write(13,*)'* Version # ',version(1:ilast)
-   write(13,*)'**********************************************'
-   write(13,*)
-   write(13,*)'Complete list of compound nuclei'
-   write(13,*)'Complete list of compound nuclei'
-   do i = 1, num_comp
-      char_start = 1
-      if(nucleus(i)%atomic_symbol(1:1) == ' ')char_start = 2
-      if(char_start == 1 .and. print_me)write(6,'(''Nucleus # '',i3,2x,i3,a2)')     &
-         i,nucleus(i)%A,nucleus(i)%atomic_symbol(char_start:2)
-      if(char_start == 2 .and. print_me)write(6,'(''Nucleus # '',i3,2x,i3,a1)')     &
-         i,nucleus(i)%A,nucleus(i)%atomic_symbol(char_start:2)
-      if(print_me)write(6,*)'Maximum excitation energy = ',               &
-         nucleus(i)%Ex_max
-      if(char_start == 1)write(13,'(''Nucleus # '',i3,2x,i3,a2)')         &
-         i,nucleus(i)%A,nucleus(i)%atomic_symbol(char_start:2)
-      if(char_start == 2)write(13,'(''Nucleus # '',i3,2x,i3,a1)')         &
-         i,nucleus(i)%A,nucleus(i)%atomic_symbol(char_start:2)
-      write(13,*)'Maximum excitation energy = ',                          &
-         nucleus(i)%Ex_max
-      write(13,*)'Energy grid set up with de = ',de
-   end do
-   write(6,*)
-   if(.not.pop_calc)then
-      ip = projectile%particle_type
-      if(print_me)then
-         write(6,'(''Projectile = '',a10)')particle(ip)%name
-         write(6,'(''Min and max incidient energies: Min ='',f16.6,'//       &
-                   ''' MeV, Max = '',f16.6,'' MeV'')')                       &
-                projectile%e_min,projectile%e_max
-      end if
-      write(13,'(''Projectile = '',a10)')particle(ip)%name
-      write(13,'(''Min and max incidient energies: Min ='',f16.6,'//      &
-                ''' MeV, Max = '',f16.6,'' MeV'')')                       &
-                projectile%e_min,projectile%e_max
-   end if
-   i = target%icomp
-   char_start = 1
-   if(nucleus(i)%atomic_symbol(1:1) == ' ')char_start = 2
-   if(.not.pop_calc)then
-      if(print_me)then
-         if(char_start == 1)write(6,'(''Target nucleus = '',i3,a2)')                    &
-                 nucleus(i)%A,nucleus(i)%atomic_symbol(char_start:2)
-         if(char_start == 2)write(6,'(''Target nucleus = '',i3,a1)')                    &
-                 nucleus(i)%A,nucleus(i)%atomic_symbol(char_start:2)
-      end if
-      if(char_start == 1)write(13,'(''Target nucleus = '',i3,a2)')                      &
-              nucleus(i)%A,nucleus(i)%atomic_symbol(char_start:2)
-      if(char_start == 2)write(13,'(''Target nucleus = '',i3,a1)')                      &
-              nucleus(i)%A,nucleus(i)%atomic_symbol(char_start:2)
-   else
-      if(print_me)then
-         if(char_start == 1)write(6,'(''Initial nucleus = '',i3,a2)')                   &
-                 nucleus(i)%A,nucleus(i)%atomic_symbol(char_start:2)
-         if(char_start == 2)write(6,'(''Initial nucleus = '',i3,a1)')                      &
-                 nucleus(i)%A,nucleus(i)%atomic_symbol(char_start:2)
-      end if
-      if(char_start == 1)write(13,'(''Initial nucleus = '',i3,a2)')                  &
-                 nucleus(i)%A,nucleus(i)%atomic_symbol(char_start:2)
-      if(char_start == 2)write(13,'(''Initial nucleus = '',i3,a1)')                     &
-              nucleus(i)%A,nucleus(i)%atomic_symbol(char_start:2)
-   end if
-   write(6,'(''Tracking the following emitted particles'')')
-   write(13,'(''Tracking the following emitted particles'')')
-   do ip = 0, 6
-      if(particle(ip)%in_decay)then
-         if(print_me)write(6,'(a10)')particle(ip)%name
-         write(13,'(a10)')particle(ip)%name
-      end if
-   end do
-   write(13,*)
-   write(13,*)'*******************************************************'
-   write(13,*)
-   write(13,*)'Calculation options set in this calculation:'
-   write(13,*)
-   write(13,*)'output_mode = ',output_mode
-   write(13,*)'fission = ',fission
-   write(13,*)'channels = ',channels
-   write(13,*)'dump_events = ',dump_events
-   write(13,*)'track_gammas = ',track_gammas
-   write(13,*)'track_primary_gammas = ',track_primary_gammas
-   write(13,*)'PREEQ_Model = ',PREEQ_Model
-   write(13,*)'analytic_preeq = ',analytic_preeq
-   write(13,*)'Preeq_V = ', Preeq_V
-   write(13,*)'Preeq_V1:',Preeq_V1
-   write(13,*)'Preeq_K:',Preeq_K
-   write(13,*)'preeq_pair_model = ',preeq_pair_model
-   write(13,*)'preeq_fwell = ',preeq_fwell
-   write(13,*)'Preeq_g_a = ',Preeq_g_a
-   write(13,*)'Preeq_g_div = ',preeq_g_div
-   write(13,*)'M2_C1 = ',M2_C1
-   write(13,*)'M2_C2 = ',M2_C2
-   write(13,*)'M2_C3 = ',M2_C3
-   write(13,*)'M2_Rpp = ',M2_Rpp
-   write(13,*)'M2_Rnn = ',M2_Rnn
-   write(13,*)'M2_Rpn = ',M2_Rpn
-   write(13,*)'M2_Rnp = ',M2_Rnp
-   write(13,*)'WF_model = ',WF_model
-   write(13,*)'trans_p_cut = ',trans_p_cut
-   write(13,*)'trans_e_cut = ',trans_e_cut
-   write(13,*)'prob_cut = ',prob_cut
-   write(13,*)'pop_check = ',pop_check
-   write(13,*)'E1_model = ',E1_model
-   write(13,*)'pop_calc = ',pop_calc
-   write(13,*)'fit_Gamma_gamma = ',fit_Gamma_gamma
-   write(13,*)'All_gammas = ',All_gammas
-   write(13,*)'Out_gammas_vs_E = ',Out_gammas_vs_E
-   write(13,*)'rho_cut = ',rho_cut
-   write(13,*)'pair_model = ',pair_model
-   write(13,*)'quasi_elastic ', quasi_elastic
-   write(13,*)'quasi_e = ', quasi_e
-   write(13,*)'Max_J_allowed = ',Max_J_allowed
-   write(13,*)'num_mc_samp = ', num_mc_samp
-   write(13,*)'biased_sampling = ', biased_sampling
-   write(13,*)'trans_avg_l = ', trans_avg_l
-   write(13,*)'explicit_channels = ', explicit_channels
-   write(13,*)'num_theta_angles = ', num_theta_angles
-   write(13,*)
-   write(13,*)'*******************************************************'
-   write(13,*)
-   write(13,*)
-
-   write(13,*)'***************************************************************'
-   write(13,*)'* Built-in input parameter files, such as masses, level       *'
-   write(13,*)'* density, discrete levels, fission barriers and gamma        *'
-   write(13,*)'* strength functions based on the RIPL library [1]            *'   
-   write(13,*)'*                                                             *'
-   write(13,*)'* Levels used in this calculation are derived from the RIPL   *'
-   write(13,*)'* evaluated libraries based on the ENSDF database.            *'
-   write(13,*)'*                                                             *'
-   write(13,*)'* [1] M. Verpelli and R. Capote Noy, INDC(NDS)-0702,          *'
-   write(13,*)'*     IAEA, 2015. Available online at                         *'
-   write(13,*)'* https://www-nds.iaea.org/publications/indc/indc-nds-0702/   *'
-   write(13,*)'*                                                             *'
-   write(13,*)'* [2] R.Capote, M.Herman, P.Oblozinsky, P.G.Young, S.Goriely, *'
-   write(13,*)'*     T.Belgya, A.V.Ignatyuk, A.J.Koning, S.Hilaire,          *'
-   write(13,*)'*     V.A.Plujko, M.Avrigeanu, Zhigang Ge, Yinlu Han,         *'
-   write(13,*)'*     S.Kailas, J.Kopecky, V.M.Maslov, G.Reffo, M.Sin,        *'
-   write(13,*)'*     E.Sh.Soukhovitskii and P. Talou, "RIPL - Reference      *'
-   write(13,*)'*     Input Parameter Library for Calculation of Nuclear      *'
-   write(13,*)'*     Reactions and Nuclear Data Evaluations", Nuclear Data   *'
-   write(13,*)'*     Sheets 110 (2009) 3107-3214                             *'
-   write(13,*)'*                                                             *'
-   write(13,*)'**************************************************************'
-
-   flush(13)
-   return
-end subroutine start_IO
-!
-!*******************************************************************************
-!
-subroutine output_trans_coef
-!
-!*******************************************************************************
-!
-!  Discussion:
-!
-!    This subroutine prints out transmission coefficients on the calculation
-!    grid
-!
-!  Licensing:
-!
-!    This code is distributed under the GNU LGPL version 2 license. 
-!
-!  Date:
-!
-!    25 September 2019
-!
-!  Author:
-!
-!      Erich Ormand, LLNL
-!
-!*******************************************************************************
-!
-   use variable_kinds
-   use nodeinfo
-   use options
-   use print_control
-   use useful_data
-   use nuclei
-   use Channel_info
-   use particles_def
-   use directory_structure
-   use constants
-   implicit none
-!-------------------------------------------------------------
-   integer(kind=4) :: j, k, l
-   integer(kind=4) :: i, isp
-   real(kind=8) :: energy
-   real(kind=8) :: xj, xi
-!------------------------------------------------------------------
-   write(13,'(''Transmission coefficients for '','//              &
-              '''each emitted particle (COM energy)'')')
-   do k=1,6
-      if(.not.particle(k)%in_decay)cycle
-
-
-      isp = nint(2.0d0*particle(k)%spin)
-      xj = -particle(k)%spin
-      do i = 0, isp
-         xi = real(i,kind=8)
-         write(13,*)
-         write(13,'('' Transmission coefficients for '',a8)')       &
-               particle(k)%name
-         if(xj + xi < 0)then
-            write(13,'(''For j = l -'',f4.1)')abs(xj+xi)
-         else
-            write(13,'(''For j = l +'',f4.1)')xj+xi
-         end if
-         write(13,'(''       T         l='',i3,5x,50(8x,i3,5x))')   &
-            (l,l = 0, particle(k)%lmax)
-         do j = 1, particle(k)%nbin
-            energy = real(j,kind=8)*de
-            write(13,'(1x,f10.5,(40(1x,e15.7)))')                   &
-                  energy, (particle(k)%trans(i,l,j),l = 0, particle(k)%lmax)
-      end do
-      end do
-   end do
-
-   flush(13)
-
-   return
-end subroutine output_trans_coef
-!
-!*******************************************************************************
-!
-subroutine output_nucleus_data(num_comp, j_max, itarget)
+subroutine output_nucleus_data(j_max, itarget)
 !
 !*******************************************************************************
 !
@@ -307,7 +35,8 @@ subroutine output_nucleus_data(num_comp, j_max, itarget)
    use constants
    implicit none
 !-------------------------------------------------------
-   integer(kind=4), intent(in) :: num_comp, j_max, itarget
+   integer(kind=4), intent(in) :: j_max
+   integer(kind=4), intent(in) :: itarget
 !-------------------------------------------------------
    integer(kind=4) :: i, j, k, m, n, jj, ip, ii
    integer(kind=4) :: if1
@@ -319,7 +48,7 @@ subroutine output_nucleus_data(num_comp, j_max, itarget)
 !---------------------------------------------------------------------
    integer(kind=4) :: nfit
    real(kind=8),allocatable :: cum_rho(:), cumm_fit(:), elv(:)
-   real(kind=8) :: energy, prob, prob1(0:60), prob2(0:60)
+   real(kind=8) :: energy, prob, prob1(0:60), prob2(0:60), prob_jpi(0:60,0:1)
    real(kind=8) :: rho(0:60,0:1)
    real(kind=8) :: rho_Fm, sig2, apu
    real(kind=8) :: xj, jfac, pfac, dde
@@ -333,24 +62,30 @@ subroutine output_nucleus_data(num_comp, j_max, itarget)
    integer(kind=4) :: lev_below, char_start
    logical :: lprint
    real(kind=8) :: pmode, pe1, pbb
+   real(kind=8) :: part_prob(0:7)
    integer(kind=4) :: num_points
+   real(kind=8) :: Ex
+   integer(kind=4) :: Ix
+   character(len=132) :: temp_string
+   character(len=200) :: fstring
 !---------   External functions
    real(kind=8) :: spin_fac, parity_fac
    real(kind=8) :: EL_f, EL_trans
    real(kind=8) :: ML_f, ML_trans
    real(kind=8) :: EL_absorption
    real(kind=8) :: ML_absorption
+   integer(kind=4) :: find_ibin
 
 !--------------   Start subrotuine
    num_points = int(30.0d0/de,kind=4) + 1
 
-   char_pos='+'
-   char_neg='-'
-   iprint=0
-   printZA(1:2,1:100)=0
-   do i=1,num_comp
-      lprint=.false.
-      do j=1,iprint           !   Check to see if this nucleus has been printed already
+   char_pos = '+'
+   char_neg = '-'
+   iprint = 0
+   printZA(1:2,1:100) = 0
+   do i = 1, num_comp
+      lprint = .false.
+      do j = 1, iprint           !   Check to see if this nucleus has been printed already
          if(nucleus(i)%Z == printZA(1,j) .and. nucleus(i)%A == printZA(2,j))then
             lprint=.true.            ! found in lest of previous printed nuclei             
             exit
@@ -462,7 +197,7 @@ subroutine output_nucleus_data(num_comp, j_max, itarget)
       write(13,*)'Discrete states used in calculation'
       write(13,'(''State'',6x,''Energy'',2x,''Spin'','//               &
                  '1x,''Par'',8x,''T1/2'',6x,'//                        &
-                 '''Isomer'')')
+                 '''Isomer'',2x,''Modified'')')
       lev_below = 0
       do k = 1,nucleus(i)%num_discrete
          if(nucleus(i)%state(k)%energy > nucleus(i)%level_param(7)     &
@@ -470,51 +205,56 @@ subroutine output_nucleus_data(num_comp, j_max, itarget)
          if(lev_below /= 1)then
             if(i == itarget .and. k == target%istate)then
                write(13,'(2x,i3,2x,f10.5,1x,f5.1,1x,f3.0,1x,'//        &
-                          '1x,e15.7,1x,l4,4x,''Target State'')')       &
+                          '1x,e15.7,1x,l4,4x,l4,6x,''Target State'')') &
                  k,                                                    &
                  nucleus(i)%state(k)%energy,                           &
                  nucleus(i)%state(k)%spin,                             &
                  nucleus(i)%state(k)%parity,                           &
                  nucleus(i)%state(k)%t12,                              &
-                 nucleus(i)%state(k)%isomer
+                 nucleus(i)%state(k)%isomer,                           &
+                 nucleus(i)%state(k)%state_modified
             else
                write(13,'(2x,i3,2x,f10.5,1x,f5.1,1x,f3.0,1x,'//        &
-                          '1x,e15.7,1x,l4)')                           &
+                          '1x,e15.7,1x,l4,4x,l4)')                     &
                  k,                                                    &
                  nucleus(i)%state(k)%energy,                           &
                  nucleus(i)%state(k)%spin,                             &
                  nucleus(i)%state(k)%parity,                           &
                  nucleus(i)%state(k)%t12,                              &
-                 nucleus(i)%state(k)%isomer
+                 nucleus(i)%state(k)%isomer,                           &
+                 nucleus(i)%state(k)%state_modified
             end if
         elseif(lev_below == 1)then
             lev_below = 2
-            write(13,'(''   ---------------   Ecut   ---------------------'')')
+            write(13,'(''   --------------------   Ecut   ---------------------------------'')')
             write(13,'(2x,i3,2x,f10.5,1x,f5.1,1x,f3.0,1x,'//           &
-                       '1x,e15.7,1x,l4)')                              &
+                       '1x,e15.7,1x,l4,4x,l4)')                        &
               k,                                                       &
               nucleus(i)%state(k)%energy,                              &
               nucleus(i)%state(k)%spin,                                &
               nucleus(i)%state(k)%parity,                              &
               nucleus(i)%state(k)%t12,                                 &
-              nucleus(i)%state(k)%isomer
+              nucleus(i)%state(k)%isomer,                              &
+              nucleus(i)%state(k)%state_modified
         end if
       end do
 
       write(13,*)'Decay properties of discrete states'
-      do k = nucleus(i)%num_discrete, 1, -1
+      do k = nucleus(i)%num_discrete, 2, -1
          write(13,*)'Decay of state',k
          write(13,*)'Number of transitions',nucleus(i)%state(k)%nbranch
-         write(13,'(''       i --->   f            branch      prob_gamma         prob_ic'')')
-         write(13,'(''     ---      ---     -------------   -------------   -------------'')')
+         write(13,'(''       i --->   f'',12x,''branch'',6x,''prob_gamma'',9x,''prob_ic'',9x,''Modified'')')
+         write(13,'(''     ---      ---'',3(5x,''-------------''),5x,''--------'')')
 
          prob = 0.0d0
          do m = 1, nucleus(i)%state(k)%nbranch
             prob = prob + nucleus(i)%state(k)%branch(m)
-            write(13,'(4x,i4,'' --->'',i4,4(3x,e15.7))')k,nucleus(i)%state(k)%ibranch(m),    &
-                                                          nucleus(i)%state(k)%branch(m),     &
-                                                          nucleus(i)%state(k)%p_gamma(m),    &
-                                                          nucleus(i)%state(k)%p_ic(m)
+            write(13,'(4x,i4,'' --->'',i4,3(3x,e15.7),5x,l4)')         &
+                k,nucleus(i)%state(k)%ibranch(m),                      &
+                nucleus(i)%state(k)%branch(m),                         &
+                nucleus(i)%state(k)%p_gamma(m),                        &
+                nucleus(i)%state(k)%p_ic(m),                           &
+                nucleus(i)%state(k)%branch_modified(m)
   
          end do
       end do
@@ -592,7 +332,7 @@ subroutine output_nucleus_data(num_comp, j_max, itarget)
           write(13,'(''E1 is undefined as E0 > 0, E1 ~ -10.0'')')
       end if
       write(13,*)
-      if(nucleus(i)%level_param(10) == 0)then
+      if(nint(nucleus(i)%level_param(10)) == 0)then
          write(13,*)'No rotational collective enhancement included'
          write(13,*)'K_rot = 1.0'
       else
@@ -600,13 +340,13 @@ subroutine output_nucleus_data(num_comp, j_max, itarget)
              nucleus(i)%level_param(10)
          write(13,*)'Collective enhancement factors'
          write(13,*)'K_rot = Max[x(1)*(Factor-1)/(1+exp((E-x(2))/x(3))),0]+1'
-         if(nucleus(i)%level_param(10) == 1)then
+         if(nint(nucleus(i)%level_param(10)) == 1)then
             write(13,*)'Factor = x(1)*sig2*(1+beta2/3)'
-         elseif(nucleus(i)%level_param(10) == 2)then
+         elseif(nint(nucleus(i)%level_param(10)) == 2)then
             write(13,*)'Factor = 2.0*x(1)*sig2*(1+beta2/3)'
-         elseif(nucleus(i)%level_param(10) == 3)then
+         elseif(nint(nucleus(i)%level_param(10)) == 3)then
             write(13,*)'Factor = x(1)*sig2**3/2*(1+beta2/3)*(1-2*beta2/3)'
-         elseif(nucleus(i)%level_param(10) == 4)then
+         elseif(nint(nucleus(i)%level_param(10)) == 4)then
             write(13,*)'Factor = 2.0*x(1)*sig2**3/2*(1+beta2/3)*(1-2*beta2/3)'
          end if
 
@@ -617,10 +357,10 @@ subroutine output_nucleus_data(num_comp, j_max, itarget)
          write(13,'(''x(3) = '',f10.4)')nucleus(i)%rot_enh(3)
          write(13,*)
       end if
-      if(nucleus(i)%level_param(11) == 0)then
+      if(nint(nucleus(i)%level_param(11)) == 0)then
          write(13,*)'No vibrational collective enhancement included'
          write(13,*)'K_vib = 1.0'
-      elseif(nucleus(i)%level_param(11) == 1)then
+      elseif(nint(nucleus(i)%level_param(11)) == 1)then
          write(13,*)'Vibrational collective enhancement model 1 used'
          write(13,*)
          write(13,*)'K_vib = exp(0.05555*A**(2./3.)*T**(4./3.))'
@@ -631,7 +371,7 @@ subroutine output_nucleus_data(num_comp, j_max, itarget)
          write(13,'(''x(2) = '',f10.4)')nucleus(i)%vib_enh(2)
          write(13,'(''x(3) = '',f10.4)')nucleus(i)%vib_enh(3)
          write(13,*)
-      elseif(nucleus(i)%level_param(11) == 2)then
+      elseif(nint(nucleus(i)%level_param(11)) == 2)then
          write(13,*)'K_vib model 2 - approximated with Bose-gas relationship'
          write(13,*)
          write(13,*)'K_vib = exp(dS - dU/T)'
@@ -647,7 +387,7 @@ subroutine output_nucleus_data(num_comp, j_max, itarget)
          write(13,*)'w(3) = 100*A**(-5/6)/(1*0.05*Shell)'
          write(13,*)
          write(13,*)'The sum extends over quadrupole and octupole vibrations, L=2,3'
-      elseif(nucleus(i)%level_param(11) == 3)then
+      elseif(nint(nucleus(i)%level_param(11)) == 3)then
          write(13,*)'Vibrational collective enhancement model 1 used'
          write(13,*)
          write(13,*)'K_vib = exp(0.05555*A**(2./3.)*T**(4./3.))'
@@ -658,7 +398,7 @@ subroutine output_nucleus_data(num_comp, j_max, itarget)
          write(13,'(''x(2) = '',f10.4)')nucleus(i)%vib_enh(2)
          write(13,'(''x(3) = '',f10.4)')nucleus(i)%vib_enh(3)
          write(13,*)
-      elseif(nucleus(i)%level_param(11) == 4)then
+      elseif(nint(nucleus(i)%level_param(11)) == 4)then
          write(13,*)'K_vib model 2 - approximated with Bose-gas relationship'
          write(13,*)
          write(13,*)'K_vib = exp(dS - dU/T)'
@@ -693,21 +433,33 @@ subroutine output_nucleus_data(num_comp, j_max, itarget)
       end if
       write(13,*)
 
+      write(temp_string,*)min(j_max,60)+1
       write(13,'(''Level density States/MeV '')')
       write(13,'(''Positive Parity '')')
-      write(13,1901)(real(jj) + nucleus(i)%jshift, jj = 0, min(j_max,60))
- 1901 format('      E         a(U)    sqrt(sig2)   P_fac      K_vib      K_rot       Enh         Rho     ',     &
-            40(5x,'J = ',f4.1,3x))
+
+      fstring = "(6x,'E',9x,'a(U)',1x,'sqrt(sig2)',6x,'P_fac',"//                &
+                "6x,'K_vib',6x,'K_rot',8x,'Enh',9x,'Rho',5x,"                    &
+                //trim(adjustl(temp_string))//"(5x,'J = ',f4.1,3x))"
+
+      write(13,fstring)(real(jj) + nucleus(i)%jshift, jj = 0, min(j_max,60))
+!      write(13,1901)(real(jj) + nucleus(i)%jshift, jj = 0, min(j_max,60))
+! 1901 format('      E         a(U)    sqrt(sig2)   P_fac      K_vib      K_rot       Enh         Rho     ',     &
+!            40(5x,'J = ',f4.1,3x))
+      fstring = "(1x,'--------',6(1x,'----------'),1x,'---------------',"        &
+                //trim(adjustl(temp_string))//"(1x,'---------------'))"
+      write(13,fstring)
       pmode = nucleus(i)%level_param(16)
       pe1 = nucleus(i)%level_param(17)
       pbb = nucleus(i)%level_param(18)
 
+      fstring = "(1x,f8.3,6(1x,f10.3),(1x,e15.7),"//trim(adjustl(temp_string))//"(1x,e15.7))"
+
       do k = 1, nucleus(i)%nbin
          energy = nucleus(i)%e_grid(k)
          sum_rho = 0.0d0
-         call rhoe(energy,nucleus(i)%level_param,                      &
-                   nucleus(i)%vib_enh,                                 &
-                   nucleus(i)%rot_enh,                                 &
+         call rhoe(energy,nucleus(i)%level_param,                                &
+                   nucleus(i)%vib_enh,                                           &
+                   nucleus(i)%rot_enh,                                           &
                    ia,rho_Fm,apu,sig2,K_vib,K_rot)
           ip = 1
           pfac=parity_fac(energy,xj,ip,pmode,pe1,pbb)
@@ -717,24 +469,33 @@ subroutine output_nucleus_data(num_comp, j_max, itarget)
              rho(jj,ip)=rho_FM*jfac*pfac
              sum_rho = sum_rho + nucleus(i)%bins(jj,ip,k)%rho
           end do
-          write(13,'(1x,f8.3,6(1x,f10.3),60(1x,e15.7))')                         &
+!          write(13,'(1x,f8.3,6(1x,f10.3),60(1x,e15.7))')                         &
+          write(13,fstring)                                                      &
                energy,apu,sqrt(sig2),pfac,K_vib,K_rot,K_vib*K_rot,sum_rho,       &
                (nucleus(i)%bins(jj,ip,k)%rho,jj = 0, min(j_max,60))
       end do
       write(13,'(''Negative Parity '')')
-      write(13,1902)(real(jj) + nucleus(i)%jshift, jj = 0, min(j_max,60))
- 1902 format('      E         a(U)    sqrt(sig2)   P_fac      K_vib      K_rot       Enh         Rho     ',     &
-            40(5x,'J = ',f4.1,3x))
+      fstring = "(6x,'E',9x,'a(U)',1x,'sqrt(sig2)',6x,'P_fac',"//                &
+                "6x,'K_vib',6x,'K_rot',8x,'Enh',9x,'Rho',5x,"                    &
+                //trim(adjustl(temp_string))//"(5x,'J = ',f4.1,3x))"
+      write(13,fstring)(real(jj) + nucleus(i)%jshift, jj = 0, min(j_max,60))
+      fstring = "(1x,'--------',6(1x,'----------'),1x,'---------------',"        &
+                //trim(adjustl(temp_string))//"(1x,'---------------'))"
+      write(13,fstring)
+!      write(13,1902)(real(jj) + nucleus(i)%jshift, jj = 0, min(j_max,60))
+! 1902 format('      E         a(U)    sqrt(sig2)   P_fac      K_vib      K_rot       Enh         Rho     ',     &
+!            40(5x,'J = ',f4.1,3x))
       pmode = nucleus(i)%level_param(16)
       pe1 = nucleus(i)%level_param(17)
       pbb = nucleus(i)%level_param(18)
 
+      fstring = "(1x,f8.3,6(1x,f10.3),(1x,e15.7),"//trim(adjustl(temp_string))//"(1x,e15.7))"
       do k = 1, nucleus(i)%nbin
          energy = nucleus(i)%e_grid(k)
          sum_rho = 0.0d0
-         call rhoe(energy,nucleus(i)%level_param,                      &
-                   nucleus(i)%vib_enh,                                 &
-                   nucleus(i)%rot_enh,                                 &
+         call rhoe(energy,nucleus(i)%level_param,                                &
+                   nucleus(i)%vib_enh,                                           &
+                   nucleus(i)%rot_enh,                                           &
                    ia,rho_Fm,apu,sig2,K_vib,K_rot)
           ip = 0
           pfac=parity_fac(energy,xj,ip,pmode,pe1,pbb)
@@ -744,7 +505,8 @@ subroutine output_nucleus_data(num_comp, j_max, itarget)
              rho(jj,ip)=rho_FM*jfac*pfac
              sum_rho = sum_rho + nucleus(i)%bins(jj,ip,k)%rho
           end do
-          write(13,'(1x,f8.3,6(1x,f10.3),60(1x,e15.7))')                         &
+!          write(13,'(1x,f8.3,6(1x,f10.3),60(1x,e15.7))')                         &
+          write(13,fstring)                                                      &
                energy,apu,sqrt(sig2),pfac,K_vib,K_rot,K_vib*K_rot,sum_rho,       &
                (nucleus(i)%bins(jj,ip,k)%rho,jj = 0, min(j_max,60))
       end do
@@ -954,7 +716,7 @@ subroutine output_nucleus_data(num_comp, j_max, itarget)
             write(13,*)
 
 
-            if(nucleus(i)%F_Barrier(j)%level_param(10) == 0)then
+            if(nint(nucleus(i)%F_Barrier(j)%level_param(10)) == 0)then
                write(13,*)'No rotational collective enhancement included'
                write(13,*)'K_rot = 1.0'
             else
@@ -962,13 +724,13 @@ subroutine output_nucleus_data(num_comp, j_max, itarget)
                   nucleus(i)%F_Barrier(j)%level_param(10)
                 write(13,*)'Collective enhancement factors'
                 write(13,*)'K_rot = Max[x(1)*(Factor-1)/(1+exp((E-x(2))/x(3))),0]+1'
-                if(nucleus(i)%F_Barrier(j)%level_param(10) == 1)then
+                if(nint(nucleus(i)%F_Barrier(j)%level_param(10)) == 1)then
                    write(13,*)'Factor = x(1)*sig2*(1+beta2/3) --  Axially symmetric'
-                elseif(nucleus(i)%F_Barrier(j)%level_param(10) == 2)then
+                elseif(nint(nucleus(i)%F_Barrier(j)%level_param(10)) == 2)then
                    write(13,*)'Factor = 2.0*x(1)*sig2*(1+beta2/3) -- Left-right asymmetric'
-                elseif(nucleus(i)%F_Barrier(j)%level_param(10) == 3)then
+                elseif(nint(nucleus(i)%F_Barrier(j)%level_param(10)) == 3)then
                    write(13,*)'Factor = x(1)*sqrt(pi/2)*sig2**3/2*(1+beta2/3)*(1-2*beta2/3) -- Triaxial and left-right asymmetric'
-                elseif(nucleus(i)%F_Barrier(j)%level_param(10) == 4)then
+                elseif(nint(nucleus(i)%F_Barrier(j)%level_param(10)) == 4)then
                    write(13,*)                     &
           'Factor = 2.0*x(1)*sqrt(pi/2)*sig2**3/2*(1+beta2/3)*(1-2*beta2/3) -- Triaxial and not left-right asymmetric'
                 end if
@@ -980,10 +742,10 @@ subroutine output_nucleus_data(num_comp, j_max, itarget)
                 write(13,'(''x(3) = '',f10.4)')nucleus(i)%F_Barrier(j)%rot_enh(3)
                 write(13,*)
              end if
-            if(nucleus(i)%F_Barrier(j)%level_param(11) == 0)then
+            if(nint(nucleus(i)%F_Barrier(j)%level_param(11)) == 0)then
                write(13,*)'No vibrational collective enhancement included'
                write(13,*)'K_vib = 1.0'
-            elseif(nucleus(i)%F_Barrier(j)%level_param(11) == 1)then
+            elseif(nint(nucleus(i)%F_Barrier(j)%level_param(11)) == 1)then
                write(13,*)'Vibrational collective enhancement model 1 used'
                write(13,*)'K_vib = exp(0.05555*A**(2./3.)*T**(4./3.))'
                write(13,*)'K_vib = Max[x(1)*(K_vib-1)/(1+exp((E-x(2))/x(3))),0]+1'
@@ -992,7 +754,7 @@ subroutine output_nucleus_data(num_comp, j_max, itarget)
                write(13,'(''x(2) = '',f10.4)')nucleus(i)%F_Barrier(j)%vib_enh(2)
                write(13,'(''x(3) = '',f10.4)')nucleus(i)%F_Barrier(j)%vib_enh(3)
                write(13,*)
-            elseif(nucleus(i)%F_Barrier(j)%level_param(11) == 2)then
+            elseif(nint(nucleus(i)%F_Barrier(j)%level_param(11)) == 2)then
                write(13,*)'K_vib model 2 - approximated with Bose-gas relationship'
                write(13,*)
                write(13,*)'K_vib = exp(dS - dU/T)'
@@ -1008,7 +770,7 @@ subroutine output_nucleus_data(num_comp, j_max, itarget)
                write(13,*)'w(3) = 100*A**(-5/6)/(1*0.05*Shell)'
                write(13,*)
                write(13,*)'The sum extends over quadrupole and octupole vibrations, L=2,3'
-            elseif(nucleus(i)%F_Barrier(j)%level_param(11) == 3)then
+            elseif(nint(nucleus(i)%F_Barrier(j)%level_param(11)) == 3)then
                write(13,*)'Vibrational collective enhancement model 1 used'
                write(13,*)'K_vib = exp(0.05555*A**(2./3.)*T**(4./3.))'
                write(13,*)'K_vib = Max[x(1)*(K_vib-1)/(1+exp((E-x(2))/x(3))),0]+1'
@@ -1017,7 +779,7 @@ subroutine output_nucleus_data(num_comp, j_max, itarget)
                write(13,'(''x(2) = '',f10.4)')nucleus(i)%F_Barrier(j)%vib_enh(2)
                write(13,'(''x(3) = '',f10.4)')nucleus(i)%F_Barrier(j)%vib_enh(3)
                write(13,*)
-            elseif(nucleus(i)%F_Barrier(j)%level_param(11) == 4)then
+            elseif(nint(nucleus(i)%F_Barrier(j)%level_param(11)) == 4)then
                write(13,*)'K_vib model 2 - approximated with Bose-gas relationship'
                write(13,*)
                write(13,*)'K_vib = exp(dS - dU/T)'
@@ -1072,15 +834,29 @@ subroutine output_nucleus_data(num_comp, j_max, itarget)
                dde = 0.2
             end if
             n_bin = int((20.0d0 - nucleus(i)%F_barrier(j)%ecut)/dde)
-            write(13,'(''Level density States/MeV'')')
-            write(13,'(''Positive parity only'')')
-            write(13,1903)(real(jj) + nucleus(i)%jshift, jj = 0, min(j_max,60))
- 1903       format('      E         a(U)    sqrt(sig2)   P_fac      K_vib      K_rot       Enh         Rho     ',     &
-                  40(5x,'J = ',f4.1,3x))
+
+
+!            write(13,1903)(real(jj) + nucleus(i)%jshift, jj = 0, min(j_max,60))
+! 1903       format('      E         a(U)    sqrt(sig2)   P_fac      K_vib      K_rot       Enh         Rho     ',     &
+!                  40(5x,'J = ',f4.1,3x))
             pmode = nucleus(i)%F_barrier(j)%level_param(16)
             pe1 = nucleus(i)%F_barrier(j)%level_param(17)
             pbb = nucleus(i)%F_barrier(j)%level_param(18)
 
+            ip = 0
+
+            write(13,'(''Level density States/MeV'')')
+            write(13,'(''Positive parity'')')
+            fstring = "(6x,'E',9x,'a(U)',1x,'sqrt(sig2)',6x,'P_fac',"//             &
+                     "6x,'K_vib',6x,'K_rot',8x,'Enh',9x,'Rho',5x,"                  &
+                     //trim(adjustl(temp_string))//"(5x,'J = ',f4.1,3x))"
+
+            write(13,fstring)(real(jj) + nucleus(i)%jshift, jj = 0, min(j_max,60))
+            write(13,fstring)(real(jj) + nucleus(i)%jshift, jj = 0, min(j_max,60))
+            fstring = "(1x,'--------',6(1x,'----------'),1x,'---------------',"        &
+                      //trim(adjustl(temp_string))//"(1x,'---------------'))"
+            write(13,fstring)
+            fstring = "(1x,f8.3,6(1x,f10.3),(1x,e15.7),"//trim(adjustl(temp_string))//"(1x,e15.7))"
             do k = 1, n_bin
                energy = real(k,kind=8)*dde
                if(energy < nucleus(i)%F_barrier(j)%ecut) cycle
@@ -1097,7 +873,43 @@ subroutine output_nucleus_data(num_comp, j_max, itarget)
                   rho(jj,ip)=rho_FM*jfac*pfac
                   sum_rho = sum_rho + rho(jj,ip)
                end do
-               write(13,'(1x,f8.3,6(1x,f10.3),60(1x,e15.7))')                        &
+!               write(13,'(1x,f8.3,6(1x,f10.3),60(1x,e15.7))')                        &
+               write(13,fstring)                                                     &
+                   energy,apu,sqrt(sig2),pfac,K_vib,K_rot,K_vib*K_rot,rho_FM*pfac,   &
+                   (rho(jj,ip),jj = 0, min(j_max,60))
+            end do
+
+            ip = 1
+
+            write(13,'(''Level density States/MeV'')')
+            write(13,'(''Negative parity'')')
+            fstring = "(6x,'E',9x,'a(U)',1x,'sqrt(sig2)',6x,'P_fac',"//             &
+                     "6x,'K_vib',6x,'K_rot',8x,'Enh',9x,'Rho',5x,"                  &
+                     //trim(adjustl(temp_string))//"(5x,'J = ',f4.1,3x))"
+
+            write(13,fstring)(real(jj) + nucleus(i)%jshift, jj = 0, min(j_max,60))
+            fstring = "(1x,'--------',6(1x,'----------'),1x,'---------------',"        &
+                      //trim(adjustl(temp_string))//"(1x,'---------------'))"
+            write(13,fstring)
+            fstring = "(1x,f8.3,6(1x,f10.3),(1x,e15.7),"//trim(adjustl(temp_string))//"(1x,e15.7))"
+            do k = 1, n_bin
+               energy = real(k,kind=8)*dde
+               if(energy < nucleus(i)%F_barrier(j)%ecut) cycle
+               sum_rho = 0.0d0
+               call rhoe(energy,nucleus(i)%F_barrier(j)%level_param,                 &
+                         nucleus(i)%F_barrier(j)%vib_enh,                            &
+                         nucleus(i)%F_barrier(j)%rot_enh,                            &
+                         ia,rho_Fm,apu,sig2,K_vib,K_rot)
+               ip=1
+               pfac=parity_fac(energy,xj,ip,pmode,pe1,pbb)
+               do jj = 0, min(j_max,60)
+                  xj = jj + nucleus(i)%jshift
+                  jfac=spin_fac(xj,sig2)
+                  rho(jj,ip)=rho_FM*jfac*pfac
+                  sum_rho = sum_rho + rho(jj,ip)
+               end do
+!               write(13,'(1x,f8.3,6(1x,f10.3),60(1x,e15.7))')                        &
+               write(13,fstring)                                                     &
                    energy,apu,sqrt(sig2),pfac,K_vib,K_rot,K_vib*K_rot,rho_FM*pfac,   &
                    (rho(jj,ip),jj = 0, min(j_max,60))
             end do
@@ -1109,17 +921,32 @@ subroutine output_nucleus_data(num_comp, j_max, itarget)
       write(13,*)
       write(13,*)'Hauser-Feshbach denominators'
       write(13,*)'Positive Parity'
+      fstring = "('    E     ',"                      &
+                //trim(adjustl(temp_string))//"(5x,'J = ',f4.1,3x))"
+
+      write(13,fstring)(real(jj) + nucleus(i)%jshift, jj = 0, min(j_max,60))
+      fstring = "('----------',"//trim(adjustl(temp_string))//"(1x,'---------------'))"
+      write(13,fstring)
+      fstring = '(f10.6,'//trim(adjustl(temp_string))//'(1x,e15.7))'
       do n = 1, nucleus(i)%nbin
          energy=nucleus(i)%e_grid(n)
-         write(13,'(f10.6,60(1x,e15.7))')                                            &
-           energy,(nucleus(i)%bins(j,0,n)%HF_den,j=0,j_max)
+!         write(13,'(f10.6,60(1x,e15.7))')                                            &
+         write(13,fstring)                                                           &
+           energy,(nucleus(i)%bins(j,0,n)%HF_den,j=0,min(j_max,60))
       end do
       write(13,*)
       write(13,*)'Negative Parity'
+      fstring = "('    E     ',"                      &
+                //trim(adjustl(temp_string))//"(5x,'J = ',f4.1,3x))"
+
+      write(13,fstring)(real(jj) + nucleus(i)%jshift, jj = 0, min(j_max,60))
+      fstring = "('----------',"//trim(adjustl(temp_string))//"(1x,'---------------'))"
+      write(13,fstring)
+      fstring = '(f10.6,'//trim(adjustl(temp_string))//'(1x,e15.7))'
       do n = 1, nucleus(i)%nbin
          energy=nucleus(i)%e_grid(n)
-         write(13,'(f10.6,60(1x,e15.7))')                                            &
-           energy,(nucleus(i)%bins(j,1,n)%HF_den,j=0,j_max)
+         write(13,fstring)                                                           &
+           energy,(nucleus(i)%bins(j,1,n)%HF_den,j=0,min(j_max,60))
       end do
       write(13,*)
       write(13,*)'Summed decay transmission coefficients for each channel'
@@ -1128,23 +955,39 @@ subroutine output_nucleus_data(num_comp, j_max, itarget)
          write(13,*)
          write(13,*)'Particle type = ',k
          write(13,*)'Positive Parity'
+         fstring = "('    E     ',"                      &
+                   //trim(adjustl(temp_string))//"(5x,'J = ',f4.1,3x))"
+
+         write(13,fstring)(real(jj) + nucleus(i)%jshift, jj = 0, min(j_max,60))
+         fstring = "('----------',"//trim(adjustl(temp_string))//"(1x,'---------------'))"
+         write(13,fstring)
+         fstring = '(f10.6,'//trim(adjustl(temp_string))//'(1x,e15.7))'
          do n=1,nucleus(i)%nbin
             energy=nucleus(i)%e_grid(n)
             do j = 0, min(j_max,60)
                prob1(j) = nucleus(i)%bins(j,0,n)%HF_trans(if1)
             end do
-            write(13,'(f10.6,60(1x,e15.7))')                                         &
-              energy,(prob1(j),j = 0, j_max)
+!            write(13,'(f10.6,60(1x,e15.7))')                                         &
+!              energy,(prob1(j),j = 0, j_max)
+            write(13,fstring)energy,(prob1(j),j=0,min(j_max,60))
          end do
          write(13,*)
          write(13,*)'Negative Parity'
+         fstring = "('    E     ',"                      &
+                   //trim(adjustl(temp_string))//"(5x,'J = ',f4.1,3x))"
+
+         write(13,fstring)(real(jj) + nucleus(i)%jshift, jj = 0, min(j_max,60))
+         fstring = "('----------',"//trim(adjustl(temp_string))//"(1x,'---------------'))"
+         write(13,fstring)
+         fstring = '(f10.6,'//trim(adjustl(temp_string))//'(1x,e15.7))'
          do n = 1, nucleus(i)%nbin
             energy=nucleus(i)%e_grid(n)
             do j = 0, min(j_max,60)
                prob2(j) = nucleus(i)%bins(j,1,n)%HF_trans(if1)
             end do
-            write(13,'(f10.6,60(1x,e15.7))')                                         &
-              energy,(prob2(j),j = 0, j_max)
+!            write(13,'(f10.6,60(1x,e15.7))')                                         &
+!              energy,(prob2(j),j = 0, j_max)
+            write(13,fstring)energy,(prob2(j),j=0,min(j_max,60))
          end do
       end do
       
@@ -1152,45 +995,77 @@ subroutine output_nucleus_data(num_comp, j_max, itarget)
          if1 = nucleus(i)%num_decay + 1
          write(13,*)
          write(13,*)'Positive Parity: Decay type = Fission'
+         fstring = "('    E     ',"                      &
+                   //trim(adjustl(temp_string))//"(5x,'J = ',f4.1,3x))"
+
+         write(13,fstring)(real(jj) + nucleus(i)%jshift, jj = 0, min(j_max,60))
+         fstring = "('----------',"//trim(adjustl(temp_string))//"(1x,'---------------'))"
+         write(13,fstring)
+         fstring = '(f10.6,'//trim(adjustl(temp_string))//'(1x,e15.7))'
          do n = 1, nucleus(i)%nbin
             energy = nucleus(i)%e_grid(n)
             do j = 0, min(j_max,60)
                prob1(j) = nucleus(i)%bins(j,0,n)%HF_trans(if1)
             end do
-            write(13,'(f10.6,60(1x,e15.7))')                                         &
-              energy,(prob1(j),j = 0, min(j_max,60))
+            write(13,fstring)energy,(prob1(j),j = 0, min(j_max,60))
+!            write(13,'(f10.6,60(1x,e15.7))')                                         &
+!              energy,(prob1(j),j = 0, min(j_max,60))
          end do
          write(13,*)
          write(13,*)'Negative Parity: Decay type = Fission'
+         fstring = "('    E     ',"                      &
+                   //trim(adjustl(temp_string))//"(5x,'J = ',f4.1,3x))"
+
+         write(13,fstring)(real(jj) + nucleus(i)%jshift, jj = 0, min(j_max,60))
+         fstring = "('----------',"//trim(adjustl(temp_string))//"(1x,'---------------'))"
+         write(13,fstring)
+         fstring = '(f10.6,'//trim(adjustl(temp_string))//'(1x,e15.7))'
          do n = 1, nucleus(i)%nbin
             energy = nucleus(i)%e_grid(n)
             do j = 0, min(j_max,60)
                prob2(j) = nucleus(i)%bins(j,1,n)%HF_trans(if1)
             end do
-            write(13,'(f10.6,60(1x,e15.7))')                                         &
-              energy,(prob2(j),j = 0, min(j_max,60))
+            write(13,fstring)energy,(prob2(j),j = 0, min(j_max,60))
+!            write(13,'(f10.6,60(1x,e15.7))')                                         &
+!              energy,(prob2(j),j = 0, min(j_max,60))
          end do
 
          do ii = 1, nucleus(i)%F_n_barr
             write(13,*)
             write(13,*)'Positive Parity: Trans-Coef for Fission Barrier #', ii
+            fstring = "('    E     ',"                      &
+                      //trim(adjustl(temp_string))//"(5x,'J = ',f4.1,3x))"
+
+            write(13,fstring)(real(jj) + nucleus(i)%jshift, jj = 0, min(j_max,60))
+            fstring = "('----------',"//trim(adjustl(temp_string))//"(1x,'---------------'))"
+            write(13,fstring)
+            fstring = '(f10.6,'//trim(adjustl(temp_string))//'(1x,e15.7))'
             do n = 1, nucleus(i)%nbin
                energy = nucleus(i)%e_grid(n)
                do j = 0, min(j_max,60)
                   prob1(j) = nucleus(i)%bins(j,0,n)%HF_trans(if1+ii)
                end do
-               write(13,'(f10.6,60(1x,e15.7))')                                      &
-                 energy,(prob1(j),j = 0, min(j_max,60))
+               write(13,fstring)energy,(prob1(j),j = 0, min(j_max,60))
+!               write(13,'(f10.6,60(1x,e15.7))')                                      &
+!                 energy,(prob1(j),j = 0, min(j_max,60))
             end do
             write(13,*)
             write(13,*)'Negative Parity: Trans-Coef for Fission Barrier #', ii
+            fstring = "('    E     ',"                      &
+                      //trim(adjustl(temp_string))//"(5x,'J = ',f4.1,3x))"
+
+            write(13,fstring)(real(jj) + nucleus(i)%jshift, jj = 0, min(j_max,60))
+            fstring = "('----------',"//trim(adjustl(temp_string))//"(1x,'---------------'))"
+            write(13,fstring)
+            fstring = '(f10.6,'//trim(adjustl(temp_string))//'(1x,e15.7))'
             do n = 1, nucleus(i)%nbin
                energy = nucleus(i)%e_grid(n)
                do j = 0, min(j_max,60)
                   prob2(j) = nucleus(i)%bins(j,1,n)%HF_trans(if1+ii)
                end do
-               write(13,'(f10.6,60(1x,e15.7))')                                      &
-                 energy,(prob2(j),j = 0, min(j_max,60))
+               write(13,fstring)energy,(prob2(j),j = 0, min(j_max,60))
+!               write(13,'(f10.6,60(1x,e15.7))')                                      &
+!                 energy,(prob2(j),j = 0, min(j_max,60))
             end do
          end do
       end if
@@ -1202,25 +1077,74 @@ subroutine output_nucleus_data(num_comp, j_max, itarget)
          if(k < 7)write(13,*)'Particle type = ',particle(k)%name
          if(k == 7)write(13,*)'Decay type = Fission'
          write(13,*)'Positive Parity'
+         fstring = "('    E     ',"                      &
+                   //trim(adjustl(temp_string))//"(5x,'J = ',f4.1,3x))"
+
+         write(13,fstring)(real(jj) + nucleus(i)%jshift, jj = 0, min(j_max,60))
+         fstring = "('----------',"//trim(adjustl(temp_string))//"(1x,'---------------'))"
+         write(13,fstring)
+         fstring = '(f10.6,'//trim(adjustl(temp_string))//'(1x,e15.7))'
          do n = 1,nucleus(i)%nbin
             energy = nucleus(i)%e_grid(n)
             do j = 0, min(j_max,60)
                prob1(j) = nucleus(i)%bins(j,0,n)%HF_prob(if1)
             end do
-            write(13,'(f10.6,60(1x,e15.7))')                                         &
-              energy,(prob1(j),j = 0, min(j_max,60))
+            write(13,fstring)energy,(prob1(j),j = 0, min(j_max,60))
+!            write(13,'(f10.6,60(1x,e15.7))')                                         &
+!              energy,(prob1(j),j = 0, min(j_max,60))
          end do
          write(13,*)'Negative Parity'
+         fstring = "('    E     ',"                      &
+                   //trim(adjustl(temp_string))//"(5x,'J = ',f4.1,3x))"
+
+         write(13,fstring)(real(jj) + nucleus(i)%jshift, jj = 0, min(j_max,60))
+         fstring = "('----------',"//trim(adjustl(temp_string))//"(1x,'---------------'))"
+         write(13,fstring)
+         fstring = '(f10.6,'//trim(adjustl(temp_string))//'(1x,e15.7))'
          do n = 1,nucleus(i)%nbin
             energy = nucleus(i)%e_grid(n)
             do j = 0, min(j_max,60)
                prob2(j) = nucleus(i)%bins(j,1,n)%HF_prob(if1)
             end do
-            write(13,'(f10.6,60(1x,e15.7))')                                         &
-              energy,(prob2(j),j = 0, min(j_max,60))
+            write(13,fstring)energy,(prob2(j),j = 0, min(j_max,60))
+!            write(13,'(f10.6,60(1x,e15.7))')                                         &
+!              energy,(prob2(j),j = 0, min(j_max,60))
          end do
       end do
    end do
+   if(pop_calc)then
+      write(13,*)'*****************************************************************'
+      write(13,*)
+      write(13,*)'Decay probabilities for each initial excitation Population'
+      write(13,'(3x,6x,''Ex'',8x,8(3x,8x,a8))')(particle(k)%name, k = 0, 7)
+      write(13,'(''   ----------------'',8(''   ----------------''))')
+!----   loop over initial population energies
+      do i = 1, num_pop_e
+         prob_jpi(0:60,0:1) = 0.0d0
+         Ex = Pop_data(i)%Ex_pop
+         if(.not. j_pop_calc)then
+            do j = 1, Pop_data(i)%num_pop
+               Ix = nint(Pop_data(i)%j_pop(j) - nucleus(1)%jshift)
+               ip = nint(Pop_data(i)%par_pop(j) + 1.0d0)/2
+               prob_jpi(Ix,ip) = Pop_data(i)%bin_pop(j)
+            end do
+         end if
+         n = find_ibin(Ex,1)
+         part_prob(0:7) = 0.0d0
+         do if1 = 1, nucleus(1)%num_decay
+            k = nucleus(1)%decay_particle(if1)
+            do ip = 0, 1
+               do j = 0, min(j_max,60)
+                  part_prob(k) = part_prob(k) + nucleus(1)%bins(j,ip,n)%HF_prob(if1)*  &
+                                 prob_jpi(j,ip)
+               end do
+            end do
+         end do
+         write(13,'(9(3x,1pe16.7))')Ex,(part_prob(k),k=0,7)
+      end do
+      write(13,*)
+      write(13,*)'*****************************************************************'
+   end if
    flush(13)
    return
 end subroutine output_nucleus_data

@@ -382,6 +382,7 @@ subroutine Fission_transmission(icomp,Ex,xji,ipar,F_trans)
 !--------   Functions  -------------------------------
    real(kind=8) :: HW_trans
    real(kind=8) :: spin_fac,parity_fac
+   logical :: real8_equal
 !-----------------------------------------------------
 
    par = 1.0d0
@@ -429,8 +430,10 @@ subroutine Fission_transmission(icomp,Ex,xji,ipar,F_trans)
 
 
       do j = 1,nucleus(icomp)%F_Barrier(i)%num_discrete
-         if(nucleus(icomp)%F_barrier(i)%state_j(j) == xji .and.                &
-            nucleus(icomp)%F_barrier(i)%state_pi(j) == par)then
+!         if(nucleus(icomp)%F_barrier(i)%state_j(j) == xji .and.                &
+!            nucleus(icomp)%F_barrier(i)%state_pi(j) == par)then
+         if(real8_equal(nucleus(icomp)%F_barrier(i)%state_j(j),xji) .and.   &
+            real8_equal(nucleus(icomp)%F_barrier(i)%state_pi(j),par))then
             Ef = nucleus(icomp)%F_barrier(i)%state_e(j)
             tt = HW_trans(Ex,Ef,F_Barrier,F_barrier_hbw)
             trans(i) = trans(i) + tt

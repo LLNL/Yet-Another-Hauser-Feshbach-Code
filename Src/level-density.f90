@@ -663,7 +663,7 @@ subroutine finish_lev_den(icomp)
    a_Sn = aparam_u(u,aparam,shell,gamma)
    nucleus(icomp)%a_Sn = a_Sn
 
-   if(nucleus(icomp)%level_param(9) == 0)then
+   if(nint(nucleus(icomp)%level_param(9)) == 0)then
       nucleus(icomp)%sig2 = spin_cut*xA**(2.0d0/3.0d0)
       nucleus(icomp)%sig2_Sn = nucleus(icomp)%sig2*sqrt(a_Sn*U)
    else
