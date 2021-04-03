@@ -1,7 +1,7 @@
 
 #F90CFLAGS   = '-Wall -fbounds-check -fcheck-array-temporaries -fcheck=all -g'
-F90CFLAGS   = '-Wall  -Ofast'
-F90CFLAGS   = '-Wall -Wintrinsic-shadow -Wsurprising -Wextra -Ofast'
+F90CFLAGS   = '-Wall -Ofast'
+#F90CFLAGS   = '-Wall -Wintrinsic-shadow -Wsurprising -Wextra -Ofast'
 #F90CFLAGS   = '-Wall -g -fcheck=bounds -Ofast'
 MPIF90CFLAGS = '-Ofast'
 
@@ -58,7 +58,8 @@ print_elastic.o            \
 print_inelastic.o          \
 print_channels.o           \
 print_channel_gammas.o     \
-print_pop_data.o           \
+print_pop_mult_data.o      \
+print_primary_decay.o      \
 particle-properties.o      \
 pre-equilibrium-1.o        \
 PREEQ-Samp.o               \
