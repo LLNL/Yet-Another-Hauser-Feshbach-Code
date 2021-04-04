@@ -138,6 +138,7 @@ program YAHFC_MASTER
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
       real(kind=8) :: ran
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+      integer(kind=4) :: l_max
       integer(kind=4) :: ifind, ilast
       integer(kind=4) :: num_s
       integer(kind=4) :: ictype
@@ -1548,10 +1549,14 @@ program YAHFC_MASTER
       if(.not. allocated(extra_angle_data))allocate(extra_angle_data(3*num_theta,dim_part))
 
       if(.not.pop_calc .and. iproj > 0)then
-         if(.not.allocated(clb_l))allocate(clb_l(0:Ang_L_max,0:particle(iproj)%lmax))
+         l_max = 0
+         do k = 1, 6
+            if(max_particle(k) > 0 .and. particle(k)%lmax > l_max)l_max = particle(k)%lmax
+         end do
+         if(.not.allocated(clb_l))allocate(clb_l(0:Ang_L_max,0:l_max))
          do L_Ang = 0, Ang_L_max
             xL_ang = real(L_Ang,kind=8)
-            do l_i = 0, particle(iproj)%lmax
+            do l_i = 0, l_max
                xl_i = real(l_i,kind=8)
                clb_l(L_Ang,l_i) =  clebr(xl_i,0.0d0,xl_i,0.0d0,xL_ang,0.0d0)
             end do

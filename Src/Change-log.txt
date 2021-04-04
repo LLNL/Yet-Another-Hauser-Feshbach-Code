@@ -568,7 +568,18 @@ Version 3.34
     Ex sampled with a Gaussian width dEx, and the J^pi populations are
     based on the angular momentum distribution.
 29. Added back Readme.txt to the main YAHFC directory for the gitLab
-    distribution.
+    distribution. Gives instructions for settign up environment variables.
+
+Version 3.35
+1.  Fixed issue with incident energies where a subsequent incident energy would
+    could be below a previous one due tomatching incident energies with the 
+    excitation energy grid. Could happen if spacing for incident projectile
+    energies was less than the excitation energy bin width.
+2.  Fixed out-of-bounds error in array clb_l due to large orbital angular
+    momenta for emitted particles, i.e., alphas relative to incident neutrons.
+    Array was set up anticipating l for just the projectile. This array is
+    needed in the primary decay.
+
 
 
 

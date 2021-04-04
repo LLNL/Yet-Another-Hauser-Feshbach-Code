@@ -81,7 +81,8 @@ subroutine fix_incident_energies(iproj, rel_factor)
 !   write(6,*)in, e_in
          e_rel = e_in*rel_factor
          e_x = e_rel + nucleus(1)%sep_e(projectile%particle_type)
-         j = find_ibin(E_x, 1)
+!   write(6,*)e_x,nucleus(1)%sep_e(projectile%particle_type) +     &
+!               0.5d0*nucleus(1)%delta_e(1),nucleus(1)%sep_e(projectile%particle_type)
          if(e_x < nucleus(1)%sep_e(projectile%particle_type) +     &
                0.5d0*nucleus(1)%delta_e(1))cycle
 !
@@ -89,9 +90,10 @@ subroutine fix_incident_energies(iproj, rel_factor)
 !
          j = find_ibin(E_x, 1)
 !   write(6,*)in, e_in, j, e_x, nucleus(1)%sep_e(projectile%particle_type)
-!   write(6,*)nucleus(1)%e_grid(j+1)
+ !  write(6,*)'j = ',j, 0.5d0*nucleus(1)%delta_e(j)
+!   if(j < nucleus(1)%nbin)write(6,*)nucleus(1)%e_grid(j+1)
 !   write(6,*)nucleus(1)%e_grid(j)
-!   write(6,*)nucleus(1)%e_grid(j-1)
+!   if(j > 1)write(6,*)nucleus(1)%e_grid(j-1)
          if(j > 0)then
             e_x = nucleus(1)%e_grid(j)
             e_rel = e_x - nucleus(1)%sep_e(projectile%particle_type)
@@ -134,7 +136,7 @@ subroutine fix_incident_energies(iproj, rel_factor)
       in2 = in + 1
       do while(in2 <= num_energies)
          e_in2 = projectile%energy(in2)
-         if(abs(e_in - e_in2) < 1.0d-4)then          !  next energy is the same
+         if(abs(e_in - e_in2) < 1.0d-4 .or. e_in2 < e_in)then          !  next energy is the same
             do in3 = in2 + 1, num_energies           !  push energies in list down
                ishift = in3 - in2 - 1
                projectile%energy(in2+ishift) = projectile%energy(in3)
@@ -152,7 +154,6 @@ subroutine fix_incident_energies(iproj, rel_factor)
 !   end do
 
 ! stop
-
    projectile%num_e = num_energies
 
 !   if(allocated(test_e))deallocate(test_e)
