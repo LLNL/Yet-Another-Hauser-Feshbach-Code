@@ -294,7 +294,7 @@ subroutine parse_command(icommand, command, finish)
 !------   If user didn't specify either proj_e_file or proj_eminmax
 !------   set up default incident energy grid
 
-  write(6,*)'Calling incident_energy_setup'
+!  write(6,*)'Calling incident_energy_setup'
          if(.not. energy_input)call incident_energy_setup
 !
 !------   Make sure max_particle(iproj) >= 1
@@ -311,6 +311,7 @@ subroutine parse_command(icommand, command, finish)
             projectile%A == particle(i)%A)then
               projectile%particle_type = i
               projectile%specified = .true.
+              particle(i)%do_dwba = .false.
 !-----    Set values for pree-equilibrium model for incident neutrons and protons
               if(i == 1)then
                  Preeq_V = 38.0d0
@@ -493,15 +494,33 @@ subroutine parse_command(icommand, command, finish)
 !      read(command(startw(2):stopw(2)),*)k
       k = particle_index(command(startw(2):stopw(2)))
       if(k < 1)then
-          if(iproc == 0)write(6,*)'Particle misidentified in command "max_particle"'
+          if(iproc == 0)write(6,*)'Particle missidentified in command "max_particle"'
           call MPI_Abort(icomm,101,ierr)
       end if
       read(command(startw(3):stopw(3)),*)i
 !---   set max_particle(k). Note if k == iproj, max_particle >=1
 !---   namely, it can't be zero, so prevent user from making an error
 !---   that prevents anything from running.
+      if(k == 1 .and. i >= 0 .and. iproc == 0)then
+         write(6,*)'*************************************************'
+         write(6,*)'*----  WARNING!!!! WARNING!!!! WARNINING!!! ----*'
+         write(6,*)'*----  It is strongly recommended that      ----*'
+         write(6,*)'*----  neutrons not be limited in the       ----*'
+         write(6,*)'*----  number that can be emitted. It is    ----*'
+         write(6,*)'*----  recommend to use "max_particle n -1" ----*'
+         write(6,*)'*----  or the default, which limits the     ----*'
+         write(6,*)'*----  number of neutrons by energy only.   ----*'  
+         write(6,*)'*----  WARNING!!!! WARNING!!!! WARNINING!!! ----*'
+         write(6,*)'*************************************************'
+      end if
       if(k == projectile%particle_type)then
-         max_particle(k) = max(max_particle(k),1)
+         if(i < 0)then
+            max_particle(k) = -1
+         elseif(i == 0)then
+            max_particle(k) = 1
+         else
+            max_particle(k) = i
+         end if
       else
          max_particle(k) = i
       end if

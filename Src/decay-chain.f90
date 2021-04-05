@@ -91,12 +91,12 @@ subroutine set_up_decay_chain(Z_p, A_p, Z_t, A_t)
    end do
 
 !--- Clipping at a maximum of 30 of any type
-   max_p(1) = min(N_i - 2,30)
-   max_p(2) = min(Z_i - 2,30)
-   max_p(3) = min(d_i - 2,30)
-   max_p(4) = min(t_i - 3,30)
-   max_p(5) = min(h_i - 3,30)
-   max_p(6) = min(alpha_i - 4,30)
+   max_p(1) = min(N_i,30)
+   max_p(2) = min(Z_i,30)
+   max_p(3) = min(d_i,30)
+   max_p(4) = min(t_i,30)
+   max_p(5) = min(h_i,30)
+   max_p(6) = min(alpha_i,30)
 
 !   write(6,*)N_i, Z_i, d_i, t_i, h_i
 
@@ -130,7 +130,6 @@ subroutine set_up_decay_chain(Z_p, A_p, Z_t, A_t)
             if(Z_f < 2 .or. A_f < 4)exit
             call get_binding_energy(data_path,len_path,      &
                                     Z_f,A_f,me_f,be_f,sep_f)!
-
             if(me_f <= -1.01d6)exit
             sep_tot= me_f - me + ii*particle(k)%ME 
             Coul = 0.0d0
@@ -140,8 +139,6 @@ subroutine set_up_decay_chain(Z_p, A_p, Z_t, A_t)
          max_particle(k) = ii - 1      !---  get one more for good measure
       end if
    end do
-
-
 
 !----------------------------------------------------------------!
 !--------------   Find out how many compound nuclei there are    !
@@ -198,7 +195,7 @@ subroutine set_up_decay_chain(Z_p, A_p, Z_t, A_t)
                      do i = 1, num_comp
                         if(Z_f == storeZA(1,i) .and. A_f == storeZA(2,i))then
                            if(exmax > store_exmax(i))store_exmax(i) = exmax
-                           found=.true.
+                           found = .true.
                            exit
                         end if
                      end do
@@ -232,8 +229,6 @@ subroutine set_up_decay_chain(Z_p, A_p, Z_t, A_t)
          end do
       end do
    end do
-
-!   stop
 
    do k = 1, 6
       max_particle(k) = max_p(k)
@@ -306,7 +301,7 @@ subroutine set_up_decay_chain(Z_p, A_p, Z_t, A_t)
                      do i = 1, num_nuc
                         if(Z_f == nucleus(i)%Z .and. A_f == nucleus(i)%A)then
                            if(exmax > store_exmax(i))store_exmax(i) = exmax
-                           found=.true.
+                           found = .true.
 !----   Found, but check if exmax is greater than current, if so, use this instead
                            if(exmax > nucleus(i)%Ex_max)nucleus(i)%Ex_max = exmax
                            inuc = i
@@ -532,6 +527,8 @@ subroutine set_up_decay_chain(Z_p, A_p, Z_t, A_t)
       Z_f = nucleus(inuc)%Z
       A_f = nucleus(inuc)%A
       N_f = A_f - Z_f
+
+  write(6,*)Z_f, N_f, A_f
 
       D_n = 0.0d0
       Z_pp = Z_f

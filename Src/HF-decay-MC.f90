@@ -145,6 +145,9 @@
    end do
    tally_norm = 1.0d0/tally_norm
 
+   if(nint(xnnn) == 0)return   ! no way to decay, hung up
+
+
    if(biased_sampling)then
       check_prob = 0.0d0
       do if1 = 1, nucleus(icomp_i)%bins(Ix_i,ip_i,nbin_i)%num_decay
@@ -191,6 +194,8 @@
    icomp_f = nucleus(icomp_i)%bins(Ix_i,ip_i,nbin_i)%decay_to(if1)
 
    if(icomp_f < 1)then
+! write(6,*)icomp_i, Ix_i,ip_i,nbin_i
+! write(6,*)'num_decay = ',nucleus(icomp_i)%bins(Ix_i,ip_i,nbin_i)%num_decay
       write(6,*)xnnn, base_prob
       do k = 1, 6
          write(6,*)num_part_type(k),max_particle(k)
@@ -200,7 +205,7 @@
       do if1 = 1, nucleus(icomp_i)%bins(Ix_i,ip_i,nbin_i)%num_decay
          k = nucleus(icomp_i)%bins(Ix_i,ip_i,nbin_i)%decay_particle(if1)
          check_prob = check_prob + base_prob*part_fact(k)*tally_norm
-      write(6,*)if1,k,check_prob,prob
+      write(6,*)'if1 = ',if1,k,check_prob,prob
          if(prob <= check_prob)exit
       end do
       tally_prob = nucleus(icomp_i)%bins(Ix_i,ip_i,nbin_i)%HF_prob(if1)/base_prob

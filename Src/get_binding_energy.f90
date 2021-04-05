@@ -124,6 +124,8 @@ subroutine get_binding_energy(data_path, len_path,         &
   i_bind = 1
 !----  With binding energies, now compute separation energies
   in1 = ia1-iz1
+  me = -1.01d6
+  if(iz1 < 1)return
   do j = istart(iz1), istart(iz1+1) - 1
      if(ia1 == ia(j))then
         me = mass_ex(j)
@@ -139,8 +141,11 @@ subroutine get_binding_energy(data_path, len_path,         &
 !   write(6,*)'iz1 ',iz1, ia1
   sep_e(0) = 0.0d0
   do j = 1, 6
+     sep_e(j) = 1.0d3          !  default it to a large value if not found
      iz2 = iz1 - particle(j)%Z
+     if(iz2 < 1)cycle
      ia2 = ia1 - particle(j)%A
+     if(ia2 < 2)cycle
      in2 = ia2 - iz2
      xtemp = 0.0
      if(istart(iz2) > 0)then
@@ -149,7 +154,6 @@ subroutine get_binding_energy(data_path, len_path,         &
         end do
         sep_e(j) = xtemp + particle(j)%ME - me
      else
-        sep_e(j) = -1.0d5
      end if
   end do
   return

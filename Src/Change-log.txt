@@ -580,6 +580,24 @@ Version 3.35
     Array was set up anticipating l for just the projectile. This array is
     needed in the primary decay.
 
-
+Version 3.36
+1.  Fixed issue when setting "max_particle iproj -1" (no restrictions) for the
+    projectile. It was overriden to max_particle(iproj) = 1. Happens only when
+    setting max_particle (especially for either neutrons or protons, which is
+    usually not done).
+2.  Fixed issue reading in binding energies for light nuclei, in particular, if
+    the terminus is near 4He. Can't compute proton or neutron pairing terms as
+    there are only two protons/neutrons.
+3.  Made change to have continuous bin that cannot decay because of max_particle
+    restrictions to be treated a hung bin, as in num_decay = 0. Can arise
+    if "max_particle n X" is used, e.g., X=1, and this compound nucleus was 
+    reached by emitting X neutrons previously. It can happen that gamma decay is
+    highly unlikely prob < 1.0e-6, and this would lead to no decay being 
+    possible.
+4.  Implemented a warning to user to not limit neutron emission with
+    "max_particle n X". Doing so can have consequences of truncating the decay
+    prematurely and omitting potentially important channels. This is less likely
+    for charged particles, and can be useful to reduce channels with very small
+    cross section, e.g., multiple alpha emission form actinide nuclei.
 
 
