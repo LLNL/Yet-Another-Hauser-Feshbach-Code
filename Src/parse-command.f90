@@ -1430,7 +1430,7 @@ subroutine parse_command(icommand, command, finish)
             if(iproc ==0)then
                write(6,*)'Default Fission Barriers are overridden for ', nucleus(i)%Label
                write(6,*)'New defaults established.'
-               write(6,*)'Berrier heights = 6.0 MeV, hbw = 0.6 MeV, symmetric level densities'
+               write(6,*)'Barrier heights = 6.0 MeV, hbw = 0.6 MeV, symmetric level densities'
                write(6,*)'Use input commands to specify all Fission parameters!!!'
             end if
             nucleus(i)%fission = .true.
@@ -2342,12 +2342,15 @@ subroutine parse_command(icommand, command, finish)
 !
    if(command(startw(1):stopw(1)) == 'output_mode')then
       icommand = icommand + 1
-      if(numw < 2)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+      if(iproc == 0)then
+          write(6,*)'Warning - Ignoring "output_mode" as it is longer a valid input command'
       end if
-      read(command(startw(2):stopw(2)),*)output_mode
-      return
+!      if(numw < 2)then
+!         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
+!         return
+!      end if
+!      read(command(startw(2):stopw(2)),*)output_mode
+!      return
    end if
 !
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -2365,6 +2368,31 @@ subroutine parse_command(icommand, command, finish)
       else
          max_J_allowed = itemp_read
       end if
+      return
+   end if
+!
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!
+   if(command(startw(1):stopw(1)) == 'out_gammas_vs_e')then
+      icommand = icommand + 1
+      if(iproc == 0)then
+          write(6,*)'Warning - "out_gammas_vs_e" is longer a valid input command'
+          write(6,*)'Use "track_gammas y" instead. Continuing as if "track_gammas" was called'
+      end if
+      if(numw < 2)then
+         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
+         return
+      end if
+
+      call char_logical(command(startw(2):stopw(2)),logic_char,read_error)
+
+      if(read_error)then
+         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
+         return
+      end if
+
+      track_gammas = logic_char         
       return
    end if
 !

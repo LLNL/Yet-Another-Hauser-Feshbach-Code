@@ -603,3 +603,11 @@ Version 3.36
 Version 3.37
 1.  Added ability to set the lifetime that YAHFC uses to define an isomer;
     "t12_isomer X", where X is the desired lifetime in seconds.
+
+Version 3.38
+1.  Fixed bug where isomers were being excluded - introduced in the rewrite
+    of spectrum.f90. Also, ensured that isomers would be below E_cut.
+2.  Fixed typos in output to screen and output file. Removed extraneous writes
+    fresco_make_tco and improved message about incident energies.
+3.  Implemented a message for input commands "output_mode" and out_gammas_vs_e",
+    which are deprecated.

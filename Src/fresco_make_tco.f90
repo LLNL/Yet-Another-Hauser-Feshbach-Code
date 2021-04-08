@@ -658,7 +658,7 @@ subroutine fresco_make_tco(data_path, len_path, tco_file, len_tco,           &
   do while(ener < elab_max)
      nume = nume + 1
      ener = ener*factor
-  write(6,*)ener, emax
+!  write(6,*)ener, emax
   end do
 
   allocate(energy(nume))
@@ -668,12 +668,14 @@ subroutine fresco_make_tco(data_path, len_path, tco_file, len_tco,           &
 
   energy(1:nume) = 0.0d0
   ener = emin/factor
+  if(iproc == 0)write(6,*)'Running frescox with the following Lab energies'
   do ie = 1, nume
      ener = ener*factor
      particle(pindex)%e_grid(ie) = ener*mass_target/(mass_target + mass_proj)     !   COM frame
      e_lab = ener
      energy(ie) = e_lab                                                           !   Lab frame
-     if(iproc == 0)write(6,*)ie, energy(ie), particle(pindex)%e_grid(ie)
+     if(iproc == 0)write(6,*)ie, energy(ie)
+!     if(iproc == 0)write(6,*)ie, energy(ie), particle(pindex)%e_grid(ie)
   end do
 
   Radius = 1.30d0*(A**(1.0d0/3.0d0) + Ap**(1.0d0/3.0d0))

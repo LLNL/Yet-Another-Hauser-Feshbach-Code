@@ -852,7 +852,6 @@ subroutine output_nucleus_data(j_max, itarget)
                      //trim(adjustl(temp_string))//"(5x,'J = ',f4.1,3x))"
 
             write(13,fstring)(real(jj) + nucleus(i)%jshift, jj = 0, min(j_max,60))
-            write(13,fstring)(real(jj) + nucleus(i)%jshift, jj = 0, min(j_max,60))
             fstring = "(1x,'--------',6(1x,'----------'),1x,'---------------',"        &
                       //trim(adjustl(temp_string))//"(1x,'---------------'))"
             write(13,fstring)

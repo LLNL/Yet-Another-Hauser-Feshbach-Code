@@ -433,7 +433,8 @@ subroutine get_spectrum(data_path, len_path, overide, symb, iz, ia, inuc)
       if(nucleus(inuc)%state(i)%spin < 0.0d0)exit
       if(nint(nucleus(inuc)%state(i)%parity) == 0)exit
       if(complete_decay(i) == 0)exit
-      if(nucleus(inuc)%state(i)%nbranch == 0)exit
+      if(nucleus(inuc)%state(i)%nbranch == 0 .and.              &
+         .not. nucleus(inuc)%state(i)%isomer)exit
       n_cut = i
    end do
    nucleus(inuc)%ncut = n_cut
@@ -451,7 +452,7 @@ subroutine get_spectrum(data_path, len_path, overide, symb, iz, ia, inuc)
       if(nucleus(inuc)%state(i)%spin < 0.0d0)check = .false.
       if(nint(nucleus(inuc)%state(i)%parity) == 0)check = .false.
       if(complete_decay(i) == 0)check = .false.
-      if(nucleus(inuc)%state(i)%nbranch == 0)check = .false. 
+      if(nucleus(inuc)%state(i)%nbranch == 0 .and. .not. nucleus(inuc)%state(i)%isomer )check = .false. 
       if(nucleus(inuc)%state(i)%level_float)check = .false.
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !----   Failsafe - make sure that all transitions go to a safe, i.e., 
