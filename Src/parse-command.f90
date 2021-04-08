@@ -995,6 +995,20 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
+   if(command(startw(1):stopw(1)) == 't12_isomer')then
+      icommand = icommand + 1
+      if(numw /= 2)then
+         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
+         return
+      end if
+      read(command(startw(2):stopw(2)),*)t12_isomer
+
+      return
+   end if
+!
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!
    if(command(startw(1):stopw(1)) == 'fit_aparam')then
       icommand = icommand + 1
       if(iproc ==0)then
@@ -3326,6 +3340,14 @@ integer(kind=4) function rank_commands(command)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'all_discrete_states')then
+      rank_commands = 0 
+      return
+   end if
+!
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!
+   if(command(startw(1):stopw(1)) == 't12_isomer')then
       rank_commands = 0 
       return
    end if

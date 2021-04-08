@@ -1,7 +1,6 @@
 #========================================================================
 #                 Resonance data for s-wave resonances 
 #                 Associated with the Target not the compound
-#                 Wauhab determines correct compound
 # Z El  A   Io     Bn        D0        dD      S0    dS    Gg    dG   Com.
 #                 [MeV]     [keV]     [keV]  [1E-4][1E-4][meV] [meV]  &Ref
 #========================================================================

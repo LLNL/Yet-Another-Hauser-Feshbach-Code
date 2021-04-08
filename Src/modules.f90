@@ -32,7 +32,7 @@ module options
 !
    use variable_kinds
    character(len=132) :: version
-   parameter (version = 'MC-3.36')
+   parameter (version = 'MC-3.37')
    integer(kind=int_64) :: iseed_64
    integer(kind=int_32) :: iseed_32
    integer(kind=4) :: PREEQ_Model
@@ -67,6 +67,7 @@ module options
    integer(kind=4) :: write_me
    real(kind=8) :: prob_cut
    real(kind=8) :: pop_check
+   real(kind=8) :: t12_isomer    ! lifetime in seconds defining an isomer
 !-rem   real(kind=8) sig_sum, sig_sumg, sig_sumn, sig_sep_e, sig_in
 !-rem   real(kind=8) sigb(3)
 !-rem   integer(kind=4) :: numn1, numn2, numn3

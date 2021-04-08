@@ -1,4 +1,5 @@
 #                  Resonance data for p-wave resonances 
+#                  Associated with the Target not the compound
 # Z El  A    Io    Bn        D1        dD      S1   dS    Gg    dG    Ref
 #                 [MeV]    [keV]     [keV]  [1E-4][1E-4] [meV] [meV]
 #========================================================================

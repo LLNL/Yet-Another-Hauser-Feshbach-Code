@@ -528,7 +528,7 @@ subroutine set_up_decay_chain(Z_p, A_p, Z_t, A_t)
       A_f = nucleus(inuc)%A
       N_f = A_f - Z_f
 
-  write(6,*)Z_f, N_f, A_f
+!  write(6,*)Z_f, N_f, A_f
 
       D_n = 0.0d0
       Z_pp = Z_f

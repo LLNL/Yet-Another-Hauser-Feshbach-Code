@@ -188,7 +188,6 @@ program YAHFC_MASTER
       logical :: check
 !---------------------------------------------------------------------
       character(len=2) char_pos,char_neg
-      real(kind=8) :: t12_isomer
       real(kind=8) :: apu
       real(kind=8) :: rho, sig
       integer(kind=4) :: max_part
@@ -839,8 +838,7 @@ program YAHFC_MASTER
                if(Z_f == target%Z .and. A_f == target%A)target%icomp = icomp
                itarget = target%icomp
                call get_spectrum(data_path,len_path,                  &
-                                 overide,t12_isomer,                  &
-                                 symb(Z_f),Z_f,A_f,icomp)
+                                 overide,symb(Z_f),Z_f,A_f,icomp)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !----------   Find E1 strength function parameters
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

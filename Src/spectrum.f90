@@ -1,8 +1,7 @@
 !
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
-subroutine get_spectrum(data_path, len_path, overide,       &
-                        t12_isomer, symb, iz, ia, inuc)
+subroutine get_spectrum(data_path, len_path, overide, symb, iz, ia, inuc)
 !
 !*******************************************************************************
 !
@@ -32,7 +31,6 @@ subroutine get_spectrum(data_path, len_path, overide,       &
    character(len=200), intent(in) :: data_path
    integer(kind=4), intent(in) :: len_path
    character(len=1), intent(in) :: overide
-   real(kind=8), intent(in) :: t12_isomer
    character(len=2), intent(in) :: symb
    integer(kind=4), intent(in) :: iz,ia
    integer(kind=4), intent(in) :: inuc

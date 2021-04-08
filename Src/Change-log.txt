@@ -600,4 +600,6 @@ Version 3.36
     for charged particles, and can be useful to reduce channels with very small
     cross section, e.g., multiple alpha emission form actinide nuclei.
 
-
+Version 3.37
+1.  Added ability to set the lifetime that YAHFC uses to define an isomer;
+    "t12_isomer X", where X is the desired lifetime in seconds.
