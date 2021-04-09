@@ -1,0 +1,1453 @@
+\documentclass[
+10pt,
+showpacs,preprintnumbers,footinbib,
+amsfonts,amsmath,amssymb,
+aps,
+prc,twocolumn,groupedaddress,superscriptaddress,
+showkeys,
+nofootinbib
+]{revtex4-1}
+\usepackage{graphicx}
+\usepackage{dcolumn}
+\usepackage{bm}
+\usepackage[colorlinks=true,urlcolor=blue,citecolor=blue]{hyperref}
+\usepackage{color}
+\usepackage{lipsum}
+%\usepackage[symbol]{footmisc}
+
+\def\@fnsymbol#1{\ensuremath{\ifcase#1\or *\or \dagger\or \ddagger\or
+   \mathsection\or \mathparagraph\or \|\or **\or \dagger\dagger
+   \or \ddagger\ddagger \else\@ctrerr\fi}}
+\renewcommand{\thefootnote}{\fnsymbol{footnote}}
+
+
+\newcommand{\hb}{\hbar\Omega}
+\newcommand{\ncsm}{No Core Shell Model }
+\newcommand{\tcr}[1]{\textcolor{red}{#1}}
+\newcommand{\tcb}[1]{\textcolor{blue}{#1}}
+
+\begin{document}
+
+\title{Monte Carlo Hauser-Feshbach computer code system to model nuclear reactions: YAHFC  }
+
+\email{ormand1@llnl.gov}
+\author{W. E. Ormand}
+\affiliation{Lawrence Livermore National Laboratory, P.O. Box 808, L-414,
+Livermore, California 94551, USA}
+\affiliation{Department of Physics and the National Superconducting Cyclotron
+Laboratory, \\
+   Michigan State University, East Lansing, MI 42284-1321, USA}
+
+\date{\today}
+
+
+\begin{abstract}
+A computer program framework, YAHFC, to model low-energy nuclear reactions is presented. The framework allows for reactions with incident particles ranging from protons/neutrons to alphas and is designed to address reactions that ultimately lead to the formation of compound nuclear systems that then decay statistically as outlined in concepts of Hauser and Feshbach.  Additionally, instead of a reaction, it is also possible to model the decay of a nuclear system with an initial excitation and population. The code models nuclear decays with a Monte Carlo process that tracks the decay of each state. This allows for an exact representation of the spectra for all emitted particles in each of the final exit channels and the possibility of generating reaction data for simulation purposes. The program is interfaced with the optical model code system FRESCOX to calculate transmission coefficients as well as the effects of coupled channels and other direct excitations via the distorted wave Born approximation (DWBA). Modules are included to account for nuclear processes such as width corrections, pre-equilibrium emission, and fission. The program is controlled by a series of input commands and while a set of input parameters exists for each projectile and target, the input commands allow for complete control over each input parameter. Extensive data files are produced and a program is provided that converts YAHFC data files into nuclear data library entries in the generalized nuclear data structure (GNDS). 
+\end{abstract}
+
+%\pacs{21.10.Ma,21.60.Cs,27.40.$+$z}
+
+\maketitle
+
+\section{Introduction}
+Low-energy reactions\footnote{A rough definition of low-energy is those reactions that induce an excitation energy in the nuclear system up to 30-50 MeV} induced by the light projectiles protons, neutrons, deuterons, tritons, $^3$He, and alpha particles on medium to heavy nuclei are key to many applications of nuclear physics in fundamental and applied research.  For example, the radiative capture of neutrons on short-lived nuclei are thought to be responsible for the synthesis of the elements heavier than iron through the r-process \cite{Bur:1957} in supernovae and/or neutron-star mergers \cite{Kas:2017}. And neutron induced reactions are important to science-based, stockpile stewardship as well as modeling of nuclear reactors. For many applications, an extensive library is needed to describe all the facets of the reaction, including cross sections and the spectra of emitted particles. Ideally, these data libraries would be extensively based on experimentally measured data. In general, experiment by itself is insufficient to generate these libraries as experimental data can be inconsistent, which must be reconciled through data evaluation, and/or incomplete. Thus, theoretical modeling is always necessary in order to provide complete data libraries for applications. The theoretical modeling of these low-energy reactions is based on a generalization of the compound nucleus framework of Hauser and Feshbach~\cite{Hauser:1952}. 
+
+Several computer code systems based on the Hauser-Feshbach formalism have been developed over the years to model reactions and to generate outputs for nuclear data libraries, such as GNASH~\cite{GNASH}, EMPIRE~\cite{EMPIRE}, and TALYS~\cite{TALYS}. Here, yet another framework, hence the odd name YAHFC, ``Yet Another Hauser-Feshbach Code'', is presented. While the goal of each code primarily focuses on modeling the reactions, they each have somewhat different approaches, features, and nuances that set them apart and give them advantages and disadvantages. YAHFC is a modern framework making full use of FORTRAN 90 features, including derived types to categorize internal data structures and dynamic memory allocation so that only the memory needed for the calculation at hand is allocated and problems of arbitrary size can be addressed without recompiling. The principal internal structures, such as the excitation energy bins, can be user defined, and are generated prior to modeling the reaction, much like the now extinct code STAPRE~\cite{STAPRE}, to allow for faster execution over the complete range incident energies. YAHFC is also integrated with the optical model code system FRESCOX~\cite{FRESCO}, which is currently being updated and maintained. In addition, the decays in YAHFC are generated via a Monte Carlo process, providing a sequence of decay events that permit a more detailed analysis of the properties of each exit channel. In particular, the emission spectra for each emitted particle can be generated, e.g., first, second, third, etc., and it is possible to analyze correlations in the decay products. In addition, events can be exported from the run, which means that YAHFC can utilized as an event generator for other applications and simulations. Finally, the data generated by YAHFC is compiled into a nuclear data library in the generalized nuclear data structure (GNDS)~\cite{GNDS} with the PYTHON script provided in the distribution.
+
+\section{Installation and Execution}
+
+After download, the YAHFC system is installed into a directory, which also contains a ${\texttt{Readme.txt}}$ file.
+The YAHFC framework was built for unix-based architectures and makes use of environment variables that define the directory locations for the YAHFC system, which are made use of during execution. The user needs to establish the environment variables ${\texttt{\$YAHFC\_DIR}}$, which is the top-level directory where the YAHFC system is installed, ${\texttt{\$YAHFC\_DAT}}$, which is the directory where data files read by YAHFC are located (usually ${\texttt{\$YAHFC\_DIR/data}}$), and ${\texttt{\$YAHFC\_BIN\_DIR}}$, which is the directory where the binary executables for FRESCO and YAHFC are located and must be added to the path. The source files are contained in the directory ${\texttt{\$YAHFC\_Dir/Src}}$ and are compiled via the ${\texttt{Makefile}}$ in the directory. The executable for serial version is made with the command ${\texttt{make YAHFC}}$, creating the executable ${\texttt{YAHFC.x}}$, which is copied into the ${\texttt{\$YAHFC\_BIN\_DIR}}$ directory. Similarly, the MPI version is made with the command ${\texttt{make YAHFC-MPI}}$.
+
+Before YAHFC can be executed, the program FRESCOX must be installed (not FRESCO), which is available for public download at ${\texttt{https://github.com/LLNL/Frescox}}$, and built with the executable ${\texttt{frescox}}$ placed in the path.
+
+There are several example runs in the directory ${\texttt{\$YAHFC\_DIR/Runs}}$. These include incident neutrons for $^{235}$U, $^{238}$U, $^{239}$Pu, and $^{241}$Am with fission, a non-fission case with incident neutrons for $^{87}$Y and population calculation for $^{88}$Y. 
+
+\subsection{Input Command Structure}
+
+YAHFC is based on entering a series of input commands that control all features of the calculation. These commands appear in a script read by YAHFC (via the stdin I/O stream, i.e., Fortran unit \# 5) and may be entered in any order and case (however, they must be spelled correctly) as the commands are parsed, ordered, and converted to lower case for execution. A compendium of the input commands is provided in the Appendix, and their concept is introduced here as some commands are referred to in this written description in order to describe various model options.  Much like TALYS, YAHFC has a default, or ``push-button'', mode. The minimum set of commands required to perform a YAHFC calculation are those needed to specify the target, projectile, range of incident energies, and a terminating ``end'' command, for example
+\begin{center}
+\begin{tabular}{| p{7 cm}|}
+\hline
+{\texttt {file As75-test}}\\
+{\texttt {target 33 75}} \\
+{\texttt {projectile 0 1}}\\
+{\texttt {proj\_eminmax   0.100   20.0  0.2}}\\
+{\texttt {end}}\\
+\hline
+\end{tabular}
+\end{center}
+This specifies the name for the output file, the $Z$ and $A$ of the target and projectile, and an incident energy grid for the projectile with minimum and maximum energies of 0.1 MeV and 20.0 MeV spaced by 0.2 MeV. 
+  
+\section{Basic Physics Concepts}
+
+Low-energy nuclear reactions take place primarily through the formation of the compound nucleus where the incident projectile is captured by the target and its energy is shared statistically among all the nucleons within the compound system. The process by which the sharing of the energy is complicated, and one appealing picture is multistep compound reaction theory~\cite{Feshbach:1980}. The projectile is captured by the target and then undergoes collisions with the constituent nucleons through multiple steps; eventually equilibrating the system where statistical nuclear properties dominate. This is true provided that the time scale of the collisions leading to equilibration is fast relative to emission of particles, which is generally the rule at lower incident energies. At higher incident energies, the time scale for particle emission can become commiserate with the equilibration process, leading to so-called pre-equilibrium emission. Theoretical developments of the overall reaction process is rich and attempts have been made to build a coherent microscopic framework around the multistep reaction concept. These attempts have met with limited success overall, and most reaction codes have primarily divided the reaction process into different components with models specifically designed, or tuned, to address each component. The YAHFC computer code also follows this conceptual design model. The reaction is described within the context of the following steps:
+\begin{enumerate}
+\item The interaction of the projectile with the target is described via an averaged potential, the so-called optical potential, that describes elastic scattering, absorption, and direct processes, such as excitation to rotational or vibrational states via coupled channels or the distorted wave-Born approximation.
+\item The probability for the formation of the initial composite system is defined by the optical potential absorption cross section and a decision is made whether it decays via pre-equilibirium or compound nucleus emission. The pre-equlibrium probability is computed with an external model and effectively deducted from the absorption probability.
+\begin{enumerate} 
+\item If compound, the initial state is decayed statistically, as described below (which includes fission), taking into account the effects of width fluctuations.
+\item If pre-equilibrium, the initial state is decayed following the details of the pre-equilibrium model.
+\end{enumerate}
+\item Following the initial decay, the system is decayed statistically to the terminus.
+\end{enumerate}
+In YAHFC, the decays are conducted via Monte Carlo and data is collected at each step; for example, the emission energy, angle, etc., for emitted particle in both the Lab frame and the reaction center-of-mass reference system.
+
+\subsection{Formation Probability}
+Modeling the decay of any nucleus can be initiated in one of two ways with YAHFC. The first is to model the reaction formation with the optical model formalism, which provides the reaction cross sections for elastic and direct processes as well as absorption. The second is to manually input populations as a function of excitation energy, angular momentum, and parity.
+
+The optical potential formalism is used to provide details the total cross section, absorption cross section, and elastic scattering. Direct excitations to rotational or vibrational states are accounted for within the standard coupled-channels framework and additional direct excitations to ancillary states can be accounted for with the distorted-wave Born approximation (DWBA). The optical potential provides the transmission coefficients for the incident particle, $T_{lj}(E_{\rm in})$, where $E_{\rm in}$ is chosen here to be the incident energy of the projectile in the center-of-mass frame, $l$ is the orbital angular momentum, and $j$ is the total angular momentum of the projectile particle, i.e., $\vec j = \vec l + \vec s$, with $s$ being the intrinsic spin of the projectile. The absorption cross section for the entrance channel defined by $l$ and $j$ coupled to a target state with angular momentum and parity $J_T^{\pi_T}$ to form a state with angular momentum and parity $J^\pi$ in the composite nucleus is
+\begin{equation}
+\sigma_{\rm abs}^{ljJ_TJ^\pi}(E_{\rm in}) = \frac{\pi}{\lambdabar^2} \frac{2J + 1}{(2j+1)(2J_T+1)}T_{lj}(E_{\rm in}),
+\label{eq:abs_chan}
+\end{equation}
+where $\vec{J} = \vec{J}_T + \vec j \rightarrow |J_T-j| \le J \le J_T + j$, the parity is given by the product $\pi = \pi_T\pi_{proj}(-1)^l$, and $\lambdabar$ is the deBroglie wavelength of the incident projectile in the center of mass system. The total absorption cross section is then
+\begin{equation} 
+\sigma_{\rm abs} (E_{\rm in})= \sum_{ljJ^\pi} \sigma_{\rm abs}^{ljJ_TJ^\pi}(E_{\rm in}),
+\label{eq:abs}
+\end{equation}
+At this point, we define the charge and mass number of the composite nucleus as $Z=Z_p+Z_T$ and $A=A_p+A_T$, where subscripts $p$ and $T$ denote the projectile and target, respectively (also, we define the neutron number as $N = A - Z$). Once formed, the excitation energy, $E_x$, of compound system is given by
+\begin{equation}
+E_x = E_{\rm in} - S_p,
+\end{equation}
+where $S_p$ is the separation energy of the projectile defined by the difference in the binding energy, $BE$, of the composite system and the target
+\begin{equation}
+S_p = BE(Z,A) - BE(Z_T,A_T).
+\end{equation}
+Eqs.~(\ref{eq:abs_chan}) and (\ref{eq:abs}) then define the entrance probability for forming a state with angular momentum and parity $J^\pi$ and excitation energy $E_x$ in the composite nucleus given a projectile with incident energy $E_{\rm in}$ and angular momenta $l$
+\begin{equation}
+P(J^\pi,E_x|l,j,E_{\rm in}) = \frac{\sigma_{\rm abs}^{ljJ_TJ}(E_{\rm in})}{\sigma_{\rm abs} (E_{\rm in})}.
+\label{eq:Prob-Form}
+\end{equation}
+Being a Monte Carlo code, YAHFC follows the decay of $N_{\rm samp}$ events that are initialized using Eq.~(\ref{eq:Prob-Form}). These initial states are then decayed individually following the decay probabilities for each subsequent state.  
+
+Two options to perform a calculation where the system is prepared in an initial population at a given excitation energy are provided. The first is performed by replacing the projectile command with\\
+\\
+${\texttt{projectile}} -1, -1, E_x, dE_x$.\\
+\\
+Here, the initial system will be populated with an initial excitation energy $E_x$ with a Gaussian spread $dE_x$ (selected with each Monte Carlo sample) and angular momentum and parity probabilities distributed according to the density of states. In the second option, the initial populations are explicitly specified and is invoked with the command\\
+\\
+${\texttt{projectile}} -1, 0, {\rm input.pop}$\\
+\\
+where input.pop specifies the probabilities for each initial $J^\pi$ bin at excitation energy $E_x$, and is described in detail in Appendix ~\ref{App:Populations} (note that in both cases, the ``,'' delimiter is optional).
+
+\subsection{Pre-equilibrium Emission}
+\label{sec:Preeq}
+
+Following the formation of the composite nucleus, the possibility that particle emission prior to equilibration is accounted for using a pre-equilibrium model. Several models have been devised to account for pre-equilibrium emission, see for examples Refs.~\cite{Gadioli:1992,Blann:1996,Koning:2004},  and they can be implemented in YAHFC by building a module that precomputes the cross section for pre-equilibrium emission and the subsequent emission spectrum and angular distributions. At present, YAHFC uses the two-component exciton model of Ref.~\cite{Koning:2004} to model pre-equilibrium emission of protons and neutrons. Pre-equilibrium emission is not considered for calculations where the initial populations are specified manually.
+
+The two-component exciton formalism describes the evolution of the reaction in terms of the time-dependent population of exciton states that are characterized by proton ($k=\pi$) and neutron ($k=\nu$) particle, $p_k$, and hole, $h_k$, numbers, with the number of particle-type excitons defined as  $n_k = p_k+ h_k$ and the total number of excitons as $n = n_\pi+n_\nu$.  Two-body interactions then allow transitions to occur from one exciton state to another, beginning from the initial $n^0=A_p$ state with $p^0_\pi= Z_p$, $p^0_\nu = N_p$ and $h^0_\pi = h^0_\nu = 0$. The temporal development of the system can be obtained via the solution of a master equation describing the gain and loss of various exciton states with the number of excitons governed by $h_k=p_k - p^0_k$. In principle, the master equation can be solved numerically, but this is generally not practical for many applications and one makes use of the ``never come back'' approximation where the transition of exciton states into less complex exciton states is neglected. Within this framework, the primary pre-equilibrium emission spectrum for a particle of type $k$ can be given as
+\begin{align}
+\frac{d\sigma_k^{PE}}{dE_k} = & \sigma_{\rm abs}^k \sum^{p^{\rm max}_\pi} _{p_\pi=p^0_\pi} \sum^{p^{\rm max}_\nu} _{p_\nu=p^0_\nu} W_k(p_\pi,h_\pi,p_\nu,h_\nu) \notag \\
+ & \tau (p_\pi,h_\pi,p_\nu,h_\nu) P (p_\pi,h_\pi,p_\nu,h_\nu),
+ \label{eq:PE-Spect}
+\end{align}
+where $\sigma_{\rm abs}^k$ denotes optical model absorption cross section for particle $k$ with the residual as the target, $W_k(p_\pi,h_\pi,p_\nu,h_\nu)$ is the emission rate for particle $k$, $\tau (p_\pi,h_\pi,p_\nu,h_\nu)$ is the average lifetime of the exciton state, and $P (p_\pi,h_\pi,p_\nu,h_\nu)$ represents the part of the pre-equilibrium flux that survives emission from the previous state and passes through the $(p_\pi,h_\pi,p_\nu,h_\nu)$ configurations. The sum extends to a maximum number of excitons where the probability of creating a new particle-hole configuration is equal to that of annihilating one - typically $p^{\rm max}_k \sim 6$. Explicit formulae for these quantities are complex and given in Ref.~(\cite{Koning:2004}) - they are succintly described in Appendix~\ref{App:Preeq}, where parameters that may be set via YAHFC commands are highlighted. The total pre-equilibrium cross section is obtained by integrating the emission spectrum, i.e.,
+\begin{equation}
+\sigma^{PE} = \sum_k \sigma^{PE}_k = \sum_k \int dE_k \frac{d\sigma_k^{PE}}{dE_k},
+\end{equation}
+and the compound nucleus formation cross section is $\sigma^{CN} = \sigma_{\rm abs} - \sigma^{PE}$. Note that in general, because they lack charge, and, thus, are not influenced by a Coulomb barrier, neutrons tend to dominate pre-equilibrium emission.
+
+In YAHFC, once the initial configuration is determined following the probability in Eq.~(\ref{eq:Prob-Form}), the probability of pre-equilibrium emission is determined from the ratio $\sigma^{PE}_k/\sigma_{\rm abs}$ with an emission spectrum given by Eq.~(\ref{eq:PE-Spect}).
+
+The exciton model does not specify an emission angle or the angular momentum transfer. Here, as in TALYS, the angular distributions are described with the phenomenological approach of Kalbach~\cite{Kalbach:1988}, giving the probability for the ejectile angle $\theta_e$  as
+\begin{equation}
+P(\theta_e) = \frac{1}{2} \frac{a}{\sinh(a)}\exp(a\cos \theta_e),
+\label{eq:PE-Ang}
+\end{equation}
+where $a$ is a parameter dependent on the projectile and ejectile and incident and emitted energies, and is given in detail in Ref.~\cite{Kalbach:1988}. The probability distribution for the azimuthal angle $\phi$ is taken to be uniform.
+
+For the angular momentum transfer, typically, one choses the final angular momentum based on the density of states. This has the flaw that the emitted nucleon tends to have an energy closer to the incident particle, and thus will often have a larger angular momentum. In YAHFC, a semi-classical model is introduced where the initial orbital angular momentum, $l$, and kinetic energy $E_{\rm in}$ define an impact parameter for the projectile as $b_p = l_p/k_p$, with $k_p = \sqrt{2m_pE_p}/\hbar c$. If we a assume a peripheral-type reaction occurring near the surface, $R = 1.2 (A_T^{1/3} + A_p^{1/3})$~fm for small impact parameters, conservation of linear momentum can be used to deduce an effective impact parameter for the ejectile, $b_e$, for a given ejectile angle $\theta_e$ and assuming that emission occurs at, or near, the nuclear surface as 
+\begin{equation}
+b_e = 
+\begin{cases}
+R |cos\theta_e |,     &  b_p > R \\
+ \sqrt{R^2-b_p^2}\sin\theta_e + b_p\cos\theta_e,       &   b_p < R, \theta_e < \frac{\pi}{2} \\
+\left |\sqrt{R^2-b_p^2}\sin\theta_e + b_p\cos\theta_e \right |,      &    b_p < R, \theta_e \ge \frac{\pi}{2},
+ \end{cases}
+\end{equation} 
+leading to the ejectile orbital angular momentum $l_e = k_eb_e$. Then, the angular momentum of the ejectile, $j_e$, is chosen randomly in the range $|l_e-1/2| \le j_e \le l_e+1/2$ (only protons and neutrons are emitted) and the angular momentum of the final nuclear state, $J_f$, is selected randomly within the range $|J-j_e| \le J_f \le J+j_e$ with the weight given by the level density in the final nucleus.
+
+At this point, YAHFC is primarily designed for low-energy reactions where multiple pre-equilibrium emission is not expected. Thus, following pre-equilibrium decay, the remnant system is assumed to form a compound nuclear state, and all subsequent decays follow the standard Hauser-Feshbach formalism. Extensions to account for multiple pre-equilibrium emission, as well as other pre-equilibrium models, are planned in the future.
+
+The two-component exciton pre-equilibrium model can be turned on(off) with the option ${\texttt {preeq\_model 1(0)}}$. In addition, commands are also provided to define each parameter in the exciton model, which are each described in detail in Ref.~\cite{Koning:2004} and Appendix~\ref{App:Preeq}.
+
+\subsection{Compound Nucleus Decay}
+Once the compound nucleus is formed, the decay principally proceeds through statistical mechanism, where the overall probability is guided by the density of final states and the transmission probability (coefficient) for the particle to be emitted at a specific energy. The Hauser-Feshbach formalism relies on the assumption of time-reversal invariance of the reaction and the emission probability is governed by the transmission coefficients, $T_{lj}$, obtained from the interaction of the ejectile and final nucleus through the optical potential. Here, $l$ and $j$ (with $|l-s| \le j \le l+s $) define the orbital and total angular momentum of the emitted particle. Strictly speaking, these transmission coefficients should be computed for each combination of ejectile and final nucleus following the entire decay chain. From a practical standpoint, they are computed for the emission of the first particle, say neutrons ($n$), of its type and then the same transmission coefficients are used the for the decay of subsequent particles of this type, e.g. $2n$, $3n$, etc. This is a reasonable approximation as the slight differences from the geometry of the different $A$ values and target spins are small.
+
+In a nutshell, the probability to emit a particle $k$ with energy $E$ from a given initial excited compound nuclear state with excitation energy $E_x$ to a final state $c$ with excitation energy $E_x - S_k - E$ may generically be represented as
+\begin{equation}
+P_{k,c}(E) = \frac{T_{k,c}(E)}{\sum_{k^\prime,c^\prime}T_{k^\prime,c^\prime}(E^\prime)},
+\label{eq:Prob}
+\end{equation} 
+where the sum in the denominator extends over all possible decays of particles $k^\prime$ with energy $E^\prime$ to final states, or channels $c^\prime$. As written, Eq.~(\ref{eq:Prob}) denotes decays to individual discrete states and can be rewritten as
+\begin{equation}
+\frac{dP_{k,c}(E)}{dE} = \frac{T_{k,c}(E)\rho_c(E_x-S_k - E)}{\sum_{k^\prime,c^\prime}\int T_{k^\prime,c^\prime}(E^\prime)\rho_{c^\prime}(E_x-S_k - E^\prime)dE^\prime},
+\label{eq:Prob_rho}
+\end{equation}
+where the density of states may, of course, be written in terms of the individual states, $i$ and their energies $E_i$, as
+\begin{equation}
+\rho_c(E) = \sum_i \delta (E - E_i).
+\end{equation}
+Note that in order to simplify the equations, the channel label $c$ represents a suppressed notation that includes all relevant information needed to uniquely define the final states, such as the angular momenta $l$ and $j$ of the emitted particle, $Z$ and $A$ for the final nucleus, and angular momentum and parity of the final nuclear states. Eq.~(\ref{eq:Prob_rho}) then leads naturally to describing the excitation spectrum with a set of known discrete states augmented with a continuous level representing a set of states within an energy bin $\Delta E$ centered about an excitation energy $E$; the number of which is given by $N=\rho_c(E)\Delta E$. This is the general philosophy of most Hauser-Feshbach codes, where a finite set of discrete states, with complete spectroscopic information, is included up to a cutoff energy, $E_{cut}$. Above $E_{cut}$, nuclear structure is embodied in the density of states and the gamma strength function. The cutoff energy is guided by experimental spectroscopy, and generally is taken to be the excitation energy where the spectrum is complete. YAHFC follows this philosophy with the exception that an option is given to include all known discrete states with known spectroscopic decay path to the ground state or a known isomer. These discrete states are above $E_{cut}$ and embedded into the energy bins describing the density of states, which is adjusted accordingly.Thus, YAHFC offers the option to track a wide variety of known gamma lines, which can be compared to experiment and is useful for analyzing surrogate experiments. 
+
+For the decay of pure compound nuclear states, the angular distributions are assumed to be isotropic. 
+
+\subsection{Primary Decay}
+
+In the previous section, a generalized description of the decay of the compound nuclear states was given. A special case exists for the primary decay of the first compound nucleus where both the decay probability and the angular distribution of emitted particles have a dependence on the entrance channel. Indeed, for the primary decay, the decay probability in Eqs.~(\ref{eq:Prob}) and (\ref{eq:Prob_rho}) are modified by multiplying the transmission coefficients in both the numerator and denominator by a factor $W_{ac}$, referred to as the width fluctuation correction factor (WFCF), which accounts for correlations that exist between the entrance channel $a$ and all other exit channels $c$. Primarily, these correlations enhance the elastic channel, and correspondingly decrease other open channels. The WFCF has been widely studied, with various formulations, such as those due to Hoffman, Richert, Tepel, and Weidenm\" uller (HRTW)~\cite{Tepel:1974,Hofmann:1975,Hofmann:1980} and Moldauer~\cite{Moldauer:1976,Moldauer:1980}. In addition, the WFCF tends to unity, i.e., no correction, with increasing incident energy for the projectile. For the most part, the WFCF needs to be precomputed and applied to the decay probabilities following formation in the entrance channel. In YAHFC, a default module is provided that applies the WFCF due to Moldauer. 
+
+The Moldauer approach assumes a $\chi^2$ distribution with $\nu$ degrees of freedom for the distribution of partial widths, leading to the relation
+\begin{equation}
+W_{ac} = \left(1+\delta_{ac}\frac{2}{\nu_a}\right) \int_0^\infty dx \prod_{c^\prime}\left( 1 + \frac{2T_{c^\prime}}{\nu_{c^\prime} \sum_iT_i}x\right)^{\gamma_{acc^\prime}},
+\label{eq:WFCF}
+\end{equation}
+where $\gamma_{acc^\prime} = -\delta_{ac^\prime} - \delta_{cc^\prime} - \nu_{c^\prime}/2$ and the number of degrees of freedom is given by
+\begin{equation}
+\nu_i = 1.78 +(T_i^{1.212} - 0.78)\exp\left( -0.228\sum_{c^\prime} T_{c^\prime}\right).
+\end{equation}
+In YAHFC, Eq.~(\ref{eq:WFCF}) is evaluated numerically using Gauss-Laguerre quadrature. The Moldauer width-fluctuation model is turned on(off) with the command ${\texttt{wf\_model 1(0)}}$. 
+
+Now, we turn to the angular distribution for the primary decay of a compound system with angular momentum and parity $J^\pi$. In this case, the incident particle is type  $k$ with intrinsic spin $s$, orbital angular momentum $l$, angular momentum $j$ ($|l-s| \le j \le l+s$) coupled to the initial target state with angular momentum and parity $J_T^{\pi_T}$. The ejectile is a particle of type $k^\prime$ with intrinsic spin $s^\prime$, orbital angular momentum $l^\prime$, and angular momentum $j^\prime$ coupled to a final state with angular momentum and parity $J_F^{\pi_F}$. The angular distribution has the probability distribution for the angle $\theta$ in the center-of-mass frame as (the probability distribution for the azimuthal angle $\phi$ is uniform)
+\begin{equation}
+P(\theta) = \sum_L A^J_{J_Tlj,J_Fl^\prime j^\prime ;L} P_L(\theta).
+\end{equation}
+The Blatt-Biedenharn factor $A^J_{J_Tlj,J_Fl^\prime j^\prime ;L}$ is given by
+\begin{align}
+A^J_{J_Tlj,J_Fl^\prime j^\prime ;L} = & \frac{(-1)^{J_F-s^\prime-J_T+s}}{4\pi} \hat J \hat j \hat l \hat j^\prime \hat l^\prime \notag\\
+ & (ll00|L0)(l^\prime l^\prime 00|L0)\notag\\
+ & W(jjll;Ls)W(j^\prime j^\prime l^\prime l^\prime; L s^\prime) \notag \\
+ & W(JjJj;J_TL) W(Jj^\prime Jj^\prime ;J_TL),
+ \label{eq:Pri-Ang}
+\end{align}
+where $\hat K = (2K+1)$ and $(~~~~|~~)$ and $W$ are Clebsch-Gordan and Racah coefficients, respectively.
+
+In some cases, it is desirable to examine the properties of the primary decay, that is the cross section following the emission of a single particle, photon, neutron, etc. This is accomplished with the option ``${\texttt{primary\_decay y}}$'' (default ${\texttt{n}}$). The primary decay cross sections to discrete states and continuous energy bins are printed for each final nucleus and energy in the library directory ${\texttt{AEL/proj/Primary-decay/}}$, where ${\texttt{AEL}}$ denotes the mass number $A$ and the element name, e.g., ${\texttt{238U}}$, and ${\texttt{proj}}$ is the projectile label, e.g., ${\texttt{n}}$ for neutrons (see Section~\ref{sec:Libraries})
+
+\section{Nuclear Models}
+From Eqs.~(\ref{eq:Prob}) and (\ref{eq:Prob_rho}), it is seen that describing the decay probabilities for compound nuclear states revolves around a proper description of the transmission coefficients $T_c(E)$ for each channel and the level density $\rho(E_x)$. This section describes models employed in YAHFC.
+
+\subsection{Nuclear Level Density}
+\label{sec:LD}
+
+A general feature of nuclear systems is that the density of states increases exponentially with increasing excitation energy. Indeed, inspection of nuclear spectroscopy makes it clear that the observed spectrum of discrete states is likely to be complete only up to an excitation energy $E_{cut}$. The value of $E_{cut}$ can be determined in one of two ways: 1) the spectroscopic properties (energy, angular momentum, parity, and decay branching ratios) are unknown for levels above this energy and 2) the density of levels is no longer increasing rapidly. 
+Indeed, as noted Ref.~\cite{Gilbert:1965}, the cumulative sum of levels is observed to increase exponentially with excitation energy. Thus, the point where the cumulative density is no longer increasing exponentially is a key indication of the maximum value of $E_{cut}$ that is supported by the known levels.
+The Hauser-Feshbach formalism for decays above the region of known spectroscopy is extended with the use of a continuous level density that properly describes the statistical properties of the spectrum. In YAHFC, the density of states above $E_{cut}$ is represented by energy bins of width 
+$\Delta E$ centered about an excitation energy $E_x$. The structure of the bins is chosen so that they align with the neutron separation energy for each nucleus. The energy bins start at $E_{cut}$ and, starting with either the default value $\Delta E = $ 0.1 MeV or the input value from option 
+${\texttt{delta\_e}}$, the value of $\Delta E$ is adjusted so that the neutron separation energy exactly straddles the mid-point between two adjacent energy bins. As a consequence, the value of $\Delta E$ is set for each individual compound nucleus. In general, $\Delta E$ is held constant within a given calculation. However, with the option 
+``${\texttt{use\_unequal\_bins y}}$'' (default = ${\texttt{n}}$), $\Delta E$ gradually increases with excitation energy. With this option, the energy bin width is $\Delta E$ for $E_x$ less than or equal to the base value $E_B = S_n + 2$~MeV. Then, the energy bin width is gradually increased via the schedule: $2\Delta E$ for $E_B < E_x \le 2E_B$, $4\Delta E$ for $2E_B < E_x \le 4E_B$ and $8\Delta E$ for $E_x > 4E_B$. In this way it is possible to perform calculations for a range of incident energies, say from .1 - 100 MeV, without excessive use of memory while also preserving higher fidelity for the lower incident energies.
+
+The level density is parameterized along the lines of the early work of Gilbert and Cameron~\cite{Gilbert:1965}. At high excitation energies, the level density is taken to have the form of the Bethe back-shifted Fermi gas~\cite{Bethe:1937}, i.e.
+\begin{equation}
+\rho_{FG}(E_x,J^\pi) = \frac{1}{12\sqrt{2}\sigma}\frac{\exp\left[2\sqrt{aU}\right ]}{a^{1/4}U^{5/4}} P_J(E_x) P_\pi(E_x),
+\label{eq:rho_BFM}
+\end{equation}
+where $U=E_x - \Delta$, with $\Delta$ being the pairing parameter, $\sigma$ is the spin cutoff parameter, and $a$ is the single-particle, level-density parameter. The angular momentum distribution is given by
+\begin{equation}
+P_J(E_x) = \frac{2J+1}{2\sigma^2}\exp \left [ - \frac{(J+\frac{1}{2})^2}{2\sigma^2} \right ],
+\end{equation}
+while the parity fraction is generally taken to be $\frac{1}{2}$ for $\pi = \pm 1$, but can be a generalized function with $P_{\pi=-1}(E_x) + P_{\pi=1}(E_x) = 1$.  
+
+Both $\sigma$ and $a$ are, in principle, functions of the excitation energy $E_x$. The energy dependence of the single-particle, level-density parameter is taken to be that proposed by Ignatyuk
+\begin{equation}
+a(E_x) = \tilde a \left ( 1+\delta W\frac{1-\exp(-\gamma U)}{U}\right),
+\end{equation}
+where $\tilde a$ is the asymptotic value of $a$, $\delta W$ is a correction factor due to shell corrections, and $\gamma$ is the damping factor determining how quickly the shell corrections disappear. The spin cutoff parameter is taken to be of the form
+\begin{align}
+\label{eq:sig_0}
+\sigma^2(E_x) = & CA^{5/3}\sqrt{\frac{U}{a(E_x)}}, &{\texttt{lev\_sig\_model 0}}, \\
+\label{eq:sig_1}
+ & C\frac{A^{5/3}}{\tilde a}\sqrt{a(E_x)U}, &{\texttt{lev\_sig\_model 1}},
+\end{align}
+where $C$ is an input parameter with the default value of $C=0.01389$.
+
+At low excitation energy, the level density is assumed to have the finite-temperature, or exponential, form
+\begin{equation}
+\rho(E_x,J^\pi) = \frac{1}{T}\exp\left [ \frac{E_x - E_0}{T}\right ] P_J(E_x) P_\pi(E_x),
+\label{eq:rho_T}
+\end{equation}
+where $E_0$ and $T$ are parameters determined by the matching conditions and the known low-lying discrete levels. In particular, the finite temperature and Fermi-gas segments of the level density are matched at an excitation energy $E_x=E_m$ under the condition that the level density and its derivative are continuous at $E_m$. This defines the temperature $T$ via the inverse of the logarithmic derivative of $\rho$, i.e.,
+\begin{equation}
+T(E_m) = \left. \frac{\rho(E_x)}{\rho^\prime(E_x)} \right |_{E_x = E_m},
+\end{equation}
+while continuity of the level density requires
+\begin{equation}
+E_0 = E_m -T\ln\left [ T\rho_{FG}(E_m)\right].
+\end{equation}
+With $T$ and $E_0$ determined for a given matching energy $E_m$, we then compute the cumulative density, $N(E_x) = \int_0^{E_x} \rho(E^\prime)dE^\prime$, for the finite-temperature segment and select an optimal value for the matching energy by fitting to the experimental cumulative density up to excitation energy $E_{cut}$. At this point, it is to be noted that the choice of $E_{cut}$ can be subjective as it is not always clear if $N(E_x)$ is failing to rise rapidly enough. Ultimately, the selection of $E_{cut}$ needs to be confirmed by the user. In YAHFC, an automated process is in place, where the starting value of $E_{cut}$ is chosen at the point where the discrete spectrum is complete, that is all states have known $J^\pi$ values and a gamma-decay path is known. The code then examines how well the fitting procedure described above reproduces the cumulative density. If the fit is outside exceptable standards, $E_{cut}$ is lowered and the fit is performed again. The results of the automated procedure are printed in the output file. Finally, the user may manually set both $E_{cut}$ and $E_m$ with options provided.
+
+For $E_{cut} \le E_x \le E_m$, the spin cut off parameter, $\sigma^2$, is matched linearly from the value computed for the discrete spectrum to that for the standard back-shifted Fermi gas model, i.e., Eqs.~(\ref{eq:sig_0}) and (\ref{eq:sig_1}). At $E_{cut}$ the spin cutoff parameter can be found by assuming a constant temperature level density, Eq.~(\ref{eq:rho_T}), and a constant spin cutoff parameter for $E_x < E_{cut}$ by computing the mean value of $J(J+1)$ and setting that equal to the experimental value, giving
+\begin{equation}
+\sigma^2_{cut} = \frac{1}{2}\frac{\sum_i J_i(J_i+1)(2J_i+1)}{\sum_i (2J_i+1)},
+\end{equation}
+where the sum extends over all discrete states $i$ and their angular momentum $J_i$.
+
+In YAHFC, the continuous level density for energy and $J^\pi$ starts at  $\max(E_{cut},E_J^{\rm Yrast})$, where $E_J^{\rm Yrast}$ is the ``yrast'' energy for a given angular momentum defined by
+\begin{equation}
+\int_0^{E_{\rm Yrast}} \rho(E_x,J^\pi) dE_x = \frac{1}{2}.
+\end{equation}
+This is done to minimize the occurrence of so-called ``computational isomers'', where an initial high-spin population decays to the bottom of the continuous level density and then finds that decay to discrete states are highly inhibited. In this case, the bins are ``forced'' to decay randomly to discrete states by photon emission, and statistics are printed to the screen via ${\texttt{stdout}}$.
+
+\subsubsection{Level Density Options}
+
+The option ${\texttt {lev\_option 0}}$ will set the level density parameters to those in the original Gilbert \& Cameron paper~\cite{Gilbert:1965}, while the option ${\texttt {lev\_option 1}}$, which is the default option, selects parameters similar to the TALYS default~\cite{TALYS}:
+\begin{align}
+\tilde a = & 0.0692559 A + 0.282769 A^{2/3} & \notag\\
+\gamma = & 0.43309/A^{1/3} & \notag \\
+\Delta =& -11/\sqrt{A} & {\rm {even-even}} \notag\\
+\Delta =& 0 & {\rm {odd}}\notag\\
+\Delta =& 11/\sqrt{A} & {\rm {odd-odd}}.
+\end{align}
+The shell correction is taken as the difference between the experimental and liquid-drop mass excess
+\begin{equation}
+\delta W = \Delta_M(Z,N) - \Delta_{LD}(Z,N),
+\end{equation}
+with
+\begin{equation}
+\Delta_M(Z,N) = M(Z,N) - (Z+N)m_u
+\end{equation}
+where $M(Z,N)$ is the experimental mass, $m_u = 931.494095367$~MeV is the atomic mass unit, and the liquid-drop mass excess can be written as~\cite{Myers:1966,Guet:1988,Moller:1988,Moller:1997}
+\begin{align}
+\Delta_{LD}(Z,N) = & Z \Delta(1,0) + N \Delta(0,1) + \notag \\
+& a_{\rm vol} \left[1-\kappa_{\rm vol}\left( \frac{Z-N}{A}\right)^2\right ]B_{\rm vol}A + \notag \\
+& a_{\rm surf} \left[1-\kappa_{\rm surf}\left( \frac{Z-N}{A}\right)^2\right ]B_{\rm surf}A^{2/3} + \notag \\
+& a_{\rm curv} \left[1-\kappa_{\rm curv}\left( \frac{Z-N}{A}\right)^2\right ]B_{\rm curv}A^{1/3} + \notag \\
+& c_3B_{\rm Coul}\frac{Z^2}{A^{1/3}} + c_5\frac{Z^{4/3}}{A^{1/3}} + c_4\frac{Z^2}{A} + \Delta,
+\end{align}
+where $a_{\rm vol}$, $a_{\rm surf}$, $a_{\rm curv}$ refer to the bulk volume, surface, and curvature terms, respectively, $\kappa$ is the corresponding asymmetry term, $c_3$ and $c_5$ are the direct and exchange Coulomb components, and $c_4$ is a correction due to the diffuseness of the nucleus. The corresponding $B$ factors are due to deformation. At present YAHFC defaults to the same values as used in TALYS and the shape factors are set to unity, that is
+\begin{align}
+a_{\rm vol} =& -15.667~{\rm MeV} \notag\\
+\kappa_{\rm vol} = & 1.79 \notag\\
+a_{\rm surf} =& 18.56~{\rm MeV} \notag\\
+\kappa_{\rm surf} = & 1.79 \notag\\
+a_{\rm curv} =& 0.0~{\rm MeV} \notag\\
+\kappa_{\rm curv} = & 0.0 \notag\\
+c_3 =& 0.717~{\rm MeV}\notag\\
+c_5 =& 0.0~{\rm MeV}\notag\\
+c_4 =& -1.21129
+\end{align}
+and the shape factors are taken to be unity. In future versions, options will be added to utilize the liquid drop parameters calculated within the extended Thomas-Fermi formalism with the Skyrme M$^*$ interaction~\cite{Guet:1988} and the finite-range droplet model (FRDM)~\cite{Moller:1997} and shape factors for deformed systems.
+
+\subsubsection{Collective Enhancement Factors}
+
+Deformed heavy nuclei can experience an enhancement to the level density at low excitation energies due the their collective nature. In this case, the back-shifted Fermi gas component of the level density (for $E_x \ge E_m$) are multiplied by the rotational, $K_{rot}$, and vibrational, $K_{vib}$, enhancement factors, which damp with higher excitation energies. This is chosen with the option ${\texttt {lev\_option 2}}$ and is default for nuclei with $A > 130$. The rotation enhancement factor for axially symmetric (s) and axially asymmetric (a) shapes are taken as~\cite{TALYS,Junghans:1998,Capote:2009}
+\begin{align}
+K_{rot}^s(E_x) =& \max [1 + (\sigma^2_\perp-1)f(E_x),1], \\
+K_{rot}^a(E_x) =& \max [1 + (d_a\sigma^2_\perp-1)f(E_x),1], 
+\end{align}
+where $\sigma^2_\perp = (1+ \frac{\beta_2}{3})\sigma^2$, with $\beta_2$ being the static quadrupole deformation, and $d_a = \sqrt{\frac{\pi}{2}}(1-\frac{2\beta_2}{3})\sigma$. (recall that $\sigma$ is a function of $E_x$) The damping factor is given by
+\begin{equation}
+f(E_x) = \frac{1}{1+\exp\left [\frac{(E_x-B)}{C}\right ]},
+\end{equation}
+with default values of $B=30$~MeV and $C=5$~MeV.  For fission, the level densities associated with the outer barriers are multiplied by an additional factor of two to account for mass asymmetry. 
+
+Currently, two models for vibrational enhancement are included in YAHFC and are controlled with the command ${\texttt{lev\_vib\_enhance}}$.  The first is from Ref.~\cite{Iljinov:1992} and is simply
+\begin{equation}
+K_{vib}(E_x) = \exp\left ( 0.0555A^{2/3}T^{4/3}\right ),
+\end{equation}
+with the temperature defined as 
+\begin{equation}
+T = \sqrt{(E_x - \Delta)/a(E_x)}.
+\end{equation}
+
+The second model, which is the default, is approximated by~\cite{Capote:2009}
+\begin{equation}
+K_{vib}(E_x) = \exp(\delta S - \delta U/T),
+\end{equation}
+where $\delta S$ and $\delta U$ are changes in the entropy and excitation energy due to the vibrational modes and are described by the Bose gas relationships
+\begin{align}
+\delta S = & \sum_i \hat \lambda_i \left [(1+n_i)\ln(1+n_i)-n_i\ln n_i \right ]\\
+\delta U = & \sum_i \hat \lambda_i \omega_i n_i,
+\end{align}
+where $\omega_i$ and $\lambda_i$ are the energies and multipolarities of the vibrational modes, respectively, and $n_i$ is the occupation number given by
+\begin{equation}
+n_i = \frac{\exp(-\gamma_i/2\omega_i)}{\exp(\omega_i/T)-1},
+\end{equation}
+where $\gamma_i = 0.0075A^{1/3}(\omega_i^2+4\pi^2T^2)$. The sum is over two modes, quadrupole ($\lambda = 2$) and octupole ($\lambda=3$), with energies from systematics given by
+\begin{align}
+\omega_2 =& \frac{65A^{-5/6}}{1+0.05\delta W}\\
+\omega_3 =& \frac{100A^{-5/6}}{1+0.05\delta W}.
+\end{align}
+
+For nuclei where the collective enhancements are applied, the default single-particle level density parameter, $a$, is taken as~\cite{TALYS}
+\begin{equation}
+\tilde a = 0.0207305 A + 0.229537 A^{2/3}.
+\end{equation}
+
+\subsubsection{Experimental Level Spacings}
+
+For stable nuclei, resonance properties have been measured for low-energy incident neutrons and are tabulated in Refs.~\cite{Mughabghab-1:2018,Mughabghab-2:2018}. The mean level spacing for $l=0$ and $l=1$ resonances have generally been evaluated for all stable targets and provide a measure of the level density at $E_x=S_n$. In particular, we have
+\begin{equation}
+\frac{1}{D_l} = \sum_{j=|l-\frac{1}{2}|}^{j=l+\frac{1}{2}}\sum_{J=|J_T-j|}^{J=J_T+j} \rho(S_n,J^\pi),
+\end{equation}
+where sums range over all possible couplings of the intrinsic spin ($\frac{1}{2}$), orbital angular momentum $l$, and target angular momentum $J_T$, and the final parity is $\pi = \pi_T(-1)^l$. The experimentally evaluated $D_0$ values can then be used to constrain some level density parameters in the models. 
+By default, YAHFC will adjust the level-density parameter,
+$a$, for ``${\texttt{lev\_option 0}}$'' and the shell correction, $\delta W$,
+for ``${\texttt{lev\_option 0 \& 1}}$'' to reproduce $D_0$. Options exist
+to override the fit to $D_0$ or to alternatively fit to $\tilde a$ or $\delta W$.  An argument for fitting the shell correction $\delta W$ instead of the asymptotic level-density parameter is that at high energy, the level-density parameter should tend to the finite-temperature ,Hartree-Fock limit, which varies smoothly from nucleus-to-nucleus. Corrections at low excitation energy due to shell corrections, pairing, and quantal correlations are more dependent on the structure of each nucleus. Evaluated values of $D_0$ and $D_1$ are tabulated in the files ${\texttt{Level-Density-Data-RIPL3-L0.dat}}$ and ${\texttt{Level-Density-Data-RIPL3-L1.dat}}$, respectively, located in the YAHFC data directory.
+
+\subsubsection{Discrete States}
+
+Discrete sates in YAHFC are from the Reference Input Parameter Library (RIPL-3) evaluated compilation~\cite{Capote:2009,RIPL-3} and are stored in the YAHFC data directory in the subdirectory ${\texttt{/levels}}$ and are listed in files for each $Z$ value, e.g., ${\texttt{z092.dat}}$ for uranium isotopes. The user may modify any of these files and save it to the subdirectory ${\texttt{/levels-eval}}$, which will then be considered the default file for future runs of YAHFC. The user is advised that the data format for these files must be observed in order to ensure that they are read properly. It is noted, however, that all entries generally are separated by a single character space, and it is suggested that when modifying a data entry that a character, such as *, be placed in this space, and the data be adjusted to preserve the formatting. This character mark is then used to identify the state as having been modified from the original ${\texttt{RIPL-3}}$ file and will be noted in the output file. When adjusting electromagnetic decay properties, it is necessary to enter the middle value, which is the total electromagnetic decay probability, and the right-most entry, which is the internal conversion coefficient. With these two values, the gamma decay probability is computed. In addition, the electromagnetic decay probabilities are normalized to unity in YAHFC.
+
+As mentioned in the level-density section, the discrete spectrum is considered to complete up to the excitation energy $E_{cut}$. However, the ${\texttt{RIPL-3}}$ files contain many more discrete states with complete decay paths to the ground state or known isomer. In some cases, it is desirable to compute partial cross sections for gamma transitions for states that lie above $E_{cut}$ while acknowledging that the spectrum is incomplete. In YAHFC, all known levels, even user evaluated ones, can be included with the option ``${\texttt{all\_discrete\_states y}}$''. The level densities where these states are embedded is adjusted accordingly.
+
+\subsection{Transmission Coefficients}
+
+In this subsection, the approaches to evaluate the transmission coefficients for the decay of each state (and the computation of the absorption cross section) are described.
+
+\subsubsection{Particle Transmission Coefficients}
+
+The transmission coefficients for the particles, neutrons ($n$), protons ($p$), deuterons ($d$), tritons ($t$), $^3$He ($h$), and $^4$He ($a$) are computed within the optical model framework using the computer program FRESCOX~\cite{FRESCO}. For each run, YAHFC sets up input files to execute FRESCOX based on the projectile, target, and selected optical potential. The files used to run FRESCOX and its results are printed in the YAHFC created directory ${\texttt{Fresco-files}}$. FRESCOX is executed for a series of incident energies on a logarithmic grid starting from a starting minimum energy, $E_{\rm in}^{min} =1\times 10^{-4}$ MeV up to the maximum energy, $E_{\rm in}^{max}$ needed based on the maximum excitation energies achieved by each compound nucleus in the calculation. By default, $N_E=200$ incident energies are computed with $E_{\rm in}^i = E_{\rm in}^{i-1}f$ with 
+$ f = \exp \left \{ \left [ \ln(E_{\rm in}^{max} + 5) - \ln(E_{\rm in}^{min}) \right ]/N_E \right \}$. The transmission coefficients, elastic cross section, direct cross sections (via coupled channels or DWBA) plus angular distributions are printed to an ascii file for later use. A check is made for charged particles and if the classical distance of closest approach is 5$\times$ the nuclear -interaction radius of the optical potential, the FRESCOX calculation is skipped, and assumed to be only Rutherford scattering (this avoids numerical instabilities in FRESCOX for low energies).  This data can be reused in subsequent runs, and only needs to be recomputed if the maximum energy is changed (which is checked automatically). This can be a key factor when computing direct processes with coupled channels and DWBA, which can be time consuming. When an internal calculation requires a transmission coefficient, a linear interpolation is used on the logarithm of both the incident energy and the transmission coefficient. 
+
+A limited set of optical potentials is provided with YAHFC and are listed in Table~\ref{tab:optical}, but others may be added and accessed through the command ${\texttt{optical\_potential}}$ by {\bf providing} the requisite subroutine. 
+
+\begin{table}
+\caption{List of optical potentials provided with YAHFC associated with the default $Z$ and $A$ values for the target.}
+\begin{tabular}{| p{0.75cm} | p{0.75cm} | p{2.2cm} | p{4cm}|}
+\hline
+Proj. & Opt. & Target & Optical potential \\
+\hline\hline
+n & 1 & $ Z < 90 $, $Z >96$ & Koning \& Delaroche~\cite{Koning:2003}\\
+  &  2 & $90 \le Z \le 96$ & Soukhovitskii~\cite{Soukhovitskii:2004} \\
+\hline
+p & 1 & $ Z < 90 $, $Z >96$&  Koning \& Delaroche~\cite{Koning:2003}\\
+  &  2 & $90 \le Z \le 96$& Soukhovitskii~\cite{Soukhovitskii:2004} \\
+\hline
+d & 1 & All $Z,A$  &  Perey~\cite{Perey:1976}\\
+\hline
+t & 1 & All $Z,A$ & Becchetti~\cite{Perey:1976}\\
+\hline
+$^3$He & 1 & All $Z,A$  & Becchetti~\cite{Perey:1976}\\
+\hline
+$^4$He & 1 & All $Z,A$  & Avrigeanu~\cite{Avrigeanu:1994}\\
+\hline
+\end{tabular}
+\label{tab:optical}
+\end{table}
+
+Optical model calculations including direct processes to rotational and/or vibrational states can be computed with FRESCOX. In YAHFC, this is controlled with a file listing the coupled-channels states as well as the deformation parameters. A global, default file named ${\texttt{Coupled-Channels.txt}}$ is provided in the YAHFC data directory for many actinide nuclei. It may either be augmented or overridden with a file in the execution directory with the YAHFC command ${\texttt{cc\_file}}$. As an example, the default coupled-channles input data for $^{238}$U in the file ${\texttt{Coupled-Channels.txt}}$ has the form
+\begin{center}
+\begin{tabular}{| p{8 cm}|}
+\hline
+{\texttt {92 238 \hskip 2.8cm !  Z,A}}\\
+{\texttt {0.232   0.0448   0.000 \hskip 0.6 cm!  $\beta_2$, $\beta_4$, $\beta_6$}} \\
+{\texttt {7  27  \hskip 3.2 cm    !  $N_{\rm CC}$, $N_{\rm DWBA}$}}\\
+{\texttt {  ~1  0.0000   ~0.0+  \hskip 1.0cm    !   index, $E_x$ and $J^\pi$}}\\
+{\texttt {  ~2  0.0449   ~2.0+}}\\
+{\texttt {  ~3  0.1484   ~4.0+}}\\
+{\texttt {  ~4  0.3072   ~6.0+}}\\
+{\texttt {  ~5  0.5183   ~8.0+}}\\
+{\texttt {  ~8  0.7757  10.0+}}\\
+{\texttt { 23  1.0765  12.0+}}\\
+\hline
+\end{tabular}
+\end{center}
+The number $N_{\rm CC}$ in the third row defines the number of coupled channels states utilized (in this case, $N_{\rm CC} = 7$). For the discrete coupled-channels states, the index is the state number in the discrete state ${\texttt{RIPL-3}}$ file, but need not be as it is not used to match these states with discrete states used in the calculation. This followed by the energy and $J^\pi$ value. These states are then matched to discrete states in the ${\texttt{RIPL-3}}$ based on their $J^\pi$ values and a match in the excitation energy to within 1 keV. It is required that each of the coupled-channels states be included within the calculation and have a complete decay path to the ground state or a known isomer. This can be accomplished if all the coupled-channel states lie below $E_{cut}$ or the option ``${\texttt{all\_discrete\_states y}}$'' is used.
+
+Similar to coupled-channels, it is also possible to compute direct processes via the distorted wave Born approximation (DWBA) to either known discrete states or to a state represented by the continuous energy bins. These states are also listed in the file ${\texttt{Coupled-Channels.txt}}$ and are controlled via the command ${\texttt{do\_dwba}}$. In the example above for $^{238}$U, $N_{\rm DWBA} = 27$ ``states'' are listed to compute direct excitation via DWBA. They are listed with the format
+\begin{center}
+\begin{tabular}{| p{8 cm}|}
+\hline
+{\texttt {  index\hskip 0.5 cm $E_x$ \hskip 0.5cm J$\pi$ \hskip 0.5 cm K \hskip 0.5cm   Coupling}}\\
+\hline
+\end{tabular}
+\end{center}
+with $\pi=\pm$. DWBA coupling can be performed to discrete states listed in the RIPL-3 data file or to ``states'' embedded in the continuous level density. For actual discrete states, the user provides the ${\texttt{index}}$ to the state in the RIPL-3 file, the $K$ value for the coupling, and the strength. The excitation energy, angular momentum, and parity for the state is read from the discrete-state data file. Setting ${\texttt{index}}=0$ signifies that the input DWBA state with excitation energy $E_x$ is embedded in the continuous level density. The user has the option to also specify the angular momentum and parity of the state, or, by setting $J\pi=-1{\texttt{x}}$, YAHFC will construct the final states with $|J_T-K| \le J \le J_T+K$ and parity $\pi = \pi_T(-1)K$.  For example, the input line for $^{239}$U
+\begin{center}
+\begin{tabular}{| p{8 cm}|}
+\hline
+{\texttt {  0\hskip 0.5 cm 1.5500 \hskip 0.5cm -1.0x \hskip 0.5 cm 3 \hskip 0.5cm   3.20E-02}}\\
+\hline
+\end{tabular}
+\end{center}
+leads to DWBA couplings for states with $\pi=-1$ and $\frac{1}{2} \le J \le \frac{11}{2}$. The cross section will then be collected into the continuous energy bin in the calculation closest to $E_x=1.55$~MeV. In the event that ${\texttt{index}}=0$ and the specified $E_x < E_{cut}$, the input DWBA state is ignored. The DWBA coupling is performed with the code FRESCOX, and YAHFC automatically sets up the input files, executes FRESCOX, and parses data, saving it for later use within the execution of YAHFC. For projectile $p$ incident on target $^A$EL (EL being the element symbol), the transmission coefficients are written to the file $p{\texttt{EL}}A{\texttt{.tcoef}}$, while cross sections and angular distributions for elastic scattering, the coupled-channels and DWBA states are written to the file $p{\texttt{EL}}A{\texttt{-CC.data}}$ (incident projectile only).
+
+Given that the computational FRESCOX calculation with coupled-channel and DWBA states can be quite time-consuming calculations for sevral actinide nuclei using the Soukhovitskii potential~\cite{Soukhovitskii:2004} are calculated and stored in the directory ${\texttt{\$YAHFC\_DIR/Data/Trans\_coeff}}$ using the states defined in the ${\texttt{Coupled-Channels.txt}}$ file and the discrete states in the provided ``evaluated'' ${\texttt{RIPL-3}}$ files. The appropriate $p{\texttt{EL}}A{\texttt{.tcoef}}$ and $p{\texttt{EL}}A{\texttt{-CC.data}}$ files may be copied into the working directory where the YAHFC calculation will be performed.
+
+An additional feature, that is likely to be somewhat controversial, is provided that allows the user to scale the elastic cross section while simultaneously rescaling the transmission coefficients in order to preserve the total cross section from the input optical potential. This scaling is invoked with the command option ${\texttt{scale\_elastic}}$~~$S$~~$A$~~$B$ and the energy-dependent scaling factor, $S(E_{\rm in})$ defined as
+\begin{equation}
+S(E_{\rm in}) = S\left \{ 1 + A\left [1-\exp(-BE_{\rm in})\right ] \right \}.
+\end{equation}
+The reason for introducing this scaling factor was an observation that it was extremely difficult to reproduce cross sections for channels such as (n,2n) for incident neutron energies $E_{\rm in} \sim 14$~MeV with the Soukhovitskii~\cite{Soukhovitskii:2004} potential while simultaneously fitting the fission cross section and the neutron spectrum from (n,Xn) channels for emitted neutron energies $9$~MeV $\le E_{\rm in} \le 14$~MeV in Ref.~\cite{Baba:1990} (note that this portion of the spectrum effectively defines the (n,n$^\prime$) channel). Uniformly, the $(n,2n)$ cross section was overestimated, suggesting the possibility that the elastic cross section is underestimated at higher incident neutron energies by $\approx 1-2\%$ with the Soukhovitskii optical potential . Given that there is very little experimental elastic scattering data for actinide nuclei, this is not out of the realm of possibility. Further, inspection of the the ENDF/B-VII.1 evaluation~\cite{ENDF/B-VII.1} for $^{238}$U has an elastic scattering cross section that is approximately $1-2\%$ larger than the Soukhovitskii potential. Thus, an option was introduced to allow the user/evaluator to ``engineer'' a solution to this conundrum without the lengthy process of refitting the optical potential. It is noted that this is not an optimal solution, just a practical solution for the hard-pressed users, and is to be used with caution. 
+
+\subsubsection{Gamma Transmission Coefficients}
+
+The transmission coefficients for gamma emission of type $X$ ($E$(lectric) or $M$(agnetic)) and multipolarity $L$ have the form
+\begin{equation}
+T_{XL} = 2\i f_{XL}(E_\gamma)E_\gamma^{2L+1},
+\end{equation}
+where $E_\gamma$ is the gamma energy, and $f_{XL}(E_\gamma)$ is the gamma strength function. The gamma strength functions are taken to be generically as a sum of Lorentzians, which may be thought of to represent collective resonance shapes. The general form is then
+\begin{equation}
+f_{XL}(E_\gamma ) = K_L \sum_i \frac{\sigma_{XL,i} E_\gamma\Gamma^2_{XL,i}}{(E_\gamma^2 - E^2_{XL,i})^2+E^2_\gamma\Gamma^2_{XL,i}},
+\label{eq:Lor}
+\end{equation} 
+where $K_L = 1/[(2L+1)\pi^2\hbar^2c^2]$ and $\sigma_{XL,i}$, $E_{XL,i}$, and $\Gamma_{XL,i}$ are the strength, energy, and width for each line. For the most part, most electromagnetic modes are composed of a single line, however, the giant-dipole ($E1$) in deformed nuclei is known to be comprised of two lines. In YAHFC, the $E1$ strength function can be represented by up to three line shapes, while all other modes and multipolarities are limited to a single Lorentzian. For magnetic dipole transitions and electric transitions with $L \ge 2$, the default strength function parameters are the same as those in TALYS, namely for $M1$,
+\begin{align}
+E_{ML,1} =  & 41.0A^{-1/3}~{\rm MeV},\notag\\
+\Gamma_{ML,1} = & 4.0~{\rm MeV},
+\end{align}
+with $\sigma_{M1,1}$ adjusted so that $f_{M1}(E_\gamma = 7) = 1.58A^{0.47}$. For $ML>1$, $E_{ML>1,1} = E_{M1,1}$, $\Gamma_{ML>1,1} = \Gamma_{M1,1}$, and $\sigma_{ML>1,1} = 8.0\times 10^{-4}\sigma_{M1,1}$
+ For electric transitions with $L > 1$, we adopt
+\begin{align}
+E_{EL>2,1} =  & 63.0A^{-1/3}~{\rm MeV},\notag\\
+\Gamma_{EL>2,1} = & 6.11 - 0.012A~{\rm MeV},\notag\\
+\sigma_{EL=2,1}= & 1.4\times 10^{-4}Z^2E_{L=2,1}/(A^{1/3}\Gamma_{L=2,1})~{\rm mb},\notag\\
+\sigma_{EL>2,1}= & 8.0\times 10^{-4}\sigma_{L-1,1}.
+\end{align}
+
+For electric dipole transitions ($E1$), two options for the functional form of the giant-dipole resonance function are provided. The first is the Lorenztian in Eq.~(\ref{eq:Lor}), while the second (the default option) is a modification due to Kopecky and Uhl~\cite{Kopecky:1990}, which attempts to account for an enhanced $E1$ strength at lower values of $E_\gamma$ needed in order to improve  the description of $(n,\gamma)$ reactions. The $E1$ strength function is given by
+\begin{align}
+f_{E1}(E_\gamma ) = K_1 \sum_i & \Bigl[ \frac{E_\gamma\Gamma_{E1,i}(E_\gamma)}{(E_\gamma^2 - E^2_{E1,i})^2+E^2_\gamma\Gamma^2_{E1,i}(E_\gamma)} +\notag\\
+& \frac{0.7\Gamma_{E1}4\pi^2 T^2}{E_{E1,i}^3}\Bigr ]\sigma_{E1,i}\Gamma_{E1,i},
+\end{align}
+where the energy dependent width is given by
+\begin{equation}
+\Gamma_{E1,i}(E_\gamma) = \Gamma_{E1,i}\frac{ E_\gamma^2+4\pi^2T^2} {E^2_{E1,i}},
+\end{equation} 
+and $T$ is a nuclear temperature defined as
+\begin{equation}
+T = \sqrt{\frac{ E_x -\Delta - E\gamma} {a(S_n)}},
+\end{equation}
+where $E_x$ is the excitation energy of the compound nucleus, $S_n$ is the neutron separation energy, $\Delta$ is the pairing gap, the $a(S_n)$ is the single-particle level-density parameter evaluated at $E_x=S_n$.
+
+For $E1$ transitions, up to three line shapes are allowed and up to two lines are provided by default. The default strength function parameters for stable nuclei are tabulated in data file ${\texttt{gdr-parameters-exp.dat}}$ located in the YAHFC data directory. For nuclei not explicitly listed in the file, the closest match in $Z$ and $A$ is used.
+
+For compound nuclei based on a stable target plus one neutron, experimental resonance data provide a constraint on the electromagnetic strength function via the evaluated radiative width; the so-called $\Gamma_\gamma$(l) value. By default, YAHFC adjusts the $E1$ strength function for these nuclei to reproduce the experimental $\Gamma_\gamma(l=0)$ values. This is accomplished by adding an addition resonance line with centroid energy $E_\gamma = 5.0$~MeV and with $\Gamma = 5.0$~MeV and adjusting the strength $\sigma$. Evaluated $\Gamma_\gamma$ values from the RIPL-3 compilation obtained from $l=0$ and $l=1$ neutron resonances are given in the files ${\texttt{Level-Density-Data-RIPL3-L0.dat}}$ and ${\texttt{Level-Density-Data-RIPL3-L1.dat}}$, respectively, located in the YAHFC data directory
+
+\subsubsection{Fission Transmission Coefficients}
+
+Fission decays are accounted for in YAHFC using a penetration through multiple fission barriers mediated through transition states, otherwise known as the ``transition-state model''. The model consists of the system at excitation energy $E_x$ and angular momentum/parity $J^\pi$ tunneling  through an inverted harmonic barrier of height $E_B$ and curvature $\hbar\Omega_B$ via a transition state, $i$, with energy $\epsilon_i$ (and angular momentum/parity $J^\pi$) above the barrier. The transmission coefficient for this transition state is given by the Hill-Wheeler expression
+\begin{equation}
+T_F(E_x,J^\pi,\epsilon_i)  = \frac{1} { 1 + \exp\left [-2\pi\frac{(E_x - E_B - \epsilon_i) } {\hbar\Omega_B }\right ] }.
+\end{equation}
+The full transmission coefficient used in the Hauser-Feshbach decay, i.e., Eq.~(\ref{eq:Prob}), is obtained by summing over all available transition states, or extending to the density of states above the fission barrier, $\rho_B(E_t,J^\pi)$, 
+\begin{equation}
+T_F(E_x,J^\pi) = \int T_F(E_x,J^\pi,E_t) \rho_B(E_t,J^\pi)dE.
+\end{equation}
+Here, $\rho_B(E,J^\pi)$ is similar to the level density of the compound nucleus described in Sect.~\ref{sec:LD} and is modeled the same way and, similarly, can have a set of discrete states below a cut off energy. 
+
+For systems with multiple barriers an effective transmission coefficient is used. Currently, in YAHFC, at most, three fission barriers may be specified. For two barriers (double humped), labeled $A$ and $B$, the fission transmission coefficient is
+\begin{equation}
+T_{F}^{AB}(E_x,J^\pi) = \frac{ T_{F}^{A}(E_x,J^\pi)T_{F}^{B}(E_x,J^\pi) } { T_{F}^{A}(E_x,J^\pi)+T_{F}^{B}(E_x,J^\pi)}.
+\label{eq:Two-Barr}
+\end{equation}
+For three barriers $A$, $B$, and $C$, the transmission coefficient is
+\begin{equation}
+T_{F}^{ABC}(E_x,J^\pi) = \frac{ T_{F}^{AB}(E_x,J^\pi)T_{F}^{C}(E_x,J^\pi) } { T_{F}^{AB}(E_x,J^\pi)+T_{F}^{C}(E_x,J^\pi)}.
+\end{equation}
+
+Some generalized comments on the transition-state fission model. First, it is important to note that fission barriers are not necessarily unique as they are strongly correlated with the level density parameters. In addition, there is effectively no coupling between the various barriers, so again, the barriers are not unique, and it is possible to achieve very similar results with multiple sets of barriers and level densities. For two barriers, close inspection of Eq.~(\ref{eq:Two-Barr}) shows two clear limits: (1) $T^A \approx T^B$, then $T^{AB} \approx T^A/2$; and (2) $T^A \gg T^B$, then $T^{AB} \approx T^B$. While discrete transition states are possible for each barrier, while attempting to reproduce experimental cross section data, it is generally better to use the continuous level density as there is far greater flexibility with the matching energy to tune the lower level density and, hence, reproduce features in the experimental data.
+
+Default parameters for the fission barriers are provided in the file ${\texttt{Fission-barrier.dat}}$ located in the YAHFC data directory. This file has heights and curvatures for the barriers as well as specifying the default symmetry of the barriers. In addition, it is possible to enter default fission parameters in the file ${\texttt{Fission-Parameters.txt}}$. In this file, parameters for all aspects of the fission model can be saved and entered using a format identical to the YAHFC commands. Thus, it is possible to save results from fission ``fits'' for later calculations. It is to be noted, however, that these parameters are associated with a given optical potential and other model parameters governing particle and gamma decay.
+
+\section{Monte Carlo Decay}
+
+YAHFC is effectively an event-by-event reaction simulator. An initial state with excitation energy $E_x$ and angular momentum/parity $J^\pi$ is populated via the probability dictated by the reaction cross section from an optical model calculation, or a population probability specified by the user. This initial state is then decayed via the emission of gammas, particles, and/or fission with probabilities governed by the Hauser-Feshbach process (including pre-equilibrium) until the system reaches a state where further decay is not possible, this includes isomeric states whose lifetime is longer than a threshold specified by the user (or the default value). The decays from each event are then sorted into the allowed channels, with data then collected for each channel and then printed into data files following the completion of the calculation. An option is provided to print the decays for each event into either a binary or ascii file.  
+
+The decay probabilities for each continuous energy bin and discrete state are pre-calculated, stored, and associated with each state. These decay probabilities are sorted by particle type, and a master list of viable decays for this particle type is made with a running sum of the probability. Associated with each listed decay, the properties of the final state, e.g., bin number, $J$ and $\pi$, are stored in a packed integer. A state is decayed by first checking on the particle decay probability, which is then followed with a search through the viable decays. This is accomplished by selecting a random number and bracketing the probability in the list via bi-section search. At this point, the data associated with this decay, e.g., particle type, energy, angles $\theta$ and $\phi$, angular momentum, recoil energy, etc., are stored in an array. At each step of the decay, the reference frame for the final nucleus is updated, and the particle data are transformed to both the lab frame and the center-of-mass frame for the reaction using a Lorentz boost transformation. Data in these frames is stored in the particle-decay array. At this point, the endpoint for this decay then becomes the initial state, and the Monte Carlo decay process is repeated until the decay terminates to a point where further decay is no longer possible. 
+
+It is to be noted that list of viable decays following each particle is truncated by specifying a minimum probability (the default is $10^{-7}$ and may be set by the user with the command ${\texttt{prob\_cut}}$). This limits the list of decays to those that are viable and speeds up execution. Along these lines, in the sub routine that sets up the Hauser Feshbach decays, the array of possible decays is actually looped over three times: (1) determine the scale of the Hauser Feshbach denominator, (2) count the number of viable decays and allocate the list arrays, and (3) fill the list arrays. Overall, the time to set up the Hauser Feshbach decays is of the order of a few minutes.
+
+One complication with Monte Carlo sampling is the treatment of so-called ``rare'' events, for example (n,$\gamma$) for $E_{\rm in} > 5$~MeV, which will generally have a probability of the order $10^{-6}$. In this case, we would expect of the order one event with standard Monte Carlo sampling and $N_{samp}=10^6$ samples. From the standpoint of an event-generator, this is reasonable, but leads to larger fluctuations while calculating cross sections. To address this, unbiased sampling is introduced at the point where the decay by particle type is made. With unbiased sampling, the sampling probability for each allowed particle type is equal and a ``tally weight'' of the actual probability is kept for each event and used to properly normalize each channel. Unbiased sampling may be turned off(on) with the command ${\texttt{biased\_sampling}}$.
+
+With Monte Carlo sampling, the angular distributions collected for each emission energy are also subject to unacceptably large fluctuations due to smaller sampling size. In YAHFC, the angular distributions for particle emitted in each channel are sorted in 11 equally spaced bins of $x=\cos(\theta)$, $\Delta x = 0.2$. These angular distributions are then decomposed into a Legendre expansion with the number of terms, $L_{\rm max}$, dependent on the number of events in the emission energy window and the magnitude of the deviations in the distribution relative to that expected from isotropic emission (which is the default expectation for compound nucleus emission). For the most part, the $L_{\rm max}$ value used for the Legendre decomposition is given in Table~\ref{tab:L_max} for the number of events in the emission energy window across all angles for inelastic scattering, $N_e^{inel}$, and all other reaction channels $N_e$. An additional check for reactions not involving inelastic scattering is made on the variations in the angular distributions relative to isotropic emission. For example, with 11 equally spaced bins for $x$, and $N$ total events in the energy window, for isotropic emission would expect $N_e=N/11$ events in each $x$-bin with an uncertainty $\delta N_e = \sqrt{N/11}$. For cases where $L_{\rm max} > 0$ based on the total number of events, if the average difference across the angular bins between the calculated angular distribution and isotropic distribution, $\delta A$, is of the order $\delta N_e$, then $L_{\rm max} = 0$, for $\delta N_e \le \delta A < 1.75 \delta N_e$, we take $L_{\rm max} = 2$, for $1.75\delta N_e \le \delta A < 2.5 \delta N_e$, $L_{\rm max} = 4$, and finally $L_{\rm max} = 6$ for $ \delta A \ge 2.5 \delta N_e$. This second check is implemented in order to avoid over ``fitting'' the distributions for systems that are expected to be nearly isotropic. It is not, however, applied to inelastic reactions, where as seen in Eqs.~(\ref{eq:PE-Ang}) and (\ref{eq:Pri-Ang}) some anisotropy is expected.  The angular distributions for the output ``data library'' are printed by both printing the Legendre coefficients and  reconstructing the angular distributions using the Legendre coefficients and printed out with 21 equally spaced values in $x$, i.e., $\Delta x = 0.1$. Angular distributions for all particles and channels are normalized to unity with the exception of elastic scattering for charged particles, which are normalized to the ratio to Rutherford. 
+
+To improve Monte Carlo sampling statistics for angular distributions, for each sample, a set of extra theta angles are sampled, and distributed accordingly. The default number of theta angles is 10, and maybe controlled with the option ``${\texttt{num\_theta\_angles N}}$''.
+
+\begin{table}
+\caption{The maximum number of terms, $L_{\rm max}$, for the Legendre decomposition of the angular distributions as a function of the number of events within a given energy window across all angles for inelastic reactions, $N_e^{inel}$, and all other channels, $N_e$.}
+\begin{center}
+\begin{tabular}{| c | c | c |}
+\hline
+$L_{\rm max}$ & $N_e^{inel}$ & $N_e$ \\
+\hline
+0 & $< 1000$ & $< 2500$\\
+2 & $1000 \le N_e^{inel} < 2000$ & $2500 \le N_e < 6000$\\
+4 & $2000 \le N_e^{inel} < 4000$ & $6000 \le N_e < 10000$\\
+6 & $\ge 10000$\\
+\hline
+\end{tabular}
+\label{tab:L_max}
+\end{center}
+\end{table}
+
+\begin{table}
+\caption{Decay data printed to the event files.}
+\begin{tabular}{| p{1cm} | p{2cm} | p{4.5cm}|} 
+\hline\
+Index & Data & Description \\
+\hline\hline
+ 1   &  $i$                                & Particle\# \\
+ 2   &  ${\texttt{icomp\_f}}$     &  Final Nucleus\# \\
+ 3   &  $k$                                & Particle type \\   
+ 4   &  $J_f$                             & Angular mom. of final state \\
+ 5   &  $P_f$                        & (Parity+1)/2 of final state \\
+ 6   &  $n_f$                           &  Index for final state\\
+ 7   &  $i_{type}$                       &  = 0 for continuous state\\
+     &                                       & = 1 for discrete state\\
+ 8   &    $l$                             & orbital angular momentum\\  
+ 9   &    $j$                             & $j = l+s$\\
+10  &    $T$                         & Kinetic energy in Rest\\
+11  &    $\theta$                & Theta angle in Rest \\
+12  &    $\phi$                & Azimuthal angle in Rest \\
+13  &    $T_{COM}$             & Kinetic energy in COM\\
+14  &    $\theta_{COM}$        & Theta angle in COM\\
+15  &    $\phi_{COM}$             & Azimuthal angle in COM\\
+16  &    $T_{LAB}$             & Kinetic energy in LAB\\
+17  &    $\theta_{LAB}$        & Theta angle in LAB\\
+18  &    $\phi_{LAB}$             & Azimuthal angle in LAB\\
+19 &    $T_R$             & Recoil energy of residual\\
+20 &    $W$                       & MC Weight \\
+21 &    $E_x$                       & Ex. energy of final state\\
+22   &  ${\texttt{icomp\_i}}$     &  Initial Nucleus\# \\
+23   &  $J_i$                             & Angular mom. of initial state \\
+24  &  $P_i$                        & (Parity+1)/2 of initial state \\
+25  &  $n_i$                           &  Index for initial state\\
+\hline
+\end{tabular}
+\label{tab:events}
+\end{table}
+
+\section{Monte Carlo Events}
+
+With the options ``${\texttt{dump\_events y}}$'' or ``${\texttt{event\_generator}}$, YAHFC will write each Monte Carlo decay sequence to a file on disk (either ascii or binary) for post processing or other uses. For each event, a header is printed that contains the event number, the number of emitted particle, $N_{part}$, the incident energy, the kinetic energy of the initial energy (only valid for a population decay), and Monte Carlo weight for this event (not necessarily unity when using unbiased sampling). For each particle, 25 pieces of data are printed including initial and final states, the kinetic parameters for the emitted particles in three frames: 1) rest (Rest) frame of the decaying nucleus, 2) the center-of-mass (COM) of the projectile and target, and 3) the fixed laboratory (Lab) frame. The data in these frames are computed by tracking the relativistic Lorentz boost transformation from the decaying nucleus to the Lab frame. The 25 data elements printed to the file are listed in Table~\ref{tab:events}
+
+\section{Data Libraries}
+\label{sec:Libraries}
+Following each sample, data rom each sample is sorted into the various channels, and collected in arrays for processing after each incident energy and at the conclusion of the calculation. Data for each channel, which includes cross sections, emission spectra, gamma multiplicities, and angular distributions, are printed in a data directory created in the execution directory. The directory structure is based on the target atomic number and element name, the incident particle, and channel label. For example the directories\\
+\\
+${\texttt{235U/n}}$\\
+${\texttt{235U/n/g}}$\\
+${\texttt{235U/n/n}}$\\
+${\texttt{235U/n/nn}}$\\
+${\texttt{235U/n/nnn}}$\\
+${\texttt{235U/n/f}}$\\
+\\
+are used for neutrons incident on $^{235}$U to describe neutron capture, (n,n$^\prime$), (n,2n), (n,3n), and neutron induced fission. For fissioning systems, the cross section for fission following particle emission is also printed in the channel directory.
+
+Useful data on the spectra following emission from pre-equilibirum emission and direct processes would be printed for each incident energy in the directory ${\texttt{235U/n/Spectra}}$. In addition, with the option ``${\texttt{primary\_decay y}}$'', cross sections following primary decay would be printed for each incident energy in the directory ${\texttt{235U/n/Primary-decay}}$
+
+A python script, ${\texttt{parseYahfc.py}}$ is also provided that translates these data files, which are convenient for plotting, etc., into a nuclear data library based on the generalized nuclear data structure (GNDS).
+
+\section{Parallel Computing}
+
+With Message Passing Interface (MPI) protocols, YAHFC will execute the event generation in parallel. Since the events are generated via Monte Carlo, a significant boost in performance can be expected using the MPI version. The Monte Carlo sampling is performed in parallel with a global summing and message passing for the requisite data. In general, for a large number of Monte Carlo samples, ideal scaling can be achieved. One caveat, however, is that with the option to print events, these are printed to a file for each MPI process, labeled by the MPI process number. Hence, the events from a single run will be distributed across multiple files. This occurs because events are executed on each individual MPI process, and are printed after the termination of the decay event. 
+
+\section{Numerical Performance}
+In this section, the numerical behavior for an example YAHFC calculation is given to provide some expectation of performance. Serial calculations were performed on a macBook Pro outfitted with a 2.4 GHz Quad-Core Intel Core i5 processor and 8 GB of 2133 MHz LPDDR3 RAM. A n + $^{238}$U calculation with 200 incident energies ranging from 0.1 to 20.0 MeV in steps of 0.2 MeV, without width-fluctuation corrections, $\Delta E = 0.1$~MeV, and 100k Monte Carlo events using the option ``${\texttt{xs\_only y}}$'' completes in approximately 3m. This calculation will compute the channel cross sections with Monte Carlo fluctuations of the order 5\%. A calculation delivering the full nuclear data libraries (including angular distributions) takes approximately 7m. Increasing the number of Monte Carlo events to 1M yields channel cross section with Monte Carlo fluctuations under 1\% and can be accomplished in roughly 30m. The memory required for this calculation is of the order 621 MB.
+
+\appendix
+\section{Manual Input of Initial Populations}
+\label{App:Populations}
+A YAHFC calculation can be executed where the system is prepared with initial populations of excitation energy, angular momentum, and parity with the command \\
+\\
+${\texttt{projectile}}$ -1, 0, input.pop\\
+\\
+where input.pop is a user defined file that specifies the probabilities for each initial $J^\pi$ bin at excitation energy $E_x$. A simple example for a population file is:
+\begin{center}
+\begin{tabular}{| p{3 cm} p{5 cm}|}
+\hline
+   5                     &                 !   Number of Ex energies\\
+  6.05  0.0  1.5         &               ! Ex\_1  dEX\_1, Norm\_1 \\
+   3                      &               !\# of $J^\pi$ states for EX\_1\\
+  0.5  1.0  0.5      &               ! J\_11  Par\_11 Pop\_11\\
+  1.5  -1.0  0.3      &               ! J\_12  Par\_12 Pop\_12\\
+  2.5  1.0  0.2      &               ! J\_13  Par\_13 Pop\_13\\
+  6.15  0.0  2.1         &               ! Ex\_2  dEX\_2, Norm\_2 \\
+   3                     &               !\# of $J^\pi$ states for EX\_2\\
+  0.5  1.0  0.5      &               ! J\_21  Par\_21 Pop\_21\\
+  1.5  -1.0  0.3      &               ! J\_22  Par\_22 Pop\_22\\
+  2.5  1.0  0.2      &               ! J\_23  Par\_23 Pop\_23\\
+  6.25  0.0  1.75          &               ! Ex\_3  dEX\_3, Norm\_3 \\
+   2                     &               !\# of $J^\pi$ states for EX\_3\\
+  0.5  1.0  0.7      &               ! J\_31  Par\_31 Pop\_31\\
+  1.5  -1.0  0.3      &               ! J\_32  Par\_32 Pop\_32\\
+  6.35  0.0  3.25        &               ! Ex\_4  dEX\_4, Norm\_4 \\
+   4                      &               !\# of $J^\pi$ states for EX\_4\\
+  0.5  1.0  0.5      &               ! J\_41  Par\_41 Pop\_41\\
+  1.5  1.0  0.2      &               ! J\_42  Par\_42 Pop\_42\\
+  1.5  -1.0  0.1      &               ! J\_43  Par\_43 Pop\_43\\
+  2.5  1.0  0.2      &               ! J\_44 Par\_44 Pop\_44\\
+  6.45  0.0  4.0         &               ! Ex\_5  dEX\_5, Norm\_5\\
+   3                      &               !\# of $J^\pi$ states for EX\_5\\
+  0.5  1.0  0.5      &               ! J\_51  Par\_51 Pop\_51\\
+  1.5  -1.0  0.3      &               ! J\_52  Par\_52 Pop\_52\\
+  2.5  1.0  0.2      &               ! J\_53  Par\_53 Pop\_53\\
+\hline
+\end{tabular}
+\end{center}
+This file contains entries for five initial excitation energies with populations for different angular momenta and parity states. The second input on the energy line is a an option to add an energy spread to the incident excitation energy. For each Monte Carlo sample, the excitation energy will be Gaussian distributed with a central energy $E_x$ with a width $dE_x$. This can be useful for modeling the decay of fission fragments, where the initial excitation energy has a spread. The third entry on the excitation energy line is the overall population normalization, for example, a cross section as computed from another reaction model code. If only population probabilities are desired, this entry may be omitted, and all populations will be normalized to unity. Following the excitation energy line, is the number of populations to be read in, e.g., 4, where the initial $J^\pi$ values are specified as well as the population probability. These initial probabilities should be normalized to unity, but will be normalized by YAHFC and used as population probabilities during execution. 
+
+\section{Pre-equilibrium Parameters}
+\label{App:Preeq}
+
+In this section, the two-component exciton model is outlined in more detail for the purpose of illuminating the role played by various parameters within the model that are also controlled by YAHFC input commands. These commands give the user complete control over all aspects of implementing the model. From Ref.~\cite{Koning:2004}, and as noted in Section~\ref{sec:Preeq}, the emission spectrum for pre-equilibrium emission for particle type $k$ within the two-component exciton model is given as
+\begin{align}
+\frac{d\sigma+k^{PE}}{dE_k}  =& \sigma_{\rm abs}^k 
+     \sum_{p_\pi = p_\pi^0}^{p_\pi^{\rm max}}\sum_{p_\nu = p_\nu^0}^{p_\nu^{\rm max}}
+     W_k(p_\pi,h_\pi,p_\nu,h_\nu) \notag \\
+     & \tau(p_\pi,h_\pi,p_\nu,h_\nu) P(p_\pi,h_\pi,p_\nu,h_\nu),
+\end{align}
+where $\sigma^k_{\rm abs}$ denotes optical model absorption cross section for particle type $k$ with the residual as the target, $W_k(p_\pi,h_\pi,p_\nu,h_\nu)$ is the emission rate, $\tau(p_\pi,h_\pi,p_\nu,h_\nu)$ is the average lifetime of the exciton state, and $P(p_\pi,h_\pi,p_\nu,h_\nu)$ represents the part of the pre-equilibrium flux that survives emission from the previous state and passes through the $(p_\pi,h_\pi,p_\nu,h_\nu)$ configurations.
+
+The emission rate $W_k$ for ejectile $k$ with relative mass $\mu_k$, relative energy $E_k$, and spin $s_k$ is~\cite{Cline:1983,Dobes:1983}
+\begin{align}
+W_k&(p_\pi,h_\pi,p_\nu,h_\nu) = \notag \\
+  & \frac{2s_k+1}{\pi^2\hbar^3} \mu_k E_k \sigma_{k,{\rm inv}}(E_k) \notag\\ 
+  &\frac{\omega(p_\pi -Z_k,h_\pi,p_\nu-N_k,h_\nu,E^{\rm tot} - E_k)}
+           {\omega(p_\pi,h_\pi,p_\nu,h_\nu,E^{\rm tot})},
+     \label{eq:part-em-rate}
+\end{align}
+where $\sigma_{k,{\rm inv}}$ is the reaction cross section for the inverse reaction obtained from the optical potential, $Z_k$ and $N_k$ are the proton and neutron numbers, respectively, for
+the ejectile, and $E^{\rm tot}$ is the total energy of the composite system. For pre-equilibrium photons with energy $E_\gamma$, the emission rate is given by~\cite{Akkermans:1985}
+\begin{align}
+& W_k(p_\pi,h_\pi,p_\nu,h_\nu) = \notag \\
+  & \frac{E_\gamma^2}{\pi^2\hbar^3c^2} \frac{\sigma_{\gamma,{\rm inv}}(E_\gamma)}{\omega(p_\pi,h_\pi,p_\nu,h_\nu,E^{\rm tot})} \notag \\ 
+  & \Big [\frac{gE_\gamma}{2(n-2 +gE_\gamma)} \big \{\omega(p_\pi-1,h_\pi-1,p_\nu,h_\nu,E^{\rm tot}-E_\gamma)  +  \notag \\
+  &\hskip 2.8 cm \omega(p_\pi,h_\pi,p_\nu-1,h_\nu-1,E^{\rm tot} - E_\gamma) \big \} + \notag \\
+  & \hskip 0.5 cm \frac{n\omega(p_\pi,h_\pi,p_\nu,h_\nu,E^{\rm tot}-E_\gamma)}{n+gE_\gamma} \Big ],
+     \label{eq:gam-em-rate}
+\end{align}
+where $\sigma_{\gamma,{\rm inv}}(E_\gamma)$ is the photo-absorption cross section, $n = p_\pi+h_\pi+p_\nu+h_\nu$ is the total number of excitons, and $g = g_\pi + g_\nu$ is the sum of the proton and neutron single-particle state densities.
+
+The particle-hole state density. $\omega$ is computed under the assumption of equidistant levels while accounting for the Pauli exclusion principle~\cite{Betak:1976,Dobes:1983}, and is given by
+\begin{align}
+\omega(p_\pi,h_\pi,p_\nu,h_\nu,E_x) = & \frac{g_\pi^{n_\pi}g_\nu^{n_\nu}}{p_\pi!h_\pi!p_\nu!h_\nu!(n-1)!} \notag \\
+&(U-A(p_\pi,h_\pi,p_\nu,h_\nu,E_x)))^{n-1} \notag \\
+& f(p,h,U,V), 
+\end{align}
+where $A$ is the Pauli correction factor, $f$ is the finite well function, and $U = E_x - P_{p,h}$. The
+pairing correction, $P_{p,h}$ is taken from Ref.~\cite{Fu:1984}, and for $E_x/\Delta \ge 0.716 + 2.44\left ( \frac{n}{n_{crit}}\right )^{2.17}$, it is given by
+\begin{equation}
+P_{p,h} = \Delta - \delta\left [ 0.996 - 1.76\left ( \frac{n}{n_{crit}}\right )^{1.6} \left (\frac{E_x}{\Delta}\right )^{0.68}\right ]^2,
+\end{equation}
+where
+\begin{align}
+n_{crit} &= 2gT_{crit}\ln 2\\
+T_{crit} &= \frac{2}{3.5}\sqrt{\frac{\Delta}{\frac{1}{4} g}}.
+\end{align}
+Otherwise, the pairing correction is 
+\begin{equation}
+P_{p,h}=\Delta.
+\end{equation}
+The Pauli correction term is given by
+\begin{align}
+Ap_\pi,h_\pi,p_\nu,h_\nu) = & \frac{[\max(p_\pi,h_\pi)]^2}{g_\pi}+ \notag\\
+& \frac{[\max(p_\nu,h_\nu)]^2}{g_\nu}+ \notag\\
+& \frac{p_\pi^2+h_\pi^2 + p_\pi + h_\pi}{4g_\pi}+ \notag\\
+& \frac{p_\nu^2+h_\nu^2 + p_\nu + h_\nu}{4g_\nu}.
+\end{align}
+The finite well function $f(p, h,E_x, V)$ accounts for the fact that a hole cannot have an energy below the bottom of the potential well depth $V$ , and is parameterized as
+\begin{align}
+f(p, h,E_x, V) =& 1 + \sum_{m=1}^h(-1)^m \begin{pmatrix} h\\m\end{pmatrix}  \left [ \frac{E_x - mV}{E_x}\right ]^{n-1} \notag\\
+& \hskip 1.25 cm \times\Theta(E_x - mV),
+\end{align}
+where $\Theta$ is the unit step function.
+
+The proton and neutron single-particle state densities default to
+\begin{align}
+g_\pi & = \frac{Z}{g_{\rm div}},\\
+g_\nu & = \frac{N}{g_{\rm div}},
+\end{align}
+with $g_{\rm div} = 15$, which may be reset with the command ${\texttt{preeq\_g\_div}}$. Invoking the command ``${\texttt{preeq\_g\_a y}}$'' will set $g = a(S_n)\pi^2/6$, where $a(S_n)$ is the level density parameter evaluated at the neutron separation energy.
+
+The well depth $V$ is a function of the number of holes, $h$, the incident particle type, $k^\prime$, and the minimum energy,or depth of the Fermi well (denoted here as $V$ ). In Ref.~\cite{Koning:2004}, it is parameterized by
+\begin{equation}
+V^{k^\prime} = 
+\begin{cases}
+V_1^{k^\prime} + \frac{(V-V_1^{k^\prime})E_{\rm in}^4}{E_{\rm in}^4 + (K^{k^\prime}/A^{1/3})^4}, & h = 1 \\
+V  & h > 1.
+\end{cases}
+\end{equation}
+The default parameters are:
+\begin{align}
+V_1^\pi & = 22~\text{MeV} \notag \\
+V_1\nu & = 12~\text{MeV} \notag \\
+V & = 38~\text{MeV} \notag \\
+K^\pi & = 450~\text{MeV} \notag \\
+K^\nu & = 245~\text{MeV} \notag \\
+\end{align}
+which can be changed with the commands ${\texttt{preeq\_well\_v}}$, ${\texttt{preeq\_well\_v1}}$, and ${\texttt{preeq\_well\_k}}$. A failsafe is implementedin case the user selects $V < V_1$ with $V_1$ being reset with $V_1 = \max(V-5,0)$. This tends to avoidstrange effects in the pre-equilibrium spectrum for small values of $V$ with $V < V_1$.
+
+\begin{widetext}
+The lifetime $\tau$ for a given exciton state $(p_\pi, h_\pi, p_\nu, h_\nu)$ is defined as the inverse sum of the total emission rate and the internal transition rates, that is
+\begin{align}
+\tau(p_\pi, h_\pi, p_\nu, h_\nu) = \Big [ & \lambda_\pi^+(p_\pi, h_\pi, p_\nu, h_\nu)  + 
+                                                                \lambda_\nu^+(p_\pi, h_\pi, p_\nu, h_\nu) + 
+                                                                \lambda_{\pi\nu}^0(p_\pi, h_\pi, p_\nu, h_\nu) + \notag\\
+                                                             & \lambda_{\nu\pi}^0(p_\pi, h_\pi, p_\nu, h_\nu) + W(p_\pi, h_\pi, p_\nu, h_\nu) \Big ]
+\end{align}
+where the total emission rate $W$ is obtained by integrating Eqs.~(\ref{eq:part-em-rate}) and  (\ref{eq:gam-em-rate}) over all outgoing energies and summing over the outgoing particles. The transition rate $\lambda_{\pi(\nu)}^+$ denotes the creation of a proton(neutron) particle-hole pair, and is givenby
+\begin{align}
+\lambda_\pi^+(p_\pi, h_\pi, p_\nu, h_\nu) = \frac{1}{\omega(p_\pi, h_\pi, p_\nu, h_\nu,E^{\rm tot})} 
+         \Big [ & \int_{L_1^{p_\pi}}^{L_2^{p_\pi}}\lambda_{\pi\pi}^{1p}(u)\omega(p_\pi-1, h_\pi, p_\nu, h_\nu,E^{\rm tot}-u)\omega(1,0,0,0,u)du + \notag\\
+                  & \int_{L_1^{h_\pi}}^{L_2^{h_\pi}}\lambda_{\pi\pi}^{1h}(u)\omega(p_\pi, h_\pi-1, p_\nu, h_\nu,E^{\rm tot}-u)\omega(0,1,0,0,u)du + \notag\\
+                  & \int_{L_1^{p_\nu}}^{L_2^{p_\nu}}\lambda_{\nu\pi}^{1p}(u)\omega(p_\pi, h_\pi, p_\nu-1, h_\nu,E^{\rm tot}-u)\omega(0,0,1,0,u)du + \notag\\
+                  & \int_{L_1^{h_\nu}}^{L_2^{h_\nu}}\lambda_{\nu\pi}^{1h}(u)\omega(p_\pi, h_\pi, p_\nu, h_\nu-1,E^{\rm tot}-u)\omega(0,0,0,1,u)du 
+         \Big ]
+\label{eq:lamplus}
+\end{align}
+where the integration limits are corrected for the Pauli exclusion principle, namely
+\begin{align}
+L_1^{p_\pi} & = A(p_\pi+1, h_\pi+1, p_\nu, h_\nu) - A(p_\pi-1, h_\pi, p_\nu, h_\nu) \notag \\
+L_2^{p_\pi} & = E^{\rm tot}  - A(p_\pi-1, h_\pi, p_\nu, h_\nu) \notag\\
+L_1^{h_\pi} & = A(p_\pi+1, h_\pi+1, p_\nu, h_\nu) - A(p_\pi, h_\pi-1, p_\nu, h_\nu) \notag \\
+L_2^{h_\pi} & = E^{\rm tot}  - A(p_\pi, h_\pi-1, p_\nu, h_\nu) \notag \\
+L_1^{p_\nu} & = A(p_\pi, h_\pi, p_\nu+1, h_\nu+1) - A(p_\pi, h_\pi, p_\nu-1, h_\nu) \notag \\
+L_2^{p_\nu} & = E^{\rm tot}  - A(p_\pi, h_\pi, p_\nu-1, h_\nu) \notag\\
+L_1^{h_\nu} & = A(p_\pi, h_\pi, p_\nu+1, h_\nu+1) - A(p_\pi, h_\pi, p_\nu, h_\nu-1) \notag \\
+L_2^{h_\nu} & = E^{\rm tot}  - A(p_\pi, h_\pi, p_\nu, h_\nu-1).
+\end{align}
+The collision probabilities $\lambda_{\pi\pi}^{1p}$, $\lambda_{\pi\pi}^{1h}$, $\lambda_{\nu\pi}^{1p}$, and $\lambda_{\nu\pi}^{1h}$ are given by Fermi's golden rule and are expressed in terms ofthe effective squared matrix elements of the residual interaction, $M_{kk^\prime}^2$, via
+\begin{align}
+\lambda_{\pi\pi}^{1p}(u) & = \frac{2\pi}{\hbar} M_{\pi\pi}^2\omega(2,1,0,0,u) \notag\\
+\lambda_{\pi\pi}^{1h}(u) & = \frac{2\pi}{\hbar} M_{\pi\pi}^2\omega(1,2,0,0,u) \notag\\
+\lambda_{\nu\pi}^{1p}(u) & = \frac{2\pi}{\hbar} M_{\nu\pi}^2\omega(1,1,1,0,u) \notag\\
+\lambda_{\nu\pi}^{1h}(u) & = \frac{2\pi}{\hbar} M_{\nu\pi}^2\omega(1,1,0,1,u).
+\end{align}
+
+The transition rate for converting a proton particle-hole pair into a neutron pair is given by 
+\begin{equation}
+\lambda^0_{\pi\nu}(p_\pi, h_\pi, p_\nu, h_\nu) = \frac{1}{\omega(p_\pi, h_\pi, p_\nu, h_\nu,E^{\rm tot})} \int_{L_1^{ph\pi\nu}}^{L_2^{ph\pi\nu}}
+                  \lambda_{\pi\nu}^{1p1h}(u)\omega(p_\pi-1, h_\pi-1, p_\nu, h_\nu,E^{\rm tot}-u)\omega(1,1,0,0,u)du,
+\label{eq:lamzero}
+\end{equation}
+with the integration limits defined by
+\begin{align}
+L_1^{ph\pi\nu} & = A(p_\pi, h_\pi, p_\nu, h_\nu) - (p_\pi-1, h_\pi-1, p_\nu, h_\nu) \notag \\
+L_2^{ph\pi\nu} & = E^{\rm tot} - A(p_\pi, h_\pi, p_\nu, h_\nu).
+\end{align}
+The collision probability $\lambda_{\pi\nu}^{1p1h}$ is given in terms of the effective squared matrix element as
+\begin{equation}
+\lambda_{\pi\nu}^{1p1h}(u) = \frac{2\pi}{\hbar} M_{\pi\nu}^2\omega(0,0,1,1,u).
+\end{equation}
+The transition rates $\lambda_\nu^+$ and $\lambda_{\nu\pi}^0$ can be obtained from Eqs.~(\ref{eq:lamplus}) and (\ref{eq:lamzero}) through the substitution $\pi \rightarrow \nu$.
+
+Each of the two-component matrix elements, $M_{kk^\prime}^2$ are defined in terms of an average $M_2$by
+\begin{equation}
+M_{kk^\prime}^2 = R_{kk^\prime} M^2
+\end{equation}
+where $M^2$ is evaluated in Ref.~\cite{TALYS} via the semi-empirical expression
+\begin{equation}
+M^2 = \frac{C_1A_p}{A^3}\left [ 7.48 C_2 + \frac{4.62\times 10^5}{\left ( \frac{E^{\rm tot}}{nA_p} + 10.7 C_3 \right )^3} \right ],
+\end{equation}
+where $n$ is the number of excitons, $A_p$ is the mass number of the projectile, and the coefficients $C_1$, $C_2$, and $C_3$are input parameters (default $C_1 = C_2 = C_3 = 1$) that are controlled with the YAHFC commands ${\texttt{preeq\_m2\_c1}}$,${\texttt{preeq\_m2\_c2}}$, and ${\texttt{preeq\_m2\_c3}}$, respectively. The factors $R_{kk^\prime}$ are essentially free parameters that can be adjusted toexperimental data. The default values adopted here are
+\begin{align}
+R_{\pi\pi} &= R_{\pi\pi} = 1 \notag \\
+R_{\pi\nu} &= R_{\nu\pi} = 1.5,
+\end{align}
+and may be adjusted in the calculation with the YAHFC commands ${\texttt{preeq\_m2\_rpp}}$, ${\texttt{preeq\_m2\_rnn}}$, ${\texttt{preeq\_m2\_rpn}}$, and${\texttt{preeq\_m2\_rnp}}$.
+
+The integrals in Eqs.~(\ref{eq:lamplus}) and (\ref{eq:lamzero}) may be approximated by analytical formulae described in Ref.~\cite{Kalbach:1985}. This option may be invoked with the YAHFC command ${\texttt{preeq\_analytic}}$. For the most part, the numerical integration isnot time consuming, and there is no obvious advantage to selecting this option.
+
+All that remains to complete the description of the two-component exciton model employed is the flux $P(p_\pi, h_\pi, p_\nu, h_\nu)$ that survives emission from previous steps. There are no new parameters introduced that can be controlled by YAHFC input commands and are provided here for completeness. The survival probability is given the recursive relation~\cite{Koning:2004}
+\begin{align}
+P(p_\pi, h_\pi, p_\nu, h_\nu) = & P(p_\pi-1, h_\pi-1, p_\nu, h_\nu) \Gamma_\pi^+(p_\pi-1, h_\pi-1, p_\nu, h_\nu) + \notag\\
+                                                 & P(p_\pi, h_\pi, p_\nu-1, h_\nu-1) \Gamma_\nu^+(p_\pi, h_\pi, p_\nu-1, h_\nu-1) + \notag \\
+                                                 & \Big [P(p_\pi-2, h_\pi-2, p_\nu+1, h_\nu+1) \Gamma_\pi^{\prime +}(p_\pi-2, h_\pi-2, p_\nu+1, h_\nu+1) + \notag \\
+                                                 & \hskip 0.1 cm P(p_\pi-1, h_\pi-1, p_\nu, h_\nu) \Gamma_\nu^{\prime +}(p_\pi-1, h_\pi-1, p_\nu, h_\nu) \Big ] \notag \\
+                                                  & \times \Gamma^0_{\nu\pi}(p_\pi-1, h_\pi-1, p_\nu+1, h_\nu+1) + \notag\\
+                                                 & \Big [ P(p_\pi, h_\pi, p_\nu-1, h_\nu-1) \Gamma_\pi^{\prime +}(p_\pi, h_\pi, p_\nu-1, h_\nu-1) + \notag \\
+                                                 & \hskip 0.1 cm P(p_\pi+1, h_\pi+1, p_\nu-2, h_\nu-2) \Gamma_\nu^{\prime +}(p_\pi+1, h_\pi+1, p_\nu-2, h_\nu-2) \Big ] \notag\\
+                                                 & \times \Gamma^0_{\pi\nu}(p_\pi+1, h_\pi+1, p_\nu-1, h_\nu-1),
+\end{align}
+which is initialized with $P(p_\pi^0, h_\pi^0, p_\nu^0, h_\nu^0) = 1$ (and obviously equal to zero for any particle-hole numbers less than the initial starting values). The remaining quantities, which denote the probabilities for creating new proton or neutron particle-holes and for converting a proton (neutron) pair into a neutron(pair) pair, are given by
+\begin{align}
+\Gamma_\pi^+(p_\pi, h_\pi, p_\nu, h_\nu)  & = \lambda_\pi^+(p_\pi, h_\pi, p_\nu, h_\nu) \tau(p_\pi, h_\pi, p_\nu, h_\nu), \notag \\
+\Gamma_\nu^+(p_\pi, h_\pi, p_\nu, h_\nu) & = \lambda_\nu^+(p_\pi, h_\pi, p_\nu, h_\nu) \tau(p_\pi, h_\pi, p_\nu, h_\nu), \notag \\
+\Gamma_\pi^{\prime +}(p_\pi, h_\pi, p_\nu, h_\nu) & = \lambda_\pi^+(p_\pi, h_\pi, p_\nu, h_\nu) \tau^\prime(p_\pi, h_\pi, p_\nu, h_\nu), \notag \\
+\Gamma_\nu^{\prime +}(p_\pi, h_\pi, p_\nu, h_\nu) & = \lambda_\nu^+(p_\pi, h_\pi, p_\nu, h_\nu) \tau^\prime(p_\pi, h_\pi, p_\nu, h_\nu), \notag \\
+\Gamma^0_{\pi\nu}(p_\pi, h_\pi, p_\nu, h_\nu) & = \lambda_{\pi\nu}^0(p_\pi, h_\pi, p_\nu, h_\nu) \tau(p_\pi, h_\pi, p_\nu, h_\nu), \notag \\
+\Gamma^0_{\nu\pi}(p_\pi, h_\pi, p_\nu, h_\nu) & = \lambda_{\nu\pi}^0(p_\pi, h_\pi, p_\nu, h_\nu) \tau(p_\pi, h_\pi, p_\nu, h_\nu),
+\end{align}
+with
+\begin{equation}
+\tau^\prime(p_\pi, h_\pi, p_\nu, h_\nu) = \left [ \lambda_\pi^+(p_\pi, h_\pi, p_\nu, h_\nu) + \lambda_\nu^+(p_\pi, h_\pi, p_\nu, h_\nu) + 
+                                                                        W(p_\pi, h_\pi, p_\nu, h_\nu) \right ]^{-1}.
+\end{equation}
+
+\end{widetext}
+
+
+\section{Input Commands}
+\label{App:Commands}
+The Hauser-Feshbach code YAHFC is controlled by a series of commands. These commands should be entered into script command file, say ``${\texttt{My\_YAHFC\_run.com}}$''. This file should be made to be executable, such as with the unix command ${\texttt{chmod +x}}$. Commands for YAHFC can be entered in any order and my have any case (but they must be spelled correctly). For commands requiring inputs, the input can be delimited by either a comma or a space. The program YAHFC reads the commands, sorts them, and orders them for proper execution. The commands are then printed in the file 
+${\texttt{YAHFC\_commands.tx}}$. Commands can be skipped (without deleting them from the file) by placing a \# or ! at the beginning of a command line. Comments may also be added to any line using \# or !, as any data entries following these delimiters are ignored. 
+
+For commands defining data for a particular isotope, the isotope may be identified by either entering the $Z$ and $A$ for the nucleus or the isotope name, for example, the following commands are equivalent\\
+\\
+${\texttt{target 92 238}}$\\
+\\
+${\texttt{target U238}}$\\
+\\
+In fact, the isotope name may be entered as ${\texttt{U238}}$, ${\texttt{238U}}$, ${\texttt{U-238}}$, or even ${\texttt{238-U}}$. Likewise, commands identifying a particle are entered with either a numerical index or character identifier, e.g.,
+\begin{center}
+%\begin{tabular}{| p{2cm} | p{1cm} | p{1cm} |}
+\begin{tabular} {| l | c | c |}
+\hline
+Particle & Index & Label \\
+\hline\hline
+photon & 0 & g \\
+neutron & 1 & n\\
+proton & 2 & p \\
+deuteron & 3 & d \\
+triton & 4 & t \\
+$^3$He & 5 & h \\
+$^4$He & 6 & a\\
+\hline
+\end{tabular}
+\end{center}
+
+Several YAHFC commands are used to turn an option on or off, and generally require a ``yes'' or ``no'' input. For these commands, ``yes'', or ``on'', is achieved by entering any of ``${\texttt{y}}$'', ``${\texttt{1}}$'', or ``${\texttt{t}}$'', while ``no'', or ``off'', is accomplished by inputting `${\texttt{n}}$'', ``${\texttt{0}}$'', or ``${\texttt{f}}$''.
+
+
+A full list of available commands follow.
+
+\onecolumngrid
+\begin{center}
+\begin{tabular}{| p{4cm} | p{4 cm} | p{9 cm} |}
+\hline
+\multicolumn{3}{| c |}{General Commands} \\
+\hline
+Command option   &  Input values   &   Explanation\\
+\hline\hline
+${\texttt{file}}$   & My\_Output  &            Output file name - (creates file My\_Output.out) \\
+ & & {\bf Default:} YAHFC-Calc.out \\
+\hline
+${\texttt{all\_discrete\_states}}$  & ${\texttt{Answer}}$     & ${\texttt{Answer}}$=${\texttt{n/0/f}}$ use discrete levels only up to $E_{cut}$ ({\bf Default}).\\
+ &   &                  ${\texttt{Answer}}$=${\texttt{y/1/t}}$ use all discrete states with full decay path
+			   to ground state or known isomer. \\
+\hline
+${\texttt{target}}$  & $Z_t$ $A_t$ $k$ &            $Z$ and $A$ of target, $k$ = state \# for target. \\
+  & &                     i.e.,  target\%istate = $k$, where $k$ is the state \# in evaluated 
+			   RIPL-3 file. \\
+ & &                          $k$ is {\bf optional}, if it is omitted, the target state is 
+			   taken to be the ground state, i.e., 
+			   target\%istate = 1 \\
+ & &                    Target may also be specified by isotope label, e.g., ${\texttt{U238}}$.\\
+\hline
+${\texttt{target\_state}}$ & $k$ &          Alternative way to specify the state for the target \\
+ & & This is an optional command. If it is omitted, \\
+ & & target\%istate = $1$\\
+\hline
+${\texttt{projectile}}$ & $Z_p$,  $A_p$  &         $Z$ and $A$ of projectile \\
+  & $k$ or label & Alternatively, pne can enter the index 0-6, or particle labels ${\texttt{g}}$, ${\texttt{n}}$, ${\texttt{p}}$, ${\texttt{d}}$, ${\texttt{t}}$, ${\texttt{h}}$, ${\texttt{a}}$\\
+  & -1, -1,  $E_x$, $dE_x$   &  For a population calculation without an incident projectile and a single excitation energy $E_x$ with a Gaussian width $DE_x$. The probability of any $J^\pi$ energy bin is proportional to the level density.\\
+  & -1, 0,   input.pop   &  For a population calculation without an incident projectile. The file input.pop specifies the initial populations for $J^\pi$ bins \\
+\hline
+${\texttt{delta\_e}}$ &  $\Delta E$ &    Size of bins, $\Delta E$, used for continuous part of the excitation energy spectrum. ({\bf Default:} $\Delta E = 0.1$  MeV) \\
+\hline
+${\texttt{use\_unequal\_bins}}$ & ${\texttt{Answer}}$ & ${\texttt{Answer}}$ = ${\texttt{y/t/1}}$: Width of continuous energy bins increases with increasing exitation energy \\
+         &           & ${\texttt{Answer}}$ = ${\texttt{n/f/0}}$: Continuous energy bins are constant with excitation energy ({\bf Default}).\\
+\hline
+${\texttt{proj\_eminmax}}$  & $E_{\rm min}$, $E_{\rm max}$, $E_{\rm step}$ &
+    Generates list of incident projectile energies, $E_i$, looped over in the 
+    calculation from $E_{\rm min}$ to $E_{\rm max}$ in steps of $E_{\rm step}$. For calculation 
+    simplicity, the incident energies are mapped 
+    to fit into the center of the excitation energy bins. In this mode, the 
+    lowest energy allowed is $\Delta E/2$. \\
+ \hline
+${\texttt{proj\_e\_file}}$  & filename &
+       File containing the list of incident projectile energies, $E_i$, looped over
+       in the calculation. \\
+& & The list can contain energies less than $\Delta E/2$.
+      These are kept unaltered. But, for $E_i > \Delta E/2$, the $E_i$ are 
+      mapped onto the center of the continuous excitation energy bins.\\
+\hline
+${\texttt{max\_j\_allowed}}$ & $N_J$ &  Maximum number of angular momentum states \\
+ & & ({\bf Default:} $J=20$).\\
+  &  &   $J_{\rm Max} = N_J + $nucleus(i)\%jshift  \\
+  &  &  nucleus(i)\%jshift = 0 for even $A$ \\
+  &  &  \hskip 2.7 cm= 0.5 for odd $A$. \\
+\hline
+${\texttt{num\_mc\_samp }}$ & $N_{\rm samp}$ &    Number of Monte Carlo samples \\
+ &  &  {\bf Default:} $N_{\rm samp} = 1000000$\\
+\hline
+${\texttt{biased\_sampling}}$ & ${\texttt{Answer}}$  & Controls type of Monte Carlo Sampling \\
+& & ${\texttt{Answer}}$ = ${\texttt{n/f/0}}$: Normal biased Monte Carlo sampling.\\  
+& & ${\texttt{Answer}}$ = ${\texttt{y/t/1}}$: Uniased Monte Carlo sampling ({\bf Default}).\\
+& & Unbiased sampling means that each particle type has an equal weight. This allows for more samples for $(n,\gamma)$ at higher energies as gammas will have the same weight as neutrons to be emitted.\\
+\hline
+\end{tabular}
+\end{center}
+%
+%   General Commands continued
+%
+\begin{center}
+\begin{tabular}{| p{4cm} | p{4cm} | p{9cm} |}
+\hline
+\multicolumn{3}{| c |}{General Commands Continued} \\
+\hline\hline
+${\texttt{beta\_2}}$   & $Z$,  $A$,   $\beta_2$ &
+          Manual input of deformation parameter $\beta_2$ for nucleus $Z$ and $A$.\\
+\hline
+${\texttt{t12\_isomer}}$   & $t_{1/2}$ &  Sets the half life (in seconds) that is used to define an isomeric state. States with half life longer than $t_{1/2}$ listed in the ${\texttt{RIPL-3}}$ files for discrete states will be tagged as an isomeric state.\\
+\hline
+${\texttt{max\_particle}}$   & $k$,  {\it max\_particle(k)} &
+          Maximum number of particles allowed in decay for particle type $k$ \\
+& &    $k=1,2,3,4,5,6$ for neutron, proton, deuteron, triton, $^3$He, $^4$He. \\
+& &     Nominally used to limit the number of channels for some particle
+          decays by limiting the total number of particles of this type to 
+          participate in the reaction. Channels are automatically set up based
+          on the separation energies. This option overrides the separation energy.
+          It is primarily used for alphas, where for heavier nuclei the decay 
+          chain can be 20 or more alphas since technically these nuclei are 
+          unbound to alpha emission by a few MeV. \\
+& &     {\it max\_particle(k) = -1}  means no limits \\
+& &     {\bf Defaults}: {\it max\_particle(1) = -1} \\
+& &      \hskip 1.7 cm {\it max\_particle(2) = -1} \\
+& &      \hskip 1.7 cm {\it max\_particle(3) = 0} \\
+& &      \hskip 1.7 cm {\it max\_particle(4) = 0} \\
+& &      \hskip 1.7 cm {\it max\_particle(5) = 0} \\
+& &      \hskip 1.7 cm {\it max\_particle(6) = 0} \\
+& &   It is {\bf strongly} suggested that {\bf no} limits be applied to neutrons \\
+\hline
+${\texttt{prob\_cut}}$ &  $P_{\rm cut}$  &   Sets cut off for decay probability to use in decays. If decay from
+    an initial state to a channel is below this value it is skipped. \\
+ & &    state and not all other initial states. ({\bf Default:} $P_{\rm cut} = 10^{-7}$).\\
+ & & This option can speed up the set up and execution by reducing the number of final states for any given initial state.\\
+ & & In general, however, as the spacing $\Delta E$ for the continuous spectrum decreases, $P_{\rm cut}$ should be reduced.\\
+\hline
+${\texttt{trans\_p\_cut}}$ & $T_{p-cut}$ & Specifies cut off for particle transmission coefficients when computing Hauserr-Feshbach denominators. Decays using a value below this are not included.\\
+& & {\bf Default:} $T_{p-cut} = 1\times 10^{-7}$\\
+\hline
+${\texttt{trans\_e\_cut}}$ & $T_{e-cut}$ & Specifies cut off for electromagnetic transmission coefficients when computing Hauserr-Feshbach denominators. Decays using a value below this are not included.\\
+& & {\bf Default:} $T_{e-cut} = 1\times 10^{-18}$\\
+\hline
+${\texttt{wf\_model}}$  & $i$ &    Defines Width-fluctuations model used in calculation \\
+& &    $i = 0$ no width fluctuations\\
+& &    $i = 1$ Moldauer model for width fluctuations ({\bf Default})\\
+\hline
+${\texttt{dump\_events}}$ & ${\texttt{Answer}}$, $F_{type}$ & Controls whether event data is printed to a file and defines the form of the file.\\
+& & ${\texttt{Answer}}$ = ${\texttt{n/f/0}}$: Do not print events to file ({\bf Default}).\\
+& & ${\texttt{Answer}}$ = ${\texttt{y/t/1}}$: Print events to file.\\
+& & \hskip 1.2 cm $F_{type} =$ a prints to an ASCI file.\\
+& & \hskip 1.2 cm $F_{type} =$ b prints to an binary, unformatted file.\\
+\hline
+${\texttt{initial\_ke}}$ & $T_{KE}$, $dT_{KE}$ & Specifies initial kinetic energy $T_{KE}$ and spread $dT_{KE}$. For each sample, the initial kinetic energy of target is given by a Gaussian distribution centered at $T_{KE}$ with width $dT_{KE}$. This is useful for modeling fission fragment decays.\\
+& & This option can {\bf only} be used in conjunction with a population calculation.\\
+& & {\bf Default:} $T_{KE} = 0.0$, $dT_{KE} = 0.0$.\\
+\hline
+\end{tabular}
+\end{center}
+
+\begin{center}
+\begin{tabular}{| p{4cm} | p{4cm} | p{9cm} |}
+\hline
+\multicolumn{3}{| c |}{General Commands Continued} \\
+\hline\hline
+${\texttt{verbose\_output}}$ & ${\texttt{Answer}}$ &     ${\texttt{Answer}}$ = ${\texttt{y/t/1}}$ suppresses writing to ${\texttt{stdout}}$ during the run (useful for fitting data and running with MPI).   \\
+&  & ${\texttt{Answer}}$ = ${\texttt{y/t/1}}$ do not suppress writing to ${\texttt{stdout}}$ ({\bf Default}). \\
+\hline
+${\texttt{write\_outfile}}$ & ${\texttt{Answer}}$ & ${\texttt{Answer}}$ = ${\texttt{y/t/1}}$ write the .out file (unit=13) that contains calculation data ({\bf Default}).  \\
+ & & ${\texttt{Answer}}$ = ${\texttt{n/f/0}}$ suppress writing the .out file (unit=13) that contains calculation data (useful if running to fit data).  \\
+ \hline
+${\texttt{xs\_only}}$ & ${\texttt{Answer}}$ & ${\texttt{Answer}}$ = ${\texttt{y/t/1}}$ Only cross sections are computed and printed. No Emission spectra and angular distributions. \\
+         &           & ${\texttt{Answer}}$ = ${\texttt{n/f/0}}$ Normal run, with cross sections, emission spectra, and angular distributions ({\bf Default}).\\
+\hline
+${\texttt{explicit\_channels}}$ & ${\texttt{Answer}}$ & ${\texttt{Answer}}$ = ${\texttt{y/t/1}}$, Channels are identified by all particles emitted, including order, e.g., nnp, npn, and pnn are distinct channels ({\bf Default}).\\
+& & ${\texttt{Answer}}$ = ${\texttt{n/f/0}}$, Channels are identified only by the number of particles emitted; nnp, npn, and pnn are treated as 2np.\\
+\hline
+${\texttt{primary\_decay}}$ & ${\texttt{Answer}}$ & ${\texttt{Answer}}$ = ${\texttt{y/t/1}}$: Cross sections for the first step are printed in the ${\texttt{Primary-decay}}$ directory as a function of incident energy. \\
+  &  &  ${\texttt{Answer}}$ = ${\texttt{y/t/1}}$: Cross sections for the first step are {\bf not} printed in the ${\texttt{Primary-decay}}$ directory as a function of incident energy ({\bf Default}). \\
+\hline
+${\texttt{event\_generator}}$ & ${\texttt{Answer}}$ & ${\texttt{Answer}}$ = ${\texttt{y/t/1}}$ Prints events only, no library files. \\
+   &    & ${\texttt{Answer}}$ = ${\texttt{n/f/0}}$ Normal run, prints libraries, and events if requested ({\bf Default}) \\\hline
+${\texttt{end}}$ & & Specifies the end of all input commands.\\
+\hline
+\end{tabular}
+\end{center}
+
+%
+%   Commands for Gammas
+%
+\begin{center}
+\begin{tabular}{| p{4cm} | p{4 cm} | p{9 cm} |}
+\hline
+\multicolumn{3}{| c |}{Gamma-decay Commands} \\
+\hline
+Command option   &  Input values   &   Explanation\\
+\hline\hline
+${\texttt{e1\_model}}$ & $j$ &      Specifies which model to use for $E1$ strength function. \\
+ &  &   $j = 1$:  Lorentzian \\
+ &  &   $j = 2$:   Kopecky-Uhl  ({\bf Default})\\
+ &  &   $j = 3$:  Modified Kopecky-Uhl\\
+\hline
+${\texttt{e1\_param}}$  & $Z$, $A$, $j$, $E_j$, $\Gamma_j$, $S_j$ &
+    Sets centroid ($E_j$), width ($\Gamma_j$), and strength ($S_j$) for the $j^{th}$ $E1$ resonance component 
+    for nucleus $Z$ and $A$.\\
+ & &    $j \le 3$ will overrides default values found in file
+    \$YAHFC\_DATA/gdr-parameters-exp.dat, which contains at most two $E1$ modes.\\
+ &   & Note: $j = 3$ is used to add a resonance to fit to $\Gamma_\gamma$ unless turned off with option fit\_gamma\_gamma.\\
+\hline
+${\texttt{fit\_gamma\_gamma}}$  &  ${\texttt{Answer}}$ &  Controls whether strength function is modified to fit to $\Gamma_\gamma$ \\
+& & ${\texttt{Answer}}$ = ${\texttt{y/t/1}}$: Fit to $\Gamma_\gamma$ ({\bf Default}).\\
+& & ${\texttt{Answer}}$ = ${\texttt{n/f/0}}$: Do not fit to $\Gamma_\gamma$ \\
+& & Fit is achieved by adding a third $E1$ resonance centered at $E_0=5.0$~ MeV and width $\Gamma = 5.0$~MeV. The strength is fit to reproduce $\Gamma_\gamma$. Note that it is possible for this strength to be negative.\\
+\hline
+${\texttt{set\_gamma\_gamma}}$ & $Z$, $A$, $\Gamma_\gamma$ & Sets radiative width for $l=0$ resonances to input value $\gamma_\gamma$.\\
+& & This input overrides values read in from global data file. It can be used to modify default data or set a value where data is lacking. This value will then be used to modify the $E1$ strength function if the option fit\_gamma\_gamma is active. The uncertainty for this value is set to $d\Gamma_\gamma = -1.0$ to identify that this data was entered by user and is not based on experimental data.\\
+\hline
+${\texttt{track\_gammas}}$  & ${\texttt{Answer}}$  &    Controls whether discrete gammas are tracked \\
+ & &   ${\texttt{Answer}}$ = ${\texttt{n/f/0}}$:  Don't track gammas  ({\bf Default}).\\
+  & &  ${\texttt{Answer}}$ = ${\texttt{y/t/1}}$:  Do track gammas.\\
+ &  &  Note: track\_gammas=.true. is the {\bf default} for a population calculation\\
+\hline
+%${\texttt{track\_primary\_gammas}}$  & ${\texttt{Answer}}$  &      Controls whether primary (first gammas in decay) gammas are tracked \\
+% & &    ${\texttt{Answer}}$ = ${\texttt{n/f/0}}$:  Don't track primary gammas  ({\bf Default}).\\
+% & &    ${\texttt{Answer}}$ = ${\texttt{y/t/1}}$:  Do track primary gammas.\\
+%\hline
+${\texttt{e\_l\_max}}$ & $L$ & Maximum electric multipole $L$ to include in the Hauser-Feshbach decays.\\
+& & {\bf Default:} $L=3$.\\
+\hline
+${\texttt{m\_l\_max}}$ & $L$ & Maximum magnetic multipole $L$ to include in the Hauser-Feshbach decays.\\
+& & {\bf Default:} $L=3$.\\
+\hline
+\end{tabular}
+\end{center}
+
+
+
+%
+%   Level density commands
+%
+\begin{center}
+\begin{tabular}{| p{4cm} | p{4 cm} | p{9 cm} |}
+\hline
+\multicolumn{3}{| c |}{Level Density Commands} \\
+\hline
+Command option   &  Input values   &   Explanation\\
+\hline\hline
+${\texttt{lev\_option}}$ & $i$ &   Globally defines the level density model for all nuclei \\
+ & &   $i = 0$ : Gilbert \& Cameron.\\
+ & &   $i = 1$ : TALYS defaults  ({\bf Default} for $A \le 130$).\\
+ & &   $i = 2$ :  Collective enhancement ({\bf Default} for $A > 130$)\\
+ & &    lev\_option resets level density information with a call to subroutine get\_lev\_den. \\
+ & & For $i = 1$ and 2, the Ignatyuk parameterization is used with \\
+ & & $a(U) = \tilde a [1+\delta W \frac{1-\exp(-\gamma U)}{U}]$, \\
+ & & $\tilde a$ is the asymptotic value for the level density parameter, $\delta W$ is the shell correction energy, and $\gamma$ is a damping factor for the shell correction and $U = E_x -\Delta$.\\
+ & & For $i=0$, $\delta W = 0$.\\
+\hline
+${\texttt{nuc\_lev\_option}}$ & $Z$, $A$, $i$ &   Defines the level density model for nucleus $Z$ and $A$. \\
+ & &   $i = 0$ : Gilbert \& Cameron \\
+ & &   $i = 1$ : TALYS defaults  ({\bf Default} for $A \le 130$).\\
+ & &   $i = 2$ :  Collective enhancement ({\bf Default} for $A \> 130$)\\
+ & &    lev\_option resets level density information with a call to subroutine get\_lev\_den. \\
+\hline
+${\texttt{lev\_fit\_d0}}$  & ${\texttt{Answer}}$ & ${\texttt{Answer}}$ = ${\texttt{y/t/1}}$: Fit level-density level-density parameters to reproduce $D_0$ ({\bf Default}). \\
+     &  &   ${\texttt{Answer}}$ = ${\texttt{y/t/1}}$: Do not fit level-density level-density parameters to reproduce $D_0$.\\
+     & & By default, the shell-correction parameter, $\delta W$, is adjusted,\\
+\hline
+${\texttt{lev\_fit\_aparam}}$  & ${\texttt{Answer}}$ & ${\texttt{Answer}}$ = ${\texttt{y/t/1}}$: If fitting to $D_0$, adjust asymptotic level-density $\tilde a$-parameter to reproduce $D_0$ . \\
+& & ${\texttt{Answer}}$ = ${\texttt{n/f/0}}$: If fitting to $D_0$, do not adjust asymptotic level-density $\tilde a$-parameter to reproduce $D_0$, instead the shell correction $\delta W$ ({\bf Default}). . \\
+\hline
+${\texttt{lev\_aparam}}$ &  $Z$, $A$,  $\tilde a$ &     Input asymptotic level-density $\tilde a$-parameter for nucleus $Z$ and $A$\\
+\hline
+${\texttt{lev\_delta}}$ &  $Z$, $A$,  $\Delta $ &     Level-density pairing energy $\Delta$ for nucleus $Z$ and $A$\\
+\hline
+${\texttt{lev\_shell}}$ &  $Z$, $A$,  $\delta W$ &  Level-density shell correction $\delta W$ for nucleus $Z$ and $A$ (Computed internally based on masses).\\
+\hline
+${\texttt{lev\_gamma}}$ &  $Z$, $A$,  $\gamma$ &     Level-density shell correction damping factor $\gamma$ for nucleus $Z$ and $A$. ({\bf Default:} $\gamma = 0.43309/A^{1/3}$).\\
+\hline
+${\texttt{lev\_ematch}}$ &  $Z$, $A$,  $E_{match}$ &   Matching energy $E_{match}$ between the constant-temperature and back-shifted Fermi gas components of the level density for nucleus $Z$ and $A$\\
+\hline
+${\texttt{lev\_ecut}}$ &  $Z$, $A$,  $E_{cut}$ &     Specify cut off energy for levels for $Z$ and $A$.\\
+& & It must be less than the $E_{cut}$ found by default (which is
+    already where information about the spectrum is incomplete 
+    above this energy).\\
+\hline
+${\texttt{lev\_d0}}$ &  $Z$, $A$,  $D_0$, $dD_0$  &  Input $D_0$ and uncertainty $dD_0$ for nucleus $Z$ and $A$\\
+& & Overrides inputs for the data files Level-Density-Data-RIPL3-L0.dat and Level-Density-Data-RIPL3-L1.dat in the directory \$YAHFC/Data/ \\
+\hline
+${\texttt{lev\_parity\_fac}}$ & $Z$,  $A$,  {\it PAR},  $E_0$,  $B$  &
+    Modify parity factor for parity {\it PAR}$ =-1/1$ in nucleus $Z$ and $A$. \\
+  &  &    Functional form: $F_{PAR}(E_x) = 0.5*\tanh(B(E_x-E_0))$
+    Starts parity factor at zero and climbs to equal fraction.
+    Parity factor for other parity is $1.0 - F_{PAR}$\\
+   &  &  {\bf Default} is $F_{PAR} = 0.5$.   \\
+\hline 
+\end{tabular}
+\end{center}
+%
+%  Level density commands continued
+%
+\begin{center}
+\begin{tabular}{| p{4cm} | p{4 cm} | p{9 cm} |}
+\hline
+\multicolumn{3}{| c |}{Level Density Commands Continued} \\
+\hline\hline
+${\texttt{lev\_sig\_model}}$   & $Z$, $A$, $k$  &    Specifies model for energy dependence of spin cutoff parameters 
+    for nucleus $Z$ and $A$.\\    
+ & &   $k = 0$ :  $\sigma(E_x) = X A^{5/3}\sqrt{U/a(U)}$; $a(U)$ = energy dependent $a$.\\
+ & &   $k = 1$ :  $\sigma(E_x) = X A^{5/3}\sqrt{U/a(U)}(a(U)/{\tilde a})$. \\ 
+ &  &  {\bf Default:} $k = 0$ for lev\_option = 0, and $k=1$ for lev\_option = 1,2.\\
+ &  &  {\bf Default:} $X = 0.01389$.\\
+ & &  The parameter $X$ can be set with option lev\_spin\_cut.\\
+\hline
+${\texttt{lev\_spin\_cut}}$   & $Z$,  $A$,   $X$ &  Factor to define the spin cut-off parameter for nucleus $Z$ and $A$. ({\bf Default:} $X = 0.01389$).\\
+\hline
+${\texttt{lev\_rot\_enhance}}$   &  $Z$, $A$, $k$, $X_1$, $X_2$, $X_3$ & Information to control collective rotational enhancement factors for the level density  in nucleus $Z$ and $A$.\\
+& & $X_1$, $X_2$, and $X_3$ define the scaling and damping of the collective enhancement factor via:\\
+& & $X_1/(1+\exp((E_x - X_2)/X_3))$\\
+& & {\bf Default}: $X_1=1$, $X_2 = 30$, $X_3 = 5$.\\
+\hline
+${\texttt{lev\_vib\_enhance}}$   &  $Z$, $A$, $k$, $X_1$, $X_2$, $X_3$ & Information to control collective vibrational enhancement factors for the level density  in nucleus $Z$ and $A$.\\
+&  &  $k = 1$: Liquid-drop vibrational collective enhancement \\
+& & \hskip 1. cm $K_{\rm vib} = \exp(0.0555A^{2/3}T^{4/5})$; $T=\sqrt{U/a(U)}$.\\
+& & \hskip 1 cm {\bf Default} for lev\_option = 0 \& 1.\\
+& & $k=2$: Entropy and excitation energy model with\\
+& & \hskip 1. cm $K_{\rm vib} = \exp(\delta S - (\delta U/T))$; $T=\sqrt{U/a(U)}.$\\
+& & \hskip 1 cm {\bf Default} for lev\_option = 2.\\
+& & $k= 3$: same as $i=1$ with $a(U)=A/13$.\\
+& & $k = 4$: same as $i=2$ with $a(U)=A/13$.\\
+& & $X_1$, $X_2$, and $X_3$ define an additional scaling factor and the damping of the collective enhancement factor via:\\
+& & $X_1/(1+\exp((E_x - X_2)/X_3))$\\
+& & {\bf Default}: $X_1=1$, $X_2 = 30$, $X_3 = 5$.\\
+\hline
+${\texttt{lev\_vib\_enhance\_mode}}$  & $k$   &  Generic parameter defining the vibrational collective enhancement model used in the calculation for all nuclei and is overriden lev\_vib\_enhance.\\ 
+&  &  $k = 1$: Liquid-drop vibrational collective enhancement \\
+& & \hskip 1. cm $K_{\rm vib} = \exp(0.0555A^{2/3}T^{4/5})$; $T=\sqrt{U/a(U)}$.\\
+& & \hskip 1 cm {\bf Default} for lev\_option = 0 \& 1.\\
+& & $k=2$: Entropy and excitation energy model with\\
+& & \hskip 1. cm $K_{\rm vib} = \exp(\delta S - (\delta U/T))$; $T=\sqrt{U/a(U)}.$\\
+& & \hskip 1 cm {\bf Default} for lev\_option = 2.\\
+& & $k = 3$: same as $i=1$ with $a(U)=A/13$.\\
+& & $k = 4$: same as $i=2$ with $a(U)=A/13$.\\
+\hline
+\end{tabular}
+\end{center}
+
+
+%
+%   Fission commands
+%
+\begin{center}
+\begin{tabular}{| p{4cm} | p{4cm} | p{9cm} |}
+\hline
+\multicolumn{3}{| c |}{Fission Model Commands} \\
+\hline
+Command option   &  Input values   &   Explanation\\
+\hline\hline
+${\texttt{f\_num\_barrier}}$   & $Z$, $A$, $N$ &    Sets number of fission barriers for nucleus  $Z$, $A$. \\
+& & This option overrides and resets parameters specified in \$YAHFC\_DATA/Fission-barrier.dat\\
+\hline
+${\texttt{f\_barrier}}$   & $Z$, $A$, $j$, $E_B$, $\hbar\Omega$ &    Sets fission barrier height $E_B$ and width $\hbar\Omega$ for the $j^{th}$ barrier in nucleus  $Z$, $A$. \\
+& & Overrides parameters specified in \$YAHFC\_DATA/Fission-barrier.dat\\
+\hline
+${\texttt{f\_ecut}}$  &    $Z$, $A$, $j$, $E_{\rm cut}$ &    Sets $E_{\rm cut}$ for level density above $j^{th}$ barrier for nucleus $Z$ and $A$.\\
+\hline
+${\texttt{f\_lev\_aparam}}$   & $Z$, $A$, $j$, $\tilde a$  &    Sets level-density $\tilde a$-parameter for level density above the $j^{th}$ fission 
+    barrier for nucleus $Z$ and $A$.\\
+& & ({\bf Default:} same as compound nucleus).\\
+\hline
+${\texttt{f\_lev\_spin}}$  & $Z$, $A$, $j$, $\sigma$ &      Sets spin cutoff parameter $\sigma$ for level density above the $j^{th}$ fission barrier for nucleus $Z$ and $A$.\\
+& & ({\bf Default:} same as compound nucleus).\\
+\hline
+${\texttt{f\_lev\_delta}}$  &  $Z$, $A$, $j$, $\Delta$   &  Sets pairing gap parameter $\Delta$ for level density above the $j^{th}$ fission barrier for nucleus $Z$ and $A$.\\
+& & ({\bf Default:} same as compound nucleus).\\
+\hline
+${\texttt{f\_lev\_shell}}$   & $Z$, $A$, $j$, $\delta W$  & Sets shell-correction value $\delta W$ for level density above the $j^{th}$ fission barrier for nucleus $Z$ and $A$. \\
+& & ({\bf Default:} same as compound nucleus).\\
+\hline
+${\texttt{f\_lev\_gamma}}$  &  $Z$, $A$, $j$, $\gamma$  &    Sets shell-correction damping factor, $\gamma$, for level density above the $j^{th}$ fission barrier for nucleus $Z$ and $A$\\
+& & ({\bf Default:} same as compound nucleus).\\
+\hline
+${\texttt{f\_lev\_ematch}}$  &  $Z$, $A$, $j$, $E_{\rm match}$ &    Sets matching energy $E_{\rm match}$ for level density above the $j^{th}$ fission barrier for nucleus $Z$ and $A$.\\
+\hline
+${\texttt{f\_beta\_2}}$ & $Z$, $A$, $j$, $\beta_2$ & Sets deformation parameter $\beta_2^F(j)$ for the $j^{th}$ barrier in nucleus $Z$ and $A$. Used to define the collective enhancement factors.\\
+& & {\bf Default} depends on which barrier. \\
+& & $j = 1$:  $\beta_2^F = 2.5\beta_2$.\\
+& & $j = 2$:  $\beta_2^F = 4.5\beta_2$.\\
+\hline
+${\texttt{f\_scale\_beta\_2}}$ & $Z$, $A$, $j$, $X$ & Scale factor for deformation parameter $\beta_2$ for the $j^{th}$ barrier in nucleus $Z$ and $A$. $\beta_2$ for the fission barrier is $X\beta_2$ for the ground state. Used to define the collective enhancement factors.\\
+& & {\bf Default} depends on which barrier: \\
+& & $j = 1$:  $X = 2.5$.\\
+& & $j = 2$:  $X = 4.5$.\\
+\hline
+${\texttt{f\_lev\_barrier\_symmetry}}$   &  $Z$, $A$, $j$, ${\texttt{Answer}}$ & Information to control collective rotational enhancement factors for the level density above the $j^{th}$ fission barrier in nucleus $Z$ and $A$.\\
+& & ${\texttt{Answer}}$  = $1$ or `s': axially-symmetric.\\
+& & ${\texttt{Answer}}$  = $2$ or `lr-a': left-right asymmetric.\\
+& & ${\texttt{Answer}}$  = $3$ or `ta-lr': triaxial left-right asymmetric.\\
+& & ${\texttt{Answer}}$  = $4$ or `ta-nlr': triaxial not left-right asymmetric.\\
+& & {\bf Default:} Specified in file YAHFC\_DATA/Fission-barrier.dat if found. Otherwise: 1 for single barriers, 1 for inner barriers with $N < 144$, 3 for inner barriers and $N \ge 144$; 2 for outer barriers\\
+& & {\bf Note:} This should be specified after f\_num\_barriers.\\
+\hline
+\end{tabular}
+\end{center}
+%
+%   Fission commands continued
+%
+\begin{center}
+\begin{tabular}{| p{4cm} | p{4cm} | p{9cm} |}
+\hline
+\multicolumn{3}{| c |}{Fission Model Commands Continued} \\
+\hline\hline
+${\texttt{f\_lev\_rot\_enhance}}$   &  $Z$, $A$, $j$, $X_1$, $X_2$, $X_3$ & Information to control collective rotational enhancement factors for the level density above the $j^{th}$ fission barrier in nucleus $Z$ and $A$.\\
+& & $X_1$, $X_2$, and $X_3$ define the scaling and damping of the collective enhancement factor via:\\
+& & $X_1/(1+\exp((E_x - X_2)/X_3))$\\
+& & {\bf Default}: $X_1=1$, $X_2 = 30$, $X_3 = 5$.\\
+& & Note the symmetry of barrier defined in f\_barrier\_symmetry affects the rotational collective enhancement factor.\\
+\hline
+${\texttt{f\_lev\_vib\_enhance }}$  &  $Z$, $A$, $j$, $X_1$, $X_2$, $X_3$ & Information to control collective rotational enhancement factors for the level density above the $j^{th}$ fission barrier in nucleus $Z$ and $A$.\\
+& & $X_1$, $X_2$, and $X_3$ define an additional scaling factor and the damping of the collective enhancement factor via:\\
+& & $X_1/(1+\exp((E_x - X_2)/X_3))$\\
+& & {\bf Default}: $X_1=1$, $X_2 = 30$, $X_3 = 5$.\\
+\hline
+${\texttt{f\_barrier\_damp}}$ & $Z$, $A$, $j$, $X_2$, $X_3$ & Introduces a dependence on excitation energy, $E_x$, in the fission barrier height for the $j^{th}$ barrier in nucleus $Z$ and $A$.\\
+& & The barrier height is modified by the ``Gaussian'' factor:\\
+& &  $F(E_x) = X_1\exp[-X_3^2(E_x - X_2)^2]$,\\
+& & with $X_1 = \exp[(X_3 X_2)^2]$ so that $F(0) = 1.0$.\\
+& & {\bf Default:} $X_2=X_3 = 0.0$\\
+\hline
+${\texttt{f\_max\_J}}$ & $J_{\rm max}$ & Value of angular momentum where the fission barrier will decrease to zero.\\
+ & & If $J_{\rm max} > 0$, the fission barriers are modified by the factor:\\
+ & & $[J_{\rm max}(J_{\rm max} + 1) - J(J+1)]/J_{\rm max}(J_{\rm max} + 1)$\\
+ & & {\bf Default:} $J_{\rm max} = 0$.\\
+\hline
+\end{tabular}
+\end{center}
+
+%
+%   Pre-equilibrium Model Commands
+%
+\begin{center}
+\begin{tabular}{| p{4cm} | p{4cm} | p{9cm} |}
+\hline
+\multicolumn{3}{| c |}{Pre-equilibrium Model Commands} \\
+\hline
+Command option   &  Input values   &   Explanation\\
+\hline\hline
+${\texttt{preeq\_model}}$  & $i$ &   Specifies which pre-equilibrium model will be employed in the calculation.\\
+&   &  $i = 0$: Pre-equilibrium is turned off\\
+&  &    $i = 1$: Two-component exciton model\\
+\hline
+${\texttt{preeq\_pair\_model}}$  & $i$  ($\Delta_{\rm Preeq}$) & Specifies pairing model used in the pre-equilibirum model. \\
+ & &    $i = -1$: Pairing gap $\Delta = 0.0$ in pre-equilibirum model \\
+ & &    $i  = 0$: Two-component pairing gap $\Delta = $Eq. (10) in NPA744, 15 (2004) \\
+ & &    $i = 1$: Two-component pairing gap $\Delta =$ Fu's pairing correction: Eq. (8)
+          in NPA744, 15 (204) (DEFAULT) \\
+ & &    $i  = 2$: Two-component pairing gap $\Delta = \Delta_{\rm Preeq}$ (read only for i = 2) \\
+\hline
+${\texttt{preeq\_m2\_c1}}$ & $C_1$ &    Parameter $C_1$ defining the $M^2$ matrix element for two-component exciton
+    model ({\bf Default:} $C_1 = 1.0$).\\
+& &    $M^2=\frac{C_1A_p}{A^3}(7.48C_2+\frac{4.62\times 10^5}{(E_x^{tot}/(n A_p)+10.7 C_3)^3})$\\
+& & where $A_p$ is the projectile mass number.\\
+\hline
+${\texttt{preeq\_m2\_c2}}$  & $C_2$ & Parameter $C_2$ defining the $M^2$ matrix element for two-component exciton
+    model ({\bf Default:} $C_2 = 1.0$).\\
+\hline
+${\texttt{preeq\_m2\_c3}}$  & $C_3$ & Parameter $C_3$ defining the $M^2$ matrix element for two-component exciton
+    model. ({\bf Default:} $C_3 = 1.0$).\\
+\hline
+${\texttt{preeq\_v}}$  & $V$  &    Parameter $V$ defining defining the depth of the well for pre-equilibrium
+    emission  ({\bf Default:} $V = 38.0$).\\
+\hline
+${\texttt{preeq\_v\_n}}$  &  $V_n$  &    Parameter $V_n$ defining defining minimum depth for excitation energy
+    dependent well for pre-equilibrium emission for incident neutrons
+    ({\bf Default:} $V_n = 32.0$).\\
+\hline
+${\texttt{preeq\_v\_p}}$  & $V_p$  &   Parameter $V_p$ defining defining minimum depth for excitation energy
+    dependent well for pre-equilibrium emission for incident protons
+    ({\bf Default:} $V_p = 22.0$).\\
+\hline
+${\texttt{preeq\_g\_div}}$ & $ g_{\rm div}$ & Parameter $g_{\rm div}$ to determine density of single-particle states $g$, $g_p$, and $g_n$ for 
+    exciton model for pre-equilibrium: \\
+ & &    $g = A/g_{\rm div} = g_p + g_n$ \\
+ & &     $g_p = Z/g_{\rm div}$\\
+ & &     $g_n = N/g_{\rm div}$\\
+ & & ({\bf Default:} $g_{\rm div} =15.0$)\\
+\hline
+${\texttt{preeq\_g\_a}}$  & $i$ &  Parameter to determine if $g$ for exciton model should be derived from 
+    level-density $a$ parameter at the neutron separation energy. Connected via 
+    $ g = a \pi^2/6$\\
+&  &  $i  = 0$:  $g = A/g_{\rm div}$  ({\bf Default})\\
+ &  &  $i = 1$: $g = 6A/(a\pi^2)$\\
+\hline
+${\texttt{preeq\_analytic}}$  &  ${\texttt{Answer}}$  &  ${\texttt{Answer}}$ = y:   Analytic formula for transition rate \\
+ &  &     ${\texttt{Answer}}$ = n:  Numerical integration ({\bf Default}).\\
+\hline
+\end{tabular}
+\end{center}
+%
+%  Optical Model Commands
+\begin{center}%
+\begin{tabular}{| p{4cm} | p{4cm} | p{9cm} |}
+\hline
+\multicolumn{3}{| c |}{Optical Model Model Commands} \\
+\hline
+Command option   &  Input values   &   Explanation\\
+\hline\hline
+%${\texttt{optical\_code}}$    &  fresco/ecis  &  Specifies which optical model code to use in the calculation. 
+%   Currently, FRESCO is preferred and is the {\bf default}. \\
+%\hline
+${\texttt{optical\_potential}}$ & $k, j$ & Defining the optical potential for particle type $k$ with internal type $j$.\\
+& & $k=1$,  j = 1: Koning \& Delaroche \\
+& & \hskip 2.1 cm (Default $Z < 90$ and $Z > 96$ \\
+& & \hskip 1.1 cm j = 2: Soukhovitskii (Default $Z \ge 90$ and $Z \le 96$) \\
+& & \hskip 1.1 cm j = 3: Maslov 03 \\
+& & $k=2$,  j = 1: Koning \& Delaroche \\
+& & \hskip 2.1 cm (Default $Z < 90$ and $Z > 96$ \\
+& & \hskip 1.1 cm j = 2: Soukhovitskii (Default $Z \ge 90$ and $Z \le 96$) \\
+& & \hskip 1.1 cm j = 3: Maslov 03\\
+& & $k=2$,  j = 3: Perey \\
+& & $k=2$,  j = 4: Perey \\
+& & $k=2$,  j = 5: Bechetti \\
+& & $k=2$,  j = 6: Avrigeanu \\
+\hline
+${\texttt{fresco\_shape}}$ & $i$ & Integer defining the shape used in the FRESCOX coupled-channels calculation. See FRESCO manual.\\
+& & {\bf Default:} $i = 13$.\\
+\hline
+${\texttt{cc\_file}}$   &  Filename.ext   &  Give name of file that has data related to performing a coupled channels
+   and/or DWBA calculation. Filename.ext includes the extension and is 
+   case sensitive. The {\bf default} file is \$YAHFC\_DATA/Coupled-Channels.txt, which specifies coupled-channels and DWBA states for the target (mostly actinide nuclei). If a nucleus is not in this file (or specified file) a spherical optical-model calculation  is performed.\\
+\hline
+${\texttt{scale\_elastic}}$   & $S$, $A$, $B$  & Option to scale the elastic (EL) cross section computed with the optical model (OM) over a range of incident energies
+   $E_i$. The calculated elastic cross section is scaled by \\
+&  &        $\sigma_{EL}(E_i) = \sigma_{EL-OM}(E_i)S(E_i) $\\
+ & &   with  $S(E_i) = S\left \{ 1 + A\left [1-\exp(-BE_{\rm in})\right ] \right \}$  \\
+ &  &  The transmission coefficients are also scaled so that the absorption 
+   cross section is modified by the same amount as the elastic so that 
+   the sum of elastic and absorption is conserved.\\
+\hline
+${\texttt{do\_dwba}}$  & ${\texttt{Answer}}$  & Controls whether a DWBA calculation is performed for direct inelastic reactions to states specified in the file with option cc\_file.\\
+& & ${\texttt{Answer}}$ = t: Perform DWBA calculation.\\
+& & ${\texttt{Answer}}$ = f: Do not perform DWBA calculation.\\
+& & Note that the DWBA states are mapped onto the excitation energy grid with spacing $\Delta E$, thus, once the DWBA states have been computed they {\bf cannot} be used for a subsequent calculation with a different energy grid spacing $\Delta E$.\\
+\hline
+${\texttt{trans\_avg\_l}}$ & ${\texttt{Answer}}$ & Option to use transmission coefficients for spin-orbit states or averaged orbital angular moment $l$.\\
+ & & ${\texttt{Answer}}$ = ${\texttt{n/f/0}}$: Use transmission coefficients with spin-orbit coupling, i.e., $lj$ states\\
+ & & ${\texttt{Answer}}$ = ${\texttt{y/t/1}}$: Average $j=l-\frac{1}{2}$ and $j=l+\frac{1}{2}$ transmission coefficients for common $l$ value, remove spin-orbit difference.\\
+ & & {\bf Default:} = n; keep spin-orbit dependence.\\
+ \hline
+\hline
+\end{tabular}
+\end{center}
+\begin{center}%
+\begin{tabular}{| p{4cm} | p{4cm} | p{9cm} |}
+\hline
+\multicolumn{3}{| c |}{Optical Model Model Commands} \\
+\hline
+Command option   &  Input values   &   Explanation\\
+\hline\hline
+${\texttt{trans\_norm}}$  & $T_{\rm norm}$ & Option to globally rescale the transmission coefficients from an optical model calculation \\
+& & Use with extreme caution. ({\bf Default:} $T_{\rm norm} = 1.0$).\\
+\hline
+${\texttt{cc\_scale}}$ & $X$ & Factor to globally modify the DWBA couplings in an optical model calculation. This factor multiplies the strengths in the Coupled-Channels.txt file (or file specified with option cc\_file) found in the \$YAHFC\_DATA directory.\\
+& & {\bf Default:} $X=1.0$.\\
+\hline
+\end{tabular}
+\end{center}
+
+
+
+\twocolumngrid
+
+
+
+
+\bibliography{WEO-bib}
+
+\end{document}
+

@@ -2536,25 +2536,25 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
-   if(command(startw(1):stopw(1)) == 'track_primary_gammas')then
-      icommand = icommand + 1
-      if(numw < 2)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
-      end if
-      track_primary_gammas = .false.
-
-      call char_logical(command(startw(2):stopw(2)),logic_char,read_error)
-
-      if(read_error)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
-      end if
-
-      track_primary_gammas = logic_char
-
-      return
-   end if
+!   if(command(startw(1):stopw(1)) == 'track_primary_gammas')then
+!      icommand = icommand + 1
+!      if(numw < 2)then
+!         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
+!         return
+!      end if
+!      track_primary_gammas = .false.
+!
+!      call char_logical(command(startw(2):stopw(2)),logic_char,read_error)
+!
+!      if(read_error)then
+!         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
+!         return
+!      end if
+!
+!      track_primary_gammas = logic_char
+!
+!      return
+!   end if
 !
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
