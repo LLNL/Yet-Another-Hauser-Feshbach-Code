@@ -611,3 +611,9 @@ Version 3.38
     fresco_make_tco and improved message about incident energies.
 3.  Implemented a message for input commands "output_mode" and out_gammas_vs_e",
     which are deprecated.
+
+Version 3.39
+1.  Fixed inconsistency in labeling states while printing gammas with the option
+    "track_gammas y". They were supposed to start at 0. This didn't get changed
+    when it the change was made for other files.
+ 

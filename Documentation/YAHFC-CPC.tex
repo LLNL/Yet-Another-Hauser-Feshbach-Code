@@ -636,7 +636,7 @@ A python script, ${\texttt{parseYahfc.py}}$ is also provided that translates the
 With Message Passing Interface (MPI) protocols, YAHFC will execute the event generation in parallel. Since the events are generated via Monte Carlo, a significant boost in performance can be expected using the MPI version. The Monte Carlo sampling is performed in parallel with a global summing and message passing for the requisite data. In general, for a large number of Monte Carlo samples, ideal scaling can be achieved. One caveat, however, is that with the option to print events, these are printed to a file for each MPI process, labeled by the MPI process number. Hence, the events from a single run will be distributed across multiple files. This occurs because events are executed on each individual MPI process, and are printed after the termination of the decay event. 
 
 \section{Numerical Performance}
-In this section, the numerical behavior for an example YAHFC calculation is given to provide some expectation of performance. Serial calculations were performed on a macBook Pro outfitted with a 2.4 GHz Quad-Core Intel Core i5 processor and 8 GB of 2133 MHz LPDDR3 RAM. A n + $^{238}$U calculation with 200 incident energies ranging from 0.1 to 20.0 MeV in steps of 0.2 MeV, without width-fluctuation corrections, $\Delta E = 0.1$~MeV, and 100k Monte Carlo events using the option ``${\texttt{xs\_only y}}$'' completes in approximately 3m. This calculation will compute the channel cross sections with Monte Carlo fluctuations of the order 5\%. A calculation delivering the full nuclear data libraries (including angular distributions) takes approximately 7m. Increasing the number of Monte Carlo events to 1M yields channel cross section with Monte Carlo fluctuations under 1\% and can be accomplished in roughly 30m. The memory required for this calculation is of the order 621 MB.
+In this section, the numerical behavior for an example YAHFC calculation is given to provide some expectation of performance. Serial calculations were performed on a macBook Pro outfitted with a 2.4 GHz Quad-Core Intel Core i5 processor and 8 GB of 2133 MHz LPDDR3 RAM. A n + $^{238}$U calculation with 200 incident energies ranging from 0.1 to 20.0 MeV in steps of 0.2 MeV, without width-fluctuation corrections, $\Delta E = 0.1$~MeV, and 100k Monte Carlo events using the option ``${\texttt{xs\_only y}}$'' completes in approximately 3m17s. This calculation will compute the channel cross sections with Monte Carlo fluctuations of the order 5\%. A calculation delivering the full nuclear data libraries (including angular distributions) takes approximately 4m54s. Increasing the number of Monte Carlo events to 1M yields channel cross section with Monte Carlo fluctuations under 1\% and can be accomplished in roughly 30m. The memory required for this calculation is of the order 621 MB.
 
 \appendix
 \section{Manual Input of Initial Populations}
@@ -753,7 +753,8 @@ g_\nu & = \frac{N}{g_{\rm div}},
 \end{align}
 with $g_{\rm div} = 15$, which may be reset with the command ${\texttt{preeq\_g\_div}}$. Invoking the command ``${\texttt{preeq\_g\_a y}}$'' will set $g = a(S_n)\pi^2/6$, where $a(S_n)$ is the level density parameter evaluated at the neutron separation energy.
 
-The well depth $V$ is a function of the number of holes, $h$, the incident particle type, $k^\prime$, and the minimum energy,or depth of the Fermi well (denoted here as $V$ ). In Ref.~\cite{Koning:2004}, it is parameterized by
+The well depth $V$ is a function of the number of holes, $h$, the incident particle type, $k^\prime$, and the minimum energy,
+or depth of the Fermi well (denoted here as $V$ ). In Ref.~\cite{Koning:2004}, it is parameterized by
 \begin{equation}
 V^{k^\prime} = 
 \begin{cases}
@@ -769,7 +770,9 @@ V & = 38~\text{MeV} \notag \\
 K^\pi & = 450~\text{MeV} \notag \\
 K^\nu & = 245~\text{MeV} \notag \\
 \end{align}
-which can be changed with the commands ${\texttt{preeq\_well\_v}}$, ${\texttt{preeq\_well\_v1}}$, and ${\texttt{preeq\_well\_k}}$. A failsafe is implementedin case the user selects $V < V_1$ with $V_1$ being reset with $V_1 = \max(V-5,0)$. This tends to avoidstrange effects in the pre-equilibrium spectrum for small values of $V$ with $V < V_1$.
+which can be changed with the commands ${\texttt{preeq\_well\_v}}$, ${\texttt{preeq\_well\_v1}}$, and ${\texttt{preeq\_well\_k}}$. A failsafe is implemented
+in case the user selects $V < V_1$ with $V_1$ being reset with $V_1 = \max(V-5,0)$. This tends to avoid
+strange effects in the pre-equilibrium spectrum for small values of $V$ with $V < V_1$.
 
 \begin{widetext}
 The lifetime $\tau$ for a given exciton state $(p_\pi, h_\pi, p_\nu, h_\nu)$ is defined as the inverse sum of the total emission rate and the internal transition rates, that is
@@ -779,7 +782,8 @@ The lifetime $\tau$ for a given exciton state $(p_\pi, h_\pi, p_\nu, h_\nu)$ is 
                                                                 \lambda_{\pi\nu}^0(p_\pi, h_\pi, p_\nu, h_\nu) + \notag\\
                                                              & \lambda_{\nu\pi}^0(p_\pi, h_\pi, p_\nu, h_\nu) + W(p_\pi, h_\pi, p_\nu, h_\nu) \Big ]
 \end{align}
-where the total emission rate $W$ is obtained by integrating Eqs.~(\ref{eq:part-em-rate}) and  (\ref{eq:gam-em-rate}) over all outgoing energies and summing over the outgoing particles. The transition rate $\lambda_{\pi(\nu)}^+$ denotes the creation of a proton(neutron) particle-hole pair, and is givenby
+where the total emission rate $W$ is obtained by integrating Eqs.~(\ref{eq:part-em-rate}) and  (\ref{eq:gam-em-rate}) over all outgoing energies and summing over the outgoing particles. The transition rate $\lambda_{\pi(\nu)}^+$ denotes the creation of a proton(neutron) particle-hole pair, and is given
+by
 \begin{align}
 \lambda_\pi^+(p_\pi, h_\pi, p_\nu, h_\nu) = \frac{1}{\omega(p_\pi, h_\pi, p_\nu, h_\nu,E^{\rm tot})} 
          \Big [ & \int_{L_1^{p_\pi}}^{L_2^{p_\pi}}\lambda_{\pi\pi}^{1p}(u)\omega(p_\pi-1, h_\pi, p_\nu, h_\nu,E^{\rm tot}-u)\omega(1,0,0,0,u)du + \notag\\
@@ -800,7 +804,8 @@ L_2^{p_\nu} & = E^{\rm tot}  - A(p_\pi, h_\pi, p_\nu-1, h_\nu) \notag\\
 L_1^{h_\nu} & = A(p_\pi, h_\pi, p_\nu+1, h_\nu+1) - A(p_\pi, h_\pi, p_\nu, h_\nu-1) \notag \\
 L_2^{h_\nu} & = E^{\rm tot}  - A(p_\pi, h_\pi, p_\nu, h_\nu-1).
 \end{align}
-The collision probabilities $\lambda_{\pi\pi}^{1p}$, $\lambda_{\pi\pi}^{1h}$, $\lambda_{\nu\pi}^{1p}$, and $\lambda_{\nu\pi}^{1h}$ are given by Fermi's golden rule and are expressed in terms ofthe effective squared matrix elements of the residual interaction, $M_{kk^\prime}^2$, via
+The collision probabilities $\lambda_{\pi\pi}^{1p}$, $\lambda_{\pi\pi}^{1h}$, $\lambda_{\nu\pi}^{1p}$, and $\lambda_{\nu\pi}^{1h}$ are given by Fermi's golden rule and are expressed in terms of
+the effective squared matrix elements of the residual interaction, $M_{kk^\prime}^2$, via
 \begin{align}
 \lambda_{\pi\pi}^{1p}(u) & = \frac{2\pi}{\hbar} M_{\pi\pi}^2\omega(2,1,0,0,u) \notag\\
 \lambda_{\pi\pi}^{1h}(u) & = \frac{2\pi}{\hbar} M_{\pi\pi}^2\omega(1,2,0,0,u) \notag\\
@@ -833,14 +838,19 @@ where $M^2$ is evaluated in Ref.~\cite{TALYS} via the semi-empirical expression
 \begin{equation}
 M^2 = \frac{C_1A_p}{A^3}\left [ 7.48 C_2 + \frac{4.62\times 10^5}{\left ( \frac{E^{\rm tot}}{nA_p} + 10.7 C_3 \right )^3} \right ],
 \end{equation}
-where $n$ is the number of excitons, $A_p$ is the mass number of the projectile, and the coefficients $C_1$, $C_2$, and $C_3$are input parameters (default $C_1 = C_2 = C_3 = 1$) that are controlled with the YAHFC commands ${\texttt{preeq\_m2\_c1}}$,${\texttt{preeq\_m2\_c2}}$, and ${\texttt{preeq\_m2\_c3}}$, respectively. The factors $R_{kk^\prime}$ are essentially free parameters that can be adjusted toexperimental data. The default values adopted here are
+where $n$ is the number of excitons, $A_p$ is the mass number of the projectile, and the coefficients $C_1$, $C_2$, and $C_3$
+are input parameters (default $C_1 = C_2 = C_3 = 1$) that are controlled with the YAHFC commands ${\texttt{preeq\_m2\_c1}}$,
+${\texttt{preeq\_m2\_c2}}$, and ${\texttt{preeq\_m2\_c3}}$, respectively. The factors $R_{kk^\prime}$ are essentially free parameters that can be adjusted to
+experimental data. The default values adopted here are
 \begin{align}
 R_{\pi\pi} &= R_{\pi\pi} = 1 \notag \\
 R_{\pi\nu} &= R_{\nu\pi} = 1.5,
 \end{align}
-and may be adjusted in the calculation with the YAHFC commands ${\texttt{preeq\_m2\_rpp}}$, ${\texttt{preeq\_m2\_rnn}}$, ${\texttt{preeq\_m2\_rpn}}$, and${\texttt{preeq\_m2\_rnp}}$.
+and may be adjusted in the calculation with the YAHFC commands ${\texttt{preeq\_m2\_rpp}}$, ${\texttt{preeq\_m2\_rnn}}$, ${\texttt{preeq\_m2\_rpn}}$, and
+${\texttt{preeq\_m2\_rnp}}$.
 
-The integrals in Eqs.~(\ref{eq:lamplus}) and (\ref{eq:lamzero}) may be approximated by analytical formulae described in Ref.~\cite{Kalbach:1985}. This option may be invoked with the YAHFC command ${\texttt{preeq\_analytic}}$. For the most part, the numerical integration isnot time consuming, and there is no obvious advantage to selecting this option.
+The integrals in Eqs.~(\ref{eq:lamplus}) and (\ref{eq:lamzero}) may be approximated by analytical formulae described in Ref.~\cite{Kalbach:1985}. This option may be invoked with the YAHFC command ${\texttt{preeq\_analytic}}$. For the most part, the numerical integration is
+not time consuming, and there is no obvious advantage to selecting this option.
 
 All that remains to complete the description of the two-component exciton model employed is the flux $P(p_\pi, h_\pi, p_\nu, h_\nu)$ that survives emission from previous steps. There are no new parameters introduced that can be controlled by YAHFC input commands and are provided here for completeness. The survival probability is given the recursive relation~\cite{Koning:2004}
 \begin{align}

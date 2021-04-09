@@ -191,8 +191,8 @@ subroutine print_channel_gammas(itarget, ilab, file_lab, ilib_dir, lib_dir,     
             if(sum > 1.0d-10)ratio = Exit_channel(i)%state(k)%cs(m,in)/sum
             check_sum = check_sum + ratio 
             write(100,'(1x,i4,1x,f4.1,a1,''  '',i4,1x,f4.1,a1,8x,f10.5,3x,e15.7,3x,e15.7,3x,e15.7)') &
-                                                  k, nucleus(inuc)%state(k)%spin, ch_par(ipi),       &
-                                                  nf, nucleus(inuc)%state(nf)%spin, ch_par(ipf),     &
+                                                  k-1, nucleus(inuc)%state(k)%spin, ch_par(ipi),       &
+                                                  nf-1, nucleus(inuc)%state(nf)%spin, ch_par(ipf),     &
                                                   nucleus(inuc)%state(k)%egamma(m),                  &
                                                   cs, ratio
          end do
