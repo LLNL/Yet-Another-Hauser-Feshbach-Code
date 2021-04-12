@@ -86,8 +86,10 @@ subroutine set_up_decay_chain(Z_p, A_p, Z_t, A_t)
    do k = 1, 6
       xZ_part = real(particle(k)%Z,kind=8)
       xA_part = real(particle(k)%A,kind=8)
-      Coulomb_Barrier(k) = 0.6d0*e_sq*(xZ_i-xZ_part)*xZ_part/                  &
+      Coulomb_Barrier(k) = 0.2d0*e_sq*(xZ_i-xZ_part)*xZ_part/                  &
             (1.2d0*((xA_i-xA_part)**(1.0d0/3.0d0) + xA_part**(1.0d0/3.0d0)))
+!      Coulomb_Barrier(k) = 0.6d0*e_sq*(xZ_i-xZ_part)*xZ_part/                  &
+!            (1.2d0*((xA_i-xA_part)**(1.0d0/3.0d0) + xA_part**(1.0d0/3.0d0)))
    end do
 
 !--- Clipping at a maximum of 30 of any type

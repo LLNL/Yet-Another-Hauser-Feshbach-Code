@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.20 (TeX Live 2019) (preloaded format=pdflatex 2019.5.8)  8 APR 2021 21:16
+This is pdfTeX, Version 3.14159265-2.6-1.40.20 (TeX Live 2019) (preloaded format=pdflatex 2019.5.8)  9 APR 2021 13:28
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -584,37 +584,37 @@ LaTeX Info: Redefining \nameref on input line 29.
 Class revtex4-1 Info: Taking \maketitle back from hyperref on input line 29.
 \openout3 = `YAHFC-CPCNotes.bib'.
 
-LaTeX Font Info:    Try loading font information for U+msa on input line 50.
+LaTeX Font Info:    Try loading font information for U+msa on input line 48.
 
 (/usr/local/texlive/2019/texmf-dist/tex/latex/amsfonts/umsa.fd
 File: umsa.fd 2013/01/14 v3.01 AMS symbols A
 )
-LaTeX Font Info:    Try loading font information for U+msb on input line 50.
+LaTeX Font Info:    Try loading font information for U+msb on input line 48.
 
 (/usr/local/texlive/2019/texmf-dist/tex/latex/amsfonts/umsb.fd
 File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 ) [1{/usr/local/texlive/2019/texmf-var/fonts/map/pdftex/updmap/pdftex.map}]
-Underfull \hbox (badness 4193) in paragraph at lines 62--63
+Underfull \hbox (badness 4193) in paragraph at lines 60--61
 []\OT1/cmr/m/n/10 Before YAHFC can be ex-e-cuted, the pro-gram
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 62--63
+Underfull \hbox (badness 10000) in paragraph at lines 60--61
 \OT1/cmr/m/n/10 FRES-COX must be in-stalled (not FRESCO),
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 62--63
+Underfull \hbox (badness 10000) in paragraph at lines 60--61
 \OT1/cmr/m/n/10 which is avail-able for pub-lic down-load at
  []
 
 
-Underfull \hbox (badness 1859) in paragraph at lines 62--63
+Underfull \hbox (badness 1859) in paragraph at lines 60--61
 []$\OT1/cmr/m/n/10 , and built with
  []
 
 
-Underfull \hbox (badness 1371) in paragraph at lines 64--65
+Underfull \hbox (badness 1371) in paragraph at lines 62--63
 []\OT1/cmr/m/n/10 There are sev-eral ex-am-ple runs in the di-rec-tory
  []
 
@@ -634,12 +634,6 @@ Underfull \hbox (badness 10000) in paragraph at lines 124--133
  []
 
 
-Underfull \hbox (badness 1215) in paragraph at lines 124--133
-\OML/cmm/m/it/10 dE[]$ \OT1/cmr/m/n/10 (se-lected with each Monte Carlo sam-ple
-) and
- []
-
-
 Underfull \hbox (badness 10000) in paragraph at lines 124--133
 
  []
@@ -654,144 +648,139 @@ Underfull \hbox (badness 1297) in paragraph at lines 124--133
 \OT1/cmr/m/n/10 where in-put.pop spec-i-fies the prob-a-bil-i-ties for each
  []
 
-[3] [4]
-Underfull \hbox (badness 1661) in paragraph at lines 208--210
+[3] [4] [5]
+Underfull \hbox (badness 1661) in paragraph at lines 215--217
 \OT1/cmr/m/n/10 Gauss-Laguerre quadra-ture. The Moldauer width-
  []
 
-[5] [6]
-Underfull \hbox (badness 1975) in paragraph at lines 308--310
+[6] [7]
+Underfull \hbox (badness 1975) in paragraph at lines 315--317
 \OT1/cmr/m/n/10 where $\OML/cmm/m/it/10 M\OT1/cmr/m/n/10 (\OML/cmm/m/it/10 Z; N
 \OT1/cmr/m/n/10 )$ is the ex-per-i-men-tal mass, $\OML/cmm/m/it/10 m[] \OT1/cmr
 /m/n/10 =
  []
 
-[7] [8]
-Underfull \hbox (badness 3312) in paragraph at lines 404--405
+[8] [9]
+Underfull \hbox (badness 3312) in paragraph at lines 411--412
 []\OT1/cmr/m/n/10 A lim-ited set of op-ti-cal po-ten-tials is pro-vided
  []
 
-[9]
-
-LaTeX Warning: A float is stuck (cannot be placed); try class option [floatfix]
- on input line 431.
-
 [10]
 
-LaTeX Warning: Command \i invalid in math mode on input line 479.
+LaTeX Warning: Command \i invalid in math mode on input line 486.
 
 [11] [12]
-Underfull \hbox (badness 10000) in paragraph at lines 615--616
+Underfull \hbox (badness 10000) in paragraph at lines 622--623
 []\OT1/cmr/m/n/10 With the op-tions ``$[]$'' or
  []
 
 
-Underfull \hbox (badness 2158) in paragraph at lines 615--616
+Underfull \hbox (badness 2158) in paragraph at lines 622--623
 \OT1/cmr/m/n/10 ``$[]$, YAHFC will write each Monte
  []
 
 [13]
-Underfull \hbox (badness 1052) in paragraph at lines 619--629
+
+LaTeX Warning: A float is stuck (cannot be placed); try class option [floatfix]
+ on input line 623.
+
+
+Underfull \hbox (badness 1052) in paragraph at lines 626--636
 []\OT1/cmr/m/n/10 Following each sam-ple, data rom each sam-ple is
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 619--629
+Underfull \hbox (badness 10000) in paragraph at lines 626--636
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 619--629
+Underfull \hbox (badness 10000) in paragraph at lines 626--636
 
  []
 
 
-Underfull \hbox (badness 1122) in paragraph at lines 630--631
+Underfull \hbox (badness 1122) in paragraph at lines 637--638
 \OT1/cmr/m/n/10 pre-equilibirum emis-sion and di-rect pro-cesses would
  []
 
 
-Underfull \hbox (badness 2035) in paragraph at lines 630--631
+Underfull \hbox (badness 2035) in paragraph at lines 637--638
 \OT1/cmr/m/n/10 be printed for each in-ci-dent en-ergy in the di-rec-
  []
 
 
-Underfull \hbox (badness 1400) in paragraph at lines 636--637
+Underfull \hbox (badness 1400) in paragraph at lines 643--644
 []\OT1/cmr/m/n/10 With Mes-sage Pass-ing In-ter-face (MPI) pro-to-cols,
  []
 
-
-Underfull \hbox (badness 10000) in paragraph at lines 644--649
-
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 644--649
-
- []
-
 [14]
-Underfull \hbox (badness 1859) in paragraph at lines 692--694
+Underfull \hbox (badness 10000) in paragraph at lines 651--656
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 651--656
+
+ []
+
+
+Underfull \hbox (badness 1859) in paragraph at lines 699--701
 \OT1/cmr/m/n/10 where $\OML/cmm/m/it/10 ^^[[]$ \OT1/cmr/m/n/10 de-notes op-ti-c
 al model ab-sorp-tion cross
  []
 
 
-Underfull \hbox (badness 3482) in paragraph at lines 692--694
+Underfull \hbox (badness 3482) in paragraph at lines 699--701
 \OT1/cmr/m/n/10 sec-tion for par-ti-cle type $\OML/cmm/m/it/10 k$ \OT1/cmr/m/n/
 10 with the resid-ual as
  []
 
 
-Underfull \hbox (badness 1917) in paragraph at lines 692--694
+Underfull \hbox (badness 1917) in paragraph at lines 699--701
 \OT1/cmr/m/n/10 the tar-get, $\OML/cmm/m/it/10 W[]\OT1/cmr/m/n/10 (\OML/cmm/m/i
 t/10 p[]; h[]; p[]; h[]\OT1/cmr/m/n/10 )$ is the emis-sion rate,
  []
 
 [15] [16] [17] [18]
-Underfull \hbox (badness 10000) in paragraph at lines 889--896
+Underfull \hbox (badness 10000) in paragraph at lines 896--903
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 889--896
+Underfull \hbox (badness 10000) in paragraph at lines 896--903
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 889--896
+Underfull \hbox (badness 10000) in paragraph at lines 896--903
 
  []
 
 
-Underfull \hbox (badness 3623) in paragraph at lines 929--930
-[]|$[]$\OT1/cmr/m/n/10 =$[]$ use dis-crete lev-els only up to $\OML/cmm/m/it/10
- E[]$
+Underfull \hbox (badness 1484) in paragraph at lines 936--937
+[]|$[]$\OT1/cmr/m/n/10 =$[]$: Use dis-crete lev-els only up to $\OML/cmm/m/it/1
+0 E[]$
  []
 
 
-Underfull \hbox (badness 4403) in paragraph at lines 980--981
+Underfull \hbox (badness 4403) in paragraph at lines 985--986
 []|$[]$ \OT1/cmr/m/n/10 = $[]$: Uni-ased Monte Carlo sam-pling
  []
 
-[19] [20]
-Underfull \hbox (badness 1194) in paragraph at lines 1052--1053
-[]|$[]$ \OT1/cmr/m/n/10 = $[]$ do not sup-press writ-ing to $[]$
- []
-
-[21]
-Underfull \hbox (badness 2894) in paragraph at lines 1091--1093
+[19] [20] [21]
+Underfull \hbox (badness 2894) in paragraph at lines 1098--1100
 []|$\OML/cmm/m/it/10 j \OMS/cmsy/m/n/10 ^^T \OT1/cmr/m/n/10 3$ will over-rides 
 de-fault val-ues found in file
  []
 
 [22]
-Underfull \hbox (badness 1472) in paragraph at lines 1172--1173
+Underfull \hbox (badness 1472) in paragraph at lines 1179--1180
 \OT1/cmr/m/n/10 RIPL3-L0.dat and Level-Density-Data-RIPL3-L1.dat in
  []
 
 [23] [24]
-Underfull \hbox (badness 8019) in paragraph at lines 1284--1285
+Underfull \hbox (badness 8019) in paragraph at lines 1291--1292
 []|\OT1/cmr/bx/n/10 Default: \OT1/cmr/m/n/10 Spec-i-fied in file YAHFC[]DATA/Fi
 ssion-
  []
@@ -813,19 +802,19 @@ Underfull \hbox (badness 10000) in paragraph at lines 144--152
  []
 
 [30]) [31]
-Package atveryend Info: Empty hook `AfterLastShipout' on input line 1462.
+Package atveryend Info: Empty hook `AfterLastShipout' on input line 1469.
  (./YAHFC-CPC.aux)
-Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 1462.
-Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 1462.
+Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 1469.
+Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 1469.
 
 Package rerunfilecheck Info: File `YAHFC-CPC.out' has not changed.
 (rerunfilecheck)             Checksum: 990E21DA3DD37496CEF8090586F729EE;2051.
  ) 
 Here is how much of TeX's memory you used:
- 18045 strings out of 492616
- 310555 string characters out of 6129482
- 584061 words of memory out of 5000000
- 21637 multiletter control sequences out of 15000+600000
+ 18049 strings out of 492616
+ 310583 string characters out of 6129482
+ 595061 words of memory out of 5000000
+ 21638 multiletter control sequences out of 15000+600000
  548204 words of font info for 84 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
  40i,15n,63p,2552b,569s stack positions out of 5000i,500n,10000p,200000b,80000s
@@ -859,10 +848,10 @@ e1/public/amsfonts/cm/cmtt10.pfb></usr/local/texlive/2019/texmf-dist/fonts/type
 1/public/amsfonts/cm/cmtt9.pfb></usr/local/texlive/2019/texmf-dist/fonts/type1/
 public/amsfonts/symbols/msbm10.pfb></usr/local/texlive/2019/texmf-dist/fonts/ty
 pe1/public/amsfonts/symbols/msbm7.pfb>
-Output written on YAHFC-CPC.pdf (31 pages, 505514 bytes).
+Output written on YAHFC-CPC.pdf (31 pages, 507737 bytes).
 PDF statistics:
- 651 PDF objects out of 1000 (max. 8388607)
- 584 compressed objects within 6 object streams
- 198 named destinations out of 1000 (max. 500000)
+ 657 PDF objects out of 1000 (max. 8388607)
+ 590 compressed objects within 6 object streams
+ 201 named destinations out of 1000 (max. 500000)
  233 words of extra memory for PDF output out of 10000 (max. 10000000)
 

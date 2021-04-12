@@ -80,8 +80,10 @@ subroutine sum_HFden(icomp, xI_i, par, energy, HFden, exp_gamma)
          xA_part = real(particle(k)%A,kind=8)
          xZ_i = real(nucleus(icomp)%Z,kind=8)
          xA_i = real(nucleus(icomp)%A,kind=8)
-         Coulomb_Barrier(k) = 0.6d0*e_sq*(xZ_i-xZ_part)*xZ_part/               &
+         Coulomb_Barrier(k) = 0.2d0*e_sq*(xZ_i-xZ_part)*xZ_part/               &
             (1.2d0*((xA_i-xA_part)**(1.0d0/3.0d0) + xA_part**(1.0d0/3.0d0)))
+!         Coulomb_Barrier(k) = 0.6d0*e_sq*(xZ_i-xZ_part)*xZ_part/               &
+!            (1.2d0*((xA_i-xA_part)**(1.0d0/3.0d0) + xA_part**(1.0d0/3.0d0)))
       end do
    end if
 

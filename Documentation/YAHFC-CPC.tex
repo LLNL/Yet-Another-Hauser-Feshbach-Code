@@ -45,19 +45,17 @@ Laboratory, \\
 A computer program framework, YAHFC, to model low-energy nuclear reactions is presented. The framework allows for reactions with incident particles ranging from protons/neutrons to alphas and is designed to address reactions that ultimately lead to the formation of compound nuclear systems that then decay statistically as outlined in concepts of Hauser and Feshbach.  Additionally, instead of a reaction, it is also possible to model the decay of a nuclear system with an initial excitation and population. The code models nuclear decays with a Monte Carlo process that tracks the decay of each state. This allows for an exact representation of the spectra for all emitted particles in each of the final exit channels and the possibility of generating reaction data for simulation purposes. The program is interfaced with the optical model code system FRESCOX to calculate transmission coefficients as well as the effects of coupled channels and other direct excitations via the distorted wave Born approximation (DWBA). Modules are included to account for nuclear processes such as width corrections, pre-equilibrium emission, and fission. The program is controlled by a series of input commands and while a set of input parameters exists for each projectile and target, the input commands allow for complete control over each input parameter. Extensive data files are produced and a program is provided that converts YAHFC data files into nuclear data library entries in the generalized nuclear data structure (GNDS). 
 \end{abstract}
 
-%\pacs{21.10.Ma,21.60.Cs,27.40.$+$z}
-
 \maketitle
 
 \section{Introduction}
-Low-energy reactions\footnote{A rough definition of low-energy is those reactions that induce an excitation energy in the nuclear system up to 30-50 MeV} induced by the light projectiles protons, neutrons, deuterons, tritons, $^3$He, and alpha particles on medium to heavy nuclei are key to many applications of nuclear physics in fundamental and applied research.  For example, the radiative capture of neutrons on short-lived nuclei are thought to be responsible for the synthesis of the elements heavier than iron through the r-process \cite{Bur:1957} in supernovae and/or neutron-star mergers \cite{Kas:2017}. And neutron induced reactions are important to science-based, stockpile stewardship as well as modeling of nuclear reactors. For many applications, an extensive library is needed to describe all the facets of the reaction, including cross sections and the spectra of emitted particles. Ideally, these data libraries would be extensively based on experimentally measured data. In general, experiment by itself is insufficient to generate these libraries as experimental data can be inconsistent, which must be reconciled through data evaluation, and/or incomplete. Thus, theoretical modeling is always necessary in order to provide complete data libraries for applications. The theoretical modeling of these low-energy reactions is based on a generalization of the compound nucleus framework of Hauser and Feshbach~\cite{Hauser:1952}. 
+Low-energy reactions\footnote{A rough definition of low-energy reactions used here are those that induce an excitation energy in the compound nuclear system up to 30-50 MeV} induced by the light projectiles protons, neutrons, deuterons, tritons, $^3$He, and alpha particles on medium to heavy nuclei are key to many applications of nuclear physics in fundamental and applied research.  For example, the radiative capture of neutrons on short-lived nuclei are thought to be responsible for the synthesis of the elements heavier than iron through the r-process \cite{Bur:1957} in supernovae and/or neutron-star mergers \cite{Kas:2017}. And neutron induced reactions are important to science-based, stockpile stewardship as well as modeling of nuclear reactors. For many applications, an extensive library is needed to describe all the facets of the reaction, including cross sections and the spectra of emitted particles. Ideally, these data libraries would be extensively based on experimentally measured data. In general, experiment by itself is insufficient to generate these libraries as experimental data can be inconsistent, which must be reconciled through data evaluation, and/or incomplete for all the channels induced by the projectile. Thus, theoretical modeling is always necessary in order to provide complete data libraries for applications. The theoretical modeling of these low-energy reactions is based on a generalization of the compound nucleus framework of Hauser and Feshbach~\cite{Hauser:1952}. 
 
 Several computer code systems based on the Hauser-Feshbach formalism have been developed over the years to model reactions and to generate outputs for nuclear data libraries, such as GNASH~\cite{GNASH}, EMPIRE~\cite{EMPIRE}, and TALYS~\cite{TALYS}. Here, yet another framework, hence the odd name YAHFC, ``Yet Another Hauser-Feshbach Code'', is presented. While the goal of each code primarily focuses on modeling the reactions, they each have somewhat different approaches, features, and nuances that set them apart and give them advantages and disadvantages. YAHFC is a modern framework making full use of FORTRAN 90 features, including derived types to categorize internal data structures and dynamic memory allocation so that only the memory needed for the calculation at hand is allocated and problems of arbitrary size can be addressed without recompiling. The principal internal structures, such as the excitation energy bins, can be user defined, and are generated prior to modeling the reaction, much like the now extinct code STAPRE~\cite{STAPRE}, to allow for faster execution over the complete range incident energies. YAHFC is also integrated with the optical model code system FRESCOX~\cite{FRESCO}, which is currently being updated and maintained. In addition, the decays in YAHFC are generated via a Monte Carlo process, providing a sequence of decay events that permit a more detailed analysis of the properties of each exit channel. In particular, the emission spectra for each emitted particle can be generated, e.g., first, second, third, etc., and it is possible to analyze correlations in the decay products. In addition, events can be exported from the run, which means that YAHFC can utilized as an event generator for other applications and simulations. Finally, the data generated by YAHFC is compiled into a nuclear data library in the generalized nuclear data structure (GNDS)~\cite{GNDS} with the PYTHON script provided in the distribution.
 
 \section{Installation and Execution}
 
 After download, the YAHFC system is installed into a directory, which also contains a ${\texttt{Readme.txt}}$ file.
-The YAHFC framework was built for unix-based architectures and makes use of environment variables that define the directory locations for the YAHFC system, which are made use of during execution. The user needs to establish the environment variables ${\texttt{\$YAHFC\_DIR}}$, which is the top-level directory where the YAHFC system is installed, ${\texttt{\$YAHFC\_DAT}}$, which is the directory where data files read by YAHFC are located (usually ${\texttt{\$YAHFC\_DIR/data}}$), and ${\texttt{\$YAHFC\_BIN\_DIR}}$, which is the directory where the binary executables for FRESCO and YAHFC are located and must be added to the path. The source files are contained in the directory ${\texttt{\$YAHFC\_Dir/Src}}$ and are compiled via the ${\texttt{Makefile}}$ in the directory. The executable for serial version is made with the command ${\texttt{make YAHFC}}$, creating the executable ${\texttt{YAHFC.x}}$, which is copied into the ${\texttt{\$YAHFC\_BIN\_DIR}}$ directory. Similarly, the MPI version is made with the command ${\texttt{make YAHFC-MPI}}$.
+The YAHFC framework was built for unix-based architectures and makes use of environment variables that define the directory locations for the YAHFC system that are used during execution. The user needs to establish the environment variables ${\texttt{\$YAHFC\_DIR}}$, which is the top-level directory where the YAHFC system is installed, ${\texttt{\$YAHFC\_DAT}}$, which is the directory where data files read by YAHFC are located (usually ${\texttt{\$YAHFC\_DIR/Data}}$), and ${\texttt{\$YAHFC\_BIN\_DIR}}$, which is the directory where the binary executables for FRESCOX and YAHFC are located and must be added to the path. The source files are contained in the directory ${\texttt{\$YAHFC\_Dir/Src}}$ and are compiled via the ${\texttt{Makefile}}$ in the directory. The executable for serial version is made with the command ${\texttt{make YAHFC}}$, creating the executable ${\texttt{YAHFC.x}}$, which is copied into the ${\texttt{\$YAHFC\_BIN\_DIR}}$ directory. Similarly, the MPI version is made with the command ${\texttt{make YAHFC-MPI}}$, which creates the excecutable ${\texttt{YAHFC-MPI.x}}$.
 
 Before YAHFC can be executed, the program FRESCOX must be installed (not FRESCO), which is available for public download at ${\texttt{https://github.com/LLNL/Frescox}}$, and built with the executable ${\texttt{frescox}}$ placed in the path.
 
@@ -65,7 +63,7 @@ There are several example runs in the directory ${\texttt{\$YAHFC\_DIR/Runs}}$. 
 
 \subsection{Input Command Structure}
 
-YAHFC is based on entering a series of input commands that control all features of the calculation. These commands appear in a script read by YAHFC (via the stdin I/O stream, i.e., Fortran unit \# 5) and may be entered in any order and case (however, they must be spelled correctly) as the commands are parsed, ordered, and converted to lower case for execution. A compendium of the input commands is provided in the Appendix, and their concept is introduced here as some commands are referred to in this written description in order to describe various model options.  Much like TALYS, YAHFC has a default, or ``push-button'', mode. The minimum set of commands required to perform a YAHFC calculation are those needed to specify the target, projectile, range of incident energies, and a terminating ``end'' command, for example
+YAHFC is based on entering a series of input commands that control all features of the calculation. These commands appear in a script read by YAHFC (via the ${\texttt{stdin}}$ I/O stream, i.e., Fortran unit = 5) and may be entered in any order and case (however, they must be spelled correctly) as the commands are parsed, ordered, and converted to lower case for execution. A compendium of the input commands is provided in Appendix~\ref{App:Commands}, and their concept is introduced here as some commands are referred to in this written description in order to describe various model options.  Much like TALYS, YAHFC has a default, or ``push-button'', mode. The minimum set of commands required to perform a YAHFC calculation are those needed to specify the target, projectile, range of incident energies, and a terminating ``end'' command, for example
 \begin{center}
 \begin{tabular}{| p{7 cm}|}
 \hline
@@ -78,20 +76,22 @@ YAHFC is based on entering a series of input commands that control all features 
 \end{tabular}
 \end{center}
 This specifies the name for the output file, the $Z$ and $A$ of the target and projectile, and an incident energy grid for the projectile with minimum and maximum energies of 0.1 MeV and 20.0 MeV spaced by 0.2 MeV. 
+
+If the range of incident energies is not provided by the commands ${\texttt{proj\_eminmax}}$ or ${\texttt{proj\_e\_file}}$, YAHFC will automatically set up a range incident energies from $1.0\times 10^{-4}$ MeV to 20.0 MeV, with steps of 0.2 MeV for energies between 0.1-20.0 MeV.
   
 \section{Basic Physics Concepts}
 
 Low-energy nuclear reactions take place primarily through the formation of the compound nucleus where the incident projectile is captured by the target and its energy is shared statistically among all the nucleons within the compound system. The process by which the sharing of the energy is complicated, and one appealing picture is multistep compound reaction theory~\cite{Feshbach:1980}. The projectile is captured by the target and then undergoes collisions with the constituent nucleons through multiple steps; eventually equilibrating the system where statistical nuclear properties dominate. This is true provided that the time scale of the collisions leading to equilibration is fast relative to emission of particles, which is generally the rule at lower incident energies. At higher incident energies, the time scale for particle emission can become commiserate with the equilibration process, leading to so-called pre-equilibrium emission. Theoretical developments of the overall reaction process is rich and attempts have been made to build a coherent microscopic framework around the multistep reaction concept. These attempts have met with limited success overall, and most reaction codes have primarily divided the reaction process into different components with models specifically designed, or tuned, to address each component. The YAHFC computer code also follows this conceptual design model. The reaction is described within the context of the following steps:
 \begin{enumerate}
 \item The interaction of the projectile with the target is described via an averaged potential, the so-called optical potential, that describes elastic scattering, absorption, and direct processes, such as excitation to rotational or vibrational states via coupled channels or the distorted wave-Born approximation.
-\item The probability for the formation of the initial composite system is defined by the optical potential absorption cross section and a decision is made whether it decays via pre-equilibirium or compound nucleus emission. The pre-equlibrium probability is computed with an external model and effectively deducted from the absorption probability.
+\item The probability for the formation of the initial composite system is defined by the optical potential absorption cross section and a decision is made whether it decays via pre-equilibirium or compound nucleus emission. The pre-equlibrium probability is computed with an external model and reduces the absorption probability.
 \begin{enumerate} 
 \item If compound, the initial state is decayed statistically, as described below (which includes fission), taking into account the effects of width fluctuations.
 \item If pre-equilibrium, the initial state is decayed following the details of the pre-equilibrium model.
 \end{enumerate}
 \item Following the initial decay, the system is decayed statistically to the terminus.
 \end{enumerate}
-In YAHFC, the decays are conducted via Monte Carlo and data is collected at each step; for example, the emission energy, angle, etc., for emitted particle in both the Lab frame and the reaction center-of-mass reference system.
+In YAHFC, the decays are conducted via Monte Carlo and data is collected at each step; for example, the emission energy, angle, etc., for emitted particle in both the Lab frame and the reaction center-of-mass reference system. Options exist to print data for each decay step for later analysis by the user. After completing the calculation, the data is collected via the exit channels and printed into libraries that can be translated in GNDS format.
 
 \subsection{Formation Probability}
 Modeling the decay of any nucleus can be initiated in one of two ways with YAHFC. The first is to model the reaction formation with the optical model formalism, which provides the reaction cross sections for elastic and direct processes as well as absorption. The second is to manually input populations as a function of excitation energy, angular momentum, and parity.
@@ -106,7 +106,7 @@ where $\vec{J} = \vec{J}_T + \vec j \rightarrow |J_T-j| \le J \le J_T + j$, the 
 \sigma_{\rm abs} (E_{\rm in})= \sum_{ljJ^\pi} \sigma_{\rm abs}^{ljJ_TJ^\pi}(E_{\rm in}),
 \label{eq:abs}
 \end{equation}
-At this point, we define the charge and mass number of the composite nucleus as $Z=Z_p+Z_T$ and $A=A_p+A_T$, where subscripts $p$ and $T$ denote the projectile and target, respectively (also, we define the neutron number as $N = A - Z$). Once formed, the excitation energy, $E_x$, of compound system is given by
+The charge and mass number of the composite nucleus are defined as $Z=Z_p+Z_T$ and $A=A_p+A_T$, where subscripts $p$ and $T$ denote the projectile and target, respectively (the neutron number is obviously $N = A - Z$). Once formed, the excitation energy, $E_x$, of compound system is given by
 \begin{equation}
 E_x = E_{\rm in} - S_p,
 \end{equation}
@@ -119,22 +119,22 @@ Eqs.~(\ref{eq:abs_chan}) and (\ref{eq:abs}) then define the entrance probability
 P(J^\pi,E_x|l,j,E_{\rm in}) = \frac{\sigma_{\rm abs}^{ljJ_TJ}(E_{\rm in})}{\sigma_{\rm abs} (E_{\rm in})}.
 \label{eq:Prob-Form}
 \end{equation}
-Being a Monte Carlo code, YAHFC follows the decay of $N_{\rm samp}$ events that are initialized using Eq.~(\ref{eq:Prob-Form}). These initial states are then decayed individually following the decay probabilities for each subsequent state.  
+Being a Monte Carlo code, YAHFC follows the decay of $N_{\rm samp}$ events that are initialized using Eq.~(\ref{eq:Prob-Form}). These initial states are then decayed individually following the decay probabilities for each subsequent state as described in the following sections.
 
 Two options to perform a calculation where the system is prepared in an initial population at a given excitation energy are provided. The first is performed by replacing the projectile command with\\
 \\
-${\texttt{projectile}} -1, -1, E_x, dE_x$.\\
+${\texttt{projectile}}$ -1  -1 $E_x$  $dE_x$\\
 \\
-Here, the initial system will be populated with an initial excitation energy $E_x$ with a Gaussian spread $dE_x$ (selected with each Monte Carlo sample) and angular momentum and parity probabilities distributed according to the density of states. In the second option, the initial populations are explicitly specified and is invoked with the command\\
+Here, the initial system will be populated with an initial excitation energy $E_x$ with a Gaussian spread $dE_x$ (selected for each Monte Carlo sample) and initial angular momentum and parity populations distributed according to the density of states. In the second option, the initial populations are explicitly set by invoking the command\\
 \\
-${\texttt{projectile}} -1, 0, {\rm input.pop}$\\
+${\texttt{projectile}}$ -1  0  ${\texttt{input.pop}}$\\
 \\
-where input.pop specifies the probabilities for each initial $J^\pi$ bin at excitation energy $E_x$, and is described in detail in Appendix ~\ref{App:Populations} (note that in both cases, the ``,'' delimiter is optional).
+where input.pop specifies the probabilities for each initial $J^\pi$ bin at excitation energy $E_x$, and is described in detail in Appendix ~\ref{App:Populations}.
 
 \subsection{Pre-equilibrium Emission}
 \label{sec:Preeq}
 
-Following the formation of the composite nucleus, the possibility that particle emission prior to equilibration is accounted for using a pre-equilibrium model. Several models have been devised to account for pre-equilibrium emission, see for examples Refs.~\cite{Gadioli:1992,Blann:1996,Koning:2004},  and they can be implemented in YAHFC by building a module that precomputes the cross section for pre-equilibrium emission and the subsequent emission spectrum and angular distributions. At present, YAHFC uses the two-component exciton model of Ref.~\cite{Koning:2004} to model pre-equilibrium emission of protons and neutrons. Pre-equilibrium emission is not considered for calculations where the initial populations are specified manually.
+Following the formation of the composite nucleus, the possibility that particle emission prior to equilibration is accounted for with a pre-equilibrium model. Several models have been devised to account for pre-equilibrium emission, see for examples Refs.~\cite{Gadioli:1992,Blann:1996,Koning:2004},  and they can be implemented in YAHFC by building a module that precomputes the cross section for pre-equilibrium emission and the subsequent decay probabilities to final states.  At present, YAHFC uses the two-component exciton model of Ref.~\cite{Koning:2004}. Pre-equilibrium emission is not considered for calculations where the initial populations are specified manually.
 
 The two-component exciton formalism describes the evolution of the reaction in terms of the time-dependent population of exciton states that are characterized by proton ($k=\pi$) and neutron ($k=\nu$) particle, $p_k$, and hole, $h_k$, numbers, with the number of particle-type excitons defined as  $n_k = p_k+ h_k$ and the total number of excitons as $n = n_\pi+n_\nu$.  Two-body interactions then allow transitions to occur from one exciton state to another, beginning from the initial $n^0=A_p$ state with $p^0_\pi= Z_p$, $p^0_\nu = N_p$ and $h^0_\pi = h^0_\nu = 0$. The temporal development of the system can be obtained via the solution of a master equation describing the gain and loss of various exciton states with the number of excitons governed by $h_k=p_k - p^0_k$. In principle, the master equation can be solved numerically, but this is generally not practical for many applications and one makes use of the ``never come back'' approximation where the transition of exciton states into less complex exciton states is neglected. Within this framework, the primary pre-equilibrium emission spectrum for a particle of type $k$ can be given as
 \begin{align}
@@ -142,11 +142,11 @@ The two-component exciton formalism describes the evolution of the reaction in t
  & \tau (p_\pi,h_\pi,p_\nu,h_\nu) P (p_\pi,h_\pi,p_\nu,h_\nu),
  \label{eq:PE-Spect}
 \end{align}
-where $\sigma_{\rm abs}^k$ denotes optical model absorption cross section for particle $k$ with the residual as the target, $W_k(p_\pi,h_\pi,p_\nu,h_\nu)$ is the emission rate for particle $k$, $\tau (p_\pi,h_\pi,p_\nu,h_\nu)$ is the average lifetime of the exciton state, and $P (p_\pi,h_\pi,p_\nu,h_\nu)$ represents the part of the pre-equilibrium flux that survives emission from the previous state and passes through the $(p_\pi,h_\pi,p_\nu,h_\nu)$ configurations. The sum extends to a maximum number of excitons where the probability of creating a new particle-hole configuration is equal to that of annihilating one - typically $p^{\rm max}_k \sim 6$. Explicit formulae for these quantities are complex and given in Ref.~(\cite{Koning:2004}) - they are succintly described in Appendix~\ref{App:Preeq}, where parameters that may be set via YAHFC commands are highlighted. The total pre-equilibrium cross section is obtained by integrating the emission spectrum, i.e.,
+where $\sigma_{\rm abs}^k$ denotes optical model absorption cross section for particle $k$ with the residual as the target, $W_k(p_\pi,h_\pi,p_\nu,h_\nu)$ is the emission rate for particle $k$, $\tau (p_\pi,h_\pi,p_\nu,h_\nu)$ is the average lifetime of the exciton state, and $P (p_\pi,h_\pi,p_\nu,h_\nu)$ represents the part of the pre-equilibrium flux that survives emission from the previous state and passes through the $(p_\pi,h_\pi,p_\nu,h_\nu)$ configurations. The sum extends to a maximum number of excitons where the probability of creating a new particle-hole configuration is equal to that of annihilating one - typically $p^{\rm max}_k \sim 6$. Explicit formulae for these quantities are complex and given in Ref.~\cite{Koning:2004} - here, the main features are succinctly described in Appendix~\ref{App:Preeq}, where parameters that may be set via YAHFC commands are highlighted. The total pre-equilibrium cross section is obtained by integrating the emission spectrum, i.e.,
 \begin{equation}
 \sigma^{PE} = \sum_k \sigma^{PE}_k = \sum_k \int dE_k \frac{d\sigma_k^{PE}}{dE_k},
 \end{equation}
-and the compound nucleus formation cross section is $\sigma^{CN} = \sigma_{\rm abs} - \sigma^{PE}$. Note that in general, because they lack charge, and, thus, are not influenced by a Coulomb barrier, neutrons tend to dominate pre-equilibrium emission.
+and the compound nucleus formation cross section is $\sigma^{CN} = \sigma_{\rm abs} - \sigma^{PE}$. Note that in general, because they lack charge, and, thus, are not influenced by a Coulomb barrier, neutrons tend to dominate pre-equilibrium emission, much like they do for statistical decay.
 
 In YAHFC, once the initial configuration is determined following the probability in Eq.~(\ref{eq:Prob-Form}), the probability of pre-equilibrium emission is determined from the ratio $\sigma^{PE}_k/\sigma_{\rm abs}$ with an emission spectrum given by Eq.~(\ref{eq:PE-Spect}).
 
@@ -157,7 +157,7 @@ P(\theta_e) = \frac{1}{2} \frac{a}{\sinh(a)}\exp(a\cos \theta_e),
 \end{equation}
 where $a$ is a parameter dependent on the projectile and ejectile and incident and emitted energies, and is given in detail in Ref.~\cite{Kalbach:1988}. The probability distribution for the azimuthal angle $\phi$ is taken to be uniform.
 
-For the angular momentum transfer, typically, one choses the final angular momentum based on the density of states. This has the flaw that the emitted nucleon tends to have an energy closer to the incident particle, and thus will often have a larger angular momentum. In YAHFC, a semi-classical model is introduced where the initial orbital angular momentum, $l$, and kinetic energy $E_{\rm in}$ define an impact parameter for the projectile as $b_p = l_p/k_p$, with $k_p = \sqrt{2m_pE_p}/\hbar c$. If we a assume a peripheral-type reaction occurring near the surface, $R = 1.2 (A_T^{1/3} + A_p^{1/3})$~fm for small impact parameters, conservation of linear momentum can be used to deduce an effective impact parameter for the ejectile, $b_e$, for a given ejectile angle $\theta_e$ and assuming that emission occurs at, or near, the nuclear surface as 
+For the angular momentum transfer, typically, one choses the final angular momentum based on the density of states. This has the flaw that the emitted nucleon tends to have an energy closer to the incident particle, and thus will often have a larger angular momentum. In YAHFC, a semi-classical model is introduced where the initial orbital angular momentum, $l$, and kinetic energy $E_{\rm in}$ define an impact parameter for the projectile as $b_p = l_p/k_p$, with $k_p = \sqrt{2m_pE_p}/\hbar c$. If we a assume a peripheral-type reaction occurring near the surface, $R = 1.2 (A_T^{1/3} + A_p^{1/3})$~fm, conservation of linear momentum can be used to deduce an effective impact parameter for the ejectile, $b_e$, for a given ejectile angle $\theta_e$. Assuming that emission occurs at, or near, the nuclear surface the impact parameter can be approximated by
 \begin{equation}
 b_e = 
 \begin{cases}
@@ -166,9 +166,16 @@ R |cos\theta_e |,     &  b_p > R \\
 \left |\sqrt{R^2-b_p^2}\sin\theta_e + b_p\cos\theta_e \right |,      &    b_p < R, \theta_e \ge \frac{\pi}{2},
  \end{cases}
 \end{equation} 
-leading to the ejectile orbital angular momentum $l_e = k_eb_e$. Then, the angular momentum of the ejectile, $j_e$, is chosen randomly in the range $|l_e-1/2| \le j_e \le l_e+1/2$ (only protons and neutrons are emitted) and the angular momentum of the final nuclear state, $J_f$, is selected randomly within the range $|J-j_e| \le J_f \le J+j_e$ with the weight given by the level density in the final nucleus.
+leading to an ejectile orbital angular momentum $l_e = k_eb_e$. Then, the angular momentum of the ejectile, $j_e$, is chosen randomly in the range $|l_e-s_e| \le j_e \le l_e+s_e$ and the angular momentum of the final nuclear state, $J_f$, is selected randomly within the range $|J-j_e| \le J_f \le J+j_e$, with the weight given by the level density in the final nucleus.
 
-At this point, YAHFC is primarily designed for low-energy reactions where multiple pre-equilibrium emission is not expected. Thus, following pre-equilibrium decay, the remnant system is assumed to form a compound nuclear state, and all subsequent decays follow the standard Hauser-Feshbach formalism. Extensions to account for multiple pre-equilibrium emission, as well as other pre-equilibrium models, are planned in the future.
+The overall decay process for pre-equilibirum emission in YAHFC follows the steps:
+\begin{enumerate}
+\item Select the decay particle as determined by the pre-equilibirium cross section for that particle (integrating Eq.~(\ref{eq:PE-Spect})) and determine the energy of the final nuclear state from the emission spectrum,
+\item If the decay is to a continuous energy bin, select the angle $\theta$ and compute the orbital angular momentum and angular momentum of the final state. For pre-equilbrium photons, select the final angular momentum in the range $J_i \pm 1$ as dictated for electric dipole emission.
+\item If the decay is to the region of discrete states, select the closest discrete state matching angular momentum conditions, and select emission angle.
+\end{enumerate}
+
+Currently, YAHFC is primarily designed for low-energy reactions where multiple pre-equilibrium emission is not expected. Thus, following pre-equilibrium decay, the remnant system is assumed to form a compound nuclear state, and all subsequent decays follow the standard Hauser-Feshbach formalism. Extensions to account for multiple pre-equilibrium emission, as well as other pre-equilibrium models, are planned in the future.
 
 The two-component exciton pre-equilibrium model can be turned on(off) with the option ${\texttt {preeq\_model 1(0)}}$. In addition, commands are also provided to define each parameter in the exciton model, which are each described in detail in Ref.~\cite{Koning:2004} and Appendix~\ref{App:Preeq}.
 
@@ -189,7 +196,7 @@ where the density of states may, of course, be written in terms of the individua
 \begin{equation}
 \rho_c(E) = \sum_i \delta (E - E_i).
 \end{equation}
-Note that in order to simplify the equations, the channel label $c$ represents a suppressed notation that includes all relevant information needed to uniquely define the final states, such as the angular momenta $l$ and $j$ of the emitted particle, $Z$ and $A$ for the final nucleus, and angular momentum and parity of the final nuclear states. Eq.~(\ref{eq:Prob_rho}) then leads naturally to describing the excitation spectrum with a set of known discrete states augmented with a continuous level representing a set of states within an energy bin $\Delta E$ centered about an excitation energy $E$; the number of which is given by $N=\rho_c(E)\Delta E$. This is the general philosophy of most Hauser-Feshbach codes, where a finite set of discrete states, with complete spectroscopic information, is included up to a cutoff energy, $E_{cut}$. Above $E_{cut}$, nuclear structure is embodied in the density of states and the gamma strength function. The cutoff energy is guided by experimental spectroscopy, and generally is taken to be the excitation energy where the spectrum is complete. YAHFC follows this philosophy with the exception that an option is given to include all known discrete states with known spectroscopic decay path to the ground state or a known isomer. These discrete states are above $E_{cut}$ and embedded into the energy bins describing the density of states, which is adjusted accordingly.Thus, YAHFC offers the option to track a wide variety of known gamma lines, which can be compared to experiment and is useful for analyzing surrogate experiments. 
+Note that in order to simplify the equations, the channel label $c$ represents a suppressed notation that includes all relevant information needed to uniquely define the final states, such as the angular momenta $l$ and $j$ of the emitted particle, $Z$ and $A$ for the final nucleus, and angular momentum and parity of the final nuclear states. Eq.~(\ref{eq:Prob_rho}) then leads naturally to describing the excitation spectrum with a set of known discrete states augmented with a continuous level representing a set of states within an energy bin $\Delta E$ centered about an excitation energy $E$; the number of which is given by $N=\rho_c(E)\Delta E$. This is the general philosophy of most Hauser-Feshbach codes, where a finite set of discrete states, with complete spectroscopic information, is included up to a cutoff energy, $E_{cut}$. Above $E_{cut}$, nuclear structure is embodied in the density of states and the electromagnetc strength functions. The cutoff energy is guided by experimental spectroscopy, and generally is taken to be the excitation energy where the spectrum is complete. YAHFC follows this philosophy with the exception that an option is given to include all known discrete states with known spectroscopic decay path to the ground state or a known isomer. These discrete states are above $E_{cut}$ and embedded into the energy bins describing the density of states, which is adjusted accordingly.Thus, YAHFC offers the option to track a wide variety of known gamma lines, which can be compared to experiment and is useful for analyzing surrogate experiments. 
 
 For the decay of pure compound nuclear states, the angular distributions are assumed to be isotropic. 
 
@@ -636,7 +643,7 @@ A python script, ${\texttt{parseYahfc.py}}$ is also provided that translates the
 With Message Passing Interface (MPI) protocols, YAHFC will execute the event generation in parallel. Since the events are generated via Monte Carlo, a significant boost in performance can be expected using the MPI version. The Monte Carlo sampling is performed in parallel with a global summing and message passing for the requisite data. In general, for a large number of Monte Carlo samples, ideal scaling can be achieved. One caveat, however, is that with the option to print events, these are printed to a file for each MPI process, labeled by the MPI process number. Hence, the events from a single run will be distributed across multiple files. This occurs because events are executed on each individual MPI process, and are printed after the termination of the decay event. 
 
 \section{Numerical Performance}
-In this section, the numerical behavior for an example YAHFC calculation is given to provide some expectation of performance. Serial calculations were performed on a macBook Pro outfitted with a 2.4 GHz Quad-Core Intel Core i5 processor and 8 GB of 2133 MHz LPDDR3 RAM. A n + $^{238}$U calculation with 200 incident energies ranging from 0.1 to 20.0 MeV in steps of 0.2 MeV, without width-fluctuation corrections, $\Delta E = 0.1$~MeV, and 100k Monte Carlo events using the option ``${\texttt{xs\_only y}}$'' completes in approximately 3m17s. This calculation will compute the channel cross sections with Monte Carlo fluctuations of the order 5\%. A calculation delivering the full nuclear data libraries (including angular distributions) takes approximately 4m54s. Increasing the number of Monte Carlo events to 1M yields channel cross section with Monte Carlo fluctuations under 1\% and can be accomplished in roughly 30m. The memory required for this calculation is of the order 621 MB.
+In this section, the numerical behavior for an example YAHFC calculation is given to provide some expectation of performance. Serial calculations were performed on a macBook Pro outfitted with a 2.4 GHz Quad-Core Intel Core i5 processor and 8 GB of 2133 MHz LPDDR3 RAM. A n + $^{238}$U calculation with 200 incident energies ranging from 0.1 to 20.0 MeV in steps of 0.2 MeV, without width-fluctuation corrections, $\Delta E = 0.1$~MeV, and 100k Monte Carlo events using the option ``${\texttt{xs\_only y}}$'' completes in approximately 3m17s. A calculation delivering the full nuclear data libraries (including angular distributions) takes approximately 4m54s. With 1M Monte Carlo events, the CPU time increases to 21m21s and 36m15s, respectively, for the two calculations. The memory required for this calculation is 624 MB. With 100k Monte Carlo events, the Monte Carlo fluctuations in the cross section are of the order 5\%, while with 1M events, the fluctuations are reduced to less than1\%. With 100k events, calculations are fast enough to easily adjust calculation parameters, for example, fission barriers and level densities. With the MPI version, the calculations are sufficiently rapid to allow for full uncertainty quantification studies to compute full covariance matrices as constrained by experimental data.
 
 \appendix
 \section{Manual Input of Initial Populations}
@@ -926,8 +933,8 @@ Command option   &  Input values   &   Explanation\\
 ${\texttt{file}}$   & My\_Output  &            Output file name - (creates file My\_Output.out) \\
  & & {\bf Default:} YAHFC-Calc.out \\
 \hline
-${\texttt{all\_discrete\_states}}$  & ${\texttt{Answer}}$     & ${\texttt{Answer}}$=${\texttt{n/0/f}}$ use discrete levels only up to $E_{cut}$ ({\bf Default}).\\
- &   &                  ${\texttt{Answer}}$=${\texttt{y/1/t}}$ use all discrete states with full decay path
+${\texttt{all\_discrete\_states}}$  & ${\texttt{Answer}}$     & ${\texttt{Answer}}$=${\texttt{n/0/f}}$: Use discrete levels only up to $E_{cut}$ ({\bf Default}).\\
+ &   &                  ${\texttt{Answer}}$=${\texttt{y/1/t}}$: Use all discrete states with full decay path
 			   to ground state or known isomer. \\
 \hline
 ${\texttt{target}}$  & $Z_t$ $A_t$ $k$ &            $Z$ and $A$ of target, $k$ = state \# for target. \\
@@ -938,12 +945,10 @@ ${\texttt{target}}$  & $Z_t$ $A_t$ $k$ &            $Z$ and $A$ of target, $k$ =
 			   target\%istate = 1 \\
  & &                    Target may also be specified by isotope label, e.g., ${\texttt{U238}}$.\\
 \hline
-${\texttt{target\_state}}$ & $k$ &          Alternative way to specify the state for the target \\
- & & This is an optional command. If it is omitted, \\
- & & target\%istate = $1$\\
+${\texttt{target\_state}}$ & $k$ &          Alternative, preferred, way to specify the state for the target. ({\bf Default}: target\%istate = $1$)\\
 \hline
 ${\texttt{projectile}}$ & $Z_p$,  $A_p$  &         $Z$ and $A$ of projectile \\
-  & $k$ or label & Alternatively, pne can enter the index 0-6, or particle labels ${\texttt{g}}$, ${\texttt{n}}$, ${\texttt{p}}$, ${\texttt{d}}$, ${\texttt{t}}$, ${\texttt{h}}$, ${\texttt{a}}$\\
+  & $k$ or label & Alternatively, one can enter the index 0-6, or particle labels ${\texttt{g}}$, ${\texttt{n}}$, ${\texttt{p}}$, ${\texttt{d}}$, ${\texttt{t}}$, ${\texttt{h}}$, ${\texttt{a}}$\\
   & -1, -1,  $E_x$, $dE_x$   &  For a population calculation without an incident projectile and a single excitation energy $E_x$ with a Gaussian width $DE_x$. The probability of any $J^\pi$ energy bin is proportional to the level density.\\
   & -1, 0,   input.pop   &  For a population calculation without an incident projectile. The file input.pop specifies the initial populations for $J^\pi$ bins \\
 \hline
@@ -1036,9 +1041,7 @@ ${\texttt{dump\_events}}$ & ${\texttt{Answer}}$, $F_{type}$ & Controls whether e
 & & \hskip 1.2 cm $F_{type} =$ a prints to an ASCI file.\\
 & & \hskip 1.2 cm $F_{type} =$ b prints to an binary, unformatted file.\\
 \hline
-${\texttt{initial\_ke}}$ & $T_{KE}$, $dT_{KE}$ & Specifies initial kinetic energy $T_{KE}$ and spread $dT_{KE}$. For each sample, the initial kinetic energy of target is given by a Gaussian distribution centered at $T_{KE}$ with width $dT_{KE}$. This is useful for modeling fission fragment decays.\\
-& & This option can {\bf only} be used in conjunction with a population calculation.\\
-& & {\bf Default:} $T_{KE} = 0.0$, $dT_{KE} = 0.0$.\\
+${\texttt{num\_theta\_angles}}$  & $N_\theta$ &   Set the number of values for the angle $\theta$ sampled for each Monte Carlo event. Provides greater statistics for the angular distributions. ({\bf Default:} $N_\theta = 10$).\\
 \hline
 \end{tabular}
 \end{center}
@@ -1048,23 +1051,27 @@ ${\texttt{initial\_ke}}$ & $T_{KE}$, $dT_{KE}$ & Specifies initial kinetic energ
 \hline
 \multicolumn{3}{| c |}{General Commands Continued} \\
 \hline\hline
-${\texttt{verbose\_output}}$ & ${\texttt{Answer}}$ &     ${\texttt{Answer}}$ = ${\texttt{y/t/1}}$ suppresses writing to ${\texttt{stdout}}$ during the run (useful for fitting data and running with MPI).   \\
-&  & ${\texttt{Answer}}$ = ${\texttt{y/t/1}}$ do not suppress writing to ${\texttt{stdout}}$ ({\bf Default}). \\
+${\texttt{initial\_ke}}$ & $T_{KE}$, $dT_{KE}$ & Specifies initial kinetic energy $T_{KE}$ and spread $dT_{KE}$. For each sample, the initial kinetic energy of target is given by a Gaussian distribution centered at $T_{KE}$ with width $dT_{KE}$. This is useful for modeling fission fragment decays.\\
+& & This option can {\bf only} be used in conjunction with a population calculation.\\
+& & {\bf Default:} $T_{KE} = 0.0$, $dT_{KE} = 0.0$.\\
 \hline
-${\texttt{write\_outfile}}$ & ${\texttt{Answer}}$ & ${\texttt{Answer}}$ = ${\texttt{y/t/1}}$ write the .out file (unit=13) that contains calculation data ({\bf Default}).  \\
- & & ${\texttt{Answer}}$ = ${\texttt{n/f/0}}$ suppress writing the .out file (unit=13) that contains calculation data (useful if running to fit data).  \\
+${\texttt{verbose\_output}}$ & ${\texttt{Answer}}$ &     ${\texttt{Answer}}$ = ${\texttt{y/t/1}}$: Suppress writing to ${\texttt{stdout}}$. \\
+    & & ${\texttt{Answer}}$ = ${\texttt{n/f/0}}$: Do not suppress writing to ${\texttt{stdout}}$ ({\bf Default}).  \\
+\hline
+${\texttt{write\_outfile}}$ & ${\texttt{Answer}}$ & ${\texttt{Answer}}$ = ${\texttt{y/t/1}}$: write the .out file (unit=13) that contains calculation data ({\bf Default}).  \\
+ & & ${\texttt{Answer}}$ = ${\texttt{n/f/0}}$: suppress writing the .out file (unit=13) that contains calculation data (useful if running to fit data).  \\
  \hline
-${\texttt{xs\_only}}$ & ${\texttt{Answer}}$ & ${\texttt{Answer}}$ = ${\texttt{y/t/1}}$ Only cross sections are computed and printed. No Emission spectra and angular distributions. \\
-         &           & ${\texttt{Answer}}$ = ${\texttt{n/f/0}}$ Normal run, with cross sections, emission spectra, and angular distributions ({\bf Default}).\\
+${\texttt{xs\_only}}$ & ${\texttt{Answer}}$ & ${\texttt{Answer}}$ = ${\texttt{y/t/1}}$: Only cross sections are computed and printed. No Emission spectra and angular distributions. \\
+         &           & ${\texttt{Answer}}$ = ${\texttt{n/f/0}}$: Normal run, with cross sections, emission spectra, and angular distributions ({\bf Default}).\\
 \hline
-${\texttt{explicit\_channels}}$ & ${\texttt{Answer}}$ & ${\texttt{Answer}}$ = ${\texttt{y/t/1}}$, Channels are identified by all particles emitted, including order, e.g., nnp, npn, and pnn are distinct channels ({\bf Default}).\\
-& & ${\texttt{Answer}}$ = ${\texttt{n/f/0}}$, Channels are identified only by the number of particles emitted; nnp, npn, and pnn are treated as 2np.\\
+${\texttt{explicit\_channels}}$ & ${\texttt{Answer}}$ & ${\texttt{Answer}}$ = ${\texttt{y/t/1}}$: Channels are identified by all particles emitted, including order, e.g., nnp, npn, and pnn are distinct channels ({\bf Default}).\\
+& & ${\texttt{Answer}}$ = ${\texttt{n/f/0}}$: Channels are identified only by the number of particles emitted; nnp, npn, and pnn are treated as 2np.\\
 \hline
 ${\texttt{primary\_decay}}$ & ${\texttt{Answer}}$ & ${\texttt{Answer}}$ = ${\texttt{y/t/1}}$: Cross sections for the first step are printed in the ${\texttt{Primary-decay}}$ directory as a function of incident energy. \\
   &  &  ${\texttt{Answer}}$ = ${\texttt{y/t/1}}$: Cross sections for the first step are {\bf not} printed in the ${\texttt{Primary-decay}}$ directory as a function of incident energy ({\bf Default}). \\
 \hline
-${\texttt{event\_generator}}$ & ${\texttt{Answer}}$ & ${\texttt{Answer}}$ = ${\texttt{y/t/1}}$ Prints events only, no library files. \\
-   &    & ${\texttt{Answer}}$ = ${\texttt{n/f/0}}$ Normal run, prints libraries, and events if requested ({\bf Default}) \\\hline
+${\texttt{event\_generator}}$ & ${\texttt{Answer}}$ & ${\texttt{Answer}}$ = ${\texttt{y/t/1}}$: Prints events only, no library files. \\
+   &    & ${\texttt{Answer}}$ = ${\texttt{n/f/0}}$: Normal run, prints libraries, and events if requested ({\bf Default}) \\\hline
 ${\texttt{end}}$ & & Specifies the end of all input commands.\\
 \hline
 \end{tabular}

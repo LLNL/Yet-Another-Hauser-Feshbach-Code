@@ -617,3 +617,7 @@ Version 3.39
     "track_gammas y". They were supposed to start at 0. This didn't get changed
     when it the change was made for other files.
  
+Version 3.40
+1.  Adjusted "cut off" for charged particles in the HF decay setup to be the 
+    same as when computing the transmission coefficient with frescox.
+

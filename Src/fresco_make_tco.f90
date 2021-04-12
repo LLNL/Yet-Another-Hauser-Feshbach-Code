@@ -207,8 +207,8 @@ subroutine fresco_make_tco(data_path, len_path, tco_file, len_tco,           &
      write(6,*)'Will create using default optical model parameters'
      write(6,*)'Creating with Fresco'
   end if
-  iaaa=2
-  nuke='     '
+  iaaa = 2
+  nuke = '     '
 !------------------------------------------------------------
   iztarget = nucleus(itarget)%Z
   iatarget = nucleus(itarget)%A
@@ -820,7 +820,8 @@ subroutine fresco_make_tco(data_path, len_path, tco_file, len_tco,           &
      r_nuc = 0.0d0
      if(pindex > 1)then
         r_turn = e_sq*particle(pindex)%Z*real(iZ,kind=8)/ener
-        r_nuc = R_pot(1,1)*(A**(1.0d0/3.0d0) + 1.0d0)
+!        r_nuc = R_pot(1,1)*(A**(1.0d0/3.0d0) + 1.0d0)
+        r_nuc = R_pot(1,1)*(A**(1.0d0/3.0d0) + Apart**(1.0d0/3.0d0))
         if(iproc == 0)write(6,*)'r_turn = ',r_turn,' r_nuc = ',r_nuc
      end if
 
