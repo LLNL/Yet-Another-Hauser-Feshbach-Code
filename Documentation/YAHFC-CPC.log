@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.20 (TeX Live 2019) (preloaded format=pdflatex 2019.5.8)  9 APR 2021 13:28
+This is pdfTeX, Version 3.14159265-2.6-1.40.20 (TeX Live 2019) (preloaded format=pdflatex 2019.5.8)  12 APR 2021 11:21
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -813,7 +813,7 @@ Package rerunfilecheck Info: File `YAHFC-CPC.out' has not changed.
 Here is how much of TeX's memory you used:
  18049 strings out of 492616
  310583 string characters out of 6129482
- 595061 words of memory out of 5000000
+ 596061 words of memory out of 5000000
  21638 multiletter control sequences out of 15000+600000
  548204 words of font info for 84 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
@@ -848,7 +848,7 @@ e1/public/amsfonts/cm/cmtt10.pfb></usr/local/texlive/2019/texmf-dist/fonts/type
 1/public/amsfonts/cm/cmtt9.pfb></usr/local/texlive/2019/texmf-dist/fonts/type1/
 public/amsfonts/symbols/msbm10.pfb></usr/local/texlive/2019/texmf-dist/fonts/ty
 pe1/public/amsfonts/symbols/msbm7.pfb>
-Output written on YAHFC-CPC.pdf (31 pages, 507737 bytes).
+Output written on YAHFC-CPC.pdf (31 pages, 507748 bytes).
 PDF statistics:
  657 PDF objects out of 1000 (max. 8388607)
  590 compressed objects within 6 object streams

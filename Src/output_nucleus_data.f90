@@ -149,23 +149,31 @@ subroutine output_nucleus_data(j_max, itarget)
       end do
 
 !      write(6,*)'Level density information for this compound nucleus - not target'
-      if(nucleus(i)%D0exp > 0.0)then
+      if(nucleus(i)%D0exp > 0.0d0)then
          write(13,'('' Experimental D0   ='',f10.3,'' +/- '',f10.3,'' eV'')')    &
                      nucleus(i)%D0exp,nucleus(i)%dD0exp
       else
          write(13,'('' Experimental D0   =  UNAVAILABLE'')')
       end if
-      write(13,'('' Calculated D0     ='',f10.3,'' eV'')')                       &
+      if(nucleus(i)%D0 > 0.0d0)then
+          write(13,'('' Calculated D0     ='',f10.3,'' eV'')')                       &
                   nucleus(i)%D0
+      else
+         write(13,'('' D0 Not Calculated'')')
+      end if
 
-      if(nucleus(i)%D1exp > 0.0)then
+      if(nucleus(i)%D1exp > 0.0d0)then
          write(13,'('' Experimental D1 ='',f10.3,'' +/- '',f10.3,'' eV'')')      &
                      nucleus(i)%D1exp,nucleus(i)%dD1exp
       else
          write(13,'('' Experimental D1   =  UNAVAILABLE'')')
       end if
-      write(13,'('' Calculated D1     ='',f10.3,'' eV'')')                       &
+      if(nucleus(i)%D1 > 0.0d0)then
+          write(13,'('' Calculated D1     ='',f10.3,'' eV'')')                       &
                   nucleus(i)%D1
+      else
+         write(13,'('' D1 Not Calculated'')')
+      end if
 
 
 !      write(6,*)'Gamma_gamma data for this compound nucleus - not as a target'
@@ -310,7 +318,12 @@ subroutine output_nucleus_data(j_max, itarget)
       else
          write(13,'('' Experimental D0 =  UNAVAILABLE'')') 
       end if
-      write(13,'('' Calculated D0   ='',f10.3,'' eV'')')    &
+      if(nucleus(i)%D0 > 0.0d0)then
+         write(13,'('' Calculated D0 ='',f10.3)')    &
+                     nucleus(i)%D0
+      else
+         write(13,'('' D0 Not Calculated'')') 
+      end if
                   nucleus(i)%D0
       write(13,*)'Level-density parameters'
       write(13,*)'Level-density model = ',nucleus(i)%level_model

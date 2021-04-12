@@ -135,15 +135,13 @@ subroutine fit_nuke_Gamma_gamma
                write(6,'(''Gamma_gamma (l=0)'','' Calc = Not Calculated, Exp = '',f12.3,'' +/- '',f12.3)')  &
                   nucleus(icomp)%Gamma_g,nucleus(icomp)%Gamma_g_exp, nucleus(icomp)%dGamma_g_exp
             else
-               write(6,'(''Gamma_gamma (l=0)'','' Calc = Not Calculated, Exp = UNAVAILABLE'')')             &
-                  nucleus(icomp)%Gamma_g
+               write(6,'(''Gamma_gamma (l=0)'','' Calc = Not Calculated, Exp = UNAVAILABLE'')')
             end if
             if(nucleus(icomp)%Gamma_g_1_exp > 0.0d0)then
                write(6,'(''Gamma_gamma (l=1)'','' Calc = Not Calculated, Exp = '',f12.3,'' +/- '',f12.3)')  &
                   nucleus(icomp)%Gamma_g_1,nucleus(icomp)%Gamma_g_1_exp, nucleus(icomp)%dGamma_g_1_exp
             else
-               write(6,'(''Gamma_gamma (l=1)'','' Calc = Not Calculated, Exp = UNAVAILABLE'')')             &
-                  nucleus(icomp)%Gamma_g_1
+               write(6,'(''Gamma_gamma (l=1)'','' Calc = Not Calculated, Exp = UNAVAILABLE'')')
             end if
 
          end if

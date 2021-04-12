@@ -47,6 +47,7 @@ subroutine Setup_Energy_bins(de)
          Ex_max = nucleus(i)%Ex_max       !   max energy
          S_part = nucleus(i)%sep_e(1)
          E_cut = nucleus(i)%level_param(7)
+!  write(6,*)'i = ',i, Ex_max, S_part, E_cut, nucleus(i)%Z, nucleus(i)%A
          if(E_cut + de < S_part)then
             Ex_calc = min(Ex_max,S_part) - E_cut - de   !   start at E_cut
             nbin = max(int(Ex_calc/de),1)               !   number of bins
@@ -54,11 +55,17 @@ subroutine Setup_Energy_bins(de)
             nbin = nint((Ex_max - E_cut)/dep) + 1       !   actual number of bins
             nucleus(i)%nbin = nbin
          else
-            Ex_calc = (Ex_max - E_cut -de)
-            nbin = max(int(Ex_calc/de),1)               !   number of bins
-            dep = Ex_calc/real(nbin,kind=8)             !   new energy step
-            nbin = nint((Ex_max - E_cut)/dep) + 1       !   actual number of bins
-            nucleus(i)%nbin = nbin            
+            Ex_calc = (Ex_max - E_cut)
+            if(Ex_calc > 0.0d0)then
+               nbin = max(int(Ex_calc/de),1)               !   number of bins
+               dep = Ex_calc/real(nbin,kind=8)             !   new energy step
+               nbin = nint((Ex_max - E_cut)/dep) + 1       !   actual number of bins
+               nucleus(i)%nbin = nbin
+            else
+               dep = de
+               nbin = 1
+            end if
+!   write(6,*)Ex_max,Ex_calc, dep, nbin
          end if
          if(nbin > 0)then
             allocate(nucleus(i)%e_grid(nbin))

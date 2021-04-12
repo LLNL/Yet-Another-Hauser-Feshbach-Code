@@ -340,6 +340,8 @@ subroutine get_lev_den(data_path,len_path,symb,iz,ia,icomp)
          sg2cut = (0.83d0*real(nucleus(icomp)%A,kind=8)**0.26d0)**2
       end if
       if(sg2cut < 1.0d-4)sg2cut = (0.83d0*real(nucleus(icomp)%A,kind=8)**0.26d0)**2
+      if(ecut >= nucleus(icomp)%sep_e(1))nucleus(icomp)%fit_D0 = .false.
+
 !----------------------------------------------------------------
       nucleus(icomp)%level_param(1) = aparam
       nucleus(icomp)%level_param(2) = spin_cut
@@ -423,6 +425,7 @@ subroutine get_lev_den(data_path,len_path,symb,iz,ia,icomp)
       if(sg2cut < 1.0d-4)sg2cut =                                 &
          (0.83d0*real(nucleus(icomp)%A**(5.0d0/3.d0),kind=8)**0.26d0)**2
 
+      if(ecut >= nucleus(icomp)%sep_e(1))nucleus(icomp)%fit_D0 = .false.
       nucleus(icomp)%level_param(1) = aparam
       nucleus(icomp)%level_param(2) = spin_cut
       nucleus(icomp)%level_param(3) = delta
@@ -504,6 +507,7 @@ subroutine get_lev_den(data_path,len_path,symb,iz,ia,icomp)
         sg2cut = (0.83*real(nucleus(icomp)%A,kind=8)**0.26)**2
       end if
       if(sg2cut < 1.0d-4)sg2cut = (0.83*real(nucleus(icomp)%A,kind=8)**0.26)**2
+      if(ecut >= nucleus(icomp)%sep_e(1))nucleus(icomp)%fit_D0 = .false.
       nucleus(icomp)%level_param(1) = aparam
       nucleus(icomp)%level_param(2) = spin_cut
       nucleus(icomp)%level_param(3) = delta
@@ -617,35 +621,33 @@ subroutine finish_lev_den(icomp)
    ipar = nucleus(icomp)%target_ipar
 
 
-   nucleus(icomp)%D0 = lev_space(e,xI,ipar,0,                   &
-                                 nucleus(icomp)%level_param,    &
-                                 nucleus(icomp)%vib_enh,        &
-                                 nucleus(icomp)%rot_enh,ia)
-   D0 = nucleus(icomp)%D0
-!   if(nucleus(icomp)%fit_aparam)then
-   if(nucleus(icomp)%fit_D0)then
-      if(D0 < D0exp-dD0exp/2 .or. D0 > D0exp+dD0exp/2)then     !  D0 value is outside expt. range
-!         write(6,*)'Fitting D0'
-!         write(6,*)nucleus(icomp)%fit_aparam
-!         write(6,*)' a = ',nucleus(icomp)%level_param(1)
-!         write(6,*)'dW = ',nucleus(icomp)%level_param(4)
-         call fit_D0(D0exp,e,xI,ipar,                    &
-                     nucleus(icomp)%level_param,         &
-                     nucleus(icomp)%fit_aparam,          &
-                     nucleus(icomp)%vib_enh,             &
-                     nucleus(icomp)%rot_enh,ia)
-!         write(6,*)'Finished Fitting D0'
-!         write(6,*)' a = ',nucleus(icomp)%level_param(1)
-!         write(6,*)'dW = ',nucleus(icomp)%level_param(4)
+   if(nucleus(icomp)%level_param(7) < nucleus(icomp)%sep_e(1))then
+
+
+      nucleus(icomp)%D0 = lev_space(e,xI,ipar,0,                   &
+                                    nucleus(icomp)%level_param,    &
+                                    nucleus(icomp)%vib_enh,        &
+                                    nucleus(icomp)%rot_enh,ia)
+      D0 = nucleus(icomp)%D0
+      if(nucleus(icomp)%fit_D0)then
+         if(D0 < D0exp-dD0exp/2 .or. D0 > D0exp+dD0exp/2)then     !  D0 value is outside expt. range
+            call fit_D0(D0exp,e,xI,ipar,                    &
+                        nucleus(icomp)%level_param,         &
+                        nucleus(icomp)%fit_aparam,          &
+                        nucleus(icomp)%vib_enh,             &
+                        nucleus(icomp)%rot_enh,ia)
+         end if
       end if
+      D0 = lev_space(e,xI,ipar,0,nucleus(icomp)%level_param,                &
+                     nucleus(icomp)%vib_enh,nucleus(icomp)%rot_enh,ia)    !   if ematch is abvoe sep-e, then check D0
+      nucleus(icomp)%D0 = D0
+      D1 = lev_space(e,xI,ipar,1,nucleus(icomp)%level_param,                &
+                   nucleus(icomp)%vib_enh,nucleus(icomp)%rot_enh,ia)    !   if ematch is abvoe sep-e, then check D0
+      nucleus(icomp)%D1 = D1
+   else
+      nucleus(icomp)%D0 = -1.0d0
+      nucleus(icomp)%D1 = -1.0d0
    end if
-   D0 = lev_space(e,xI,ipar,0,nucleus(icomp)%level_param,                &
-                  nucleus(icomp)%vib_enh,nucleus(icomp)%rot_enh,ia)    !   if ematch is abvoe sep-e, then check D0
-   nucleus(icomp)%D0 = D0
-   D1 = lev_space(e,xI,ipar,1,nucleus(icomp)%level_param,                &
-                nucleus(icomp)%vib_enh,nucleus(icomp)%rot_enh,ia)    !   if ematch is abvoe sep-e, then check D0
-   nucleus(icomp)%D1 = D1
-!   write(6,*)nucleus(icomp)%D0,nucleus(icomp)%D0exp,nucleus(icomp)%dD0exp
 
    if(nucleus(icomp)%fit_ematch)then
       call fit_lev_den(icomp)

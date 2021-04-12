@@ -65,7 +65,8 @@ subroutine start_IO
          i,nucleus(i)%A,nucleus(i)%atomic_symbol(char_start:2)
       write(13,*)'Maximum excitation energy = ',                          &
          nucleus(i)%Ex_max
-      write(13,*)'Energy grid set up with de = ',de
+      write(13,*)'Energy grid set up with de = ',nucleus(i)%delta_e(1)
+!      write(13,*)'Energy grid set up with de = ',de
    end do
    write(6,*)
    if(.not.pop_calc)then
