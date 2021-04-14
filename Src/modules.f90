@@ -32,7 +32,7 @@ module options
 !
    use variable_kinds
    character(len=132) :: version
-   parameter (version = 'MC-3.41')
+   parameter (version = 'MC-3.42')
    integer(kind=int_64) :: iseed_64
    integer(kind=int_32) :: iseed_32
    integer(kind=4) :: PREEQ_Model
@@ -469,8 +469,8 @@ module nuclei
 !      real(kind=8), allocatable, dimension (:,:,:) :: pop             !  Populations (E,J,pi)
       real(kind=8), allocatable, dimension (:,:) :: PREEQ_pop         !  Populations removed from compound due to pree-equilibirum for J,pi states
 !      real(kind=8), allocatable, dimension (:,:,:) :: rho             !  level densities (E,J,pi)
-      real(kind=8), allocatable, dimension (:,:,:) :: HF_den          !  Hauser-Feshbach denominators for each bin
-      real(kind=8), allocatable, dimension (:,:,:,:) :: HF_prob       !  Hauser-Feshbach decay prob for particle type
+!      real(kind=8), allocatable, dimension (:,:,:) :: HF_den          !  Hauser-Feshbach denominators for each bin
+!      real(kind=8), allocatable, dimension (:,:,:,:) :: HF_prob       !  Hauser-Feshbach decay prob for particle type
       type(bin_data), allocatable, dimension(:,:,:) :: bins
 
 !------  Data structures holding cross section data

@@ -444,8 +444,8 @@ subroutine set_up_decay_chain(Z_p, A_p, Z_t, A_t)
 
 !-----   Adjust max_J_allowed for population calculations to ensure that everything fits
    if(pop_calc)then
-       max_J_allowed = nint(Pop_max_J - nucleus(1)%jshift)
-       max_J_allowed = min(max_J_allowed,20)
+       max_J_allowed = nint(Pop_max_J - nucleus(1)%jshift) + 4
+       max_J_allowed = max(max_J_allowed,20)
    end if
 
 

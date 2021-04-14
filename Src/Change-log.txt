@@ -625,3 +625,12 @@ Version 3.41
 1.  Adjusted energy bins for special cases where Ex_max ~ S_n.
 2.  Bypass calculation of D0 and Gamma_gamma for cases where E_cut < S_n. Fixed
     printing of D0 for in .out file for these cases.
+
+Version 3.42
+1.  Fixed error defingin max_J_allowed for population decays
+2.  Fixed information written to .out file, also added writing of isotope for
+    various data elements to help keep track in the out file.
+3.  Added capability to add a comment line in the evaluated RIPL files. A 
+    comment line MUST start with '#' or '!'.
+
+

@@ -39,7 +39,7 @@ program YAHFC_MASTER
 !---------------------------------------------------------------------
       implicit none
 !---------------------------------------------------------------------
-      include'mpif.h'
+      include 'mpif.h'
 !---------------------------------------------------------------------
       character(len=1) quote
       character(len=80) bigblank        ! 80 blank character
@@ -1307,6 +1307,8 @@ program YAHFC_MASTER
 
       j_max = Max_J_allowed
 
+  write(6,*)'Max_J_allowed = ',Max_J_allowed
+
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !-----  set up and initialze arrays for starting populations
       if(.not.allocated(target%pop_xjpi))allocate(target%pop_xjpi(0:j_max,0:1))
@@ -1321,9 +1323,9 @@ program YAHFC_MASTER
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
       do i = 1, num_comp
          nbin = nucleus(i)%nbin
-         allocate(nucleus(i)%HF_den(0:j_max,0:1,1:nbin))
+!         allocate(nucleus(i)%HF_den(0:j_max,0:1,1:nbin))
          allocate(nucleus(i)%bins(0:j_max,0:1,1:nbin))
-         nucleus(i)%HF_den(0:j_max,0:1,1:nbin)=0.0d0
+!         nucleus(i)%HF_den(0:j_max,0:1,1:nbin)=0.0d0
          nucleus(i)%bins(0:j_max,0:1,1:nbin)%rho = 0.0d0
          nucleus(i)%bins(0:j_max,0:1,1:nbin)%pop = 0.0d0
          nucleus(i)%state(1:nucleus(i)%num_discrete)%pop = 0.0d0
@@ -2110,6 +2112,7 @@ program YAHFC_MASTER
                end do
 
                if(iproc == 0 .and. print_output)then
+                  write(13,'(''*************************************************************'')')
                   write(13,'(''Initial populations for incident energy ='',1x,1pe15.7)')e_in
                   do ip = 0, 1
                      do j = 0, nucleus(1)%j_max
@@ -3655,25 +3658,28 @@ program YAHFC_MASTER
 
          if(biased_sampling)then
             if(print_me)then
-               write(6,*)'Statistics on continuous bin with hung decays'
+               write(6,*)'Statistics on continuous bins with hung decays'
                write(6,'(''                                         #hung              #total      fraction'')')
                write(6,'(''                              ----------------    ----------------    ----------'')')
-            elseif(iproc == 0 .and. print_output)then
-               write(13,*)'Statistics on continuous bin with hung decays'
+            end if
+            if(iproc == 0 .and. print_output)then
+               write(13,*)'Statistics on continuous bins with hung decays'
                write(13,'(''                                         #hung              #total      fraction'')')
                write(13,'(''                              ----------------    ----------------    ----------'')')
             end if
          else
             if(print_me)then
-               write(6,*)'Statistics on continuous bin with hung decays'
+               write(6,*)'Statistics on continuous bins with hung decays'
                write(6,'(''                                         #hung              #total      fraction       Num events'')')
                write(6,'(''                              ----------------    ----------------    ----------     ------------'')')
-            elseif(iproc == 0 .and. print_output)then
-               write(13,*)'Statistics on continuous bin with hung decays'
+            end if
+            if(iproc == 0 .and. print_output)then
+               write(13,*)'Statistics on continuous bins with hung decays'
                write(13,'(''                                         #hung              #total      fraction       Num events'')')
                write(13,'(''                              ----------------    ----------------    ----------     ------------'')')
             end if
          end if
+
          do ichann = 1, num_channels
             hang = Exit_Channel(ichann)%Channel_cs(-1,in)
             sum = 0.0d0
@@ -4723,10 +4729,10 @@ subroutine memory_used
 !            mem = dfloat(size(nucleus(icomp)%rho)*8)
 !            mem_icomp = mem_icomp + mem
 !         end if
-         if(allocated(nucleus(icomp)%HF_den))then
-            mem = dfloat(size(nucleus(icomp)%HF_den)*8)
-            mem_icomp = mem_icomp + mem
-         end if
+!         if(allocated(nucleus(icomp)%HF_den))then
+!            mem = dfloat(size(nucleus(icomp)%HF_den)*8)
+!            mem_icomp = mem_icomp + mem
+!         end if
          if(allocated(nucleus(icomp)%PREEQ_cs))then
             mem = dfloat(size(nucleus(icomp)%PREEQ_cs)*8)
             mem_icomp = mem_icomp + mem

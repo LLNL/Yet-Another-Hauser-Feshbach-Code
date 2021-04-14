@@ -175,17 +175,22 @@ subroutine get_spectrum(data_path, len_path, overide, symb, iz, ia, inuc)
          status='old')
       io_error = 0
       do while(.not. found .and. io_error == 0)
-         read(51,'(i3,a2)',iostat=io_error)iap,symbb !  find element, end -. end of subroutine abort
-         if(symbb(2:2) == ' ')then
-            symbb(2:2) = symbb(1:1)
-            symbb(1:1) = ' '
-         end if
+         line(1:300) = ' '
+         read(51,'(a)')line
+         if(line(1:1) /= '#' .or. line(1:1) /= '!')then
+!            read(51,'(i3,a2)',iostat=io_error)iap,symbb !  find element, end -. end of subroutine abort
+            read(line,'(i3,a2)',iostat=io_error)iap,symbb !  find element, end -. end of subroutine abort
+            if(symbb(2:2) == ' ')then
+               symbb(2:2) = symbb(1:1)
+               symbb(1:1) = ' '
+            end if
 !  write(6,*)ia,iap,symb, symbb
-         if(ia == iap .and. symb == symbb)then
-            backspace(51)
-            read(51,'(a5,6i5,2f12.6)',iostat=io_error)char, iap, izp, nol, nog, nmax, nc, sn, sp
-            found = .true.
-            evaluated = .true.               ! skip optional additional input
+            if(ia == iap .and. symb == symbb)then
+               backspace(51)
+               read(51,'(a5,6i5,2f12.6)',iostat=io_error)char, iap, izp, nol, nog, nmax, nc, sn, sp
+               found = .true.
+               evaluated = .true.               ! skip optional additional input
+            end if
          end if
       end do
       if(.not. found)then

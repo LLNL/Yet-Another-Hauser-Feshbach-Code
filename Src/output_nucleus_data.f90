@@ -68,6 +68,8 @@ subroutine output_nucleus_data(j_max, itarget)
    integer(kind=4) :: Ix
    character(len=132) :: temp_string
    character(len=200) :: fstring
+   character(len=5) :: nuke_label
+   integer(kind=4) :: inuke_end
 !---------   External functions
    real(kind=8) :: spin_fac, parity_fac
    real(kind=8) :: EL_f, EL_trans
@@ -105,9 +107,30 @@ subroutine output_nucleus_data(j_max, itarget)
       if(i == itarget)write(13,'(''Target Nucleus'')')
       char_start = 1
       if(nucleus(i)%atomic_symbol(1:1) == ' ')char_start = 2
-      if(char_start == 1)write(13,'(i3,a2)')nucleus(i)%A,nucleus(i)%atomic_symbol(char_start:2)
-      if(char_start == 2)write(13,'(i3,a1)')nucleus(i)%A,nucleus(i)%atomic_symbol(char_start:2)
-      write(13,'(''Maximum excitation energy = '',f10.3,'' MeV'')')nucleus(i)%Ex_max
+      nuke_label(1:5) = '     '
+      inuke_end = 5
+      if(iA < 10)then
+         write(nuke_label(1:1),'(i1)')iA
+         inuke_end = 1
+      elseif(iA < 100)then
+         write(nuke_label(1:2),'(i2)')iA
+         inuke_end = 2
+      elseif(iA < 1000)then
+         write(nuke_label(1:3),'(i3)')iA
+         inuke_end = 3
+      end if
+      if(char_start == 1)then
+         nuke_label(inuke_end+1:inuke_end+2) = nucleus(i)%atomic_symbol(char_start:2)
+         inuke_end = inuke_end + 2
+      else
+         nuke_label(inuke_end+1:inuke_end+1) = nucleus(i)%atomic_symbol(char_start:2)
+         inuke_end = inuke_end + 1
+      end if
+
+!      if(char_start == 2)write(13,'(i3,a1)')nucleus(i)%A,nucleus(i)%atomic_symbol(char_start:2)
+!      write(13,'(''Maximum excitation energy = '',f10.3,'' MeV'')')nucleus(i)%Ex_max
+
+      write(13,'(a5)')nuke_label(1:inuke_end)
       write(13,'(''Mass excess = '',f10.3,'' MeV'')')nucleus(i)%ME
       write(13,'(''Binding energy = '',f10.3,'' MeV'')')nucleus(i)%BE
       write(13,'(''Pairing model used = '',i3)')nucleus(i)%pair_model
@@ -301,10 +324,10 @@ subroutine output_nucleus_data(j_max, itarget)
       E1 = -10.0d0
       if(E0 < 0.0d0)E1 = T*log(1.0d0-exp(E0/T))
       write(13,*)
-      write(13,*)'Level Density information'
-      write(13,*)'E1 defined as the energy so that int(E1,0)rho(E)dE = 1'
-      write(13,*)'Generally, E1 < 0 if E0 < 0'
-      write(13,*)'Otherwise E1 undefined as int(-infty,0)rho(E)DE < 1'
+      write(13,'(''Level Density information for '',a5)')nuke_label(1:inuke_end)
+      write(13,'(''E1 defined as the energy so that int(E1,0)rho(E)dE = 1'')')
+      write(13,'(''Generally, E1 < 0 if E0 < 0'')')
+      write(13,'(''Otherwise E1 undefined as int(-infty,0)rho(E)DE < 1'')')
       if(nucleus(i)%fit_D0 .and. nucleus(i)%fit_aparam)then
          write(13,*)'Fitting to D0 by adjusting the a-parameter'
       elseif(nucleus(i)%fit_D0 .and. .not. nucleus(i)%fit_aparam)then
@@ -324,7 +347,6 @@ subroutine output_nucleus_data(j_max, itarget)
       else
          write(13,'('' D0 Not Calculated'')') 
       end if
-                  nucleus(i)%D0
       write(13,*)'Level-density parameters'
       write(13,*)'Level-density model = ',nucleus(i)%level_model
       write(13,'('' a =        '',f12.7)')nucleus(i)%level_param(1)
@@ -447,7 +469,7 @@ subroutine output_nucleus_data(j_max, itarget)
       write(13,*)
 
       write(temp_string,*)min(j_max,60)+1
-      write(13,'(''Level density States/MeV '')')
+      write(13,'(''Level density States/MeV for '',a5)')nuke_label(1:inuke_end)
       write(13,'(''Positive Parity '')')
 
       fstring = "(6x,'E',9x,'a(U)',1x,'sqrt(sig2)',6x,'P_fac',"//                &
@@ -603,7 +625,7 @@ subroutine output_nucleus_data(j_max, itarget)
       end if
 !------------------------------------------------------------------
       write(13,*)
-      write(13,*)'Electric-dipole resonance parameters'
+      write(13,'(''Electric-dipole resonance parameters '',a5)')nuke_label(1:inuke_end)
       do k = 1, 3
          write(13,'(''Mode ='',i2,'//                             &
                     ''' Centroid = '',f16.6,'' MeV'','//          &
@@ -633,8 +655,8 @@ subroutine output_nucleus_data(j_max, itarget)
 !------------------------------------------------------------------
       do l_radiation = 2, nucleus(i)%lmax_E
          write(13,*)
-         write(13,'(''Electric-'',i1,'' resonance parameters'')')  &
-            l_radiation
+         write(13,'(''Electric-'',i1,'' resonance parameters for '',a5)')  &
+            l_radiation,nuke_label(1:inuke_end)
             write(13,'('' Centroid = '',f16.6,'' MeV'','//         &
                        ''' Width = '',f16.6,'' MeV'','//           &
                        ''' Strength = '',e15.7,'' mb'')')          &
@@ -660,8 +682,8 @@ subroutine output_nucleus_data(j_max, itarget)
 !------------------------------------------------------------------
       do l_radiation = 1, nucleus(i)%lmax_M
          write(13,*)
-         write(13,'(''Magnetic-'',i1,'' resonance parameters'')')  &
-            l_radiation
+         write(13,'(''Magnetic-'',i1,'' resonance parameters for '',a5)')  &
+            l_radiation,nuke_label(1:inuke_end)
          write(13,'('' Centroid = '',f10.5,'' MeV'','//            &
                        ''' Width = '',f10.5,'' MeV'','//           &
                        ''' Strength = '',e12.4,'' mb'')')          &
@@ -694,7 +716,7 @@ subroutine output_nucleus_data(j_max, itarget)
       end if
       if(nucleus(i)%Fission)then
          write(13,*)
-         write(13,*)'Fission parameters'
+         write(13,'(''Fission parameters for '',a5)')nuke_label(1:inuke_end)
          do j = 1, nucleus(i)%F_n_barr
             E0 = nucleus(i)%F_barrier(j)%level_param(15)
             T = nucleus(i)%F_barrier(j)%level_param(14)
@@ -931,7 +953,7 @@ subroutine output_nucleus_data(j_max, itarget)
 
 !--------------   HF-denominators
       write(13,*)
-      write(13,*)'Hauser-Feshbach denominators'
+      write(13,'(''Hauser-Feshbach denominators for '',a5)')nuke_label(1:inuke_end)
       write(13,*)'Positive Parity'
       fstring = "('    E     ',"                      &
                 //trim(adjustl(temp_string))//"(5x,'J = ',f4.1,3x))"
@@ -961,7 +983,7 @@ subroutine output_nucleus_data(j_max, itarget)
            energy,(nucleus(i)%bins(j,1,n)%HF_den,j=0,min(j_max,60))
       end do
       write(13,*)
-      write(13,*)'Summed decay transmission coefficients for each channel'
+      write(13,'(''Summed decay transmission coefficients for each channel for '',a5)')nuke_label(1:inuke_end)
       do if1 = 1, nucleus(i)%num_decay
          k = nucleus(i)%decay_particle(if1)
          write(13,*)
@@ -1082,7 +1104,7 @@ subroutine output_nucleus_data(j_max, itarget)
          end do
       end if
       write(13,*)
-      write(13,*)'Decay probabilities for each channel'
+      write(13,'(''Decay probabilities for each channel in decay from '',a5)')nuke_label(1:inuke_end)
       do if1 = 1, nucleus(i)%num_decay
          k = nucleus(i)%decay_particle(if1)
          write(13,*)
@@ -1127,7 +1149,7 @@ subroutine output_nucleus_data(j_max, itarget)
    if(pop_calc)then
       write(13,*)'*****************************************************************'
       write(13,*)
-      write(13,*)'Decay probabilities for each initial excitation Population'
+      write(13,'(''Decay probabilities for each initial excitation Population for '')')
       write(13,'(3x,6x,''Ex'',8x,8(3x,8x,a8))')(particle(k)%name, k = 0, 7)
       write(13,'(''   ----------------'',8(''   ----------------''))')
 !----   loop over initial population energies
