@@ -310,6 +310,7 @@ program YAHFC_MASTER
       real(kind=8) :: yrast(0:100,0:1)
       real(kind=8) :: yrast_actual(0:40,0:1)
       character(len=9) yrast_file
+      integer(kind=4) :: num_states
 
       real(kind=8) :: x, x1, theta
 
@@ -1222,6 +1223,7 @@ program YAHFC_MASTER
 !
 !----   Check for maximum angular momentum from the reaction dynamics
 !
+      max_J = max_J_allowed
       if(.not. pop_calc)then
          if(iproj > 0)then
             e_in = projectile%energy(num_energies)
@@ -1251,8 +1253,8 @@ program YAHFC_MASTER
                J = nint(xI_f - nucleus(itarget)%jshift)
                if(J > max_J)max_J = J
             end do
-         else
-            max_J = 20
+!         else
+!            max_J = 20
          end if
 !----
 !         if(max_J > 60 .and. iproc == 0)then
@@ -1307,8 +1309,6 @@ program YAHFC_MASTER
 
       j_max = Max_J_allowed
 
-  write(6,*)'Max_J_allowed = ',Max_J_allowed
-
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !-----  set up and initialze arrays for starting populations
       if(.not.allocated(target%pop_xjpi))allocate(target%pop_xjpi(0:j_max,0:1))
@@ -1355,9 +1355,11 @@ program YAHFC_MASTER
 
          yrast(0:100,0:1) = -1.0
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!------   Find yrast energies for each spin
+!------   Find yrast energies for each spin 
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-         do ii = 1, nucleus(i)%ncut
+         num_states = nucleus(i)%ncut
+         if(all_discrete_states)num_states = nucleus(i)%num_discrete
+         do ii = 1, num_states
              j = nint(nucleus(i)%state(ii)%spin - nucleus(i)%jshift)
              ipar = nint((nucleus(i)%state(ii)%parity + 1.0d0)/2.0d0)
              if(yrast(j,ipar) < 0.0)then
@@ -1365,19 +1367,6 @@ program YAHFC_MASTER
                 yrast_actual(j,ipar) = nucleus(i)%state(ii)%energy
              end if
          end do
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!------   With discrete states above E_cut, reduce continuous level density
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-         do ii = 1, nucleus(i)%num_discrete
-             j = nint(nucleus(i)%state(ii)%spin - nucleus(i)%jshift)
-             ipar = nint((nucleus(i)%state(ii)%parity + 1.0d0)/2.0d0)
-             if(j <= Max_J_allowed .and. ii > nucleus(i)%ncut)then
-                k = find_ibin(nucleus(i)%state(ii)%energy,i)
-                if(k <= nbin .and. k > 0)nucleus(i)%bins(j,ipar,k)%rho = nucleus(i)%bins(j,ipar,k)%rho -  &
-                                        1.0d0/nucleus(i)%delta_e(k)
-             end if
-         end do
-
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !---- Calculate yrast energy for each spin with modeled level density
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -1397,11 +1386,11 @@ program YAHFC_MASTER
                   e_lev_min = 0.0d0
                   do k = 1, 100000
                      energy = real(k,kind=8)*dde
-                     call rhoe(energy,nucleus(i)%level_param,                   &
-                                      nucleus(i)%vib_enh,                       &
-                                      nucleus(i)%rot_enh,                       &
+                     call rhoe(energy,nucleus(i)%level_param,                          &
+                                      nucleus(i)%vib_enh,                              &
+                                      nucleus(i)%rot_enh,                              &
                                       nucleus(i)%A,rho,apu,sig,K_vib,K_rot)
-                     xnum = xnum + rho*spin_fac(xj,sig)*                        &
+                     xnum = xnum + rho*spin_fac(xj,sig)*                               &
                                    parity_fac(energy,xj,ipar,pmode,pe1,bb)*dde
                      if(xnum >= rho_cut)then
                         e_lev_min = energy
@@ -1412,14 +1401,14 @@ program YAHFC_MASTER
 !-----   Reset. If yrast is determined by discrete level, use this.
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
                   if(yrast(j,ipar) > 0.0)then
-                      e_lev_min = yrast(j,ipar)
+                     e_lev_min = yrast(j,ipar)
                   else
-                     if(j <= 20 .and. yrast(j,ipar) < 0.0)then
+                     if(j <= j_max .and. yrast(j,ipar) < 0.0)then
                           yrast(j,ipar) = e_lev_min
                           yrast_actual(j,ipar) = max(e_lev_min,nucleus(i)%e_grid(1))
                      end if 
                   end if
-                  
+
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !-----     First bin to start filling the level density at this spin and parity
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -1429,29 +1418,46 @@ program YAHFC_MASTER
                   bb = nucleus(i)%level_param(18)
                   do k = 1, nbin
                      energy = nucleus(i)%e_grid(k)
-                     if(k >= kstart)then         !  check if above computed yrast line
-                        call rhoe(energy,nucleus(i)%level_param,                   &
-                                         nucleus(i)%vib_enh,                       &
-                                         nucleus(i)%rot_enh,                       &
+!                     if(k >= kstart)then         !  check if above computed yrast line
+                     if(energy >= e_lev_min)then         !  check if above computed yrast line
+                        call rhoe(energy,nucleus(i)%level_param,                           &
+                                         nucleus(i)%vib_enh,                               &
+                                         nucleus(i)%rot_enh,                               &
                                          nucleus(i)%A,rho,apu,sig,K_vib,K_rot)
-                        nucleus(i)%bins(j,ipar,k)%rho = max(rho*spin_fac(xj,sig)*  &
+                        nucleus(i)%bins(j,ipar,k)%rho = max(rho*spin_fac(xj,sig)*          &
                                 parity_fac(energy,xj,ipar,pmode,pe1,bb),0.0d0)
                      end if
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !-----      Still check if rho is < 0 from embedded discrete states, if so, set to zero.
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-                     if(nucleus(i)%bins(j,ipar,k)%rho < 0.0d0) nucleus(i)%bins(j,ipar,k)%rho = 1.0d-49
+                     if(nucleus(i)%bins(j,ipar,k)%rho < 0.0d0) nucleus(i)%bins(j,ipar,k)%rho = 0.0d0
                   end do
                end do
             end do
          end if
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!------   With discrete states above E_cut, reduce continuous level density
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+         if(all_discrete_states)then
+            do ii = 1, nucleus(i)%num_discrete
+                j = nint(nucleus(i)%state(ii)%spin - nucleus(i)%jshift)
+                ipar = nint((nucleus(i)%state(ii)%parity + 1.0d0)/2.0d0)
+                if(j <= Max_J_allowed .and. ii > nucleus(i)%ncut)then
+                   k = find_ibin(nucleus(i)%state(ii)%energy,i)
+                   if(k <= nbin .and. k > 0)nucleus(i)%bins(j,ipar,k)%rho =                       &
+                                            max(nucleus(i)%bins(j,ipar,k)%rho -                   &
+                                                1.0d0/nucleus(i)%delta_e(k), 0.0d0)
+                end if
+            end do
+         end if
+
 
          if(iproc == 0)then
             write(99,'(''#               Negative Parity          Positive Parity'')')
             write(99,'(''#  J           Yrast  Yrast-lev          Yrast  Yrast-lev'')')
 
-            do j = 0, 20
-               xj=dfloat(j)+nucleus(i)%jshift
+            do j = 0, max_J_allowed
+               xj = dfloat(j) + nucleus(i)%jshift
                write(99,'(1x,f4.1,2(4x,2(1x,f10.4)))')xj,          &
                   yrast_actual(j,0),yrast(j,0),yrast_actual(j,1),yrast(j,1)
             end do

@@ -627,10 +627,16 @@ Version 3.41
     printing of D0 for in .out file for these cases.
 
 Version 3.42
-1.  Fixed error defingin max_J_allowed for population decays
+1.  Fixed error defining max_J_allowed for population decays
 2.  Fixed information written to .out file, also added writing of isotope for
     various data elements to help keep track in the out file.
 3.  Added capability to add a comment line in the evaluated RIPL files. A 
     comment line MUST start with '#' or '!'.
 
+Version 3.43
+1.  Fixed issues with level density and yrast states.
+    a.  Fixed error where yrast was above max # of bins, so level desnity wasn't
+        set to zero
+    b.  Fixed error where discrete states above E_cut where not being subtracted
+        from the level density.
 
