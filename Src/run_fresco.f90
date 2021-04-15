@@ -9,7 +9,7 @@
 !
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    This code is distributed under the GNU LGPL version 2 license.
 !
 !  Date:
 !
@@ -54,7 +54,7 @@ subroutine run_fresco(ener, fresco_dir, len_fresco, fresco_name, iendf, fname, e
    integer(kind=4), intent(in) :: ncc, nex, if_state
    integer(kind=4), intent(in) :: cc_state_par(nex), cc_state_type(nex)
    integer(kind=4), intent(in) :: cc_state_k(nex), cc_state_kpp(nex)
-   real(kind=8), intent(in) :: cc_state_j(nex), cc_state_e(nex) 
+   real(kind=8), intent(in) :: cc_state_j(nex), cc_state_e(nex)
    real(kind=8), intent(in) :: cc_state_str(nex)
 !-------    End of in and out variables
 !----------------------------------------------------------------------------------------
@@ -115,7 +115,7 @@ subroutine run_fresco(ener, fresco_dir, len_fresco, fresco_name, iendf, fname, e
    end if
 
 !   write(6,*)hcm_check
-   
+
    th_min = 0.0d0
    th_max = 180.0d0
    th_inc = 1.0d0
@@ -158,7 +158,7 @@ subroutine run_fresco(ener, fresco_dir, len_fresco, fresco_name, iendf, fname, e
      write(20,'(''    chans= 1 smats= 2 xstabl= 1 tcfile= 3 iter= '',i2)')iter
      write(20,15) ener
 15      format('    elab=',e15.7,'  pel= 1 exl= 1 lab= 1 lin= 1 lex= 1 /')
-     write(20,*) 
+     write(20,*)
      if(ncc == nex)then
         write(20,16) label, mass_proj, zpart, nex
 16         format('&Partition  namep=''',a1,'       '' massp= ',f12.8,' zp= ',i3,' nex=',i3)
@@ -169,7 +169,7 @@ subroutine run_fresco(ener, fresco_dir, len_fresco, fresco_name, iendf, fname, e
      write(20,17) namet, mass_target, iZ
 17      format('            namet=''',a8,''' masst= ',f12.8,' zt= ',i3,' qval=  0.000/')
      write(20,18)spin,1, cc_state_kpp(1), cc_state_j(1), cc_state_par(1), cc_state_e(1), K_band
-18      format('&States jp= ',f3.1,' ptyp=',i2,' ep=  0.000000  cpot='i3,' jt=',f4.1,' ptyt=',i2,' et=',f8.4,' kkt = ',f4.1,'/')
+18      format('&States jp= ',f3.1,' ptyp=',i2,' ep=  0.000000  cpot=',i3,' jt=',f4.1,' ptyt=',i2,' et=',f8.4,' kkt = ',f4.1,'/')
 
      do i = 2, ncc
         write(20,21)cc_state_kpp(i), cc_state_j(i), cc_state_par(i), cc_state_e(i),K_band
@@ -201,11 +201,11 @@ subroutine run_fresco(ener, fresco_dir, len_fresco, fresco_name, iendf, fname, e
         if(abs(V_pot(1,ipot)) > 1.0d-6)then
            write(20,31) kp,ipot,0,V_pot(1,ipot),R_pot(1,ipot),a_pot(1,ipot),0.,0.,0.
            if(ipot /= 3 .and. deformed)write(20,31)kp,11,ifresco_shape,(beta(k)*ac*R_pot(1,ipot),k=1,6)
-        end if     
+        end if
         if(abs(V_pot(2,ipot)) > 1.0d-6)then
            write(20,31) kp,ipot,0,0.,0.,0.,V_pot(2,ipot),R_pot(2,ipot),a_pot(2,ipot)
            if(ipot /= 3 .and. deformed)write(20,31)kp,11,ifresco_shape,(beta(k)*ac*R_pot(2,ipot),k=1,6)
-        end if     
+        end if
      end do
      if(ncc /= nex)then
         write(20,*)
@@ -217,7 +217,7 @@ subroutine run_fresco(ener, fresco_dir, len_fresco, fresco_name, iendf, fname, e
         write(20,31) kp,-ipot,0,V_pot(1,ipot),R_pot(1,ipot),a_pot(1,ipot),V_pot(2,ipot),R_pot(2,ipot),a_pot(2,ipot)
         write(20,31)kp,13,10,0.0,0.5,0.5,0.5,0.0,0.0
 
- 33  format('  &step ib=',i3,1x,'ia= ',i2,1x,'k=',i2,' str=',f10.6,1x'/')
+ 33  format('  &step ib=',i3,1x,'ia= ',i2,1x,'k=',i2,' str=',f10.6,1x,'/')
  34  format('  &step /')
         do i = ncc + 1, nex
            xk_factor = sqrt(2.0d0*J_gs + 1.0d0)
@@ -232,7 +232,7 @@ subroutine run_fresco(ener, fresco_dir, len_fresco, fresco_name, iendf, fname, e
         ipot = 3
         write(20,31) kp,ipot,0,V_pot(1,ipot),R_pot(1,ipot),a_pot(1,ipot),V_pot(2,ipot),R_pot(2,ipot),a_pot(2,ipot)
      end if
-     write(20,*)     
+     write(20,*)
      write(20,32)
      write(20,'(''&Overlap /'')')
      write(20,'(''&Coupling /'')')
@@ -272,12 +272,12 @@ subroutine run_fresco(ener, fresco_dir, len_fresco, fresco_name, iendf, fname, e
         ilast = ifirst
         line(ifirst:ilast) = symb(2:2)
      end if
-  
+
 
      write(6,'(a)')line(1:ilast)//', at E_lab ='//char_energy
 
      iend_err = index(err_name,' ') - 1
- 
+
      command(1:132) = ' '
      istart = 1
      istop = 10

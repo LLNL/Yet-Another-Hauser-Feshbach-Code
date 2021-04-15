@@ -3,12 +3,12 @@
 !
 !  Discussion:
 !
-!    This Subroutine to write reaction, absorption,and total cross sections 
+!    This Subroutine to write reaction, absorption,and total cross sections
 !    to the library directory
 !
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    This code is distributed under the GNU LGPL version 2 license.
 !
 !  Date:
 !
@@ -30,7 +30,7 @@ subroutine print_pop_mult_data(itarget, istate, ilab, file_lab, ilib_dir, lib_di
    use nuclei
    use Channel_info
    use particles_def
-   implicit none  
+   implicit none
    integer(kind=4), intent(in):: itarget
    integer(kind=4), intent(in):: istate
    integer(kind=4), intent(in):: ilab
@@ -78,7 +78,7 @@ subroutine print_pop_mult_data(itarget, istate, ilab, file_lab, ilib_dir, lib_di
          istate-1,nucleus(itarget)%state(istate)%spin, ch_par(ipi),                        &
          nucleus(itarget)%state(istate)%energy
    write(100,'(''# Multiplicity data '')')
-   write(100,'(''#''9x,''E_in'',6x,7(3x,6x,''Avg('',a1,'')'',4x,3x,6x,''Var('',a1,'')'',4x))')         &
+   write(100,'(''#'',9x,''E_in'',6x,7(3x,6x,''Avg('',a1,'')'',4x,3x,6x,''Var('',a1,'')'',4x))')         &
        (particle(k)%label,particle(k)%label, k= 0,6)
    write(100,'(''#   ----------------'',14(''   ----------------   ----------------''))')
    do in = 1, num_energies

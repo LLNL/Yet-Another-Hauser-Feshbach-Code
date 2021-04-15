@@ -5,11 +5,11 @@
 !
 !    This Subroutine examines the incident energy grid and fixes issues,
 !    such as photon energies being too small, mapping onto the nergy grid,
-!    and removing redundant incident energies 
+!    and removing redundant incident energies
 !
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    This code is distributed under the GNU LGPL version 2 license.
 !
 !  Date:
 !
@@ -173,11 +173,11 @@ end subroutine fix_incident_energies
 !
 !    This Subroutine examines the incident energy grid and fixes issues,
 !    such as photon energies being too small, mapping onto the nergy grid,
-!    and removing redundant incident energies 
+!    and removing redundant incident energies
 !
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    This code is distributed under the GNU LGPL version 2 license.
 !
 !  Date:
 !
@@ -255,7 +255,7 @@ subroutine fix_pop_energies
       write(6,'(''**************************************************************'')')
       write(6,'(''* Warning, some population excitation energies extend to     *'')')
       write(6,'(''* very low energy with with a low level density.             *'')')
-      write(6,'(''* Excitation energies must be above E_cut = '',f10.5''       *'')')nucleus(1)%level_ecut
+      write(6,'(''* Excitation energies must be above E_cut = '',f10.5,''    *'')')nucleus(1)%level_ecut
       write(6,'(''* Energies requested below this value will be removed        *'')')
       write(6,'(''* --------      Continue at your own risk!      -------------*'')')
       write(6,'(''**************************************************************'')')

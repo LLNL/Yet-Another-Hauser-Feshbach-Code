@@ -11,7 +11,7 @@ subroutine output_nucleus_data(j_max, itarget)
 !
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    This code is distributed under the GNU LGPL version 2 license.
 !
 !  Date:
 !
@@ -89,7 +89,7 @@ subroutine output_nucleus_data(j_max, itarget)
       lprint = .false.
       do j = 1, iprint           !   Check to see if this nucleus has been printed already
          if(nucleus(i)%Z == printZA(1,j) .and. nucleus(i)%A == printZA(2,j))then
-            lprint=.true.            ! found in lest of previous printed nuclei             
+            lprint=.true.            ! found in lest of previous printed nuclei
             exit
          end if
       end do
@@ -212,7 +212,7 @@ subroutine output_nucleus_data(j_max, itarget)
                             nucleus(i)%Gamma_g_exp
          end if
       else
-         write(13,'('' Experimental Gamma_gamma(l=0) = UNAVAILABLE'')') 
+         write(13,'('' Experimental Gamma_gamma(l=0) = UNAVAILABLE'')')
       end if
       if(nucleus(i)%Gamma_g_1 >= 0.0d0)write(13,'('' Calcuated Gamma_gamma(l=1)    = '',f12.3,'' meV'')')nucleus(i)%Gamma_g_1
       if(nucleus(i)%Gamma_g_1 < 0.0d0)write(13,'('' Gamma_gamma(l=1) is NOT CALCULATED; Ex_max < Sn in this run'')')
@@ -221,7 +221,7 @@ subroutine output_nucleus_data(j_max, itarget)
                             nucleus(i)%Gamma_g_1_exp,                                         &
                             nucleus(i)%dGamma_g_1_exp
       else
-         write(13,'('' Experimental Gamma_gamma(l=1) = UNAVAILABLE'')') 
+         write(13,'('' Experimental Gamma_gamma(l=1) = UNAVAILABLE'')')
       end if
 !------------------------------------------------------------------
       write(13,*)
@@ -232,7 +232,7 @@ subroutine output_nucleus_data(j_max, itarget)
       lev_below = 0
       do k = 1,nucleus(i)%num_discrete
          if(nucleus(i)%state(k)%energy > nucleus(i)%level_param(7)     &
-           .and. lev_below == 0)lev_below = 1 
+           .and. lev_below == 0)lev_below = 1
          if(lev_below /= 1)then
             if(i == itarget .and. k == target%istate)then
                write(13,'(2x,i3,2x,f10.5,1x,f5.1,1x,f3.0,1x,'//        &
@@ -286,7 +286,7 @@ subroutine output_nucleus_data(j_max, itarget)
                 nucleus(i)%state(k)%p_gamma(m),                        &
                 nucleus(i)%state(k)%p_ic(m),                           &
                 nucleus(i)%state(k)%branch_modified(m)
-  
+
          end do
       end do
 
@@ -303,7 +303,7 @@ subroutine output_nucleus_data(j_max, itarget)
          write(13,'(''    N    J  PAR     Energy'')')
          write(13,'(''  ---  ---  ---     ------'')')
          do k = 1, numcc
-            write(13,'(1xi4,2(1x,f4.1),1x,f10.4)')k,OpticalCS%state(k)%spin,      &
+            write(13,'(1x,i4,2(1x,f4.1),1x,f10.4)')k,OpticalCS%state(k)%spin,      &
                 OpticalCS%state(k)%parity,OpticalCS%state(k)%energy
          end do
          write(13,*)
@@ -312,7 +312,7 @@ subroutine output_nucleus_data(j_max, itarget)
          write(13,'(''    N    J  PAR    K     Energy'')')
          write(13,'(''  ---  ---  ---  ---     ------'')')
          do k = numcc + 1, OpticalCS%numcc
-            write(13,'(1xi4,3(1x,f4.1),1x,f10.4)')k,OpticalCS%state(k)%spin,      &
+            write(13,'(1x,i4,3(1x,f4.1),1x,f10.4)')k,OpticalCS%state(k)%spin,      &
                 OpticalCS%state(k)%parity,OpticalCS%state(k)%K,OpticalCS%state(k)%energy
          end do
       end if
@@ -334,18 +334,18 @@ subroutine output_nucleus_data(j_max, itarget)
          write(13,*)'Fitting to D0 by adjusting the shell correction'
       elseif(.not. nucleus(i)%fit_D0)then
          write(13,*)'No fit to D0 is performed'
-      end if 
+      end if
       if(nucleus(i)%D0exp > 0.0d0)then
          write(13,'('' Experimental D0 ='',f10.3,'' +/- '',f10.3,'' eV'')')    &
                      nucleus(i)%D0exp,nucleus(i)%dD0exp
       else
-         write(13,'('' Experimental D0 =  UNAVAILABLE'')') 
+         write(13,'('' Experimental D0 =  UNAVAILABLE'')')
       end if
       if(nucleus(i)%D0 > 0.0d0)then
          write(13,'('' Calculated D0 ='',f10.3)')    &
                      nucleus(i)%D0
       else
-         write(13,'('' D0 Not Calculated'')') 
+         write(13,'('' D0 Not Calculated'')')
       end if
       write(13,*)'Level-density parameters'
       write(13,*)'Level-density model = ',nucleus(i)%level_model
@@ -650,7 +650,7 @@ subroutine output_nucleus_data(j_max, itarget)
 !              energy,nucleus(i)%f_E(j,1),nucleus(i)%str_E(j,1)
       end do
 !------------------------------------------------------------------
-!-----------   The other Electric multipoles - 
+!-----------   The other Electric multipoles -
 !-----------   different because E1 has up to three modes
 !------------------------------------------------------------------
       do l_radiation = 2, nucleus(i)%lmax_E
@@ -771,7 +771,7 @@ subroutine output_nucleus_data(j_max, itarget)
                 end if
 
                 write(13,'('' Rotational collective-enhancement parameters'')')
-  
+
                 write(13,'(''x(1) = '',f10.4)')nucleus(i)%F_Barrier(j)%rot_enh(1)
                 write(13,'(''x(2) = '',f10.4)')nucleus(i)%F_Barrier(j)%rot_enh(2)
                 write(13,'(''x(3) = '',f10.4)')nucleus(i)%F_Barrier(j)%rot_enh(3)
@@ -858,7 +858,7 @@ subroutine output_nucleus_data(j_max, itarget)
                   if(nucleus(i)%F_barrier(j)%state_pi(k) < 0)char = '-'
                   write(13,'(i5,1x,f10.3,1x,f4.1,a1)')                               &
                      k,nucleus(i)%F_barrier(j)%state_e(k),                           &
-                       nucleus(i)%F_barrier(j)%state_j(k),char          
+                       nucleus(i)%F_barrier(j)%state_j(k),char
                end do
             end if
 !-------   Fission level densities
@@ -1024,7 +1024,7 @@ subroutine output_nucleus_data(j_max, itarget)
             write(13,fstring)energy,(prob2(j),j=0,min(j_max,60))
          end do
       end do
-      
+
       if(nucleus(i)%Fission)then
          if1 = nucleus(i)%num_decay + 1
          write(13,*)

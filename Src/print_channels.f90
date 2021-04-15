@@ -3,12 +3,12 @@
 !
 !  Discussion:
 !
-!    This Subroutine to write exit channel reaction data the library 
+!    This Subroutine to write exit channel reaction data the library
 !    directory
 !
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    This code is distributed under the GNU LGPL version 2 license.
 !
 !  Date:
 !
@@ -30,7 +30,7 @@ subroutine print_channels(itarget, istate, ilab, file_lab, ilib_dir, lib_dir, ch
    use nuclei
    use Channel_info
    use particles_def
-   implicit none  
+   implicit none
    integer(kind=4), intent(in):: itarget
    integer(kind=4), intent(in):: istate
    integer(kind=4), intent(in):: ilab
@@ -118,10 +118,10 @@ subroutine print_channels(itarget, istate, ilab, file_lab, ilib_dir, lib_dir, ch
          write(100,'(''# Probabilities for each exit channel'')')
       else
          write(100,'(''# Cross sections for each exit channel in '',a2)')cs_units
-      end if 
+      end if
 
       write(temp_string,*)num_channels
-      
+
       fstring = "('#         E_in      ',"//trim(adjustl(temp_string))//'(7x,a10,2x))'
       write(100,fstring)(Exit_Channel(i)%Channel_Label(1:ilast_chann(i)), i = 1, num_channels)
 
@@ -395,7 +395,7 @@ subroutine print_channels(itarget, istate, ilab, file_lab, ilib_dir, lib_dir, ch
                end if
             end do
             if(icc_max < 1)icc_max = 1
-!------   Create angular distribution array - normalize over angle and multiply by prob 
+!------   Create angular distribution array - normalize over angle and multiply by prob
             alf = 0.0d0
             bet = 0.0d0
             do k = 0, 6
@@ -435,7 +435,7 @@ subroutine print_channels(itarget, istate, ilab, file_lab, ilib_dir, lib_dir, ch
                end do
             end do
 
-!----------   Print out data 
+!----------   Print out data
            do icc = 0, icc_max
                e_out = real(icc,kind=8)*de_spec
                if(icc >0)e_out = e_out - de_spec/2.0d0
@@ -568,7 +568,7 @@ subroutine print_channels(itarget, istate, ilab, file_lab, ilib_dir, lib_dir, ch
                  write(100,'(1x,3x,1pe16.7,3x,1pe16.7,3x,i5,7(3x,1pe16.7))')e_in, e_out, L,        &
                     (Exit_Channel(i)%Spect(k,n,in)%E_Ang_L(L,icc),k=0,6)
                end do
-            end do 
+            end do
          end do
 
          close(unit=100)
@@ -654,7 +654,7 @@ subroutine print_channels(itarget, istate, ilab, file_lab, ilib_dir, lib_dir, ch
             cs = Exit_Channel(i)%Channel_cs(n,in)*reaction_cs(in)
             write(100,'(''#'')')
             if(pop_calc .and. pop_calc_prob)then
-               write(100,'(''# E_in = '',1pe16.7,3x,''Decay Probability = '',1pe16.7)'')')            &
+               write(100,'(''# E_in = '',1pe16.7,3x,''Decay Probability = '',1pe16.7)')            &
                        e_in,cs
             else
                write(100,'(''# E_in = '',1pe16.7,3x,''Cross Section = '',1pe16.7,1x,''('',a2,'')'')') &
@@ -967,7 +967,7 @@ subroutine print_channels(itarget, istate, ilab, file_lab, ilib_dir, lib_dir, ch
                write(100,1911)k-1, nucleus(inuc)%state(k)%spin,ch_par(ipi),                        &
                               nf-1, nucleus(inuc)%state(nf)%spin, ch_par(ipf),                     &
                               nucleus(inuc)%state(k)%egamma(m)
-1911        format('#',i4,1x,f4.1,a1,2x,i4,1x,f4.1,a1,8x,f10.5) 
+1911        format('#',i4,1x,f4.1,a1,2x,i4,1x,f4.1,a1,8x,f10.5)
 
                if(pop_calc .and. pop_calc_prob)then
                   write(100,1920)
@@ -990,7 +990,7 @@ subroutine print_channels(itarget, istate, ilab, file_lab, ilib_dir, lib_dir, ch
                      sum = sum + Exit_channel(i)%Channel_cs(nn,in)
                   end do
                   if(sum > 1.0d-10)ratio = cs/sum
-1908   format(1x,f12.6,1x,i4,1x,f4.1,a1,'  ',i4,1x,f4.1,a1,8x,f10.5,3x,e15.7,3x,e15.7,3x,e15.7) 
+1908   format(1x,f12.6,1x,i4,1x,f4.1,a1,'  ',i4,1x,f4.1,a1,8x,f10.5,3x,e15.7,3x,e15.7,3x,e15.7)
                   write(100,1908)e_in, k-1, nucleus(inuc)%state(k)%spin, ch_par(ipi),              &
                                  nf-1, nucleus(inuc)%state(nf)%spin, ch_par(ipf),                  &
                                  nucleus(inuc)%state(k)%egamma(m),                                 &
@@ -999,7 +999,7 @@ subroutine print_channels(itarget, istate, ilab, file_lab, ilib_dir, lib_dir, ch
             end do
          end do
          close(unit = 100)
-      end do                               
+      end do
    end if
    close(unit = 13)
    return
