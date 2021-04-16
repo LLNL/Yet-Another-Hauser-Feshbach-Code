@@ -332,6 +332,7 @@ subroutine set_up_decay_chain(Z_p, A_p, Z_t, A_t)
                         nucleus(num_nuc)%beta(4) = 0.0d0
                         nucleus(num_nuc)%beta(5) = 0.0d0
                         nucleus(num_nuc)%beta(6) = 0.0d0
+                        nucleus(num_nuc)%fit_gamma_gamma = .true.
 			
 
                         if(A_f > 20)then

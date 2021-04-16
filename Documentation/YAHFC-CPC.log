@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.20 (TeX Live 2019) (preloaded format=pdflatex 2019.5.8)  12 APR 2021 11:21
+This is pdfTeX, Version 3.14159265-2.6-1.40.20 (TeX Live 2019) (preloaded format=pdflatex 2019.5.8)  15 APR 2021 18:05
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -661,131 +661,135 @@ Underfull \hbox (badness 1975) in paragraph at lines 315--317
  []
 
 [8] [9]
-Underfull \hbox (badness 3312) in paragraph at lines 411--412
+Underfull \hbox (badness 3312) in paragraph at lines 410--411
 []\OT1/cmr/m/n/10 A lim-ited set of op-ti-cal po-ten-tials is pro-vided
  []
 
 [10]
+Underfull \hbox (badness 1303) in paragraph at lines 473--474
+[]\OT1/cmr/m/n/10 Given that FRES-COX cal-cu-la-tions with coupled-
+ []
 
-LaTeX Warning: Command \i invalid in math mode on input line 486.
 
-[11] [12]
-Underfull \hbox (badness 10000) in paragraph at lines 622--623
+Underfull \hbox (badness 3503) in paragraph at lines 473--474
+\OT1/cmr/m/n/10 cal-cu-la-tions, for sev-eral ac-tinide nu-clei us-ing the
+ []
+
+
+LaTeX Warning: Command \i invalid in math mode on input line 485.
+
+[11] [12] [13]
+Underfull \hbox (badness 10000) in paragraph at lines 620--621
 []\OT1/cmr/m/n/10 With the op-tions ``$[]$'' or
  []
 
 
-Underfull \hbox (badness 2158) in paragraph at lines 622--623
+Underfull \hbox (badness 2158) in paragraph at lines 620--621
 \OT1/cmr/m/n/10 ``$[]$, YAHFC will write each Monte
  []
 
-[13]
 
-LaTeX Warning: A float is stuck (cannot be placed); try class option [floatfix]
- on input line 623.
-
-
-Underfull \hbox (badness 1052) in paragraph at lines 626--636
-[]\OT1/cmr/m/n/10 Following each sam-ple, data rom each sam-ple is
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 626--636
+Underfull \hbox (badness 10000) in paragraph at lines 624--636
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 626--636
+Underfull \hbox (badness 10000) in paragraph at lines 624--636
 
  []
 
 
-Underfull \hbox (badness 1122) in paragraph at lines 637--638
-\OT1/cmr/m/n/10 pre-equilibirum emis-sion and di-rect pro-cesses would
+Underfull \hbox (badness 1014) in paragraph at lines 637--648
+\OT1/cmr/m/n/10 chan-nels is de-sired, i.e., dis-tin-guish-ing be-tween the
  []
 
 
-Underfull \hbox (badness 2035) in paragraph at lines 637--638
-\OT1/cmr/m/n/10 be printed for each in-ci-dent en-ergy in the di-rec-
+Underfull \hbox (badness 10000) in paragraph at lines 637--648
+
  []
 
 
-Underfull \hbox (badness 1400) in paragraph at lines 643--644
-[]\OT1/cmr/m/n/10 With Mes-sage Pass-ing In-ter-face (MPI) pro-to-cols,
+Underfull \hbox (badness 10000) in paragraph at lines 637--648
+
  []
 
 [14]
-Underfull \hbox (badness 10000) in paragraph at lines 651--656
+Underfull \hbox (badness 1400) in paragraph at lines 655--656
+[]\OT1/cmr/m/n/10 With Mes-sage Pass-ing In-ter-face (MPI) pro-to-cols,
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 663--668
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 651--656
+Underfull \hbox (badness 10000) in paragraph at lines 663--668
 
  []
 
-
-Underfull \hbox (badness 1859) in paragraph at lines 699--701
+[15]
+Underfull \hbox (badness 1859) in paragraph at lines 711--713
 \OT1/cmr/m/n/10 where $\OML/cmm/m/it/10 ^^[[]$ \OT1/cmr/m/n/10 de-notes op-ti-c
 al model ab-sorp-tion cross
  []
 
 
-Underfull \hbox (badness 3482) in paragraph at lines 699--701
+Underfull \hbox (badness 3482) in paragraph at lines 711--713
 \OT1/cmr/m/n/10 sec-tion for par-ti-cle type $\OML/cmm/m/it/10 k$ \OT1/cmr/m/n/
 10 with the resid-ual as
  []
 
 
-Underfull \hbox (badness 1917) in paragraph at lines 699--701
+Underfull \hbox (badness 1917) in paragraph at lines 711--713
 \OT1/cmr/m/n/10 the tar-get, $\OML/cmm/m/it/10 W[]\OT1/cmr/m/n/10 (\OML/cmm/m/i
 t/10 p[]; h[]; p[]; h[]\OT1/cmr/m/n/10 )$ is the emis-sion rate,
  []
 
-[15] [16] [17] [18]
-Underfull \hbox (badness 10000) in paragraph at lines 896--903
+[16] [17] [18]
+Underfull \hbox (badness 10000) in paragraph at lines 908--915
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 896--903
+Underfull \hbox (badness 10000) in paragraph at lines 908--915
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 896--903
+Underfull \hbox (badness 10000) in paragraph at lines 908--915
 
  []
 
-
-Underfull \hbox (badness 1484) in paragraph at lines 936--937
+[19]
+Underfull \hbox (badness 1484) in paragraph at lines 948--949
 []|$[]$\OT1/cmr/m/n/10 =$[]$: Use dis-crete lev-els only up to $\OML/cmm/m/it/1
 0 E[]$
  []
 
 
-Underfull \hbox (badness 4403) in paragraph at lines 985--986
+Underfull \hbox (badness 4403) in paragraph at lines 997--998
 []|$[]$ \OT1/cmr/m/n/10 = $[]$: Uni-ased Monte Carlo sam-pling
  []
 
-[19] [20] [21]
-Underfull \hbox (badness 2894) in paragraph at lines 1098--1100
+[20] [21] [22]
+Underfull \hbox (badness 2894) in paragraph at lines 1110--1112
 []|$\OML/cmm/m/it/10 j \OMS/cmsy/m/n/10 ^^T \OT1/cmr/m/n/10 3$ will over-rides 
 de-fault val-ues found in file
  []
 
-[22]
-Underfull \hbox (badness 1472) in paragraph at lines 1179--1180
+[23]
+Underfull \hbox (badness 1472) in paragraph at lines 1191--1192
 \OT1/cmr/m/n/10 RIPL3-L0.dat and Level-Density-Data-RIPL3-L1.dat in
  []
 
-[23] [24]
-Underfull \hbox (badness 8019) in paragraph at lines 1291--1292
+[24] [25]
+Underfull \hbox (badness 8019) in paragraph at lines 1303--1304
 []|\OT1/cmr/bx/n/10 Default: \OT1/cmr/m/n/10 Spec-i-fied in file YAHFC[]DATA/Fi
 ssion-
  []
 
-[25] [26] [27] [28] [29] (./YAHFC-CPC.bbl
+[26] [27] [28] [29] [30] (./YAHFC-CPC.bbl
 Underfull \hbox (badness 10000) in paragraph at lines 144--152
  []\OT1/cmr/m/n/9 NEA, \OT1/cmr/m/it/9 Spec-i-fi-ca-tions for the Gen-er-alised
  Nu-
@@ -801,25 +805,28 @@ Underfull \hbox (badness 10000) in paragraph at lines 144--152
  \OT1/cmr/m/n/9 https://doi.org/10.1787/94d5e451-en (OECD Pub-
  []
 
-[30]) [31]
-Package atveryend Info: Empty hook `AfterLastShipout' on input line 1469.
+[31]) [32]
+Package atveryend Info: Empty hook `AfterLastShipout' on input line 1481.
  (./YAHFC-CPC.aux)
-Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 1469.
-Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 1469.
+Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 1481.
+Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 1481.
 
 Package rerunfilecheck Info: File `YAHFC-CPC.out' has not changed.
 (rerunfilecheck)             Checksum: 990E21DA3DD37496CEF8090586F729EE;2051.
  ) 
 Here is how much of TeX's memory you used:
- 18049 strings out of 492616
- 310583 string characters out of 6129482
- 596061 words of memory out of 5000000
- 21638 multiletter control sequences out of 15000+600000
- 548204 words of font info for 84 fonts, out of 8000000 for 9000
+ 18053 strings out of 492616
+ 310718 string characters out of 6129482
+ 584061 words of memory out of 5000000
+ 21639 multiletter control sequences out of 15000+600000
+ 548372 words of font info for 85 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 40i,15n,63p,2552b,569s stack positions out of 5000i,500n,10000p,200000b,80000s
-pdfTeX warning (dest): name{section*.3-footnote.\\protect\040$\\relax\040*$} 
-has been referenced but does not exist, replaced by a fixed one
+ 40i,15n,63p,2385b,569s stack positions out of 5000i,500n,10000p,200000b,80000s
+pdfTeX warning (dest): name{equation.4.25-footnote.\\protect\040$\\relax\040\
+\dagger\040$} has been referenced but does not exist, replaced by a fixed one
+
+pdfTeX warning (dest): name{section*.3-footnote.\\protect\040$\\relax\040*$} ha
+s been referenced but does not exist, replaced by a fixed one
 
 </usr/local/texlive/2019/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx10.pfb><
 /usr/local/texlive/2019/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx12.pfb></
@@ -829,29 +836,31 @@ r/local/texlive/2019/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb></usr
 local/texlive/2019/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi5.pfb></usr/lo
 cal/texlive/2019/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi6.pfb></usr/loca
 l/texlive/2019/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi7.pfb></usr/local/
-texlive/2019/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi9.pfb></usr/local/te
-xlive/2019/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr/local/texl
-ive/2019/texmf-dist/fonts/type1/public/amsfonts/cm/cmr5.pfb></usr/local/texlive
-/2019/texmf-dist/fonts/type1/public/amsfonts/cm/cmr6.pfb></usr/local/texlive/20
-19/texmf-dist/fonts/type1/public/amsfonts/cm/cmr7.pfb></usr/local/texlive/2019/
-texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb></usr/local/texlive/2019/tex
-mf-dist/fonts/type1/public/amsfonts/cm/cmr9.pfb></usr/local/texlive/2019/texmf-
-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/local/texlive/2019/texmf-d
-ist/fonts/type1/public/amsfonts/cm/cmsy5.pfb></usr/local/texlive/2019/texmf-dis
-t/fonts/type1/public/amsfonts/cm/cmsy6.pfb></usr/local/texlive/2019/texmf-dist/
-fonts/type1/public/amsfonts/cm/cmsy7.pfb></usr/local/texlive/2019/texmf-dist/fo
-nts/type1/public/amsfonts/cm/cmsy8.pfb></usr/local/texlive/2019/texmf-dist/font
-s/type1/public/amsfonts/cm/cmsy9.pfb></usr/local/texlive/2019/texmf-dist/fonts/
-type1/public/amsfonts/cm/cmti10.pfb></usr/local/texlive/2019/texmf-dist/fonts/t
-ype1/public/amsfonts/cm/cmti9.pfb></usr/local/texlive/2019/texmf-dist/fonts/typ
-e1/public/amsfonts/cm/cmtt10.pfb></usr/local/texlive/2019/texmf-dist/fonts/type
-1/public/amsfonts/cm/cmtt9.pfb></usr/local/texlive/2019/texmf-dist/fonts/type1/
-public/amsfonts/symbols/msbm10.pfb></usr/local/texlive/2019/texmf-dist/fonts/ty
-pe1/public/amsfonts/symbols/msbm7.pfb>
-Output written on YAHFC-CPC.pdf (31 pages, 507748 bytes).
+texlive/2019/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi8.pfb></usr/local/te
+xlive/2019/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi9.pfb></usr/local/texl
+ive/2019/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr/local/texliv
+e/2019/texmf-dist/fonts/type1/public/amsfonts/cm/cmr5.pfb></usr/local/texlive/2
+019/texmf-dist/fonts/type1/public/amsfonts/cm/cmr6.pfb></usr/local/texlive/2019
+/texmf-dist/fonts/type1/public/amsfonts/cm/cmr7.pfb></usr/local/texlive/2019/te
+xmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb></usr/local/texlive/2019/texmf
+-dist/fonts/type1/public/amsfonts/cm/cmr9.pfb></usr/local/texlive/2019/texmf-di
+st/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/local/texlive/2019/texmf-dis
+t/fonts/type1/public/amsfonts/cm/cmsy5.pfb></usr/local/texlive/2019/texmf-dist/
+fonts/type1/public/amsfonts/cm/cmsy6.pfb></usr/local/texlive/2019/texmf-dist/fo
+nts/type1/public/amsfonts/cm/cmsy7.pfb></usr/local/texlive/2019/texmf-dist/font
+s/type1/public/amsfonts/cm/cmsy8.pfb></usr/local/texlive/2019/texmf-dist/fonts/
+type1/public/amsfonts/cm/cmsy9.pfb></usr/local/texlive/2019/texmf-dist/fonts/ty
+pe1/public/amsfonts/cm/cmti10.pfb></usr/local/texlive/2019/texmf-dist/fonts/typ
+e1/public/amsfonts/cm/cmti9.pfb></usr/local/texlive/2019/texmf-dist/fonts/type1
+/public/amsfonts/cm/cmtt10.pfb></usr/local/texlive/2019/texmf-dist/fonts/type1/
+public/amsfonts/cm/cmtt8.pfb></usr/local/texlive/2019/texmf-dist/fonts/type1/pu
+blic/amsfonts/cm/cmtt9.pfb></usr/local/texlive/2019/texmf-dist/fonts/type1/publ
+ic/amsfonts/symbols/msbm10.pfb></usr/local/texlive/2019/texmf-dist/fonts/type1/
+public/amsfonts/symbols/msbm7.pfb>
+Output written on YAHFC-CPC.pdf (32 pages, 523880 bytes).
 PDF statistics:
- 657 PDF objects out of 1000 (max. 8388607)
- 590 compressed objects within 6 object streams
- 201 named destinations out of 1000 (max. 500000)
+ 675 PDF objects out of 1000 (max. 8388607)
+ 604 compressed objects within 7 object streams
+ 204 named destinations out of 1000 (max. 500000)
  233 words of extra memory for PDF output out of 10000 (max. 10000000)
 

@@ -32,7 +32,7 @@ module options
 !
    use variable_kinds
    character(len=132) :: version
-   parameter (version = 'MC-3.43')
+   parameter (version = 'MC-3.44')
    integer(kind=int_64) :: iseed_64
    integer(kind=int_32) :: iseed_32
    integer(kind=4) :: PREEQ_Model
@@ -509,6 +509,7 @@ module nuclei
       real(kind=8) :: gr_E1(4)
       real(kind=8) :: sr_E1(4)
       logical :: E1_default
+      logical :: fit_gamma_gamma
       real(kind=8), allocatable, dimension (:) :: er_M  ! magnetic properties
       real(kind=8), allocatable, dimension (:) :: gr_M
       real(kind=8), allocatable, dimension (:) :: sr_M

@@ -1389,22 +1389,16 @@ subroutine parse_command(icommand, command, finish)
       X(3) = X(4)
 
       if(j > 3)then
-         if(iproc ==0)write(6,*)'Bad input for E1_param'
+         if(iproc ==0)write(6,*)'Bad input for E1_param more than three lines'
          call MPI_Abort(icomm,101,ierr)
       end if
       do i = 1, num_comp
          if(iZ == nucleus(i)%Z .and. iA == nucleus(i)%A)then
-            if(nucleus(i)%E1_default)then
-               nucleus(i)%E1_default = .false.
-               do k = 1, 3
-                  nucleus(i)%er_E1(k) = 0.0d0
-                  nucleus(i)%gr_E1(k) = 0.0d0
-                  nucleus(i)%sr_E1(k) = 0.0d0
-               end do
-            end if
+            if(nucleus(i)%E1_default)nucleus(i)%E1_default = .false.
             nucleus(i)%er_E1(j) = x(1)
             nucleus(i)%gr_E1(j) = x(2)
             nucleus(i)%sr_E1(j) = x(3)
+            nucleus(i)%fit_gamma_gamma = .false.
          end if
       end do
       return
@@ -2665,7 +2659,6 @@ subroutine parse_command(icommand, command, finish)
          call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
          return
       end if
-      fit_Gamma_gamma = .false.
 
       call char_logical(command(startw(2):stopw(2)),logic_char,read_error)
 
@@ -2675,6 +2668,42 @@ subroutine parse_command(icommand, command, finish)
       end if
 
       fit_gamma_gamma = logic_char
+      do i = 1, num_comp
+         nucleus(i)%fit_gamma_gamma = fit_gamma_gamma
+      end do   
+
+      return
+   end if
+!
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!
+   if(command(startw(1):stopw(1)) == 'nuc_fit_gamma_gamma')then
+      icommand=icommand+1
+
+      ndat = 0
+      call extract_ZA_data(command, numw, startw, stopw, ndat,         &
+                           iZ, iA, X, nw, read_error)
+      nw = nw + 1
+      if(numw < nw)then
+         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
+         return
+      end if
+
+      call char_logical(command(startw(nw):stopw(nw)), logic_char, read_error)
+
+      if(read_error)then
+         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
+         return
+      end if
+
+      do i = 1, num_comp
+         if(iZ == nucleus(i)%Z .and. iA == nucleus(i)%A)then
+            nucleus(i)%fit_gamma_gamma = logic_char
+            return
+         end if
+      end do
+
 
       return
    end if
@@ -3487,6 +3516,14 @@ integer(kind=4) function rank_commands(command)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
+   if(command(startw(1):stopw(1)) == 'fit_gamma_gamma')then
+      rank_commands = 7
+      return
+   end if
+!
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!
    if(command(startw(1):stopw(1)) == 'lev_fit_d0')then
       rank_commands = 8
       return
@@ -3513,6 +3550,14 @@ integer(kind=4) function rank_commands(command)
 !
    if(command(startw(1):stopw(1)) == 'pair_vib_enhance_mode')then
       rank_commands = 8 
+      return
+   end if
+!
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!
+   if(command(startw(1):stopw(1)) == 'nuc_fit_gamma_gamma')then
+      rank_commands = 9
       return
    end if
 !
@@ -4025,7 +4070,7 @@ end subroutine char_logical
 subroutine print_command_error(nchar,word)
    use nodeinfo
    integer(kind=4), intent(in) :: nchar
-   character(len=1), intent(in) :: word(nchar)
+   character(len=132), intent(in) :: word
 !-------------------------------------------------------------------------------
    character(len=132) :: error_line
 !-------------------------------------------------------------------------------

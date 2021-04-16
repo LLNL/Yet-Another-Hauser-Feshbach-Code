@@ -42,7 +42,7 @@ subroutine fit_nuke_Gamma_gamma
    do icomp = 1, num_comp
       converged = .false.
       Gamma_g_exp = nucleus(icomp)%Gamma_g_exp
-      call Gamma_gamma(icomp,0,Gamma_g,g_error)
+      call Gamma_gamma(icomp, 0, Gamma_g, g_error)
 
       if(g_error > 0) converged = .true.                 !  Don't try to fit as Gamma_g can't be computed (Ex_max < Sn)
 !----   Don't fit if Gamma_g_exp < 0.0, no data
@@ -61,13 +61,13 @@ subroutine fit_nuke_Gamma_gamma
 
       num_res_old = nucleus(icomp)%num_res
 
-      if(diff > tolerance .and. fit_Gamma_gamma)then
+      if(diff > tolerance .and. nucleus(icomp)%fit_gamma_gamma)then
          nucleus(icomp)%num_res = nucleus(icomp)%num_res + 1
          num_res = nucleus(icomp)%num_res
          nucleus(icomp)%er_E1(num_res) = 5.0d0
          nucleus(icomp)%gr_E1(num_res) = 5.0d0
          nucleus(icomp)%sr_E1(num_res) = 0.0d0
-         step = nucleus(icomp)%sr_E1(1)/10000.0
+         step = nucleus(icomp)%sr_E1(1)/100000.0
 
          if(Gamma_g > Gamma_g_exp)step = - step       !   Calculated Gamma_g is too big, make strength negative
          nucleus(icomp)%sr_E1(num_res) = nucleus(icomp)%sr_E1(num_res) + step

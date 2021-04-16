@@ -640,3 +640,19 @@ Version 3.43
     b.  Fixed error where discrete states above E_cut where not being subtracted
         from the level density.
 
+Version 3.44
+1.  Integrated some cosmetic changes from Schunck
+2.  Fixed error in "error message" parse_command, where message didn't print
+    full name of offending command
+3.  Changed way E1 parameters are read in. Now, input overwrites existing 
+    component. Before, it zeroed out the previous ones, assuming that all 
+    components would be read in. Now, the others will be kept as they were
+    initially, unless explicitly read in.
+3.  Tweaked fit_gamma_gamma. Made fit decision on each nucleus, rather than 
+    globally. Initially, it is set up globally to be true. And, if the command
+    "fit_gamma_gamma n" is issued, it will be disabled globally. However, it is 
+    set up so that if any e1_params are read in fit to gamma_gamma is disabled 
+    for that nucleus. Thus one could have fits to gamma_gamma for nuclei where
+    E1 parameters are not changed. Also, introduced command
+    "nuc_fit_gamma_gamma" that sets the fit on or off for an indivual nucleus.
+
