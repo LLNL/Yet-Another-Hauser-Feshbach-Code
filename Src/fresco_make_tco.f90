@@ -103,6 +103,7 @@ subroutine fresco_make_tco(data_path, len_path, tco_file, len_tco,           &
   real(kind=8) :: R_pot(2,3)
   real(kind=8) :: A_pot(2,3)
   real(kind=8) :: RC
+  integer(kind=4) :: iradius
 
   logical deformed
   logical cc_found
@@ -753,33 +754,33 @@ subroutine fresco_make_tco(data_path, len_path, tco_file, len_tco,           &
      if(pindex == 1)then
         RC = 1.2d0
         if(particle(pindex)%opt_pot == 1)                                            &
-           call KD_potential(pindex, iA, iZ, ener, V_pot, R_pot, a_pot, RC, D3)
+           call KD_potential(pindex, iA, iZ, ener, V_pot, R_pot, a_pot, RC, D3, iradius)
         if(particle(pindex)%opt_pot == 2)                                            &
            call soukhovitskii_potential(pindex, iA, iZ, particle(pindex)%om_option,  &
-                                        ener, V_pot, R_pot, a_pot, RC)
+                                        ener, V_pot, R_pot, a_pot, RC, iradius)
         if(particle(pindex)%opt_pot == 3)                                            &
-           call maslov_03_potential(ener, V_pot, R_pot, a_pot, RC)
+           call maslov_03_potential(ener, V_pot, R_pot, a_pot, RC, iradius)
      elseif(pindex == 2)then
         RC = 1.2d0
         if(particle(pindex)%opt_pot == 1)                                            &
-           call KD_potential(pindex, iA, iZ, ener, V_pot, R_pot, a_pot, RC, D3)
+           call KD_potential(pindex, iA, iZ, ener, V_pot, R_pot, a_pot, RC, D3, iradius)
         if(particle(pindex)%opt_pot == 2)                                            &
            call soukhovitskii_potential(pindex, iA, iZ, particle(pindex)%om_option,  &
-                                        ener, V_pot, R_pot, a_pot, RC)
+                                        ener, V_pot, R_pot, a_pot, RC, iradius)
         if(particle(pindex)%opt_pot == 3)                                            &
-           call maslov_03_potential(ener, V_pot, R_pot, a_pot, RC)
+           call maslov_03_potential(ener, V_pot, R_pot, a_pot, RC, iradius)
      elseif(pindex == 3)then
         if(particle(pindex)%opt_pot == 1)                                            &
-        call perey_d_potential(pindex, iA, iZ, ener, V_pot, R_pot, a_pot, RC)
+        call perey_d_potential(pindex, iA, iZ, ener, V_pot, R_pot, a_pot, RC, iradius)
      elseif(pindex == 4)then
         if(particle(pindex)%opt_pot == 1)                                            &
-        call becchetti_t_potential(pindex, iA, iZ, ener, V_pot, R_pot, a_pot, RC)
+        call becchetti_t_potential(pindex, iA, iZ, ener, V_pot, R_pot, a_pot, RC, iradius)
      elseif(pindex == 5)then
         if(particle(pindex)%opt_pot == 1)                                            &
-        call becchetti_h_potential(pindex, iA, iZ, ener, V_pot, R_pot, a_pot, RC)
+        call becchetti_h_potential(pindex, iA, iZ, ener, V_pot, R_pot, a_pot, RC, iradius)
      elseif(pindex == 6)then
         if(particle(pindex)%opt_pot == 1)                                            &
-        call avrigeanu_a_potential(pindex, iA, iZ, ener, V_pot, R_pot, a_pot, RC)
+        call avrigeanu_a_potential(pindex, iA, iZ, ener, V_pot, R_pot, a_pot, RC, iradius)
      end if
 
 
@@ -832,7 +833,7 @@ subroutine fresco_make_tco(data_path, len_path, tco_file, len_tco,           &
      if(execute_fresco)then
         call run_fresco(ener, fresco_dir, len_fresco, fresco_name, iendf, fname, err_name, symb,      &
                         pindex, mass_proj, iZ, iA, namet, mass_target, beta, deformed, J_gs, K_band,  &
-                        V_pot, R_pot, a_pot, RC, ncc, nex, if_state,                                  &
+                        V_pot, R_pot, a_pot, RC, iradius, ncc, nex, if_state,                         &
                         cc_state_par, cc_state_type, cc_state_k, cc_state_kpp,                        &
                         cc_state_j, cc_state_e, cc_state_str)
 

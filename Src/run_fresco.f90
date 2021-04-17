@@ -23,7 +23,7 @@
 !
 subroutine run_fresco(ener, fresco_dir, len_fresco, fresco_name, iendf, fname, err_name, symb,      &
                       pindex, mass_proj, iZ, iA, namet, mass_target, beta, deformed, J_gs, K_band,  &
-                      V_pot, R_pot, a_pot, RC, ncc, nex, if_state,                                  &
+                      V_pot, R_pot, a_pot, RC, iradius, ncc, nex, if_state,                         &
                       cc_state_par, cc_state_type, cc_state_k, cc_state_kpp,                        &
                       cc_state_j, cc_state_e, cc_state_str)
    use constants
@@ -51,6 +51,7 @@ subroutine run_fresco(ener, fresco_dir, len_fresco, fresco_name, iendf, fname, e
    real(kind=8), intent(in) :: R_pot(2,3)
    real(kind=8), intent(in) :: A_pot(2,3)
    real(kind=8), intent(in) :: RC
+   integer(kind=4), intent(in) :: iradius
    integer(kind=4), intent(in) :: ncc, nex, if_state
    integer(kind=4), intent(in) :: cc_state_par(nex), cc_state_type(nex)
    integer(kind=4), intent(in) :: cc_state_k(nex), cc_state_kpp(nex)
@@ -124,8 +125,9 @@ subroutine run_fresco(ener, fresco_dir, len_fresco, fresco_name, iendf, fname, e
    zpart = particle(pindex)%Z
    apart = particle(pindex)%A
    Ap = real(apart,kind=8)
-   AAp = Ap
-   if(pindex < 6)AAp = 0.0d0
+   AAp = 0.0d0
+   if(iradius == 1) AAp = Ap
+!   if(pindex < 6)AAp = 0.0d0
 !   mass_proj = particle(pindex)%mass/mass_u
    spin = particle(pindex)%spin
 !---------    Coupled channels control

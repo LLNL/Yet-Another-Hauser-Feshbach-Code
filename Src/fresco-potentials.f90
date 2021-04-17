@@ -1,7 +1,7 @@
 !
 !*******************************************************************************
 !
-subroutine KD_potential(part_type, iA, iZ, energy, V_pot, R_pot, a_pot, RC, D3)
+subroutine KD_potential(part_type, iA, iZ, energy, V_pot, R_pot, a_pot, RC, D3, iradius)
 !
 !*******************************************************************************
 !
@@ -42,6 +42,7 @@ subroutine KD_potential(part_type, iA, iZ, energy, V_pot, R_pot, a_pot, RC, D3)
    real(kind=8), intent(out) :: R_pot(2,3)
    real(kind=8), intent(out) :: a_pot(2,3)
    real(kind=8), intent(out) :: rc, d3
+   integer(kind=4), intent(out) :: iradius
 !
 !    (1,1)   Real Volume
 !    (2,1)   Imaginary Volume
@@ -61,6 +62,11 @@ subroutine KD_potential(part_type, iA, iZ, energy, V_pot, R_pot, a_pot, RC, D3)
    real(kind=8) :: vso_1, vso_2, wso_1, wso_2
    real(kind=8) :: eFermi, vc
    real(kind=8) :: del_vc
+
+!     iradius = 0    R = r0*A_T^1/3
+!     iradius = 1    R = r0*(A_Target^1/3 + A_proj^1/3)
+   iradius = 0
+
    iN = iA - iZ
    xA = real(iA,kind=8)
    xZ = real(iZ,kind=8)
@@ -145,7 +151,7 @@ end subroutine KD_potential
 !
 !*******************************************************************************
 !
-subroutine maslov_03_potential(E, V_pot, R_pot, a_pot, RC)
+subroutine maslov_03_potential(E, V_pot, R_pot, a_pot, RC, iradius)
 !
 !*******************************************************************************
 !
@@ -175,6 +181,7 @@ subroutine maslov_03_potential(E, V_pot, R_pot, a_pot, RC)
    real(kind=8), intent(out) :: R_pot(2,3)
    real(kind=8), intent(out) :: a_pot(2,3)
    real(kind=8), intent(out) :: RC
+   integer(kind=4), intent(out) :: iradius
 !----------------------------------------------------------
 !   real(kind=8) :: VR, RR, AR
 !   real(kind=8) :: W, RW, AW
@@ -182,6 +189,10 @@ subroutine maslov_03_potential(E, V_pot, R_pot, a_pot, RC)
 !   real(kind=8) :: WD, RD, AD
 !   real(kind=8) :: VSO, RSO, ASO
 !   real(kind=8) :: WSO, WRSO, WASO
+
+!     iradius = 0    R = r0*A_T^1/3
+!     iradius = 1    R = r0*(A_Target^1/3 + A_proj^1/3)
+   iradius = 0
 
    V_pot(1:2,1:3) = 0.0d0
 
@@ -221,7 +232,7 @@ end subroutine maslov_03_potential
 !*******************************************************************************
 !
 subroutine soukhovitskii_potential(part_type, iA, iZ, OM_option,        &
-                                   energy, V_pot, R_pot, a_pot, RC)
+                                   energy, V_pot, R_pot, a_pot, RC, iradius)
 !
 !*******************************************************************************
 !
@@ -260,6 +271,7 @@ subroutine soukhovitskii_potential(part_type, iA, iZ, OM_option,        &
    real(kind=8), intent(out) :: R_pot(2,3)
    real(kind=8), intent(out) :: a_pot(2,3)
    real(kind=8), intent(out) :: RC
+   integer(kind=4), intent(out) :: iradius
 !--------------------------------------------------------------------
    real(kind=8) :: v, rv, av, vd, rvd, avd
    real(kind=8) :: w, rw, aw, wd, rwd, awd
@@ -276,6 +288,10 @@ subroutine soukhovitskii_potential(part_type, iA, iZ, OM_option,        &
    real(kind=8) :: onethird
    real(kind=8) :: me, be, sep(0:6)
    real(kind=8) :: phase
+
+!     iradius = 0    R = r0*A_T^1/3
+!     iradius = 1    R = r0*(A_Target^1/3 + A_proj^1/3)
+   iradius = 0
 
    if(part_type > 2)then
       write(6,*)'Error in soukhovitskii_potential: part_type > 2'
@@ -396,8 +412,8 @@ end subroutine soukhovitskii_potential
 !
 !*******************************************************************************
 !
-subroutine perey_d_potential(part_type, iA, iZ, E,           &
-                             V_pot, R_pot, a_pot, RC)
+subroutine perey_d_potential(part_type, iA, iZ, E,                   &
+                             V_pot, R_pot, a_pot, RC, iradius)
 !
 !*******************************************************************************
 !
@@ -405,6 +421,7 @@ subroutine perey_d_potential(part_type, iA, iZ, E,           &
 !
 !    This subroutine calculates the parameters for the Perey
 !    deuteron potential
+!    Use with caution for energies below 12 MeV!
 !
 !    Reference:
 !
@@ -413,7 +430,7 @@ subroutine perey_d_potential(part_type, iA, iZ, E,           &
 !          
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    This code is distrid under the GNU LGPL version 2 license. 
 !
 !  Date:
 !
@@ -434,6 +451,7 @@ subroutine perey_d_potential(part_type, iA, iZ, E,           &
    real(kind=8), intent(out) :: R_pot(2,3)
    real(kind=8), intent(out) :: a_pot(2,3)
    real(kind=8), intent(out) :: RC
+   integer(kind=4), intent(out) :: iradius
 !----------------------------------------------------------
 !   real(kind=8) :: VR, RR, AR
 !   real(kind=8) :: W, RW, AW
@@ -444,6 +462,10 @@ subroutine perey_d_potential(part_type, iA, iZ, E,           &
    integer(kind=4) :: iN
    real(kind=8) :: xZ, xN, xA, xA13
    real(kind=8) :: diff
+
+!     iradius = 0    R = r0*A_T^1/3
+!     iradius = 1    R = r0*(A_Target^1/3 + A_proj^1/3)
+   iradius = 0
 
    if(part_type /= 3)then
       if(iproc == 0)then
@@ -485,7 +507,7 @@ end subroutine perey_d_potential
 !*******************************************************************************
 !
 subroutine becchetti_t_potential(part_type, iA, iZ, E,           &
-                                 V_pot, R_pot, a_pot, RC)
+                                 V_pot, R_pot, a_pot, RC, iradius)
 !
 !*******************************************************************************
 !
@@ -522,6 +544,7 @@ subroutine becchetti_t_potential(part_type, iA, iZ, E,           &
    real(kind=8), intent(out) :: R_pot(2,3)
    real(kind=8), intent(out) :: a_pot(2,3)
    real(kind=8), intent(out) :: RC
+   integer(kind=4), intent(out) :: iradius
 !----------------------------------------------------------
 !   real(kind=8) :: VR, RR, AR
 !   real(kind=8) :: W, RW, AW
@@ -532,6 +555,10 @@ subroutine becchetti_t_potential(part_type, iA, iZ, E,           &
    integer(kind=4) :: iN
    real(kind=8) :: xZ, xN, xA
    real(kind=8) :: diff
+
+!     iradius = 0    R = r0*A_T^1/3
+!     iradius = 1    R = r0*(A_Target^1/3 + A_proj^1/3)
+   iradius = 0
 
    if(part_type /= 4)then
       if(iproc == 0)then
@@ -578,7 +605,7 @@ end subroutine becchetti_t_potential
 !*******************************************************************************
 !
 subroutine becchetti_h_potential(part_type, iA, iZ, E,           &
-                                 V_pot, R_pot, a_pot, RC)
+                                 V_pot, R_pot, a_pot, RC, iradius)
 !
 !*******************************************************************************
 !
@@ -615,6 +642,7 @@ subroutine becchetti_h_potential(part_type, iA, iZ, E,           &
    real(kind=8), intent(out) :: R_pot(2,3)
    real(kind=8), intent(out) :: a_pot(2,3)
    real(kind=8), intent(out) :: RC
+   integer(kind=4), intent(out) :: iradius
 !----------------------------------------------------------
 !   real(kind=8) :: VR, RR, AR
 !   real(kind=8) :: W, RW, AW
@@ -625,6 +653,10 @@ subroutine becchetti_h_potential(part_type, iA, iZ, E,           &
    integer(kind=4) :: iN
    real(kind=8) :: xZ, xN, xA
    real(kind=8) :: diff
+
+!     iradius = 0    R = r0*A_T^1/3
+!     iradius = 1    R = r0*(A_Target^1/3 + A_proj^1/3)
+   iradius = 0
 
    if(part_type /= 5)then
       if(iproc == 0)then
@@ -670,8 +702,8 @@ end subroutine becchetti_h_potential
 !
 !*******************************************************************************
 !
-subroutine avrigeanu_a_potential(part_type, iA, iZ, E,           &
-                                 V_pot, R_pot, a_pot, RC)
+subroutine avrigeanu_a_potential(part_type, iA, iZ, E,                  &
+                                 V_pot, R_pot, a_pot, RC, iradius)
 !
 !*******************************************************************************
 !
@@ -707,6 +739,7 @@ subroutine avrigeanu_a_potential(part_type, iA, iZ, E,           &
    real(kind=8), intent(out) :: R_pot(2,3)
    real(kind=8), intent(out) :: a_pot(2,3)
    real(kind=8), intent(out) :: RC
+   integer(kind = 4), intent(out) :: iradius
 !----------------------------------------------------------
 !   real(kind=8) :: VR, RR, AR
 !   real(kind=8) :: W, RW, AW
@@ -717,6 +750,10 @@ subroutine avrigeanu_a_potential(part_type, iA, iZ, E,           &
    integer(kind=4) :: iN
    real(kind=8) :: xZ, xN, xA, xA13
    real(kind=8) :: diff
+
+!     iradius = 0    R = r0*A_T^1/3
+!     iradius = 1    R = r0*(A_Target^1/3 + A_proj^1/3)
+   iradius = 0
 
    if(part_type /= 6)then
       if(iproc == 0)then

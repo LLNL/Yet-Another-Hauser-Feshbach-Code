@@ -641,7 +641,8 @@ Version 3.43
         from the level density.
 
 Version 3.44
-1.  Integrated some cosmetic changes from Schunck
+1.  Integrated some cosmetic changes from Nicolas Schunck, missing commas in
+    format statesments, etc.
 2.  Fixed error in "error message" parse_command, where message didn't print
     full name of offending command
 3.  Changed way E1 parameters are read in. Now, input overwrites existing 
@@ -655,4 +656,16 @@ Version 3.44
     for that nucleus. Thus one could have fits to gamma_gamma for nuclei where
     E1 parameters are not changed. Also, introduced command
     "nuc_fit_gamma_gamma" that sets the fit on or off for an indivual nucleus.
+
+Version 3.45
+1.  Fixed issue with name for evaluated RIPL-3 level file for z=94. file
+    z094.dat was committed with case insensitive Mac as Z094.dat, and 
+    needed to be deleted and recommitted.
+2.  Deleted temporary level files not intended for distribution.
+3.  Removed tex output files from the Documentation directory.
+4.  Fixed incorrect radius for Avrigeanu alpha potential. Introduced integer
+    switch iradius to the optical potential. If iradius = 0, the radius
+    will be r0*A_Target^1/3, if iradius = 1, radius is 
+    r0*(A_Target^1/3 + A_projectile^1/3).
+
 
