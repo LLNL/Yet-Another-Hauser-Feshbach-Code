@@ -176,21 +176,20 @@ subroutine get_spectrum(data_path, len_path, overide, symb, iz, ia, inuc)
       io_error = 0
       do while(.not. found .and. io_error == 0)
          line(1:300) = ' '
-         read(51,'(a)')line
-         if(line(1:1) /= '#' .or. line(1:1) /= '!')then
+         read(51,'(a)', iostat=io_error)line
+         if(line(1:1) == '#' .or. line(1:1) == '!')cycle
 !            read(51,'(i3,a2)',iostat=io_error)iap,symbb !  find element, end -. end of subroutine abort
-            read(line,'(i3,a2)',iostat=io_error)iap,symbb !  find element, end -. end of subroutine abort
-            if(symbb(2:2) == ' ')then
-               symbb(2:2) = symbb(1:1)
-               symbb(1:1) = ' '
-            end if
+         read(line,'(i3,a2)')iap,symbb !  find element, end -. end of subroutine abort
+         if(symbb(2:2) == ' ')then
+            symbb(2:2) = symbb(1:1)
+            symbb(1:1) = ' '
+         end if
 !  write(6,*)ia,iap,symb, symbb
-            if(ia == iap .and. symb == symbb)then
-               backspace(51)
-               read(51,'(a5,6i5,2f12.6)',iostat=io_error)char, iap, izp, nol, nog, nmax, nc, sn, sp
-               found = .true.
-               evaluated = .true.               ! skip optional additional input
-            end if
+         if(ia == iap .and. symb == symbb)then
+            backspace(51)
+            read(51,'(a5,6i5,2f12.6)',iostat=io_error)char, iap, izp, nol, nog, nmax, nc, sn, sp
+            found = .true.
+            evaluated = .true.               ! skip optional additional input
          end if
       end do
       if(.not. found)then
@@ -234,11 +233,15 @@ subroutine get_spectrum(data_path, len_path, overide, symb, iz, ia, inuc)
       complete_decay(1:nol) = 1
 !      complete_decay(1) = 1
       state_map(1:nol) = 1
-      do i = 1, nol
+!      do i = 1, nol
+      io_error = 0
+      i = 1
+      do while(i <= nol .and. io_error == 0)
          line(1:300) = ' '
-         read(51,'(a)')line
+         read(51,'(a)', iostat=io_error)line
 !         read(line,'(i3,1x,f10.6,1x,f5.1,i3,1x,e10.3,i3,1x,a1,24x,i3,220x,f10.6,1x,i2)')      &
 !              ilab, ex_energy, spin, par, t12, ngr, unc, nd, shift, iband
+         if(line(1:1) == '#' .or. line(1:1) == '!')cycle
          read(line,'(i3,1x,f10.6,a1,f5.1,a1,i2,a1,e10.3,a1,i2,a1,a1,24x,i3,220x,f10.6,1x,i2)')      &
               ilab, ex_energy, e_mod, spin, j_mod, par, par_mod, t12, t12_mod, ngr, ngr_mod,        &
               unc, nd, shift, iband
@@ -260,16 +263,20 @@ subroutine get_spectrum(data_path, len_path, overide, symb, iz, ia, inuc)
             call MPI_Abort(icomm,101,ierr)
          end if
          ng = 0
-         do m = 1, ngr
+!         do m = 1, ngr
+         m = 1
+         do while(m <= ngr .and. io_error == 0)
             line(1:300) = ' '
-            read(51,'(a)')line
+            read(51,'(a)', iostat = io_error)line
+            if(line(1:1) == '#' .or. line(1:1) == '!')cycle
 !            read(line,'(39x,i4,1x,f10.4,3(1x,e10.3))')nf(m),eg(m),pg(m),pe(m),icc(m)
             read(line,'(39x,i4,a1,f10.4,a1,e10.3,a1,e10.3,a1,e10.3,a1)')                               &
-                                                      nf(m), nf_mod(m), eg(m), eg_mod(m),           &
-                                                      pg(m), pg_mod(m), pe(m), pe_mod(m),           &
-                                                      icc(m), icc_mod(m)
+                                                   nf(m), nf_mod(m), eg(m), eg_mod(m),           &
+                                                   pg(m), pg_mod(m), pe(m), pe_mod(m),           &
+                                                   icc(m), icc_mod(m)
             if(pe(m) < pg(m))pe = pg(m)*(1.0d0 + icc(m))           !   In case there is an error in the RIPL file
             if(pe(m) > 1.0d-30)ng = ng + 1                            !   Check and remove transtions that are zero
+            m = m + 1
          end do
          nucleus(inuc)%state(i)%nbranch = ng
          if(ng > 0)then
@@ -363,7 +370,15 @@ subroutine get_spectrum(data_path, len_path, overide, symb, iz, ia, inuc)
             end do
          end if
          if(nucleus(inuc)%state(i)%isomer)complete_decay(i) = 1
+         i = i + 1
       end do
+      if(io_error /= 0 .and. evaluated)then
+         if(iproc == 0)then
+            write(6,*)'An error occured reading the evaluated file.'
+            write(6,*)'Check that the number of levels and gamma transitions is correct'
+         end if
+         call MPI_Abort(icomm,101,ierr)
+      end if
       close(unit=51)
       par = nint(nucleus(inuc)%state(1)%parity)
       nucleus(inuc)%ipar = (par+1)/2
