@@ -55,7 +55,8 @@ subroutine output_nucleus_data(j_max, itarget)
    real(kind=8) :: E0, T, E1
    real(kind=8) :: sum_rho
    real(kind=8) :: K_vib, K_rot
-   real(kind=8) :: f_E, str_E, f_M, str_M
+   real(kind=8) :: f_E, trans_E, f_M, trans_M
+   real(kind=8), allocatable, dimension (:) :: gsf
    real(kind=8) :: EL_cs, ML_cs
    character(len=1) :: char
    character(len=1) :: char_pos,char_neg
@@ -70,10 +71,11 @@ subroutine output_nucleus_data(j_max, itarget)
    character(len=200) :: fstring
    character(len=5) :: nuke_label
    integer(kind=4) :: inuke_end
+   character(len=7) :: f_units
 !---------   External functions
    real(kind=8) :: spin_fac, parity_fac
-   real(kind=8) :: EL_f, EL_trans
-   real(kind=8) :: ML_f, ML_trans
+   real(kind=8) :: EL_f, EL_f_component, EL_trans
+   real(kind=8) :: ML_f, ML_f_component, ML_trans
    real(kind=8) :: EL_absorption
    real(kind=8) :: ML_absorption
    integer(kind=4) :: find_ibin
@@ -468,10 +470,10 @@ subroutine output_nucleus_data(j_max, itarget)
       end if
       write(13,*)
 
-      write(temp_string,*)min(j_max,60)+1
       write(13,'(''Level density States/MeV for '',a5)')nuke_label(1:inuke_end)
       write(13,'(''Positive Parity '')')
 
+      write(temp_string,*)min(j_max,60)+1
       fstring = "(6x,'E',9x,'a(U)',1x,'sqrt(sig2)',6x,'P_fac',"//                &
                 "6x,'K_vib',6x,'K_rot',8x,'Enh',9x,'Rho',5x,"                    &
                 //trim(adjustl(temp_string))//"(5x,'J = ',f4.1,3x))"
@@ -509,6 +511,8 @@ subroutine output_nucleus_data(j_max, itarget)
                energy,apu,sqrt(sig2),pfac,K_vib,K_rot,K_vib*K_rot,sum_rho,       &
                (nucleus(i)%bins(jj,ip,k)%rho,jj = 0, min(j_max,60))
       end do
+!----   Format to write j_max elements to file
+      write(temp_string,*)min(j_max,60)+1
       write(13,'(''Negative Parity '')')
       fstring = "(6x,'E',9x,'a(U)',1x,'sqrt(sig2)',6x,'P_fac',"//                &
                 "6x,'K_vib',6x,'K_rot',8x,'Enh',9x,'Rho',5x,"                    &
@@ -616,96 +620,156 @@ subroutine output_nucleus_data(j_max, itarget)
       deallocate(cumm_fit)
       deallocate(elv)
 
+      if(.not. allocated(gsf))allocate(gsf(max_num_gsf))
+
       nucleus(i)%nbin_em = num_points
 
-      if(nucleus(i)%e1_model == 1)then
-         write(13,'(''E1 model used = '',''Lorenztian'')')
-      elseif(nucleus(i)%e1_model == 2)then
-         write(13,'(''E1 model used = '',''Kopecky-Uhl'')')
-      end if
 !------------------------------------------------------------------
-      write(13,*)
-      write(13,'(''Electric-dipole resonance parameters '',a5)')nuke_label(1:inuke_end)
-      do k = 1, 3
-         write(13,'(''Mode ='',i2,'//                             &
-                    ''' Centroid = '',f16.6,'' MeV'','//          &
-                    ''' Width = '',f16.6,'' MeV'','//             &
-                    ''' Strength = '',f16.6,'' mb'')')            &
-             k,                                                   &
-             nucleus(i)%er_E1(k),                                 &
-             nucleus(i)%gr_E1(k),                                 &
-             nucleus(i)%sr_E1(k)
-            end do
-      write(13,'(''E1 strength function'')')
-      write(13,'(''     Energy         F               T         absorption(b)'')')
-      write(13,'(''  ---------   -------------   -------------   -------------'')')
-      l_radiation = 1
-      do j = 0, nucleus(i)%nbin_em
-         energy = dfloat(j)*de
-         f_E = EL_f(i, l_radiation, energy, nucleus(i)%sep_e(1))
-         str_E = EL_trans(i, l_radiation, energy, nucleus(i)%sep_e(1))
-         EL_cs = EL_absorption(i, l_radiation, energy, nucleus(i)%sep_e(1))
-         write(13,'(1x,f10.5,(3(1x,e15.7)))')                     &
-              energy, f_E, str_E, EL_cs
-!              energy,nucleus(i)%f_E(j,1),nucleus(i)%str_E(j,1)
-      end do
 !------------------------------------------------------------------
-!-----------   The other Electric multipoles -
-!-----------   different because E1 has up to three modes
+!-----------   Electric multipoles -
 !------------------------------------------------------------------
-      do l_radiation = 2, nucleus(i)%lmax_E
+      do l_radiation = 1, nucleus(i)%lmax_E
          write(13,*)
-         write(13,'(''Electric-'',i1,'' resonance parameters for '',a5)')  &
+         if(.not. nucleus(i)%EL_mode(l_radiation)%gsf_read)then
+            if(l_radiation == 1)then
+               if(nucleus(i)%e1_model == 1)then
+                  write(13,'(''E1 model used = '',''Lorenztian'')')
+               elseif(nucleus(i)%e1_model == 2)then
+                  write(13,'(''E1 model used = '',''Kopecky-Uhl'')')
+               end if
+            else
+               write(13,*)'Gamma Strength Function obtained with internal analytic models'
+            end if
+         else
+            write(13,*)'Gamma Strength Function obtained from manual input'
+         end if
+         write(13,'(''Electric-'',i1,'' resonance parameters for '',a5)')          &
             l_radiation,nuke_label(1:inuke_end)
-            write(13,'('' Centroid = '',f16.6,'' MeV'','//         &
-                       ''' Width = '',f16.6,'' MeV'','//           &
-                       ''' Strength = '',e15.7,'' mb'')')          &
-                nucleus(i)%er_E(l_radiation),                      &
-                nucleus(i)%gr_E(l_radiation),                      &
-                nucleus(i)%sr_E(l_radiation)
-         write(13,'(''E'',i1,'' Strength function'')')l_radiation
-         write(13,'(''     Energy         F               T         absorption(b)'')')
-         write(13,'(''  ---------   -------------   -------------   -------------'')')
+         do k = 1, nucleus(i)%EL_mode(l_radiation)%num_gsf
+            write(13,'(''Line ='',i2,'//                                           &
+                      ''' Centroid = '',f16.6,'' MeV'','//                         &
+                       ''' Width = '',f16.6,'' MeV'','//                           &
+                       ''' Strength = '',e15.7,'' mb'')')                          &
+                k,                                                                 &
+                nucleus(i)%EL_mode(l_radiation)%gsf(k)%er,                         &
+                nucleus(i)%EL_mode(l_radiation)%gsf(k)%gr,                         &
+                nucleus(i)%EL_mode(l_radiation)%gsf(k)%sr
+         end do
+
+         write(temp_string,*)nucleus(i)%EL_mode(l_radiation)%num_gsf
+
+         f_units(1:5) = 'MeV^-'
+         if(2*l_radiation + 1 < 10)then
+            write(f_units(6:6),'(i1)')2*l_radiation + 1
+            f_units(7:7) = ' '
+         else
+            write(f_units(6:7),'(i2)')2*l_radiation + 1
+         end if
+
+         write(13,'(''E'',i1,'' Strength function, F, in units of '',a7)')l_radiation, f_units
+         if(nucleus(i)%EL_mode(l_radiation)%num_gsf == 1)then
+            write(13,'(''     Energy         F               T         absorption(b)'')')
+            write(13,'(''  ---------   -------------   -------------   -------------'')')
+         else
+            fstring = "(5x,'Energy',"//trim(adjustl(temp_string))//                &
+                      "(7x,'F(',i1,')',5x),9x,'F',15x,'T',9x,'absorption(b)')"
+            write(13,fstring)(k,k=1,nucleus(i)%EL_mode(l_radiation)%num_gsf)
+            fstring = "(2x,'---------',"//trim(adjustl(temp_string))//             &
+                      "(3x,'-------------'),3(3x,'-------------'))"
+            write(13,fstring)
+
+         end if
+         fstring = "(1x,f10.5,"//trim(adjustl(temp_string))//"(1x,e15.7),3(1x,e15.7))"
          do j = 0, nucleus(i)%nbin_em
             energy = dfloat(j)*de
+            gsf(1:max_num_gsf) = 0.0d0
+            do k = 1, nucleus(i)%EL_mode(l_radiation)%num_gsf
+               gsf(k) = EL_f_component(i, l_radiation, k, energy, nucleus(i)%sep_e(1))
+            end do
             f_E = EL_f(i, l_radiation, energy, nucleus(i)%sep_e(1))
-            str_E = EL_trans(i, l_radiation, energy, nucleus(i)%sep_e(1))
+            trans_E = EL_trans(i, l_radiation, energy, nucleus(i)%sep_e(1))
             EL_cs = EL_absorption(i, l_radiation, energy, nucleus(i)%sep_e(1))
-            write(13,'(1x,f10.5,(3(1x,e15.7)))')                     &
-              energy, f_E, str_E, EL_cs
-!            write(13,'(1x,f10.5,(20(1x,e15.7)))')     &
-!                   energy,                            &
-!                   nucleus(i)%f_E(j,l_radiation),     &
-!                   nucleus(i)%str_E(j,l_radiation)
+            if(nucleus(i)%EL_mode(l_radiation)%num_gsf == 1)then
+               write(13,'(1x,f10.5,(3(1x,e15.7)))')                                &
+                    energy, f_E, trans_E, EL_cs
+            else
+               write(13,fstring)                                                   &
+                    energy, (gsf(k),k=1,nucleus(i)%EL_mode(l_radiation)%num_gsf),  &
+                    f_E, trans_E, EL_cs
+            end if
          end do
       end do
+!------------------------------------------------------------------
+!------------------------------------------------------------------
+!-----------   Magnetic multipoles -
 !------------------------------------------------------------------
       do l_radiation = 1, nucleus(i)%lmax_M
          write(13,*)
-         write(13,'(''Magnetic-'',i1,'' resonance parameters for '',a5)')  &
+         if(.not. nucleus(i)%ML_mode(l_radiation)%gsf_read)then
+            write(13,*)'Gamma Strength Function obtained with internal analytic models'
+         else
+            write(13,*)'Gamma Strength Function obtained from manual input'
+         end if
+         write(13,'(''Magnetic-'',i1,'' resonance parameters for '',a5)')          &
             l_radiation,nuke_label(1:inuke_end)
-         write(13,'('' Centroid = '',f10.5,'' MeV'','//            &
-                       ''' Width = '',f10.5,'' MeV'','//           &
-                       ''' Strength = '',e12.4,'' mb'')')          &
-                nucleus(i)%er_M(l_radiation),                      &
-                nucleus(i)%gr_M(l_radiation),                      &
-                nucleus(i)%sr_M(l_radiation)
-         write(13,'(''M'',i1,'' Strength function'')')l_radiation
-         write(13,'(''     Energy         F               T         absorption(b)'')')
-         write(13,'(''  ---------   -------------   -------------   -------------'')')
+         do k = 1, nucleus(i)%ML_mode(l_radiation)%num_gsf
+            write(13,'(''Line ='',i2,'//                                           &
+                      ''' Centroid = '',f16.6,'' MeV'','//                         &
+                       ''' Width = '',f16.6,'' MeV'','//                           &
+                       ''' Strength = '',e15.7,'' mb'')')                          &
+                k,                                                                 &
+                nucleus(i)%ML_mode(l_radiation)%gsf(k)%er,                         &
+                nucleus(i)%ML_mode(l_radiation)%gsf(k)%gr,                         &
+                nucleus(i)%ML_mode(l_radiation)%gsf(k)%sr
+         end do
+
+         write(temp_string,*)nucleus(i)%ML_mode(l_radiation)%num_gsf
+
+         f_units(1:5) = 'MeV^-'
+         if(2*l_radiation + 1 < 10)then
+            write(f_units(6:6),'(i1)')2*l_radiation + 1
+            f_units(7:7) = ' '
+         else
+            write(f_units(6:7),'(i2)')2*l_radiation + 1
+         end if
+
+         write(13,'(''M'',i1,'' Strength function, F, in units of '',a7)')l_radiation, f_units
+         if(nucleus(i)%ML_mode(l_radiation)%num_gsf == 1)then
+            write(13,'(''     Energy         F               T         absorption(b)'')')
+            write(13,'(''  ---------   -------------   -------------   -------------'')')
+         else
+            fstring = "(5x,'Energy',"//trim(adjustl(temp_string))//                &
+                      "(7x,'F(',i1,')',5x),9x,'F',15x,'T',9x,'absorption(b)')"
+            write(13,fstring)(k,k=1,nucleus(i)%ML_mode(1)%num_gsf)
+            fstring = "(2x,'---------',"//trim(adjustl(temp_string))//             &
+                      "(3x,'-------------'),3(3x,'-------------'))"
+            write(13,fstring)
+
+         end if
+         fstring = "(1x,f10.5,"//trim(adjustl(temp_string))//"(1x,e15.7),3(1x,e15.7))"
          do j = 0, nucleus(i)%nbin_em
             energy = dfloat(j)*de
+            gsf(1:max_num_gsf) = 0.0d0
+            do k = 1, nucleus(i)%ML_mode(l_radiation)%num_gsf
+               gsf(k) = ML_f_component(i, l_radiation, k, energy)
+            end do
             f_M = ML_f(i, l_radiation, energy)
-            str_M = ML_trans(i, l_radiation, energy)
+            trans_M = ML_trans(i, l_radiation, energy)
             ML_cs = ML_absorption(i, l_radiation, energy)
-            write(13,'(1x,f10.5,(3(1x,e15.7)))')                     &
-              energy, f_M, str_M, ML_cs
-!            write(13,'(1x,f10.5,(20(1x,e15.7)))')                  &
-!                  energy,                                          &
-!                  nucleus(i)%f_M(j,l_radiation),                   &
-!                  nucleus(i)%str_M(j,l_radiation)
+            if(nucleus(i)%ML_mode(l_radiation)%num_gsf == 1)then
+               write(13,'(1x,f10.5,(3(1x,e15.7)))')                                &
+                    energy, f_M, trans_M, ML_cs
+            else
+               write(13,fstring)                                                   &
+                    energy,(gsf(k),k=1,nucleus(i)%ML_mode(l_radiation)%num_gsf),   &
+                    f_M, trans_M, ML_cs
+            end if
          end do
       end do
+!------   Finished with EM strength functions
+      if(allocated(gsf))deallocate(gsf)
+
+
       if(fission .and. .not. nucleus(i)%fission)then
          write(13,'(''+++++++++++++++++++++++++++++++++++++++++++++++++++++++'')')
          write(13,'(''This nucleus is not set up to undergo fission          '')')
@@ -882,6 +946,7 @@ subroutine output_nucleus_data(j_max, itarget)
 
             write(13,'(''Level density States/MeV'')')
             write(13,'(''Positive parity'')')
+            write(temp_string,*)min(j_max,60)+1
             fstring = "(6x,'E',9x,'a(U)',1x,'sqrt(sig2)',6x,'P_fac',"//             &
                      "6x,'K_vib',6x,'K_rot',8x,'Enh',9x,'Rho',5x,"                  &
                      //trim(adjustl(temp_string))//"(5x,'J = ',f4.1,3x))"
@@ -917,6 +982,7 @@ subroutine output_nucleus_data(j_max, itarget)
 
             write(13,'(''Level density States/MeV'')')
             write(13,'(''Negative parity'')')
+            write(temp_string,*)min(j_max,60)+1
             fstring = "(6x,'E',9x,'a(U)',1x,'sqrt(sig2)',6x,'P_fac',"//             &
                      "6x,'K_vib',6x,'K_rot',8x,'Enh',9x,'Rho',5x,"                  &
                      //trim(adjustl(temp_string))//"(5x,'J = ',f4.1,3x))"
@@ -955,6 +1021,7 @@ subroutine output_nucleus_data(j_max, itarget)
       write(13,*)
       write(13,'(''Hauser-Feshbach denominators for '',a5)')nuke_label(1:inuke_end)
       write(13,*)'Positive Parity'
+      write(temp_string,*)min(j_max,60)+1
       fstring = "('    E     ',"                      &
                 //trim(adjustl(temp_string))//"(5x,'J = ',f4.1,3x))"
 

@@ -29,7 +29,7 @@ Gamma_gamma.o              \
 fit_nuke_Gamma_gamma.o     \
 Gauss-quadrature.o         \
 Legendre-expand.o          \
-GDR.o                      \
+gamma_functions.o          \
 EM_str_param.o             \
 HF_denominator.o           \
 pack_data.o                \

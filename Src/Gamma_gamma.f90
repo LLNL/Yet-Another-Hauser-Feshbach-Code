@@ -157,22 +157,22 @@ subroutine Gamma_gamma(icomp, l, Gamma_g, g_error)
             if(ip  ==  ip_f)then                  !  parity the same even L for E odd L for M
                if(iand(lmin,1) == 0)then
                   le_min=lmin
-                  lm_min=lmin+1
+                  lm_min=lmin + 1
                else
-                  le_min=lmin+1
+                  le_min=lmin + 1
                   lm_min=lmin
                end if
             else                                !  parity the same odd L for E even L for M             
                if(iand(lmin,1) == 0)then
-                  le_min=lmin+1
+                  le_min=lmin + 1
                   lm_min=lmin
                else
                   le_min=lmin
-                  lm_min=lmin+1
+                  lm_min=lmin + 1
                end if
             end if
 !--------------------    Electric
-            do lem = le_min,nucleus(icomp)%lmax_E,2
+            do lem = le_min,nucleus(icomp)%lmax_E, 2
                trans = EL_trans(icomp, lem, e_f, energy)
 
                Gamma_g = Gamma_g + trans

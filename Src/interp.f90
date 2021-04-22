@@ -8,7 +8,7 @@ real(kind=8) function interp(x, num, xx, yy)
 !  Discussion:
 !
 !    This function interpolates the array yy, which is evalauted on 
-!    the array points xx at the value x.
+!    the equally spaced array xx at the value x.
 !
 !  Licensing:
 !

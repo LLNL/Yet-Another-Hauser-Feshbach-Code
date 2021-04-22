@@ -139,6 +139,7 @@ program YAHFC_MASTER
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
       real(kind=8) :: ran
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
       integer(kind=4) :: l_max
       integer(kind=4) :: ifind, ilast
       integer(kind=4) :: num_s
@@ -394,6 +395,8 @@ program YAHFC_MASTER
       end subroutine find_prob_point
    end interface
 
+!      integer(kind=4) :: num
+
 
 !--------------------External functions--------------------------------
    integer(kind=4) :: find_channel
@@ -404,10 +407,11 @@ program YAHFC_MASTER
    real(kind=8) :: random_32
    real(kind=8) :: poly
    real(kind=8) :: clebr
-   real(kind=8) :: interpolate
+   real(kind=8) :: interpolate_exp
    real(kind=8) :: Gauss_var
    integer(kind=4) :: rank_commands
    real(kind=8) :: compound_cs
+!   real(kind=8) :: EL_f_component
 
 !-----------------   Start Main body of calculation     ----------------
 
@@ -470,6 +474,8 @@ program YAHFC_MASTER
       if(nproc > 1) verbose = .false.
       primary_decay = .false.
       pop_calc_prob = .true.
+      max_num_gsf = 4
+!      max_em_l = 3
 !
 !----   Start with no optical potentials being set
 !----   later they may be set with a choice of an option
@@ -504,7 +510,7 @@ program YAHFC_MASTER
       hbar = 6.58211899d-22
 !      hbar_c = 197.3269631d0                  !   MeV*fm
 !----   Value used in FRESCO
-      hbar_c = 197.32705d0                  !   MeV*fm
+      hbar_c = 197.32705d0                   !   MeV*fm
       fmsq_eq_barn = 0.01d0                  !  1 fm**2 = 0.01 b
       fmsq_eq_mbarn = 10.0d0                 !  1 fm**2 = 10 mb
       barn_eq_fmsq = 100.0d0                 !  1 b = 100 fm**2
@@ -846,18 +852,11 @@ program YAHFC_MASTER
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
                nucleus(icomp)%E1_model = E1_model
                nucleus(icomp)%E1_default = .true.
-               nucleus(icomp)%er_E1(1:4) = 0.0d0
-               nucleus(icomp)%gr_E1(1:4) = 0.0d0
-               nucleus(icomp)%sr_E1(1:4) = 0.0d0
                nucleus(icomp)%Gamma_g = 0.0d0
                nucleus(icomp)%Gamma_g_exp = 0.0d0
                nucleus(icomp)%dGamma_g_exp = 0.0d0
 
-               call gdr_param(data_path,len_path,                  &
-                              nucleus(icomp)%Z,nucleus(icomp)%A,   &
-                              nucleus(icomp)%er_E1,                &
-                              nucleus(icomp)%gr_E1,                &
-                              nucleus(icomp)%sr_E1)
+               call gdr_param(data_path,len_path,icomp)
 
                if(A_f > 20)then
                   lev_option = 1
@@ -865,7 +864,7 @@ program YAHFC_MASTER
                else
                   lev_option = 0
                end if
-               call get_lev_den(data_path,len_path,                &
+               call get_lev_den(data_path,len_path,                     &
                                 symb(Z_f),Z_f,A_f,icomp)
                if(nucleus(icomp)%fit_ematch)call fit_lev_den(icomp)
                nucleus(icomp)%fission = .false.
@@ -1469,6 +1468,32 @@ program YAHFC_MASTER
 !----   EM strength function parameters
 !
       call EM_str_param
+
+!!-----   TEST!!!!!
+!      do i = 1, num_comp
+!         nucleus(i)%fit_gamma_gamma = .false.
+!         do L = 1, nucleus(i)%lmax_E
+!            do k = 1, nucleus(i)%EL_mode(L)%num_gsf
+!               num = 401
+!               nucleus(i)%EL_mode(L)%gsf(k)%num_data = num
+!               allocate(nucleus(i)%EL_mode(L)%gsf(k)%e_gsf_r(num))
+!               nucleus(i)%EL_mode(L)%gsf(k)%e_gsf_r(1:num) = 0.0d0
+!               allocate(nucleus(i)%EL_mode(L)%gsf(k)%gsf_r(num))
+!               nucleus(i)%EL_mode(L)%gsf(k)%gsf_r(1:num) = 0.0d0
+!!   write(50,*)i,L,k
+!               do n = 1, num
+!                  energy = real(n-1,kind=8)*0.1d0
+!                  nucleus(i)%EL_mode(L)%gsf(k)%e_gsf_r(n) = energy
+!                  nucleus(i)%EL_mode(L)%gsf(k)%gsf_r(n) =                      &
+!                       EL_f_component(i, L, k, energy, nucleus(i)%sep_e(1))
+!!   write(50,*)energy, nucleus(i)%EL_mode(L)%gsf(k)%gsf_r(n)
+!               end do
+!            end do
+!            nucleus(i)%EL_mode(L)%gsf_read = .true.
+!         end do
+!      end do
+
+
 !
 !----  Fit to Gamma_gamma
 !
@@ -2205,21 +2230,21 @@ program YAHFC_MASTER
 
                do n = 1, OpticalCS%numcc
                   if(OpticalCS%state(n)%istate == target%istate .and. OpticalCS%state(n)%state_type == 1)then    !  This is shape elastic so skip this in decays
-                     SE_cs(in) = interpolate(0,E_in,OpticalCS%nume,OpticalCS%energy,OpticalCS%optical_cs(1,n))
+                     SE_cs(in) = interpolate_exp(0,E_in,OpticalCS%nume,OpticalCS%energy,OpticalCS%optical_cs(1,n))
                      do L = 0, Ang_L_max
-                        SE_Ang(L,in) = interpolate(0,E_in,OpticalCS%nume,OpticalCS%energy,OpticalCS%optical_leg(1,L,n))
+                        SE_Ang(L,in) = interpolate_exp(0,E_in,OpticalCS%nume,OpticalCS%energy,OpticalCS%optical_leg(1,L,n))
                      end do
                      cycle
                   end if
                   if(e_rel < OpticalCS%state(n)%energy)cycle
-                  direct_cs(n) = interpolate(0,E_in,OpticalCS%nume,OpticalCS%energy,OpticalCS%optical_cs(1,n))
+                  direct_cs(n) = interpolate_exp(0,E_in,OpticalCS%nume,OpticalCS%energy,OpticalCS%optical_cs(1,n))
                   tot_direct = tot_direct + direct_cs(n)
                   reaction_cs(in) = reaction_cs(in) + direct_cs(n)
                   direct_tot(in) = direct_tot(in) + direct_cs(n)
                   if(OpticalCS%state(n)%state_type == 1)direct_cc(in) = direct_cc(in) + direct_cs(n)
                   if(OpticalCS%state(n)%state_type <= 0)direct_dwba(in) = direct_dwba(in) + direct_cs(n)
                   do L = 0, Ang_L_max
-                     direct_Ang(L,n) = interpolate(0,E_in,OpticalCS%nume,OpticalCS%energy,OpticalCS%optical_leg(1,L,n))
+                     direct_Ang(L,n) = interpolate_exp(0,E_in,OpticalCS%nume,OpticalCS%energy,OpticalCS%optical_leg(1,L,n))
                   end do
                   direct_prob(0:ixx_max,n) = 0.0d0
                   do i = 1, ixx_max
@@ -4311,7 +4336,7 @@ end function jhat
 !
 !*****************************************************************************80
 !
-real(kind=8) function interpolate(itype, x_in, num, grid, vec)
+real(kind=8) function interpolate_exp(itype, x_in, num, grid, vec)
 !
 !*****************************************************************************80
 !
@@ -4371,7 +4396,7 @@ real(kind=8) function interpolate(itype, x_in, num, grid, vec)
   end if
   do i = 1, num - 1                                  !  start from the bottom of the grid
      if(abs(x_in - grid(i)) <= 1.0d-6)then                  !  it is exactly on a grid point
-        interpolate = vec(i)
+        interpolate_exp = vec(i)
         return
      elseif(x_in > grid(i) .and. x_in < grid(i+1))then          ! grid(i) <= e <= grid(i+1)
 !-----    Sandwiched between two points. Now which one is it closest too?
@@ -4444,13 +4469,13 @@ real(kind=8) function interpolate(itype, x_in, num, grid, vec)
      a(k-1) = numer/denom
      y = y + a(k-1)*lx**(k-1)
   end do
-  interpolate = 0.0d0
+  interpolate_exp = 0.0d0
   if(itype == 0)then
-     interpolate = y
+     interpolate_exp = y
   elseif(itype == 1)then
-     interpolate = exp(y)
+     interpolate_exp = exp(y)
   end if
-end function interpolate
+end function interpolate_exp
 
 
 real(kind=8) function det3_3(mat)
@@ -4711,7 +4736,7 @@ subroutine memory_used
    implicit none
 !------------------------------------------------------------------------
    integer(kind=4) :: icomp
-   integer(kind=4) :: j, ip, n, nn, nbin
+   integer(kind=4) :: j, ip, n, nn, nbin, k, lx
    real(kind=8) :: mem, mem_tot, mem_icomp, mem_bins
 
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -4724,58 +4749,37 @@ subroutine memory_used
       mem_tot=0.0d0
       do icomp = 1, num_comp
          mem_icomp = 0.0d0
-!         if(allocated(nucleus(icomp)%pop))then
-!             mem = dfloat(size(nucleus(icomp)%pop)*8)
-!             mem_icomp = mem_icomp + mem
-!         end if
          if(allocated(nucleus(icomp)%PREEQ_pop))then
-            mem = dfloat(size(nucleus(icomp)%PREEQ_pop)*8)
+            mem = real(size(nucleus(icomp)%PREEQ_pop)*8,kind=8)
             mem_icomp = mem_icomp + mem
          end if
-!         if(allocated(nucleus(icomp)%rho))then
-!            mem = dfloat(size(nucleus(icomp)%rho)*8)
-!            mem_icomp = mem_icomp + mem
-!         end if
-!         if(allocated(nucleus(icomp)%HF_den))then
-!            mem = dfloat(size(nucleus(icomp)%HF_den)*8)
-!            mem_icomp = mem_icomp + mem
-!         end if
          if(allocated(nucleus(icomp)%PREEQ_cs))then
-            mem = dfloat(size(nucleus(icomp)%PREEQ_cs)*8)
+            mem = real(size(nucleus(icomp)%PREEQ_cs)*8,kind=8)
             mem_icomp = mem_icomp + mem
          end if
          if(allocated(nucleus(icomp)%PREEQ_part_cs))then
-            mem = dfloat(size(nucleus(icomp)%PREEQ_part_cs)*8)
+            mem = real(size(nucleus(icomp)%PREEQ_part_cs)*8,kind=8)
             mem_icomp = mem_icomp + mem
          end if
-!         if(allocated(nucleus(icomp)%channel_cs))then
-!            mem = dfloat(size(nucleus(icomp)%channel_cs)*8)
-!            mem_icomp = mem_icomp + mem
-!         end if
-         if(allocated(nucleus(icomp)%er_M))then
-            mem = dfloat(size(nucleus(icomp)%er_M)*8)
-            mem_icomp = mem_icomp + mem
+!---   Electric strength function data 
+         if(allocated(nucleus(icomp)%EL_mode))then
+            do lx = 1, e_l_max
+               mem = mem + 8.0d0
+               do k = 1, max_num_gsf
+                  mem = mem + 32.0d0 + 8.0d0
+                  mem = mem + real(nucleus(icomp)%EL_mode(lx)%gsf(k)%num_data,kind=8)*16.0d0
+               end do
+            end do
          end if
-         if(allocated(nucleus(icomp)%gr_M))then
-            mem = dfloat(size(nucleus(icomp)%gr_M)*8)
-            mem_icomp = mem_icomp + mem
-         end if
-         if(allocated(nucleus(icomp)%sr_M))then
-            mem = dfloat(size(nucleus(icomp)%sr_M)*8)
-            mem_icomp = mem_icomp + mem
-         end if
-         mem_tot = mem_tot + mem_icomp
-         if(allocated(nucleus(icomp)%er_E))then
-            mem = dfloat(size(nucleus(icomp)%er_E)*8)
-            mem_icomp = mem_icomp + mem
-         end if
-         if(allocated(nucleus(icomp)%gr_E))then
-            mem = dfloat(size(nucleus(icomp)%gr_E)*8)
-            mem_icomp = mem_icomp + mem
-         end if
-         if(allocated(nucleus(icomp)%sr_E))then
-            mem = dfloat(size(nucleus(icomp)%sr_E)*8)
-            mem_icomp = mem_icomp + mem
+!---   Magnetic strength function data 
+         if(allocated(nucleus(icomp)%ML_mode))then
+            do lx = 1, m_l_max
+               mem = mem + 8.0d0
+               do k = 1, max_num_gsf
+                  mem = mem + 32.0d0 + 8.0d0
+                  mem = mem + real(nucleus(icomp)%ML_mode(lx)%gsf(k)%num_data,kind=8)*16.0d0
+               end do
+            end do
          end if
 
 !-------   Size of derived type bins

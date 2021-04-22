@@ -59,26 +59,30 @@ subroutine fit_nuke_Gamma_gamma
 
       if(Gamma_g_exp > 0.0d0)diff = abs(Gamma_g - Gamma_g_exp)                 !  current difference
 
-      num_res_old = nucleus(icomp)%num_res
+      num_res_old = nucleus(icomp)%EL_mode(1)%num_gsf
 
       if(diff > tolerance .and. nucleus(icomp)%fit_gamma_gamma)then
-         nucleus(icomp)%num_res = nucleus(icomp)%num_res + 1
-         num_res = nucleus(icomp)%num_res
-         nucleus(icomp)%er_E1(num_res) = 5.0d0
-         nucleus(icomp)%gr_E1(num_res) = 5.0d0
-         nucleus(icomp)%sr_E1(num_res) = 0.0d0
-         step = nucleus(icomp)%sr_E1(1)/100000.0
+         nucleus(icomp)%EL_mode(1)%num_gsf = nucleus(icomp)%EL_mode(1)%num_gsf + 1
+         num_res = nucleus(icomp)%EL_mode(1)%num_gsf
+         nucleus(icomp)%EL_mode(1)%gsf(num_res)%er = 5.0d0
+         nucleus(icomp)%EL_mode(1)%gsf(num_res)%gr = 5.0d0
+         nucleus(icomp)%EL_mode(1)%gsf(num_res)%sr = 0.0d0
+
+         step = nucleus(icomp)%EL_mode(1)%gsf(1)%sr/10000.0
 
          if(Gamma_g > Gamma_g_exp)step = - step       !   Calculated Gamma_g is too big, make strength negative
-         nucleus(icomp)%sr_E1(num_res) = nucleus(icomp)%sr_E1(num_res) + step
+         nucleus(icomp)%EL_mode(1)%gsf(num_res)%sr = nucleus(icomp)%EL_mode(1)%gsf(num_res)%sr + step
+
          Gamma_g_old = Gamma_g
          call Gamma_gamma(icomp, 0, Gamma_g, g_error)
+
          diff = abs(Gamma_g - Gamma_g_exp)
          if(diff < tolerance)converged = .true.
          if(step > 0.0 .and. Gamma_g > Gamma_g_exp) converged = .true.       !   Shouldn't really get here, but exit a trap
          if(step < 0.0 .and. Gamma_g < Gamma_g_exp) converged = .true.
          do while(.not. converged)
-            nucleus(icomp)%sr_E1(num_res) = nucleus(icomp)%sr_E1(num_res) + step
+             nucleus(icomp)%EL_mode(1)%gsf(num_res)%sr =                            &
+                   nucleus(icomp)%EL_mode(1)%gsf(num_res)%sr + step
             call Gamma_gamma(icomp, 0, Gamma_g, g_error)
             diff = abs(Gamma_g - Gamma_g_exp)
             if(diff < tolerance)then
@@ -99,7 +103,7 @@ subroutine fit_nuke_Gamma_gamma
       nucleus(icomp)%Gamma_g_1 = Gamma_g
 
       if(nucleus(icomp)%Gamma_g > -1.0 .and. print_me)then
-         num_res = nucleus(icomp)%num_res
+         num_res = nucleus(icomp)%EL_mode(1)%num_gsf
          write(6,*)
          ich = 1
          if(nucleus(icomp)%atomic_symbol(1:1) == ' ')then
@@ -126,9 +130,9 @@ subroutine fit_nuke_Gamma_gamma
             end if
             if(num_res > num_res_old)then
                write(6,*)'In order to reproduce Gamma_gamma(l=0), an additional E1 resonance with paramters'
-               write(6,*)'Centroid = ',nucleus(icomp)%er_E1(num_res)
-               write(6,*)'EWidth   = ',nucleus(icomp)%gr_E1(num_res)
-               write(6,*)'Strength = ',nucleus(icomp)%sr_E1(num_res)
+               write(6,*)'Centroid = ',nucleus(icomp)%EL_mode(1)%gsf(num_res)%er
+               write(6,*)'Width    = ',nucleus(icomp)%EL_mode(1)%gsf(num_res)%gr
+               write(6,*)'Strength = ',nucleus(icomp)%EL_mode(1)%gsf(num_res)%sr
             end if
          elseif(Gamma_g < 0.0d0)then
             if(nucleus(icomp)%Gamma_g_exp > 0.0d0)then

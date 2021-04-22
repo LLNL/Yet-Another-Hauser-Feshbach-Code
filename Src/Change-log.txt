@@ -678,4 +678,15 @@ Version 3.46
     levels (nol) and gamma lines (ngr). If io_error /= 0 and evaluated, error
     message is printed indicating that the evaluated file likely has an error.
 
-
+Version 3.47
+1.  Implemented capability to read in gamma strength functions. They can be read
+    in using the commands "read_el_gsf" and read_ml_gsf for electric and 
+    magnetic strength functions.
+2.  Added ability to input strength function parameters for other modes besides
+    E1. Use commands el_param and ml_param. Used the same way as e1_param,
+    except the first input is L.
+3.  Added multiple strength functions for all modes. The number is controlled by
+    the variable max_num_gsf, which defaults to 4, but can be changed via the 
+    command max_num_gsf.
+4.  Fixed incinsistencies and confusion over the gamma strength function for 
+    L > 1. 

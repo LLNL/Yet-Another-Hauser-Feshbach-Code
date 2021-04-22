@@ -56,6 +56,13 @@ subroutine parse_command(icommand, command, finish)
 !   integer(kind=4) :: ierr_last
    character(len=132) :: temp_char
 
+   integer(kind=4) :: ix, lx, gsf_type
+   integer(kind=4) :: num_data, n_gsf
+
+   integer(kind=4) :: io_error
+
+   real(kind=8) :: e_temp
+
    logical :: interact
    logical :: logic_char
    logical :: read_error
@@ -73,6 +80,7 @@ subroutine parse_command(icommand, command, finish)
    integer(kind=4) :: iseed
 !-----------------   External functions ------------------------------
    integer particle_index
+   real(kind=8) :: Kxl
 !---------------------------------------------------------------------
    interact=.false.
    if(command(1:1) == '#' .or. command(1:1) == '!')return
@@ -1388,16 +1396,92 @@ subroutine parse_command(icommand, command, finish)
       X(2) = X(3)
       X(3) = X(4)
 
-      if(j > 3)then
-         if(iproc ==0)write(6,*)'Bad input for E1_param more than three lines'
+      if(j > max_num_gsf)then
+         if(iproc ==0)write(6,*)'Bad input for e1_param, requesting more than max components =',max_num_gsf
          call MPI_Abort(icomm,101,ierr)
       end if
       do i = 1, num_comp
          if(iZ == nucleus(i)%Z .and. iA == nucleus(i)%A)then
             if(nucleus(i)%E1_default)nucleus(i)%E1_default = .false.
-            nucleus(i)%er_E1(j) = x(1)
-            nucleus(i)%gr_E1(j) = x(2)
-            nucleus(i)%sr_E1(j) = x(3)
+            nucleus(i)%EL_mode(1)%gsf(j)%er = X(1)
+            nucleus(i)%EL_mode(1)%gsf(j)%gr = X(2)
+            nucleus(i)%EL_mode(1)%gsf(j)%sr = X(3)
+            nucleus(i)%fit_gamma_gamma = .false.
+         end if
+      end do
+      return
+   end if
+!
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!
+   if(command(startw(1):stopw(1)) == 'e_l_param')then          !   global setting of this parameter
+      icommand = icommand + 1
+
+      ndat = 4
+      call extract_ZA_data(command, numw, startw, stopw, ndat,         &
+                           iZ, iA, X, nw, read_error)
+      if(read_error)then
+         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
+         return
+      end if
+      lx = nint(X(1),kind=4)
+      j = nint(X(2),kind=4)
+      X(1) = X(3)
+      X(2) = X(4)
+      X(3) = X(5)
+
+      if(j > max_num_gsf)then
+         if(iproc ==0)write(6,*)'Bad input for e_l_param, requesting more than max components =',max_num_gsf
+         call MPI_Abort(icomm,101,ierr)
+      end if
+      do i = 1, num_comp
+         if(iZ == nucleus(i)%Z .and. iA == nucleus(i)%A)then
+            if(nucleus(i)%E1_default)nucleus(i)%E1_default = .false.
+!            nucleus(i)%er_E1(j) = x(1)
+!            nucleus(i)%gr_E1(j) = x(2)
+!            nucleus(i)%sr_E1(j) = x(3)
+            nucleus(i)%EL_mode(lx)%gsf(j)%er = X(1)
+            nucleus(i)%EL_mode(lx)%gsf(j)%gr = X(2)
+            nucleus(i)%EL_mode(lx)%gsf(j)%sr = X(3)
+            nucleus(i)%fit_gamma_gamma = .false.
+         end if
+      end do
+      return
+   end if
+!
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!
+   if(command(startw(1):stopw(1)) == 'm_l_param')then          !   global setting of this parameter
+      icommand = icommand + 1
+
+      ndat = 4
+      call extract_ZA_data(command, numw, startw, stopw, ndat,         &
+                           iZ, iA, X, nw, read_error)
+      if(read_error)then
+         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
+         return
+      end if
+      lx = nint(X(1),kind=4)
+      j = nint(X(2),kind=4)
+      X(1) = X(3)
+      X(2) = X(4)
+      X(3) = X(5)
+
+      if(j > max_num_gsf)then
+         if(iproc ==0)write(6,*)'Bad input for m_l_param, requesting more than max components =',max_num_gsf
+         call MPI_Abort(icomm,101,ierr)
+      end if
+      do i = 1, num_comp
+         if(iZ == nucleus(i)%Z .and. iA == nucleus(i)%A)then
+            if(nucleus(i)%E1_default)nucleus(i)%E1_default = .false.
+!            nucleus(i)%er_E1(j) = x(1)
+!            nucleus(i)%gr_E1(j) = x(2)
+!            nucleus(i)%sr_E1(j) = x(3)
+            nucleus(i)%ML_mode(lx)%gsf(j)%er = X(1)
+            nucleus(i)%ML_mode(lx)%gsf(j)%gr = X(2)
+            nucleus(i)%ML_mode(lx)%gsf(j)%sr = X(3)
             nucleus(i)%fit_gamma_gamma = .false.
          end if
       end do
@@ -3025,6 +3109,20 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
+   if(command(startw(1):stopw(1)) == 'max_num_gsf' )then
+      icommand = icommand + 1
+      if(numw < 2)then
+         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
+         return
+      end if
+      read(command(startw(2):stopw(2)),*)x(1)
+      max_num_gsf = nint(x(1),kind=4)
+      return
+   end if
+!
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!
    if(command(startw(1):stopw(1)) == 'fresco_shape')then
       icommand = icommand + 1
       if(numw < 2)then
@@ -3111,6 +3209,292 @@ subroutine parse_command(icommand, command, finish)
       print_output = logic_char
 
       return      !   if it gets here a proper input wasn't given so keep default
+   end if
+!
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!
+! read_el_gsf  Z  A  L  f/s  file  norm
+   if(command(startw(1):stopw(1)) == 'read_el_gsf')then
+      icommand = icommand + 1
+
+      ndat = 0
+      call extract_ZA_data(command, numw, startw, stopw, ndat,         &
+                           iZ, iA, X, nw, read_error)
+      if(read_error)then
+         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
+         return
+      end if
+      if(numw < nw + 3)then
+         if(iproc == 0)write(6,*)'Error, not enough input in call to "read_e_l_gsf"'
+         call MPI_Abort(icomm,101,ierr)
+      end if
+      ix = 0
+!-----   Find the multipolarity 
+      read(command(startw(nw+1):stopw(nw+1)),*)lx
+      if(lx < 1 .or. lx > e_l_max)then               !   error in multipolarity
+         if(iproc == 0)then
+            write(6,*)'Error in multipolarity in "read_e_l_gsf" L = ',lx
+            write(6,*)'Maximum L value allowed for Electric transition is ',e_l_max
+         end if
+         call MPI_Abort(icomm,101,ierr)
+      end if
+      gsf_type = -1
+!-----   Find out if we are reading a strength function: f/0 
+!-----   or is it a photoabsorption cross section: s/1
+      if(command(startw(nw+2):stopw(nw+2)) == 'F' .or.                      &
+         command(startw(nw+2):stopw(nw+2)) == 'f' .or.                      &
+         command(startw(nw+2):stopw(nw+2)) == '0')then
+           gsf_type = 0
+      elseif(command(startw(nw+2):stopw(nw+2)) == 'S' .or.                  &
+         command(startw(nw+2):stopw(nw+2)) == 's' .or.                      &
+         command(startw(nw+2):stopw(nw+2)) == '1')then
+           gsf_type = 1
+      end if
+      if(gsf_type == -1)then
+         if(iproc == 0)write(6,*)'Error specifying if reading strength function or cross section'
+         call MPI_Abort(icomm,101,ierr)
+      end if
+
+!-----   The file name
+      ilast = stopw(nw+3) - startw(nw+3) + 1
+      read_file(1:50) = ' '
+      read_file(1:ilast) = command(startw(nw+3):stopw(nw+3))
+
+!-----   check if normalization is to be read in
+      xnorm = 1.0d0
+      if(numw == nw + 4)read(command(startw(nw+4):stopw(nw+4)),*)xnorm
+
+!-----   Find the nucleus for data to be read in
+      do i = 1, num_comp
+         if(iZ == nucleus(i)%Z .and. iA == nucleus(i)%A)then
+            if(.not. nucleus(i)%EL_mode(lx)%gsf_read)                       &
+               nucleus(i)%EL_mode(lx)%num_gsf = 0
+            nucleus(i)%EL_mode(lx)%gsf_read = .true.
+            nucleus(i)%EL_mode(lx)%num_gsf =                                           &
+               nucleus(i)%EL_mode(lx)%num_gsf + 1
+            nucleus(i)%fit_gamma_gamma = .false.    !  turn off fit to gamma_gamma
+            n_gsf = nucleus(i)%EL_mode(lx)%num_gsf
+            nucleus(i)%EL_mode(lx)%gsf(n_gsf)%gsf_type = gsf_type
+!------   Check that there aren't too many strength functions - maximum is 3
+            if(n_gsf > max_num_gsf)then
+               if(iproc == 0)write(6,*)'Error, attempting to read in too many strength functions, max = ', &
+               max_num_gsf
+               call MPI_Abort(icomm,101,ierr)
+            end if
+            open(unit=10,file = read_file(1:ilast), status = 'old')
+!------   Find out how much data we will be reading in
+            num_data = 0
+            io_error = 0
+            do while(io_error == 0)
+               temp_char(1:132) = ' '
+               read(10,'(a)',iostat = io_error)temp_char
+               if(temp_char(1:1) == '#' .or. temp_char(1:1) == '!')cycle
+               num_data = num_data + 1
+            end do
+            num_data = num_data - 1
+  write(6,*)'icomp = ',i,num_data
+!-----   Set number of data for this gsf
+            nucleus(i)%EL_mode(lx)%gsf(n_gsf)%num_data = num_data
+!-----   Allocate energy and gsf arrays
+            if(.not. allocated(nucleus(i)%EL_mode(lx)%gsf(n_gsf)%e_gsf_r))             &
+               allocate(nucleus(i)%EL_mode(lx)%gsf(n_gsf)%e_gsf_r(num_data))
+            nucleus(i)%EL_mode(lx)%gsf(n_gsf)%e_gsf_r(1:num_data) = 0.0d0
+            if(.not. allocated(nucleus(i)%EL_mode(lx)%gsf(n_gsf)%gsf_r))               &
+               allocate(nucleus(i)%EL_mode(lx)%gsf(n_gsf)%gsf_r(num_data))
+            nucleus(i)%EL_mode(lx)%gsf(n_gsf)%gsf_r(1:num_data) = 0.0d0
+!-----   read in energy and gsf data from file
+            rewind(10)
+            j = 1
+            io_error = 0
+            do while(j <= num_data .and. io_error == 0)
+               temp_char(1:132) = ' '
+               read(10,'(a)',iostat = io_error)temp_char
+               if(temp_char(1:1) == '#' .or. temp_char(1:1) == '!')cycle
+               read(temp_char,*)                                                    &
+                  nucleus(i)%EL_mode(lx)%gsf(n_gsf)%e_gsf_r(j),                     &
+                  nucleus(i)%EL_mode(lx)%gsf(n_gsf)%gsf_r(j)
+!----   If it is photo-absorption, convert to strength function
+               if(gsf_type == 1)then
+                  e_temp = nucleus(i)%EL_mode(lx)%gsf(n_gsf)%e_gsf_r(j)
+                  if(e_temp > 0.0d0)then
+                     nucleus(i)%EL_mode(lx)%gsf(n_gsf)%gsf_r(j) =                   &
+                         nucleus(i)%EL_mode(lx)%gsf(n_gsf)%gsf_r(j)*                &
+                         Kxl(lx)/e_temp**(2*lx+1)
+                  else
+                     nucleus(i)%EL_mode(lx)%gsf(n_gsf)%gsf_r(j) = 0.0d0
+                  end if
+               end if
+               j = j + 1
+            end do
+!-----   If io_error == 1, then something went wrong with the read
+            if(io_error == 1)then
+               if(iproc == 0)write(6,*)'Error reading in energy and strength function data'
+               call MPI_Abort(icomm,101,ierr)
+            end if
+!-----   Now check if the grid energy is >= maximum excitation energy
+            if(nucleus(i)%EL_mode(lx)%gsf(n_gsf)%e_gsf_r(num_data) <                  &
+               nucleus(i)%Ex_max)then
+               write(6,*)'Error in gamma strength function read in file ',read_file(1:ilast) 
+               write(6,*)'Excitation energy is less than maximum excitation energy for this nucleus'
+               write(6,*)'It must be greater than or equal to ', nucleus(i)%Ex_max
+               call MPI_Abort(icomm,101,ierr)
+            end if
+            nucleus(i)%EL_mode(lx)%gsf(n_gsf)%gsf_norm = xnorm
+            return
+         end if
+      end do
+!----    If we get here, the nucleus wasn't found
+      if(iproc == 0)then
+          write(6,*)'************************************************************************************'
+          write(6,*)'Warning nucleus not found for command "read_e_l_gsf". Looking for Z,A = ',iZ,iA
+          write(6,*)'Possibly the incident energy was changed in this run, and the nucleus is no longer'
+          write(6,*)'in the decay chain. Check'
+          write(6,*)'************************************************************************************'
+      end if
+      return
+   end if
+!
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!
+! read_ml_gsf  Z  A  L  f/s  file  norm
+   if(command(startw(1):stopw(1)) == 'read_ml_gsf')then
+      icommand = icommand + 1
+
+      ndat = 0
+      call extract_ZA_data(command, numw, startw, stopw, ndat,         &
+                           iZ, iA, X, nw, read_error)
+      if(read_error)then
+         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
+         return
+      end if
+      if(numw < nw + 3)then
+         if(iproc == 0)write(6,*)'Error, not enough input in call to "read_m_l_gsf"'
+         call MPI_Abort(icomm,101,ierr)
+      end if
+      ix = 0
+!-----   Find the multipolarity 
+      read(command(startw(nw+1):stopw(nw+1)),*)lx
+      if(lx < 1 .or. lx > e_l_max)then               !   error in multipolarity
+         if(iproc == 0)then
+            write(6,*)'Error in multipolarity in "read_m_l_gsf" L = ',lx
+            write(6,*)'Maximum L value allowed for Electric transition is ',m_l_max
+         end if
+         call MPI_Abort(icomm,101,ierr)
+      end if
+      gsf_type = -1
+!-----   Find out if we are reading a strength function: f/0 
+!-----   or is it a photoabsorption cross section: s/1
+      if(command(startw(nw+2):stopw(nw+2)) == 'F' .or.                  &
+         command(startw(nw+2):stopw(nw+2)) == 'f' .or.                  &
+         command(startw(nw+2):stopw(nw+2)) == '0')then
+           gsf_type = 0
+      elseif(command(startw(nw+2):stopw(nw+2)) == 'S' .or.              &
+         command(startw(nw+2):stopw(nw+2)) == 's' .or.                  &
+         command(startw(nw+2):stopw(nw+2)) == '1')then
+           gsf_type = 1
+      end if
+      if(gsf_type == -1)then
+         if(iproc == 0)write(6,*)'Error specifying if reading strength function or cross section'
+         call MPI_Abort(icomm,101,ierr)
+      end if
+
+!-----   The file name
+      ilast = stopw(nw+3) - startw(nw+3) + 1
+      read_file(1:50) = ' '
+      read_file(1:ilast) = command(startw(nw+3):stopw(nw+3))
+
+!-----   check if normalization is to be read in
+      xnorm = 1.0d0
+      if(numw == nw + 4)read(command(startw(nw+4):stopw(nw+4)),*)xnorm
+
+!-----   Find the nucleus for data to be read in
+      do i = 1, num_comp
+         if(iZ == nucleus(i)%Z .and. iA == nucleus(i)%A)then
+            if(.not. nucleus(i)%ML_mode(lx)%gsf_read)                       &
+               nucleus(i)%ML_mode(lx)%num_gsf = 0
+            nucleus(i)%ML_mode(lx)%gsf_read = .true.
+            nucleus(i)%fit_gamma_gamma = .false.    !  turn off fit to gamma_gamma
+            nucleus(i)%ML_mode(lx)%num_gsf =                                           &
+               nucleus(i)%ML_mode(lx)%num_gsf + 1
+            n_gsf = nucleus(i)%ML_mode(lx)%num_gsf
+            nucleus(i)%ML_mode(lx)%gsf(n_gsf)%gsf_type = gsf_type
+!------   Check that there aren't too many strength functions - maximum is 3
+            if(n_gsf > max_num_gsf)then
+               if(iproc == 0)write(6,*)'Error, attempting to read in too many strength functions, max = ', &
+               max_num_gsf
+               call MPI_Abort(icomm,101,ierr)
+            end if
+            open(unit=10,file = read_file(1:ilast), status = 'old')
+!------   Find out how much data we will be reading in
+            num_data = 0
+            io_error = 0
+            do while(io_error == 0)
+               temp_char(1:132) = ' '
+               read(10,'(a)',iostat = io_error)temp_char
+               if(temp_char(1:1) == '#' .or. temp_char(1:1) == '!')cycle
+               num_data = num_data + 1
+            end do
+            num_data = num_data - 1
+!-----   Set number of data for this gsf
+            nucleus(i)%ML_mode(lx)%gsf(n_gsf)%num_data = num_data
+!-----   Allocate energy and gsf arrays
+            if(.not. allocated(nucleus(i)%ML_mode(lx)%gsf(n_gsf)%e_gsf_r))             &
+               allocate(nucleus(i)%ML_mode(lx)%gsf(n_gsf)%e_gsf_r(num_data))
+            nucleus(i)%ML_mode(lx)%gsf(n_gsf)%e_gsf_r(1:num_data) = 0.0d0
+            if(.not. allocated(nucleus(i)%ML_mode(lx)%gsf(n_gsf)%gsf_r))               &
+               allocate(nucleus(i)%ML_mode(lx)%gsf(n_gsf)%gsf_r(num_data))
+            nucleus(i)%ML_mode(lx)%gsf(n_gsf)%gsf_r(1:num_data) = 0.0d0
+!-----   read in energy and gsf data from file
+            rewind(10)
+            j = 1
+            io_error = 0
+            do while(j <= num_data .and. io_error == 0)
+               temp_char(1:132) = ' '
+               read(10,'(a)',iostat = io_error)temp_char
+               if(temp_char(1:1) == '#' .or. temp_char(1:1) == '!')cycle
+               read(temp_char,*)                                                    &
+                  nucleus(i)%ML_mode(lx)%gsf(n_gsf)%e_gsf_r(j),                     &
+                  nucleus(i)%ML_mode(lx)%gsf(n_gsf)%gsf_r(j)
+               if(gsf_type == 1)then
+                  e_temp = nucleus(i)%ML_mode(lx)%gsf(n_gsf)%e_gsf_r(j)
+                  if(e_temp > 0.0d0)then
+                     nucleus(i)%ML_mode(lx)%gsf(n_gsf)%gsf_r(j) =                   &
+                         nucleus(i)%ML_mode(lx)%gsf(n_gsf)%gsf_r(j)*                &
+                         Kxl(lx)/e_temp**(2*lx+1)
+                  else
+                     nucleus(i)%ML_mode(lx)%gsf(n_gsf)%gsf_r(j) = 0.0d0
+                  end if
+               end if
+               j = j + 1
+            end do
+!-----   If io_error == 1, then something went wrong with the read
+            if(io_error == 1)then
+               if(iproc == 0)write(6,*)'Error reading in energy and strength function data'
+               call MPI_Abort(icomm,101,ierr)
+            end if
+!-----   Now check if the grid energy is >= maximum excitation energy
+            if(nucleus(i)%ML_mode(lx)%gsf(n_gsf)%e_gsf_r(num_data) <                  &
+               nucleus(i)%Ex_max)then
+               write(6,*)'Error in gamma strength function read in file ',read_file(1:ilast) 
+               write(6,*)'Excitation energy is less than maximum excitation energy for this nucleus'
+               write(6,*)'It must be greater than or equal to ', nucleus(i)%Ex_max
+               call MPI_Abort(icomm,101,ierr)
+            end if
+            nucleus(i)%ML_mode(lx)%gsf(n_gsf)%gsf_norm = xnorm
+            return
+         end if
+      end do
+!----    If we get here, the nucleus wasn't found
+      if(iproc == 0)then
+          write(6,*)'************************************************************************************'
+          write(6,*)'Warning nucleus not found for command "read_e_l_gsf". Looking for Z,A = ',iZ,iA
+          write(6,*)'Possibly the incident energy was changed in this run, and the nucleus is no longer'
+          write(6,*)'in the decay chain. Check'
+          write(6,*)'************************************************************************************'
+      end if
+      return
    end if
 !
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -3421,6 +3805,30 @@ integer(kind=4) function rank_commands(command)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'event_generator')then
+      rank_commands = 0 
+      return
+   end if
+!
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!
+   if(command(startw(1):stopw(1)) == 'e_l_max')then
+      rank_commands = 0 
+      return
+   end if
+!
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!
+   if(command(startw(1):stopw(1)) == 'm_l_max')then
+      rank_commands = 0 
+      return
+   end if
+!
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!
+   if(command(startw(1):stopw(1)) == 'max_num_gsf')then
       rank_commands = 0 
       return
    end if
@@ -3947,6 +4355,7 @@ subroutine extract_ZA_data(command, numw, startw, stopw, ndat,     &
 !    This subroutine reads the commands to extract iZ, iA, and ndat elements
 !    of data stored in X(ndat). if insufficient data is provided to be read
 !    read_error is returned as .false.
+!    The integer nw is the number of words in the line that were read
 !
 !  Licensing:
 !

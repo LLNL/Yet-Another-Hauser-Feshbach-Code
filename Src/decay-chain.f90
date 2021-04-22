@@ -53,6 +53,8 @@ subroutine set_up_decay_chain(Z_p, A_p, Z_t, A_t)
    real(kind=8) :: em_proj
    real(kind=8) :: Coul
    real(kind=8) :: xZ_i, xA_i, xZ_part, xA_part
+   integer(kind=4) :: lx
+
    logical found
    integer(kind=4) :: npart
    integer(kind=4) :: num
@@ -333,6 +335,39 @@ subroutine set_up_decay_chain(Z_p, A_p, Z_t, A_t)
                         nucleus(num_nuc)%beta(5) = 0.0d0
                         nucleus(num_nuc)%beta(6) = 0.0d0
                         nucleus(num_nuc)%fit_gamma_gamma = .true.
+!------    Initialize information needed for the  possibility of reading in strength funcitons
+                        if(.not. allocated(nucleus(num_nuc)%EL_mode))                          &
+                           allocate(nucleus(num_nuc)%EL_mode(e_l_max))
+                        nucleus(num_nuc)%EL_mode(e_l_max)%gsf_read = .false.
+                        nucleus(num_nuc)%EL_mode(e_l_max)%num_gsf = 0
+                        do lx = 1, e_l_max
+                           nucleus(num_nuc)%EL_mode(lx)%gsf_read = .false.
+                           nucleus(num_nuc)%EL_mode(lx)%num_gsf = 0
+                           if(.not. allocated(nucleus(num_nuc)%EL_mode(lx)%gsf))               &
+                              allocate(nucleus(num_nuc)%EL_mode(lx)%gsf(max_num_gsf))
+                           nucleus(num_nuc)%EL_mode(lx)%gsf(1:max_num_gsf)%gsf_type = 0
+                           nucleus(num_nuc)%EL_mode(lx)%gsf(1:max_num_gsf)%num_data = 0
+                           nucleus(num_nuc)%EL_mode(lx)%gsf(1:max_num_gsf)%gsf_norm = 1.0d0
+                           nucleus(num_nuc)%EL_mode(lx)%gsf(1:max_num_gsf)%er = 0.0d0
+                           nucleus(num_nuc)%EL_mode(lx)%gsf(1:max_num_gsf)%gr = 0.0d0
+                           nucleus(num_nuc)%EL_mode(lx)%gsf(1:max_num_gsf)%sr = 0.0d0
+                        end do
+                        if(.not. allocated(nucleus(num_nuc)%ML_mode))                          &
+                           allocate(nucleus(num_nuc)%ML_mode(e_l_max))
+                        nucleus(num_nuc)%ML_mode(e_l_max)%gsf_read = .false.
+                        nucleus(num_nuc)%ML_mode(e_l_max)%num_gsf = 0
+                        do lx = 1, e_l_max
+                           nucleus(num_nuc)%ML_mode(lx)%gsf_read = .false.
+                           nucleus(num_nuc)%ML_mode(lx)%num_gsf = 0
+                           if(.not. allocated(nucleus(num_nuc)%ML_mode(lx)%gsf))               &
+                              allocate(nucleus(num_nuc)%ML_mode(lx)%gsf(max_num_gsf))
+                           nucleus(num_nuc)%ML_mode(lx)%gsf(1:max_num_gsf)%gsf_type = 0
+                           nucleus(num_nuc)%ML_mode(lx)%gsf(1:max_num_gsf)%num_data = 0
+                           nucleus(num_nuc)%ML_mode(lx)%gsf(1:max_num_gsf)%gsf_norm = 1.0d0
+                           nucleus(num_nuc)%ML_mode(lx)%gsf(1:max_num_gsf)%er = 0.0d0
+                           nucleus(num_nuc)%ML_mode(lx)%gsf(1:max_num_gsf)%gr = 0.0d0
+                           nucleus(num_nuc)%ML_mode(lx)%gsf(1:max_num_gsf)%sr = 0.0d0
+                        end do
 			
 
                         if(A_f > 20)then

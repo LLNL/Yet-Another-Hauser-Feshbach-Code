@@ -32,7 +32,7 @@ module options
 !
    use variable_kinds
    character(len=132) :: version
-   parameter (version = 'MC-3.46')
+   parameter (version = 'MC-3.47')
    integer(kind=int_64) :: iseed_64
    integer(kind=int_32) :: iseed_32
    integer(kind=4) :: PREEQ_Model
@@ -73,7 +73,10 @@ module options
 !-rem   integer(kind=4) :: numn1, numn2, numn3
    integer(kind=4) :: part_lmax
    integer(kind=4) :: E1_model
-   integer(kind=4)  e_l_max, m_l_max
+   integer(kind=4) :: e_l_max, m_l_max
+!-----
+   integer(kind=4) :: max_num_gsf
+
    character(len=50) ex_pop_file
    integer(kind=4) :: num_pop_e, num_pop
    real(kind=8) :: rho_cut
@@ -364,6 +367,7 @@ module nuclei
 !*******************************************************************************
 !
    use variable_kinds
+
    type bin_decay
       integer(kind=4) :: num_decay
       real(kind=8), allocatable, dimension (:) :: decay_prob
@@ -433,10 +437,54 @@ module nuclei
       real(kind=8) :: ecut
       integer(kind=4) :: num_discrete
       integer(kind=4) :: ncut
-      real(kind=8), allocatable, dimension(:) :: state_e
-      real(kind=8), allocatable, dimension(:) :: state_j
-      real(kind=8), allocatable, dimension(:) :: state_pi
+      real(kind=8), allocatable, dimension (:) :: state_e
+      real(kind=8), allocatable, dimension (:) :: state_j
+      real(kind=8), allocatable, dimension (:) :: state_pi
    end type Fission_Barrier
+!++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!---------    Derived types for Electromagnetic Strength Functions
+!++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!-----    Electric
+!   nucleus(inuc)%EL_mode(L)%gsf_read
+!   nucleus(inuc)%EL_mode(L)%num_gsf   
+!   nucleus(inuc)%EL_mode(L)%gsf(k)%er
+!   nucleus(inuc)%EL_mode(L)%gsf(k)%gr
+!   nucleus(inuc)%EL_mode(L)%gsf(k)%sr
+!   nucleus(inuc)%EL_mode(L)%gsf(k)%num_data
+!   nucleus(inuc)%EL_mode(L)%gsf(k)%gsf_norm
+!   nucleus(inuc)%EL_mode(L)%gsf(k)%gsf_type
+!   nucleus(inuc)%EL_mode(L)%gsf(k)%e_gsf_r(n)
+!   nucleus(inuc)%EL_mode(L)%gsf(k)%gsf_r(n)
+!-----   Magnetic
+!   nucleus(inuc)%ML_mode(L)%gsf_read
+!   nucleus(inuc)%ML_mode(L)%num_gsf   
+!   nucleus(inuc)%ML_mode(L)%gsf(k)%er
+!   nucleus(inuc)%ML_mode(L)%gsf(k)%gr
+!   nucleus(inuc)%ML_mode(L)%gsf(k)%sr
+!   nucleus(inuc)%ML_mode(L)%gsf(k)%num_data
+!   nucleus(inuc)%ML_mode(L)%gsf(k)%gsf_norm
+!   nucleus(inuc)%ML_mode(L)%gsf(k)%gsf_type
+!   nucleus(inuc)%ML_mode(L)%gsf(k)%e_gsf_r(n)
+!   nucleus(inuc)%ML_mode(L)%gsf(k)%gsf_r(n)
+
+   type gsf_data
+!-----   Data for strength function read in
+      integer(kind=4) :: num_data              !  number of data points read in
+      real(kind=8) :: gsf_norm                 !  normalization for this term
+      integer(kind=4) :: gsf_type              !   0 for strength function, 1 for sigma
+      real(kind=8), allocatable, dimension (:) :: e_gsf_r   !   energy grid
+      real(kind=8), allocatable, dimension (:) :: gsf_r     !   strength function points
+!-----  Strength function parameters
+      real(kind=8) :: er                !   Centroid
+      real(kind=8) :: gr                !   Width
+      real(kind=8) :: sr                !   strength
+   end type gsf_data
+
+   type EM_read
+     logical :: gsf_read                !   Read in or use internal model
+     integer(kind=4) :: num_gsf         !   number gsf used in this calculation
+     type(gsf_data), allocatable, dimension (:) :: gsf         !   Gamma strength function
+   end type EM_read
 
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !----------   derived type describing each nucleus exisiting in the calculation
@@ -466,11 +514,7 @@ module nuclei
       integer(kind=4) :: j_max                                        !  number of angular momentum bins
       real(kind=8), allocatable, dimension (:) :: e_grid              !  Energies for the level density grid
       real(kind=8), allocatable, dimension (:) :: delta_e             !  Energy spacing for the grid point - useful for unequal bins
-!      real(kind=8), allocatable, dimension (:,:,:) :: pop             !  Populations (E,J,pi)
       real(kind=8), allocatable, dimension (:,:) :: PREEQ_pop         !  Populations removed from compound due to pree-equilibirum for J,pi states
-!      real(kind=8), allocatable, dimension (:,:,:) :: rho             !  level densities (E,J,pi)
-!      real(kind=8), allocatable, dimension (:,:,:) :: HF_den          !  Hauser-Feshbach denominators for each bin
-!      real(kind=8), allocatable, dimension (:,:,:,:) :: HF_prob       !  Hauser-Feshbach decay prob for particle type
       type(bin_data), allocatable, dimension(:,:,:) :: bins
 
 !------  Data structures holding cross section data
@@ -505,25 +549,17 @@ module nuclei
 
 !-----  Electromagnetic strength functions
       integer(kind=4) :: num_res
-      real(kind=8) :: er_E1(4)                       !   Giant-dipole data
-      real(kind=8) :: gr_E1(4)
-      real(kind=8) :: sr_E1(4)
       logical :: E1_default
       logical :: fit_gamma_gamma
-      real(kind=8), allocatable, dimension (:) :: er_M  ! magnetic properties
-      real(kind=8), allocatable, dimension (:) :: gr_M
-      real(kind=8), allocatable, dimension (:) :: sr_M
-      real(kind=8), allocatable, dimension (:) :: er_E  ! electric propoerties for L > 1
-      real(kind=8), allocatable, dimension (:) :: gr_E
-      real(kind=8), allocatable, dimension (:) :: sr_E
       integer(kind=4) :: nbin_em
       integer(kind=4) :: lmax_E
       integer(kind=4) :: lmax_M
       integer(kind=4) :: e1_model
-      real(kind=8), allocatable, dimension (:,:) :: f_E
-      real(kind=8), allocatable, dimension (:,:) :: f_M
-      real(kind=8), allocatable, dimension (:,:) :: str_E
-      real(kind=8), allocatable, dimension (:,:) :: str_M
+!----   Data for EM strength functions read in
+!----   EL_mode(L):  Electric
+!----   ML_mode(L):  Magnetic
+      type(EM_read), allocatable, dimension (:) :: EL_mode       !  0=Electric, 1=Magnetic, 3=L_max
+      type(EM_read), allocatable, dimension (:) :: ML_mode       !  0=Electric, 1=Magnetic, 3=L_max
 !------   Fission information
       logical :: fission
       integer(kind=4) :: F_n_barr
