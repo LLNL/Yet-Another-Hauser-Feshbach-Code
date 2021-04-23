@@ -768,7 +768,7 @@ The particle-hole state density. $\omega$ is computed under the assumption of eq
 where $A$ is the Pauli correction factor, $f$ is the finite well function, and $U = E_x - P_{p,h}$. The
 pairing correction, $P_{p,h}$ is taken from Ref.~\cite{Fu:1984}, and for $E_x/\Delta \ge 0.716 + 2.44\left ( \frac{n}{n_{crit}}\right )^{2.17}$, it is given by
 \begin{equation}
-P_{p,h} = \Delta - \delta\left [ 0.996 - 1.76\left ( \frac{n}{n_{crit}}\right )^{1.6} \left (\frac{E_x}{\Delta}\right )^{0.68}\right ]^2,
+P_{p,h} = \Delta - \Delta\left [ 0.996 - 1.76\left ( \frac{n}{n_{crit}}\right )^{1.6} \left (\frac{E_x}{\Delta}\right )^{0.68}\right ]^2,
 \end{equation}
 where
 \begin{align}
@@ -781,7 +781,7 @@ P_{p,h}=\Delta.
 \end{equation}
 The Pauli correction term is given by
 \begin{align}
-Ap_\pi,h_\pi,p_\nu,h_\nu) = & \frac{[\max(p_\pi,h_\pi)]^2}{g_\pi}+ \notag\\
+A(p_\pi,h_\pi,p_\nu,h_\nu) = & \frac{[\max(p_\pi,h_\pi)]^2}{g_\pi}+ \notag\\
 & \frac{[\max(p_\nu,h_\nu)]^2}{g_\nu}+ \notag\\
 & \frac{p_\pi^2+h_\pi^2 + p_\pi + h_\pi}{4g_\pi}+ \notag\\
 & \frac{p_\nu^2+h_\nu^2 + p_\nu + h_\nu}{4g_\nu}.
@@ -811,13 +811,13 @@ V  & h > 1.
 \end{equation}
 The default parameters are:
 \begin{align}
-V_1^\pi & = 22~\text{MeV} \notag \\
-V_1\nu & = 12~\text{MeV} \notag \\
-V & = 38~\text{MeV} \notag \\
-K^\pi & = 450~\text{MeV} \notag \\
-K^\nu & = 245~\text{MeV} \notag \\
+V_1^\pi & = 22~\text{MeV}, \notag \\
+V_1\nu & = 12~\text{MeV}, \notag \\
+V & = 38~\text{MeV}, \notag \\
+K^\pi & = 450~\text{MeV}, \notag \\
+K^\nu & = 245~\text{MeV}, 
 \end{align}
-which can be changed with the commands ${\texttt{preeq\_well\_v}}$, ${\texttt{preeq\_well\_v1}}$, and ${\texttt{preeq\_well\_k}}$. A failsafe is implemented
+all of which can be changed with the commands ${\texttt{preeq\_well\_v}}$, ${\texttt{preeq\_well\_v1}}$, and ${\texttt{preeq\_well\_k}}$. A failsafe is implemented
 in case the user selects $V < V_1$ with $V_1$ being reset with $V_1 = \max(V-5,0)$. This tends to avoid
 strange effects in the pre-equilibrium spectrum for small values of $V$ with $V < V_1$.
 
@@ -825,9 +825,10 @@ strange effects in the pre-equilibrium spectrum for small values of $V$ with $V 
 The lifetime $\tau$ for a given exciton state $(p_\pi, h_\pi, p_\nu, h_\nu)$ is defined as the inverse sum of the total emission rate and the internal transition rates, that is
 \begin{align}
 \tau(p_\pi, h_\pi, p_\nu, h_\nu) = \Big [ & \lambda_\pi^+(p_\pi, h_\pi, p_\nu, h_\nu)  + 
-                                                                \lambda_\nu^+(p_\pi, h_\pi, p_\nu, h_\nu) + 
-                                                                \lambda_{\pi\nu}^0(p_\pi, h_\pi, p_\nu, h_\nu) + \notag\\
-                                                             & \lambda_{\nu\pi}^0(p_\pi, h_\pi, p_\nu, h_\nu) + W(p_\pi, h_\pi, p_\nu, h_\nu) \Big ]
+                                                                \lambda_\nu^+(p_\pi, h_\pi, p_\nu, h_\nu) + \notag\\
+                                                             &   \lambda_{\pi\nu}^0(p_\pi, h_\pi, p_\nu, h_\nu) + 
+                                                              \lambda_{\nu\pi}^0(p_\pi, h_\pi, p_\nu, h_\nu) + \notag\\
+                                                             & W(p_\pi, h_\pi, p_\nu, h_\nu) \Big ]^{-1}
 \end{align}
 where the total emission rate $W$ is obtained by integrating Eqs.~(\ref{eq:part-em-rate}) and  (\ref{eq:gam-em-rate}) over all outgoing energies and summing over the outgoing particles. The transition rate $\lambda_{\pi(\nu)}^+$ denotes the creation of a proton(neutron) particle-hole pair, and is given
 by
@@ -848,7 +849,7 @@ L_1^{h_\pi} & = A(p_\pi+1, h_\pi+1, p_\nu, h_\nu) - A(p_\pi, h_\pi-1, p_\nu, h_\
 L_2^{h_\pi} & = E^{\rm tot}  - A(p_\pi, h_\pi-1, p_\nu, h_\nu) \notag \\
 L_1^{p_\nu} & = A(p_\pi, h_\pi, p_\nu+1, h_\nu+1) - A(p_\pi, h_\pi, p_\nu-1, h_\nu) \notag \\
 L_2^{p_\nu} & = E^{\rm tot}  - A(p_\pi, h_\pi, p_\nu-1, h_\nu) \notag\\
-L_1^{h_\nu} & = A(p_\pi, h_\pi, p_\nu+1, h_\nu+1) - A(p_\pi, h_\pi, p_\nu, h_\nu-1) \notag \\
+L_1^{h_\nu} & = A(p_\pi+1, h_\pi+1, p_\nu, h_\nu) - A(p_\pi, h_\pi, p_\nu, h_\nu-1) \notag \\
 L_2^{h_\nu} & = E^{\rm tot}  - A(p_\pi, h_\pi, p_\nu, h_\nu-1).
 \end{align}
 The collision probabilities $\lambda_{\pi\pi}^{1p}$, $\lambda_{\pi\pi}^{1h}$, $\lambda_{\nu\pi}^{1p}$, and $\lambda_{\nu\pi}^{1h}$ are given by Fermi's golden rule and are expressed in terms of
@@ -869,7 +870,7 @@ The transition rate for converting a proton particle-hole pair into a neutron pa
 with the integration limits defined by
 \begin{align}
 L_1^{ph\pi\nu} & = A(p_\pi, h_\pi, p_\nu, h_\nu) - (p_\pi-1, h_\pi-1, p_\nu, h_\nu) \notag \\
-L_2^{ph\pi\nu} & = E^{\rm tot} - A(p_\pi, h_\pi, p_\nu, h_\nu).
+L_2^{ph\pi\nu} & = E^{\rm tot} - A(p_\pi-1, h_\pi-1, p_\nu, h_\nu).
 \end{align}
 The collision probability $\lambda_{\pi\nu}^{1p1h}$ is given in terms of the effective squared matrix element as
 \begin{equation}
@@ -877,7 +878,7 @@ The collision probability $\lambda_{\pi\nu}^{1p1h}$ is given in terms of the eff
 \end{equation}
 The transition rates $\lambda_\nu^+$ and $\lambda_{\nu\pi}^0$ can be obtained from Eqs.~(\ref{eq:lamplus}) and (\ref{eq:lamzero}) through the substitution $\pi \rightarrow \nu$.
 
-Each of the two-component matrix elements, $M_{kk^\prime}^2$ are defined in terms of an average $M_2$by
+Each of the two-component matrix elements, $M_{kk^\prime}^2$ are defined in terms of an average $M_2$ by
 \begin{equation}
 M_{kk^\prime}^2 = R_{kk^\prime} M^2
 \end{equation}
@@ -888,10 +889,10 @@ M^2 = \frac{C_1A_p}{A^3}\left [ 7.48 C_2 + \frac{4.62\times 10^5}{\left ( \frac{
 where $n$ is the number of excitons, $A_p$ is the mass number of the projectile, and the coefficients $C_1$, $C_2$, and $C_3$
 are input parameters (default $C_1 = C_2 = C_3 = 1$) that are controlled with the YAHFC commands ${\texttt{preeq\_m2\_c1}}$,
 ${\texttt{preeq\_m2\_c2}}$, and ${\texttt{preeq\_m2\_c3}}$, respectively. The factors $R_{kk^\prime}$ are essentially free parameters that can be adjusted to
-experimental data. The default values adopted here are
+experimental data. The default values adopted here are~\cite{Koning:2004}
 \begin{align}
-R_{\pi\pi} &= R_{\pi\pi} = 1 \notag \\
-R_{\pi\nu} &= R_{\nu\pi} = 1.5,
+R_{\pi\pi} &= R_{\pi\nu} = R_{\nu\pi} = 1 \notag \\
+R_{\nu\nu} &= 1.5,
 \end{align}
 and may be adjusted in the calculation with the YAHFC commands ${\texttt{preeq\_m2\_rpp}}$, ${\texttt{preeq\_m2\_rnn}}$, ${\texttt{preeq\_m2\_rpn}}$, and
 ${\texttt{preeq\_m2\_rnp}}$.

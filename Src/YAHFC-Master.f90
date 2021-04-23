@@ -701,9 +701,9 @@ program YAHFC_MASTER
       M2_C2 = 1.0d0
       M2_C3 = 1.0d0
       M2_Rpp = 1.0d0
-      M2_Rnn = 1.0d0
-      M2_Rpn = 1.5d0
-      M2_Rnp = 1.5d0
+      M2_Rnn = 1.5d0
+      M2_Rpn = 1.0d0
+      M2_Rnp = 1.0d0
 
       quasi_elastic =.false.
       quasi_e = 0.0d0

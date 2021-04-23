@@ -690,3 +690,10 @@ Version 3.47
     command max_num_gsf.
 4.  Fixed incinsistencies and confusion over the gamma strength function for 
     L > 1. 
+
+Version 3.48
+1.  Changed factor for M2 matrix element in the two-component exciton model 
+    to be in line with current TALYS version as opposed to original paper
+    Koning NPA744, 15 (2004). Before, Rpp=Rnn = 1.0, Rpn=Rnp = 1.5. Now,
+    Rpp = Rpn = Rnp = 1.0 and Rnn = 1.5. 
+    
