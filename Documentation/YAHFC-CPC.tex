@@ -489,14 +489,14 @@ where $E_\gamma$ is the gamma energy, and $f_{XL}(E_\gamma)$ is the gamma streng
 f_{XL}(E_\gamma ) = \frac{K_L}{E_\gamma^{2L-2} }\sum_i \frac{\sigma_{XL,i} E_\gamma\Gamma^2_{XL,i}}{(E_\gamma^2 - E^2_{XL,i})^2+E^2_\gamma\Gamma^2_{XL,i}},
 \label{eq:Lor}
 \end{equation} 
-where $K_L = 1/[(2L+1)\pi^2\hbar^2c^2]$ and $\sigma_{XL,i}$, $E_{XL,i}$, and $\Gamma_{XL,i}$ are the strength, energy, and width for each line.  The strength function $f_{XL}$ is related to the photo-absorption cross section, $\sigma_{abs}(E_\gamma)$ via
+where $K_L = 1/[(2L+1)\pi^2\hbar^2c^2]$ and $\sigma_{XL,i}$, $E_{XL,i}$, and $\Gamma_{XL,i}$ are the strength, energy, and width for each line.  The strength function $f_{XL}$ is related to the photo-absorption cross section, $\sigma_{\rm abs}^{XL}(E_\gamma)$, via
 \begin{equation}
-f_{XL}(E_\gamma) = \frac{K_L}{E_\gamma^{2L-1}}  \sigma_{abs}(E_\gamma).
+f_{XL}(E_\gamma) = \frac{K_L}{E_\gamma^{2L-1}}  \sigma_{\rm abs}^{XL}(E_\gamma).
 \end{equation}
 
 For electric transitions with $L \ge 2$ and magnetic transitions with $L \ge 1$, the default strength function parameters are the same as those in TALYS, namely for $M1$,
 \begin{align}
-E_{ML,1} =  & 41.0A^{-1/3}~{\rm MeV},\notag\\
+E_{ML,1} =  & 41.0A^{-1/3}~{\rm MeV}, \notag \\
 \Gamma_{ML,1} = & 4.0~{\rm MeV},
 \end{align}
 with $\sigma_{M1,1}$ adjusted so that $f_{M1}(E_\gamma = 7) = 1.58A^{0.47}$. For $ML>1$, $E_{ML>1,1} = E_{M1,1}$, $\Gamma_{ML>1,1} = \Gamma_{M1,1}$, and $\sigma_{ML>1,1} = 8.0\times 10^{-4}\sigma_{M1,1}$
@@ -525,19 +525,28 @@ where $E_x$ is the excitation energy of the compound nucleus, $S_n$ is the neutr
 
 For $E1$ transitions, default parameters for the giant-dipole resonance are given in the file ${\texttt{gdr-parameters-exp.dat}}$ located in the YAHFC data directory. For systems not found in the file, the $E1$ strength function defaults to a single component with parameters
 \begin{align}
-E_{E1} &= 31.2A^{-1/3} + 20.6A^{-1/6}~{\text{MeV}}  \\ \notag
-\Gamma_{E1} &=  0.026E_{E1}^{1.91}~{\text{MeV}} \\ \notag
+E_{E1} &= 31.2A^{-1/3} + 20.6A^{-1/6}~{\text{MeV}}  \notag \\
+\Gamma_{E1} &=  0.026E_{E1}^{1.91}~{\text{MeV}} \notag \\
 \sigma_{E1} &= \frac{144 N Z}{A\pi \Gamma_{E1}}~{\text{mb}}. 
 \end{align}
 
-For the most part, most electromagnetic modes are composed of a single line, however, the giant-dipole ($E1$) in deformed nuclei is known to be comprised of two lines. In YAHFC, the electromagnetic strength functions can be composed by up to ${\texttt{max\_num\_gsf}}$ elements which has a default value of four, but can be changed with the YAHFC command ``${\texttt{max\_num\_gsf}~N}$''. The user may manually enter the resonance parameters $E_{XL,i}$, $\Gamma_{XL,i}$, and $\sigma_{XL,i}$ with the commands ``${\texttt{el\_param}}~L~i~E_{EL,i}~\Gamma_{EL,i} ~ \sigma_{EL,i }$'' and 
-``${\texttt{ml\_param}}~L~i~E_{ML,i}~\Gamma_{ML,i}~\sigma_{ML,i}$'', for electric and magnetic transitions, respectively.
+For the most part, most electromagnetic modes are composed of a single line, however, the giant-dipole ($E1$) in deformed nuclei is known to be comprised of two lines. In YAHFC, the electromagnetic strength functions can be composed by up to ${\texttt{max\_num\_gsf}}$ elements which has a default value of four, but can be changed to the value $N$ with the YAHFC command ``${\texttt{max\_num\_gsf}}~N$''. The user may manually enter the resonance parameters $E_{XL,i}$, 
+$\Gamma_{XL,i}$, and $\sigma_{XL,i}$ with the commands\\
+\\
+${\texttt{el\_param}}~Z~A~L~i~E_{EL,i}~\Gamma_{EL,i} ~ \sigma_{EL,i }$, \\
+${\texttt{ml\_param}}~Z~A~L~i~E_{ML,i}~\Gamma_{ML,i}~\sigma_{ML,i}$\\
+\\
+for electric and magnetic transitions, respectively.
 
-YAHFC also has an option to bypass the analytic models and directly read in gamma strength functions. This may be accomplished the commands 
-${\texttt{read\_el\_gsf}}$ and ${\texttt{read\_ml\_gsf}}$ (see appendix). The user specifies the multipolarity, whether it is a strength function or photo-absorption cross section, a file name, and an optional normalization. The energies and strength function values are entered in two columns, and while the energy values need not be equally spaced, they must be in ascending order. Comment lines may appear in the file as indicated by the character \# appearing in the first column. For strength functions, the units are MeV$^{-{(2L+1)}}$, while for a photo-absorption cross section, which is converted to the strength function $f$, the units are mb.
+YAHFC also has an option to bypass the analytic models and directly read in gamma strength functions. This may be accomplished the commands\\
+\\
+${\texttt{read\_el\_gsf}}~Z~A~L~{\texttt{c}}~{\texttt{file\_name}}~X_{\rm norm}$ \\
+${\texttt{read\_ml\_gsf}}~Z~A~L~{\texttt{c}}~{\texttt{file\_name}}~X_{\rm norm}$ \\
+\\
+(see appendix for more details). The user specifies the multipolarity, $L$, whether it is a strength function (${\texttt{c}}={\texttt{f}}$) or 
+photo-absorption cross section (${\texttt{c}}={\texttt{s}}$), a file name, and an optional normalization factor $X_{\rm norm}$. The energies and strength function values are entered in two columns. While the energy values need not be equally spaced, they must be in ascending order. Comment lines may appear in the file as indicated by the characters \# or ! appearing in the first column. For strength functions, the units are MeV$^{-{(2L+1)}}$, while for a photo-absorption cross section, which is converted to the strength function $f$, the units are mb.
 
-
-For compound nuclei based on a stable target plus one neutron, experimental resonance data provide a constraint on the electromagnetic strength function via the evaluated radiative width; the so-called $\Gamma_\gamma$(l) value. By default, YAHFC adjusts the $E1$ strength function for these nuclei to reproduce the experimental $\Gamma_\gamma(l=0)$ values. This is accomplished by adding an additional resonance line with centroid energy $E_\gamma = 5.0$~MeV and with $\Gamma = 5.0$~MeV and adjusting the strength $\sigma$. Evaluated $\Gamma_\gamma$ values from the ${\texttt{RIPL-3}}$ compilation obtained from $l=0$ and $l=1$ neutron resonances are given in the files ${\texttt{Level-Density-Data-RIPL3-L0.dat}}$ and ${\texttt{Level-Density-Data-RIPL3-L1.dat}}$, respectively, located in the YAHFC data directory
+For compound nuclei based on a stable target plus one neutron, experimental resonance data provide a constraint on the electromagnetic strength function via the evaluated radiative width; the so-called $\Gamma_\gamma$(l) value. By default, YAHFC adjusts the $E1$ strength function for these nuclei to reproduce the experimental $\Gamma_\gamma(l=0)$ values. This is accomplished by adding an additional resonance line with centroid energy $E_\gamma = 5.0$~MeV and with $\Gamma = 5.0$~MeV and adjusting the strength $\sigma$. Evaluated $\Gamma_\gamma$ values from the ${\texttt{RIPL-3}}$ compilation obtained from $l=0$ and $l=1$ neutron resonances are given in the files ${\texttt{Level-Density-Data-RIPL3-L0.dat}}$ and ${\texttt{Level-Density-Data-RIPL3-L1.dat}}$, respectively, located in the YAHFC data directory. The process to reproduce $\Gamma_\gamma$ is suspended for a nucleus if any of the strength function parameters are entered manually or if the strength functions are read in from a file.
 
 \subsubsection{Fission Transmission Coefficients}
 
@@ -1103,6 +1112,10 @@ ${\texttt{primary\_decay}}$ & ${\texttt{Answer}}$ & ${\texttt{Answer}}$ = ${\tex
 \hline
 ${\texttt{event\_generator}}$ & ${\texttt{Answer}}$ & ${\texttt{Answer}}$ = ${\texttt{y/t/1}}$: Prints events only, no library files. \\
    &    & ${\texttt{Answer}}$ = ${\texttt{n/f/0}}$: Normal run, prints libraries, and events if requested ({\bf Default}) \\\hline
+${\texttt{cs\_units}}$ & ${\texttt{Answer}}$ & Specifies the units used for cross sections in the libraries.\\
+& & ${\texttt{Answer}}$ = ${\texttt{b}}$: Cross sections are listed in barns.\\
+& & ${\texttt{Answer}}$ = ${\texttt{mb}}$: Cross sections are listed in millibarns.\\
+\hline
 ${\texttt{end}}$ & & Specifies the end of all input commands.\\
 \hline
 \end{tabular}
@@ -1123,12 +1136,30 @@ ${\texttt{e1\_model}}$ & $j$ &      Specifies which model to use for $E1$ streng
  &  &   $j = 2$:   Kopecky-Uhl  ({\bf Default})\\
  &  &   $j = 3$:  Modified Kopecky-Uhl\\
 \hline
-${\texttt{e1\_param}}$  & $Z$, $A$, $j$, $E_j$, $\Gamma_j$, $S_j$ &
+${\texttt{e1\_param}}$ (deprecated) & $Z$, $A$, $j$, $E_j$, $\Gamma_j$, $S_j$ &
     Sets centroid ($E_j$), width ($\Gamma_j$), and strength ($S_j$) for the $j^{th}$ $E1$ resonance component 
     for nucleus $Z$ and $A$.\\
  & &    $j \le 3$ will overrides default values found in file
     \$YAHFC\_DATA/gdr-parameters-exp.dat, which contains at most two $E1$ modes.\\
- &   & Note: $j = 3$ is used to add a resonance to fit to $\Gamma_\gamma$ unless turned off with option fit\_gamma\_gamma.\\
+ &   & Note: $j = 3$ is used to add a resonance to fit to $\Gamma_\gamma$  and the fit is suspended 
+         if electromagnetic parameters are entered manually.\\
+\hline
+${\texttt{el\_param}}$ & $Z$, $A$, $L$, $j$, $E_j$, $\Gamma_j$, $S_j$ &
+    Sets centroid ($E_j$), width ($\Gamma_j$), and strength ($S_j$) for the \\
+${\texttt{ml\_param}}$ & &  $j^{th}$ $E1$ resonance component EL or ML transitions 
+    for nucleus $Z$ and $A$.\\
+ & &    $j \le 3$ will overrides default values found in file
+    \$YAHFC\_DATA/gdr-parameters-exp.dat, which contains at most two $E1$ modes.\\
+ &   & Note: $j = 3$ is used to add a resonance to fit to $\Gamma_\gamma$  and the fit is suspended 
+         if electromagnetic parameters are entered manually.\\
+\hline
+${\texttt{read\_el\_gsf}}$ & $Z$, $A$, $L$, ${\texttt{c}}$, ${\texttt{name}}$, $X_{\rm norm}$ &
+    Read gamma strength functions from file ${\texttt{name}}$\\
+${\texttt{read\_ml\_gsf}}$ & & for nucleus $Z$ and $A$ for electric and magnetic modes with multipolarity $L$. The
+   control character ${\texttt{c}}$ determines whether the input data is a strength function ${\texttt{c}}={\texttt{f}}$ or a photoabsorption cross section
+   ${\texttt{c}}={\texttt{s}}$. The normalization $X_{\rm norm}$ is optional, and is set to unity if omitted.\\ 
+\hline
+${\texttt{max\_num\_gsf}}$ & $N$ & Maximum number of allowable gamma strength functions. Set for all electric and magnetic modes. \\
 \hline
 ${\texttt{fit\_gamma\_gamma}}$  &  ${\texttt{Answer}}$ &  Controls whether strength function is modified to fit to $\Gamma_\gamma$ \\
 & & ${\texttt{Answer}}$ = ${\texttt{y/t/1}}$: Fit to $\Gamma_\gamma$ ({\bf Default}).\\

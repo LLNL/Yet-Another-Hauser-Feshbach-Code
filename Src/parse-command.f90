@@ -1415,7 +1415,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
-   if(command(startw(1):stopw(1)) == 'e_l_param')then          !   global setting of this parameter
+   if(command(startw(1):stopw(1)) == 'el_param')then          !   global setting of this parameter
       icommand = icommand + 1
 
       ndat = 4
@@ -1432,7 +1432,7 @@ subroutine parse_command(icommand, command, finish)
       X(3) = X(5)
 
       if(j > max_num_gsf)then
-         if(iproc ==0)write(6,*)'Bad input for e_l_param, requesting more than max components =',max_num_gsf
+         if(iproc ==0)write(6,*)'Bad input for el_param, requesting more than max components =',max_num_gsf
          call MPI_Abort(icomm,101,ierr)
       end if
       do i = 1, num_comp
@@ -1453,7 +1453,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
-   if(command(startw(1):stopw(1)) == 'm_l_param')then          !   global setting of this parameter
+   if(command(startw(1):stopw(1)) == 'ml_param')then          !   global setting of this parameter
       icommand = icommand + 1
 
       ndat = 4
@@ -1470,7 +1470,7 @@ subroutine parse_command(icommand, command, finish)
       X(3) = X(5)
 
       if(j > max_num_gsf)then
-         if(iproc ==0)write(6,*)'Bad input for m_l_param, requesting more than max components =',max_num_gsf
+         if(iproc ==0)write(6,*)'Bad input for ml_param, requesting more than max components =',max_num_gsf
          call MPI_Abort(icomm,101,ierr)
       end if
       do i = 1, num_comp

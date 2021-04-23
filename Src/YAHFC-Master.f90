@@ -674,7 +674,7 @@ program YAHFC_MASTER
 
       E1_model = 2
       e_l_max = 3
-      m_l_max = 2
+      m_l_max = 3
       primary_setup = .false.
       target%specified = .false.
       fission = .true.
