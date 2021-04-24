@@ -179,9 +179,11 @@ subroutine HF_denominator(icomp)
              allocate(nucleus(icomp)%bins(Ix_i,ip,n)%decay_particle(ndecay+1))
          if(.not. allocated(nucleus(icomp)%bins(Ix_i,ip,n)%HF_trans))                 &
              allocate(nucleus(icomp)%bins(Ix_i,ip,n)%HF_trans(ndecay+3))      ! added to see effect of each barrier
+!         if(.not. allocated(nucleus(icomp)%bins(Ix_i,ip,n)%HF_prob2))                 &
+!             allocate(nucleus(icomp)%bins(Ix_i,ip,n)%HF_prob2(ndecay+1))      ! HF-probabilities for each final system
          if(.not. allocated(nucleus(icomp)%bins(Ix_i,ip,n)%nuke_decay))               &
              allocate(nucleus(icomp)%bins(Ix_i,ip,n)%nuke_decay(ndecay+1))
-         nucleus(icomp)%bins(Ix_i,ip,n)%HF_prob(1:ndecay+1) = 0.0d0
+         nucleus(icomp)%bins(Ix_i,ip,n)%HF_prob(1:ndecay+1) = 0.0d0           !  HF=probabilities for allowed decays, could be less than all
          nucleus(icomp)%bins(Ix_i,ip,n)%HF_trans(1:ndecay+3) = 0.0d0
          nucleus(icomp)%bins(Ix_i,ip,n)%num_decay = 0
          nucleus(icomp)%bins(Ix_i,ip,n)%decay_to(1:ndecay+1) = 0
@@ -643,6 +645,7 @@ subroutine HF_denominator(icomp)
                      nucleus(icomp)%bins(Ix_i,ip,n)%nuke_decay(ifi)%decay_list(1:num_prob) = 0
                      nucleus(icomp)%bins(Ix_i,ip,n)%HF_prob(ifi) = prob_sum
                      nucleus(icomp)%bins(Ix_i,ip,n)%HF_trans(if1) = prob_sum
+!                     nucleus(icomp)%bins(Ix_i,ip,n)%HF_prob2(if1) = prob_sum
                      num_tot = num_tot + num_prob
                   end if
                   ifi = ifi + 1
@@ -660,6 +663,7 @@ subroutine HF_denominator(icomp)
                   nucleus(icomp)%bins(Ix_i,ip,n)%HF_trans(nnnn) = F_trans(4)
                   nucleus(icomp)%bins(Ix_i,ip,n)%HF_trans(nnnn+1) = F_trans(1)
                   nucleus(icomp)%bins(Ix_i,ip,n)%HF_trans(nnnn+2) = F_trans(2)
+!                  nucleus(icomp)%bins(Ix_i,ip,n)%HF_prob2(nnnn) = F_trans(4)
                end if
 
                if(prob > prob_cut)then
@@ -697,23 +701,34 @@ subroutine HF_denominator(icomp)
          nnn = nucleus(icomp)%bins(Ix_i,ip,n)%num_decay
          if(nnn > 0)then
             prob_sum = 0.0d0
-            do if1 = 1, nnn
-               prob_sum = prob_sum + nucleus(icomp)%bins(Ix_i,ip,n)%HF_prob(if1)
+            do ifi = 1, nnn
+               prob_sum = prob_sum + nucleus(icomp)%bins(Ix_i,ip,n)%HF_prob(ifi)
             end do
 
-            if(nucleus(icomp)%bins(Ix_i,ip,n)%HF_prob(nnn) > 0.0d0)then
-               do if1 = 1, nnn
-                  nucleus(icomp)%bins(Ix_i,ip,n)%HF_prob(if1) =                           &
-                     nucleus(icomp)%bins(Ix_i,ip,n)%HF_prob(if1)/prob_sum
+!            if(nucleus(icomp)%bins(Ix_i,ip,n)%HF_prob(nnn) > 0.0d0)then
+            if(prob_sum > 0.0d0)then
+               do ifi = 1, nnn
+                  nucleus(icomp)%bins(Ix_i,ip,n)%HF_prob(ifi) =                           &
+                     nucleus(icomp)%bins(Ix_i,ip,n)%HF_prob(ifi)/prob_sum
                end do
             end if
          end if
          nnn = nucleus(icomp)%num_decay
          if(nucleus(icomp)%fission)nnn = nnn + 1
+!         prob_sum = 0.0d0
+!         do if1 = 1, nnn
+!            prob_sum = prob_sum + nucleus(icomp)%bins(Ix_i,ip,n)%HF_prob2(if1)
+!         end do
+!         if(prob_sum > 0.0d0)then
+!            do if1 = 1, nnn
+!               nucleus(icomp)%bins(Ix_i,ip,n)%HF_prob2(if1) = nucleus(icomp)%bins(Ix_i,ip,n)%HF_prob2(if1)/prob_sum
+!            end do
+!         end if
 
 !---------------------------------------------------------------------------------------------
       end do                            !   Finish: ip = 0, 1 
    end do                               !   Finish: do n = 1,nbin 
+
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !----   Now that the decay probabilities have been computed on separate nodes
 !----   They need to be sent to all the other nodes

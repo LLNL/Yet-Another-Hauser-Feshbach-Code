@@ -831,7 +831,6 @@
                                num_part, part_data,                        &
                                Ang_L_max, part_Ang_data,                   &
                                ixx_max, delta_x, Leg_poly,                 &
-!                               ixx_max, delta_x,                           &
                                num_theta, extra_angle_data)
 !
 !*******************************************************************************

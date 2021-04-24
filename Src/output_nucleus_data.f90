@@ -39,7 +39,7 @@ subroutine output_nucleus_data(j_max, itarget)
    integer(kind=4), intent(in) :: itarget
 !-------------------------------------------------------
    integer(kind=4) :: i, j, k, m, n, jj, ip, ii
-   integer(kind=4) :: if1
+   integer(kind=4) :: if1, ifi
    integer(kind=4) :: iA, iZ, iN
    integer(kind=4) :: l_radiation
    integer(kind=4) :: iprint,printZA(2,100)
@@ -48,7 +48,7 @@ subroutine output_nucleus_data(j_max, itarget)
 !---------------------------------------------------------------------
    integer(kind=4) :: nfit
    real(kind=8),allocatable :: cum_rho(:), cumm_fit(:), elv(:)
-   real(kind=8) :: energy, prob, prob1(0:60), prob2(0:60), prob_jpi(0:60,0:1)
+   real(kind=8) :: energy, prob, prob1(0:60), prob_jpi(0:60,0:1)
    real(kind=8) :: rho(0:60,0:1)
    real(kind=8) :: rho_Fm, sig2, apu
    real(kind=8) :: xj, jfac, pfac, dde
@@ -71,6 +71,7 @@ subroutine output_nucleus_data(j_max, itarget)
    character(len=200) :: fstring
    character(len=5) :: nuke_label
    integer(kind=4) :: inuke_end
+   integer(kind=4) :: nnn
    character(len=7) :: f_units
 !---------   External functions
    real(kind=8) :: spin_fac, parity_fac
@@ -630,31 +631,30 @@ subroutine output_nucleus_data(j_max, itarget)
 !------------------------------------------------------------------
       do l_radiation = 1, nucleus(i)%lmax_E
          write(13,*)
-         if(.not. nucleus(i)%EL_mode(l_radiation)%gsf_read)then
+         if(nucleus(i)%EL_mode(l_radiation)%gsf_read)then
+            write(13,*)'Gamma Strength Function obtained from manual input'
+         else
+            write(13,*)'Gamma Strength Function obtained with internal analytic models'
             if(l_radiation == 1)then
                if(nucleus(i)%e1_model == 1)then
                   write(13,'(''E1 model used = '',''Lorenztian'')')
                elseif(nucleus(i)%e1_model == 2)then
                   write(13,'(''E1 model used = '',''Kopecky-Uhl'')')
                end if
-            else
-               write(13,*)'Gamma Strength Function obtained with internal analytic models'
             end if
-         else
-            write(13,*)'Gamma Strength Function obtained from manual input'
-         end if
-         write(13,'(''Electric-'',i1,'' resonance parameters for '',a5)')          &
+            write(13,'(''Electric-'',i1,'' resonance parameters for '',a5)')          &
             l_radiation,nuke_label(1:inuke_end)
-         do k = 1, nucleus(i)%EL_mode(l_radiation)%num_gsf
-            write(13,'(''Line ='',i2,'//                                           &
-                      ''' Centroid = '',f16.6,'' MeV'','//                         &
-                       ''' Width = '',f16.6,'' MeV'','//                           &
-                       ''' Strength = '',e15.7,'' mb'')')                          &
-                k,                                                                 &
-                nucleus(i)%EL_mode(l_radiation)%gsf(k)%er,                         &
-                nucleus(i)%EL_mode(l_radiation)%gsf(k)%gr,                         &
-                nucleus(i)%EL_mode(l_radiation)%gsf(k)%sr
-         end do
+            do k = 1, nucleus(i)%EL_mode(l_radiation)%num_gsf
+               write(13,'(''Line ='',i2,'//                                           &
+                         ''' Centroid = '',f16.6,'' MeV'','//                         &
+                          ''' Width = '',f16.6,'' MeV'','//                           &
+                          ''' Strength = '',e15.7,'' mb'')')                          &
+                   k,                                                                 &
+                   nucleus(i)%EL_mode(l_radiation)%gsf(k)%er,                         &
+                   nucleus(i)%EL_mode(l_radiation)%gsf(k)%gr,                         &
+                   nucleus(i)%EL_mode(l_radiation)%gsf(k)%sr
+            end do
+         end if
 
          write(temp_string,*)nucleus(i)%EL_mode(l_radiation)%num_gsf
 
@@ -705,23 +705,23 @@ subroutine output_nucleus_data(j_max, itarget)
 !------------------------------------------------------------------
       do l_radiation = 1, nucleus(i)%lmax_M
          write(13,*)
-         if(.not. nucleus(i)%ML_mode(l_radiation)%gsf_read)then
-            write(13,*)'Gamma Strength Function obtained with internal analytic models'
-         else
+         if(nucleus(i)%ML_mode(l_radiation)%gsf_read)then
             write(13,*)'Gamma Strength Function obtained from manual input'
+         else
+            write(13,*)'Gamma Strength Function obtained with internal analytic models'
+            write(13,'(''Magnetic-'',i1,'' resonance parameters for '',a5)')          &
+               l_radiation,nuke_label(1:inuke_end)
+            do k = 1, nucleus(i)%ML_mode(l_radiation)%num_gsf
+               write(13,'(''Line ='',i2,'//                                           &
+                         ''' Centroid = '',f16.6,'' MeV'','//                         &
+                          ''' Width = '',f16.6,'' MeV'','//                           &
+                          ''' Strength = '',e15.7,'' mb'')')                          &
+                   k,                                                                 &
+                   nucleus(i)%ML_mode(l_radiation)%gsf(k)%er,                         &
+                   nucleus(i)%ML_mode(l_radiation)%gsf(k)%gr,                         &
+                   nucleus(i)%ML_mode(l_radiation)%gsf(k)%sr
+            end do
          end if
-         write(13,'(''Magnetic-'',i1,'' resonance parameters for '',a5)')          &
-            l_radiation,nuke_label(1:inuke_end)
-         do k = 1, nucleus(i)%ML_mode(l_radiation)%num_gsf
-            write(13,'(''Line ='',i2,'//                                           &
-                      ''' Centroid = '',f16.6,'' MeV'','//                         &
-                       ''' Width = '',f16.6,'' MeV'','//                           &
-                       ''' Strength = '',e15.7,'' mb'')')                          &
-                k,                                                                 &
-                nucleus(i)%ML_mode(l_radiation)%gsf(k)%er,                         &
-                nucleus(i)%ML_mode(l_radiation)%gsf(k)%gr,                         &
-                nucleus(i)%ML_mode(l_radiation)%gsf(k)%sr
-         end do
 
          write(temp_string,*)nucleus(i)%ML_mode(l_radiation)%num_gsf
 
@@ -1084,11 +1084,9 @@ subroutine output_nucleus_data(j_max, itarget)
          do n = 1, nucleus(i)%nbin
             energy=nucleus(i)%e_grid(n)
             do j = 0, min(j_max,60)
-               prob2(j) = nucleus(i)%bins(j,1,n)%HF_trans(if1)
+               prob1(j) = nucleus(i)%bins(j,1,n)%HF_trans(if1)
             end do
-!            write(13,'(f10.6,60(1x,e15.7))')                                         &
-!              energy,(prob2(j),j = 0, j_max)
-            write(13,fstring)energy,(prob2(j),j=0,min(j_max,60))
+            write(13,fstring)energy,(prob1(j),j=0,min(j_max,60))
          end do
       end do
 
@@ -1124,11 +1122,9 @@ subroutine output_nucleus_data(j_max, itarget)
          do n = 1, nucleus(i)%nbin
             energy = nucleus(i)%e_grid(n)
             do j = 0, min(j_max,60)
-               prob2(j) = nucleus(i)%bins(j,1,n)%HF_trans(if1)
+               prob1(j) = nucleus(i)%bins(j,1,n)%HF_trans(if1)
             end do
-            write(13,fstring)energy,(prob2(j),j = 0, min(j_max,60))
-!            write(13,'(f10.6,60(1x,e15.7))')                                         &
-!              energy,(prob2(j),j = 0, min(j_max,60))
+            write(13,fstring)energy,(prob1(j),j = 0, min(j_max,60))
          end do
 
          do ii = 1, nucleus(i)%F_n_barr
@@ -1162,23 +1158,27 @@ subroutine output_nucleus_data(j_max, itarget)
             do n = 1, nucleus(i)%nbin
                energy = nucleus(i)%e_grid(n)
                do j = 0, min(j_max,60)
-                  prob2(j) = nucleus(i)%bins(j,1,n)%HF_trans(if1+ii)
+                  prob1(j) = nucleus(i)%bins(j,1,n)%HF_trans(if1+ii)
                end do
-               write(13,fstring)energy,(prob2(j),j = 0, min(j_max,60))
-!               write(13,'(f10.6,60(1x,e15.7))')                                      &
-!                 energy,(prob2(j),j = 0, min(j_max,60))
+               write(13,fstring)energy,(prob1(j),j = 0, min(j_max,60))
             end do
          end do
       end if
       write(13,*)
       write(13,'(''Decay probabilities for each channel in decay from '',a5)')nuke_label(1:inuke_end)
-      do if1 = 1, nucleus(i)%num_decay
-         k = nucleus(i)%decay_particle(if1)
+      nnn = nucleus(i)%num_decay
+      if(nucleus(i)%fission)nnn = nnn + 1
+      do if1 = 1, nnn
+         if(if1 <= nucleus(i)%num_decay)then
+            k = nucleus(i)%decay_particle(if1)
+         else            !   Fission
+            k = 7
+         end if
          write(13,*)
          if(k < 7)write(13,*)'Particle type = ',particle(k)%name
          if(k == 7)write(13,*)'Decay type = Fission'
          write(13,*)'Positive Parity'
-         fstring = "('    E     ',"                      &
+         fstring = "('    E     ',"                                            &
                    //trim(adjustl(temp_string))//"(5x,'J = ',f4.1,3x))"
 
          write(13,fstring)(real(jj) + nucleus(i)%jshift, jj = 0, min(j_max,60))
@@ -1188,14 +1188,16 @@ subroutine output_nucleus_data(j_max, itarget)
          do n = 1,nucleus(i)%nbin
             energy = nucleus(i)%e_grid(n)
             do j = 0, min(j_max,60)
-               prob1(j) = nucleus(i)%bins(j,0,n)%HF_prob(if1)
+               prob1(j) = 0.0d0
+               do ifi = 1 , nucleus(i)%bins(j,0,n)%num_decay
+                  if(nucleus(i)%bins(j,0,n)%decay_particle(ifi) == k)  &
+                     prob1(j) = nucleus(i)%bins(j,0,n)%HF_prob(ifi)
+               end do
             end do
             write(13,fstring)energy,(prob1(j),j = 0, min(j_max,60))
-!            write(13,'(f10.6,60(1x,e15.7))')                                         &
-!              energy,(prob1(j),j = 0, min(j_max,60))
          end do
          write(13,*)'Negative Parity'
-         fstring = "('    E     ',"                      &
+         fstring = "('    E     ',"                                             &
                    //trim(adjustl(temp_string))//"(5x,'J = ',f4.1,3x))"
 
          write(13,fstring)(real(jj) + nucleus(i)%jshift, jj = 0, min(j_max,60))
@@ -1205,11 +1207,13 @@ subroutine output_nucleus_data(j_max, itarget)
          do n = 1,nucleus(i)%nbin
             energy = nucleus(i)%e_grid(n)
             do j = 0, min(j_max,60)
-               prob2(j) = nucleus(i)%bins(j,1,n)%HF_prob(if1)
+               prob1(j) = 0.0d0
+               do ifi = 1 , nucleus(i)%bins(j,1,n)%num_decay
+                  if(nucleus(i)%bins(j,1,n)%decay_particle(ifi) == k)  &
+                     prob1(j) = nucleus(i)%bins(j,1,n)%HF_prob(ifi)
+               end do
             end do
-            write(13,fstring)energy,(prob2(j),j = 0, min(j_max,60))
-!            write(13,'(f10.6,60(1x,e15.7))')                                         &
-!              energy,(prob2(j),j = 0, min(j_max,60))
+            write(13,fstring)energy,(prob1(j),j = 0, min(j_max,60))
          end do
       end do
    end do
@@ -1236,8 +1240,12 @@ subroutine output_nucleus_data(j_max, itarget)
             k = nucleus(1)%decay_particle(if1)
             do ip = 0, 1
                do j = 0, min(j_max,60)
-                  part_prob(k) = part_prob(k) + nucleus(1)%bins(j,ip,n)%HF_prob(if1)*  &
-                                 prob_jpi(j,ip)
+                  do ifi = 1, nucleus(1)%bins(j,ip,n)%num_decay
+                     if(nucleus(1)%bins(j,ip,n)%decay_particle(ifi) == k)then
+                        part_prob(k) = part_prob(k) + nucleus(1)%bins(j,ip,n)%HF_prob(ifi)*  &
+                                       prob_jpi(j,ip)
+                     end if
+                  end do
                end do
             end do
          end do

@@ -203,7 +203,7 @@ program YAHFC_MASTER
       real(kind=8) :: xI_min, xI_max
       integer(kind=4) :: max_J
       integer(kind=4) :: j_max
-      real(kind=8) :: xj, xI
+      real(kind=8) :: xj
       integer(kind=4) :: Ix, Ix_min, Ix_max
       integer(kind=4) :: ipar
       real(kind=8) :: xnorm
@@ -231,7 +231,7 @@ program YAHFC_MASTER
       integer(kind=4) :: ilab
       character(len=100) :: file_lab
 
-      real(kind=8) :: population
+!      real(kind=8) :: population
 !------------------------------------------------------------------
 !--------   Data to reconstruct angular distributions
       integer(kind=4) :: ixx_max
@@ -318,6 +318,7 @@ program YAHFC_MASTER
 
       real(kind=8) :: pmode, pe1, bb
 
+!-------   Lorentz boost matrices to transform to Lab and COM frames
       real(kind=8) :: Boost_Lab(0:3,0:3), Boost_COM(0:3,0:3)
       real(kind=8) :: mass_1, mass_2
       real(kind=8) :: pp_res, p_res(0:3), v_res(0:3)
@@ -329,6 +330,8 @@ program YAHFC_MASTER
       integer(kind=4) :: n_min
 
       real(kind=8) :: check_sum, sum_inelastic
+
+      real(kind=8) :: pnorm
 
       real(kind=8) :: tally_weight
       real(kind=8) :: tally_norm
@@ -597,9 +600,9 @@ program YAHFC_MASTER
       ifresco_shape = 13
 
 
-      trans_p_cut = 1.0d-6
-      trans_e_cut = 1.0d-15
-      prob_cut = 1.0d-6
+      trans_p_cut = 1.0d-7
+      trans_e_cut = 1.0d-14
+      prob_cut = 1.0d-7
 
       num_mc_samp = 1000000
 !
@@ -1919,11 +1922,11 @@ program YAHFC_MASTER
       num_bad_e = 0          ! number of events with bad energy conservation
 
       if(iproc == 0)write(6,*)'Starting energy loop with ',num_energies,' values'
+
       do in = 1, num_energies
          hang = 0
          sum_ce = 0
          sum_ie = 0
-
 
          E_in = projectile%energy(in)
 
@@ -2042,16 +2045,17 @@ program YAHFC_MASTER
                                 num_channel,channel_prob,ichannel)
 
                if(print_me)write(6,'(''Reaction cross section = '',1x,1pe15.7,1x,a2)')absorption_cs(in)*cs_scale,cs_units
-               do nn = 1, num_channel
-                  ipar = 2*ichannel(4,nn)-1
-                  population = 0.0
-                  if(nn == 1)then
-                     population = channel_prob(nn)
-                  else
-                     population = channel_prob(nn) - channel_prob(nn-1)
-                  end if
-                  xI = ichannel(3,nn) + nucleus(1)%jshift
-               end do
+
+!               do nn = 1, num_channel
+!                  ipar = 2*ichannel(4,nn)-1
+!                  population = 0.0
+!                  if(nn == 1)then
+!                     population = channel_prob(nn)
+!                  else
+!                     population = channel_prob(nn) - channel_prob(nn-1)
+!                  end if
+!                  xI = ichannel(3,nn) + nucleus(1)%jshift
+!               end do
 
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !------  Setup decay first nucleus in the chain. Apply width-fluctations    +
@@ -2076,7 +2080,33 @@ program YAHFC_MASTER
                      call gauss_quad(n_glag, 2, alf, bet, x_glag, w_glag)
                   end if
                end if
+
                call HF_primary_decay_setup(e_in,iproj,itarget,1,istate,ex_tot)
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!------    We have both the channel formation probability and all the decay
+!------    probabilities. There are rare occasions with very low formation
+!------    probability that also have no allowable decays. This can be caused by 
+!------    a high spin and a set of discrete states where particle and gamma 
+!------    emission are strongly hindered, or forbidden. Thus, there are no 
+!------    primary decays for that channel. This creates a serious computational
+!------    problem and is difficult to fix with the forced decay, etc.
+!------    Here, the decays are checked and if there are no allowable decays,
+!------    the channel is removed, by zeroing out its probability.
+               pnorm = 0.0d0
+               do i = num_channel, 1, -1
+                  if(i > 1)channel_prob(i) = channel_prob(i) - channel_prob(i-1)
+                  l_i = ichannel(1,i)
+                  is_i = ichannel(2,i)
+                  Ix_i = ichannel(3,i)
+                   ip_i = ichannel(4,i)
+                  if(channel(l_i,is_i,Ix_i)%num_decay == 0)channel_prob(i) = 0.0d0
+                  pnorm = pnorm + channel_prob(i)
+               end do
+               channel_prob(1) = channel_prob(1)/pnorm
+               do i = 2, num_channel
+                  channel_prob(i) = channel_prob(i-1) + channel_prob(i)/pnorm
+               end do          
+ 
             elseif(iproj == 0)then           !***********    Photo-absorption
 
                call photo_xs(e_in, itarget, istate, absorption_cs(in),           &
@@ -2091,7 +2121,6 @@ program YAHFC_MASTER
 !            absorption_cs(in) = 1.0d0
              reaction_cs(in) = Pop_data(in)%Norm_pop
              absorption_cs(in) = reaction_cs(in)
-  write(6,*)'Norm_pop ',in,Pop_data(in)%Norm_pop
          end if
 
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -2530,7 +2559,7 @@ program YAHFC_MASTER
 !               ran = random_64(iseed_64)
                ran = random_32(iseed_32)
                if(ran <= absorption_cs(in)/reaction_cs(in))then         !   Normal Compound formation
-                  sp1=abs(spin_target-spin_proj)
+                  sp1 = abs(spin_target-spin_proj)
                   call find_prob_point(num_channel,channel_prob,ran,ifind)
                   icomp_i = 1
                   nbin_i = nbin
@@ -2576,7 +2605,6 @@ program YAHFC_MASTER
                                            num_part, part_data,                          &
                                            Ang_L_max, part_Ang_data,                     &
                                            ixx_max, delta_ix, Leg_poly,                  &
-!                                           ixx_max, delta_ix,                             &
                                            num_theta, extra_angle_data)
 
                      if(nbin_f < 0)fission_decay = .true.

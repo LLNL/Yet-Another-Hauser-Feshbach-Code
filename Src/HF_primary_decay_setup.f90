@@ -142,6 +142,7 @@ subroutine HF_primary_decay_setup(e_in,iproj,itarget,icomp,istate,energy)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
    isp = nint(2.0d0*spin_proj)
+
    if(.not.allocated(Channel))                                                     &
       allocate(Channel(0:particle(iproj)%lmax,0:isp,0:nucleus(icomp)%j_max))
 

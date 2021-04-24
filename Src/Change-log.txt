@@ -696,4 +696,15 @@ Version 3.48
     to be in line with current TALYS version as opposed to original paper
     Koning NPA744, 15 (2004). Before, Rpp=Rnn = 1.0, Rpn=Rnp = 1.5. Now,
     Rpp = Rpn = Rnp = 1.0 and Rnn = 1.5. 
+
+Version 3.49
+1.  Fixed rare error in the primary decay where no primary decays were possible.
+    Occured in light nuclei with low level densities, a rare entrance channel
+    (prob ~ 1.0e-7) and high angular momentum. Renormalized entrance probability
+    to zero if it has no viable decays.
+2.  Fixed problem in printing decay probabilities to the .out file that occurs
+    when one channel drops out because it has extremely low decay probability.
+    Thus, a mismatch in the arrays occurs in the printing so that the
+    probability of a different channel was printed. 
+3.  Decreased sensitivity for gamma decay to include more gammas. 
     
