@@ -747,31 +747,31 @@ subroutine HF_denominator(icomp)
             call MPI_BCAST(nucleus(icomp)%bins(Ix_i,ip,n)%num_decay, num_data, MPI_INTEGER,        &
                            my_proc, icomm, ierr)
 !----  %HF_prob
-            if(.not. allocated(nucleus(icomp)%bins(Ix_i,ip,n)%HF_prob))                  &
+            if(.not. allocated(nucleus(icomp)%bins(Ix_i,ip,n)%HF_prob))                            &
                 allocate(nucleus(icomp)%bins(Ix_i,ip,n)%HF_prob(ndecay+1))
             num_data = ndecay + 1
             call MPI_BCAST(nucleus(icomp)%bins(Ix_i,ip,n)%HF_prob, num_data, MPI_REAL8, my_proc,   &
                            icomm, ierr)
 !----  %decay_to
-            if(.not. allocated(nucleus(icomp)%bins(Ix_i,ip,n)%decay_to))                 &
+            if(.not. allocated(nucleus(icomp)%bins(Ix_i,ip,n)%decay_to))                           &
                 allocate(nucleus(icomp)%bins(Ix_i,ip,n)%decay_to(ndecay+1))
             num_data = ndecay + 1
             call MPI_BCAST(nucleus(icomp)%bins(Ix_i,ip,n)%decay_to, num_data, MPI_INTEGER,         &
                            my_proc, icomm, ierr)
 !----  %decay_particle
-            if(.not. allocated(nucleus(icomp)%bins(Ix_i,ip,n)%decay_particle))           &
+            if(.not. allocated(nucleus(icomp)%bins(Ix_i,ip,n)%decay_particle))                     &
                 allocate(nucleus(icomp)%bins(Ix_i,ip,n)%decay_particle(ndecay+1))
             num_data = ndecay + 1
             call MPI_BCAST(nucleus(icomp)%bins(Ix_i,ip,n)%decay_particle, num_data, MPI_INTEGER,   &
                            my_proc, icomm, ierr)
 !----  %HF_trans
-            if(.not. allocated(nucleus(icomp)%bins(Ix_i,ip,n)%HF_trans))                 &
+            if(.not. allocated(nucleus(icomp)%bins(Ix_i,ip,n)%HF_trans))                           &
                 allocate(nucleus(icomp)%bins(Ix_i,ip,n)%HF_trans(ndecay+3))
             num_data = ndecay + 3
             call MPI_BCAST(nucleus(icomp)%bins(Ix_i,ip,n)%HF_trans, num_data, MPI_REAL8, my_proc,  &
                            icomm, ierr)
 !----   %nuke_decay
-            if(.not. allocated(nucleus(icomp)%bins(Ix_i,ip,n)%nuke_decay))               &
+            if(.not. allocated(nucleus(icomp)%bins(Ix_i,ip,n)%nuke_decay))                         &
                 allocate(nucleus(icomp)%bins(Ix_i,ip,n)%nuke_decay(ndecay+1))
 !---   Sync up again to start filling nuke_decay data types
             call MPI_Barrier(icomm,ierr)

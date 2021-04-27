@@ -2423,12 +2423,6 @@ subroutine parse_command(icommand, command, finish)
       if(iproc == 0)then
           write(6,*)'Warning - Ignoring "output_mode" as it is longer a valid input command'
       end if
-!      if(numw < 2)then
-!         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-!         return
-!      end if
-!      read(command(startw(2):stopw(2)),*)output_mode
-!      return
    end if
 !
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -2599,7 +2593,6 @@ subroutine parse_command(icommand, command, finish)
 !----   particle type is in 2nd word
       istart = startw(2)
       istop = stopw(2)
-!      read(command(istart:istop),*)k
       k = particle_index(command(startw(2):stopw(2)))
       if(k <= 0 .or. k > 6)then
          if(iproc == 0)write(6,*)'Error in input for option "om_option"'
@@ -2610,29 +2603,6 @@ subroutine parse_command(icommand, command, finish)
       read(command(startw(3):stopw(3)),*)particle(k)%om_option
       return
    end if
-!
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!
-!   if(command(startw(1):stopw(1)) == 'track_primary_gammas')then
-!      icommand = icommand + 1
-!      if(numw < 2)then
-!         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-!         return
-!      end if
-!      track_primary_gammas = .false.
-!
-!      call char_logical(command(startw(2):stopw(2)),logic_char,read_error)
-!
-!      if(read_error)then
-!         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-!         return
-!      end if
-!
-!      track_primary_gammas = logic_char
-!
-!      return
-!   end if
 !
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -2862,6 +2832,7 @@ subroutine parse_command(icommand, command, finish)
          call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
          return
       end if
+      if(iproc == 0)then
          write(6,*)
          write(6,*)'---------------------------------------------'
          write(6,*)'---  The command "all_gammas" is obsolete ---'
@@ -2873,9 +2844,9 @@ subroutine parse_command(icommand, command, finish)
          write(6,*)'**** "all_discrete_states y"              ***'
          write(6,*)'*********************************************'
          write(6,*)
+      end if
 
       all_discrete_states = .false.
-!      All_gammas = .false.
 
       call char_logical(command(startw(2):stopw(2)),logic_char,read_error)
 

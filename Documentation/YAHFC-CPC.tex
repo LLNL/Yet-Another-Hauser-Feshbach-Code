@@ -580,7 +580,7 @@ YAHFC is effectively an event-by-event reaction simulator. An initial state with
 
 The decay probabilities for each continuous energy bin and discrete state are pre-calculated, stored, and associated with each state. These decay probabilities are sorted by particle type, and a master list of viable decays for this particle type is made with a running sum of the probability. Associated with each listed decay, the properties of the final state, e.g., bin number, $J$ and $\pi$, are stored in a packed integer. A state is decayed by first checking on the particle decay probability, which is then followed with a search through the viable decays to the various final states. This is accomplished by selecting a random number and bracketing the probability in the list via bi-section search. At this point, the data associated with this decay, e.g., particle type, energy, angles $\theta$ and $\phi$, angular momentum, recoil energy, etc., are stored in an array. At each step of the decay, the reference frame for the final nucleus is updated, and the particle data are transformed to both the lab frame and the center-of-mass frame for the reaction using a Lorentz boost transformation. Data in these frames is stored in the particle-decay array. At this point, the endpoint for this decay then becomes the initial state, and the Monte Carlo decay process is repeated until the decay terminates to a point where further decay is no longer possible. 
 
-It is to be noted that list of viable decays following each particle is truncated by specifying a minimum probability (the default is $10^{-7}$ and may be set by the user with the command ${\texttt{prob\_cut}}$). This limits the list of decays to those that are viable and speeds up execution. Along these lines, in the subroutine that sets up the Hauser-Feshbach decays, the array of possible decays is actually looped over three times: (1) determine the scale of the Hauser Feshbach denominator, (2) count the number of viable decays and allocate the list arrays, and (3) fill the list arrays. Overall, the time to set up the Hauser Feshbach decays is of the order of a few minutes.
+It is to be noted that list of viable decays following each particle is truncated by specifying a minimum probability (the default is $10^{-7}$ and may be set by the user with the command ${\texttt{prob\_cut}}$). Additional cutoffs are imposed on the transmission coefficients for ``particle'' emission. For electromagnetic transitions, a cutoff of $10^{-14}$ is imposed and is controlled with the command ${\texttt{trans\_e\_cut}}$. For particle emission two cutoffs are imposed. The first is on the magnitude of the transmission coefficient, $10^{-7}$, which is controlled with the command ${\texttt{trans\_p\_cut}}$. The second is affects the emission of low-energy charged particles. Similar to their calculation with the optical potential, charged particle emission is not considered if the distance of closest approach as associated with the emission energy is fives the nuclear radius. This limits the list of decays to those that are viable and speeds up execution. Along these lines, in the subroutine that sets up the Hauser-Feshbach decays, the array of possible decays is actually looped over three times: (1) determine the scale of the Hauser Feshbach denominator, (2) count the number of viable decays and allocate the list arrays, and (3) fill the list arrays. Overall, the time to set up the Hauser Feshbach decays is of the order of a few minutes.
 
 One complication with Monte Carlo sampling is the treatment of so-called ``rare'' events, for example (n,$\gamma$) for $E_{\rm in} > 5$~MeV, which will generally have a probability of the order $10^{-6}$. In this case, we would expect of the order one event with standard Monte Carlo sampling and $N_{samp}=10^6$ samples. From the standpoint of an event-generator, this is reasonable, but leads to larger fluctuations while calculating cross sections. To address this, unbiased sampling is introduced, by default, at the point where the decay by particle type is made. With unbiased sampling, the sampling probability for each allowed particle type is equal and a ``tally weight'' of the actual probability is kept for each event and used to properly normalize each channel. Unbiased sampling may be turned off(on) with the command ``${\texttt{biased\_sampling n(y)}}$'' (defalut = ${\texttt{y}}$).
 
@@ -676,14 +676,71 @@ ${\texttt{235U/n/f}}$\\
 
 Useful data on the spectra following emission from pre-equilibirium emission and direct processes is printed for each incident energy in the directory ${\texttt{235U/n/Spectra}}$. In addition, with the option ``${\texttt{primary\_decay y}}$'', cross sections following primary decay are printed for each incident energy in the directory ${\texttt{235U/n/Primary-decay}}$
 
-A python script, ${\texttt{parseYahfc.py}}$ is also provided that translates these data files, which are convenient for plotting, etc., into a nuclear data library based on the generalized nuclear data structure (GNDS).
+A python script, ${\texttt{parseYahfc.py}}$ is also provided that translates these data files, which are convenient for plotting, etc., into a nuclear data library based on the generalized nuclear data structure (GNDS). This parser requires the installation of the FUDGE (v4.3) library system, which is expected to be released when the GNDS-2.0 standard is adopted. It will be available at  https://github.com/LLNL/fudge.
+
+\section{Internal data Structure}
+
+YAHFC makes extensive use of derived types and dynamic memory allocation. Internal data are generally structured by ``attaching'' them to a well defined quantity in order to easily identify them in the code. Perhaps the most ubiquitous data structure is the array ${\texttt{nucleus}}$, whose dimension is the number of compound nuclei in the calculation, and contains all data associated with that compound nucleus. At the core level are basic properties, such as charge, atomic number, mass, separation energies, values for $\Gamma_\gamma$, $D_0$, etc. For example, the $i^{th}$ nucleus, includes the following subset of data \\
+\\
+${\texttt{nucleus(i)\%Z}}$\\
+${\texttt{nucleus(i)\%A}}$\\
+${\texttt{nucleus(i)\%atomic\_symbol}}$\\
+${\texttt{nucleus(i)\%Label}}$\\
+${\texttt{nucleus(i)\%Ex\_max}}$\\
+${\texttt{nucleus(i)\%BE}}$\\
+${\texttt{nucleus(i)\%ME}}$\\
+${\texttt{nucleus(i)\%D0}}$\\
+${\texttt{nucleus(i)\%D0exp}}$\\
+${\texttt{nucleus(i)\%dD0exp}}$\\
+${\texttt{nucleus(i)\%Gamma\_g}}$\\
+${\texttt{nucleus(i)\%Gamma\_g\_exp}}$.\\
+\\
+The ${\texttt{num\_discrete}}$ discrete states and their ${\texttt{num\_decay}}$ transitions exist as data structure ``attached'' to this array:\\
+\\
+${\texttt{nucleus(i)\%num\_discrete}}$\\
+${\texttt{nucleus(i)\%states(n)\%energy}}$\\
+${\texttt{nucleus(i)\%states(n)\%parity}}$\\
+${\texttt{nucleus(i)\%states(n)\%num\_decay}}$\\
+${\texttt{nucleus(i)\%states(n)\%decay\_prob(m)}}$\\
+${\texttt{nucleus(i)\%states(n)\%decay\_type(m)}}$\\
+${\texttt{nucleus(i)\%states(n)\%decay\_branch(m)}}$\\
+${\texttt{nucleus(i)\%states(n)\%decay\_ibranch(m)}}$\\
+${\texttt{nucleus(i)\%states(n)\%decay\_p\_gamma(m)}}$\\
+${\texttt{nucleus(i)\%states(n)\%decay\_p\_ic(m)}}$\\
+${\texttt{nucleus(i)\%states(n)\%decay\_egamma(m)}}$.\\
+\\
+The continuous energy bins are maintained in a multi-dimensional array on the angular momentum ${\texttt{J}}$, parity ${\texttt{ip}}$, and energy index ${\texttt{n}}$. The energy grid, its width, the level density, and the summed Hauser-Feshbach denominators are:\\
+\\
+${\texttt{nucleus(i)\%e\_grid(n)}}$\\
+${\texttt{nucleus(i)\%delta\_e(n)}}$\\
+${\texttt{nucleus(i)\%bins(J,ip,n)\%rho}}$.\\
+${\texttt{nucleus(i)\%bins(J,ip,n)\%HF\_den}}$\\
+\\
+The decay of energy each bin to a compound nucleus via a specific particle type and their probabilities are stored as:\\
+\\
+${\texttt{nucleus(i)\%bins(J,ip,n)\%nbin}}$\\
+${\texttt{nucleus(i)\%bins(J,ip,n)\%num\_decay}}$\\
+${\texttt{nucleus(i)\%bins(J,ip,n)\%decay\_to(m)}}$\\
+${\texttt{nucleus(i)\%bins(J,ip,n)\%decay\_particle(m)}}$\\
+${\texttt{nucleus(i)\%bins(J,ip,n)\%HF\_prob(m)}}$\\
+${\texttt{nucleus(i)\%bins(J,ip,n)\%HF\_trans(m)}}$\\
+\\
+\begin{widetext}
+Once the particle type, and final nucleus is specified, each bin, then has ${\texttt{num\_decay}}$ possible endpoints, with the probabilities and a list providing unique identification stored via:\\
+\\ 
+${\texttt{nucleus(i)\%bins(J,ip,n)\%nuke\_decay(m)\%num\_decay}}$\\
+${\texttt{nucleus(i)\%bins(J,ip,n)\%nuke\_decay(m)\%decay\_prob(k)}}$\\
+${\texttt{nucleus(i)\%bins(J,ip,n)\%nuke\_decay(m)\%decay\_list(k)}}$.\\
+\\
+\end{widetext} 
+
 
 \section{Parallel Computing}
 
 With Message Passing Interface (MPI) protocols, YAHFC will execute the Monte Carlo event generation in parallel. Since the events are generated via Monte Carlo, a significant boost in performance can be expected using the MPI version. The Monte Carlo sampling is performed in parallel with a global summing and message passing for the requisite data. In general, for a large number of Monte Carlo samples, ideal scaling can be achieved. One caveat, however, is that with the option to print events, these are printed to a file for each MPI process, labeled by the MPI process number. Hence, the events from a single run will be distributed across multiple files. This occurs because events are executed on each individual MPI process, and are printed after the termination of the decay event. 
 
 \section{Numerical Performance}
-In this section, the numerical behavior for an example YAHFC calculation is given to provide some expectation of performance. Serial calculations were performed on a macBook Pro outfitted with a 2.4 GHz Quad-Core Intel Core i5 processor and 8 GB of 2133 MHz LPDDR3 RAM. A n + $^{238}$U calculation with 101 incident energies ranging from 0.1 to 20.0 MeV in steps of 0.2 MeV, without width-fluctuation corrections, $\Delta E = 0.1$~MeV, and 100k Monte Carlo events using the option ``${\texttt{xs\_only y}}$'' completes in approximately 3m20s. A calculation delivering the full nuclear data libraries (including angular distributions) takes approximately 5m. With 1M Monte Carlo events, the CPU time increases to 21m21s and 36m15s, respectively, for the two calculations. The memory required for this calculation is 624 MB. With 100k Monte Carlo events, the Monte Carlo fluctuations in the cross section are of the order 5\%, while with 1M events, the fluctuations are reduced to less than 1\%. With 100k events, calculations are fast enough to easily adjust model parameters, for example, fission barriers and level densities to reproduce experimental data. With the MPI version, the calculations are sufficiently rapid to allow for full uncertainty quantification studies to compute full covariance matrices as constrained by experimental data.
+In this section, the numerical behavior for an example YAHFC calculation is given to provide some expectation of performance. Serial calculations were performed on a macBook Pro outfitted with a 2.4 GHz Quad-Core Intel Core i5 processor and 8 GB of 2133 MHz LPDDR3 RAM. A n + $^{238}$U calculation with 101 incident energies ranging from 0.1 to 20.0 MeV in steps of 0.2 MeV, without width-fluctuation corrections, $\Delta E = 0.1$~MeV, and 100k Monte Carlo events using the option ``${\texttt{xs\_only y}}$'' completes in approximately 3m20s. A calculation delivering the full nuclear data libraries (including angular distributions) takes approximately 5m. With 1M Monte Carlo events, the CPU time increases to 21m21s and 36m15s, respectively, for the two calculations. The memory required for this calculation is 881 MB. With 100k Monte Carlo events, the Monte Carlo fluctuations in the cross section are of the order 5\%, while with 1M events, the fluctuations are reduced to less than 1\%. With 100k events, calculations are fast enough to easily adjust model parameters, for example, fission barriers and level densities to reproduce experimental data. With the MPI version, the calculations are sufficiently rapid to allow for full uncertainty quantification studies to compute full covariance matrices as constrained by experimental data.
 
 \appendix
 \section{Manual Input of Initial Populations}
@@ -1066,11 +1123,11 @@ ${\texttt{prob\_cut}}$ &  $P_{\rm cut}$  &   Sets cut off for decay probability 
  & & This option can speed up the set up and execution by reducing the number of final states for any given initial state.\\
  & & In general, however, as the spacing $\Delta E$ for the continuous spectrum decreases, $P_{\rm cut}$ should be reduced.\\
 \hline
-${\texttt{trans\_p\_cut}}$ & $T_{p-cut}$ & Specifies cut off for particle transmission coefficients when computing Hauserr-Feshbach denominators. Decays using a value below this are not included.\\
-& & {\bf Default:} $T_{p-cut} = 1\times 10^{-7}$\\
+${\texttt{trans\_p\_cut}}$ & $T_{p\_cut}$ & Specifies cut off for particle transmission coefficients when computing Hauser-Feshbach denominators. Decays using a value below this are not included.\\
+& & {\bf Default:} $T_{p\_cut} = 1\times 10^{-7}$\\
 \hline
-${\texttt{trans\_e\_cut}}$ & $T_{e-cut}$ & Specifies cut off for electromagnetic transmission coefficients when computing Hauserr-Feshbach denominators. Decays using a value below this are not included.\\
-& & {\bf Default:} $T_{e-cut} = 1\times 10^{-18}$\\
+${\texttt{trans\_e\_cut}}$ & $T_{e\_cut}$ & Specifies cut off for electromagnetic transmission coefficients when computing Hauser-Feshbach denominators. Decays using a value below this are not included.\\
+& & {\bf Default:} $T_{e\_cut} = 1\times 10^{-14}$\\
 \hline
 ${\texttt{wf\_model}}$  & $i$ &    Defines Width-fluctuations model used in calculation \\
 & &    $i = 0$ no width fluctuations\\
@@ -1408,7 +1465,7 @@ ${\texttt{preeq\_pair\_model}}$  & $i$  ($\Delta_{\rm Preeq}$) & Specifies pairi
  & &    $i  = 0$: Two-component pairing gap $\Delta = $Eq. (10) in NPA744, 15 (2004) \\
  & &    $i = 1$: Two-component pairing gap $\Delta =$ Fu's pairing correction: Eq. (8)
           in NPA744, 15 (204) (DEFAULT) \\
- & &    $i  = 2$: Two-component pairing gap $\Delta = \Delta_{\rm Preeq}$ (read only for i = 2) \\
+ & &    $i  = 2$: Two-component pairing gap $\Delta = \Delta_{\rm Preeq}$ (read {\bf only} for i = 2) \\
 \hline
 ${\texttt{preeq\_m2\_c1}}$ & $C_1$ &    Parameter $C_1$ defining the $M^2$ matrix element for two-component exciton
     model ({\bf Default:} $C_1 = 1.0$).\\

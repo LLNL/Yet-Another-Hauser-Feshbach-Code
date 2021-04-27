@@ -707,4 +707,10 @@ Version 3.49
     Thus, a mismatch in the arrays occurs in the printing so that the
     probability of a different channel was printed. 
 3.  Decreased sensitivity for gamma decay to include more gammas. 
+
+Version 3.50
+1.  Fixed bug in MPI version where the variable energy_input was not broadcast 
+    from node 0. 
+2.  Cleaned up printing of warning message with MPI when using obsolete command
+    all_gammas.
     

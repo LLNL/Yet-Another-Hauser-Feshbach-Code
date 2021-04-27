@@ -718,9 +718,9 @@ program YAHFC_MASTER
       mass_file = 'aw'
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
-!-------    set up buffer for commands to parsed later
+!-------    set up buffer for commands to be parsed later
 !-------    this offers the ability to enter comands in
-!-------    any order whatsoever - maybe not a great idea
+!-------    any order whatsoever 
 !
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -768,6 +768,7 @@ program YAHFC_MASTER
       if(nproc > 1)then
          call MPI_Barrier(icomm, ierr)
          call MPI_BCAST(num_command, 1, MPI_INTEGER, 0, icomm, ierr)
+         call MPI_BCAST(energy_input, 1, MPI_LOGICAL, 0, icomm, ierr)
       end if
 !
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
