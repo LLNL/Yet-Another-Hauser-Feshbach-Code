@@ -442,32 +442,16 @@ program YAHFC_MASTER
       print_output = .true.
       print_spectra = .true.
       print_libraries = .true.
-      output_mode = 1
       call_tco = .true.
-      t12_isomer = 1.0
-      write_me = 0
-      ex_pop_file(1:20)= ' '
       ex_set = .false.
-      Max_J_allowed = 20
-      Fiss_Max_J = 0.0d0
-      pop_calc = .false.
       track_gammas = .false.
       track_primary_gammas = .false.
-      rho_cut = 0.25
       fit_Gamma_gamma = .false.
       Apply_Coulomb_Barrier = .true.
       all_discrete_states = .false.
-      T_norm = 1.0d0
-      pair_model = 1               !   Default for pairing model
-      preeq_delta = 0.0d0
-      Preeq_V = 38.0d0
-      Preeq_g_div = 15.d0
       Preeq_g_a = .false.
       biased_sampling = .false.
-      optical = 'fresco'
       explicit_channels = .false.
-      num_theta_angles = 10
-      target%istate = 1
       dump_events = .false.
       binary_event_file = .true.
       event_generator = .false.
@@ -477,6 +461,24 @@ program YAHFC_MASTER
       if(nproc > 1) verbose = .false.
       primary_decay = .false.
       pop_calc_prob = .true.
+      pop_calc = .false.
+      file_energy_index = .false.
+
+      output_mode = 1
+      t12_isomer = 1.0
+      write_me = 0
+      ex_pop_file(1:20)= ' '
+      Max_J_allowed = 20
+      Fiss_Max_J = 0.0d0
+      rho_cut = 0.25
+      T_norm = 1.0d0
+      pair_model = 1               !   Default for pairing model
+      preeq_delta = 0.0d0
+      Preeq_V = 38.0d0
+      Preeq_g_div = 15.d0
+      optical = 'fresco'
+      num_theta_angles = 10
+      target%istate = 1
       max_num_gsf = 4
 !      max_em_l = 3
 !
@@ -861,6 +863,10 @@ program YAHFC_MASTER
                nucleus(icomp)%dGamma_g_exp = 0.0d0
 
                call gdr_param(data_path,len_path,icomp)
+!
+!----   EM strength function parameters
+!
+               call EM_str_param
 
                if(A_f > 20)then
                   lev_option = 1
@@ -908,6 +914,27 @@ program YAHFC_MASTER
       ran = random_64(iseed_64)
       ran = random_32(iseed_32)
 
+
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!----   Make sure we have the correct number of strength function lines, 
+!----   check str for the components
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+      do i = 1, num_comp
+         do L = 1, e_l_max
+            do j = 1, max_num_gsf
+               if(abs(nucleus(i)%EL_mode(L)%gsf(j)%sr) >= 1.0d-6)           &
+                  nucleus(i)%EL_mode(L)%num_gsf = j
+            end do
+         end do
+      end do
+      do i = 1, num_comp
+         do L = 1, m_l_max
+            do j = 1, max_num_gsf
+               if(abs(nucleus(i)%ML_mode(L)%gsf(j)%sr) >= 1.0d-6)           &
+                  nucleus(i)%ML_mode(L)%num_gsf = j
+            end do
+         end do
+      end do
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !------    Finished getting input commands      -------------------------+
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -1468,10 +1495,6 @@ program YAHFC_MASTER
             close(unit=99)
          end if
       end do
-!
-!----   EM strength function parameters
-!
-      call EM_str_param
 
 !!-----   TEST!!!!!
 !      do i = 1, num_comp
@@ -2355,23 +2378,42 @@ program YAHFC_MASTER
 !            if(print_me)write(6,*)'Total population ',reaction_cs(in)
          end if
 
-         ifile = core_file
-         file_name(ifile:ifile+4) = '_Ein_'
-         ifile =ifile + 4
-         if(e_in < 10.0)then
-            file_name(ifile+1:ifile+2)='00'
-            ifile=ifile+2
-            write(file_name(ifile+1:ifile+6),'(f6.4)')e_in
-            ifile=ifile+6
-         elseif(e_in < 100.0)then
-            file_name(ifile+1:ifile+2)='0'
-            ifile=ifile+1
-            write(file_name(ifile+1:ifile+7),'(f7.4)')e_in
-            ifile=ifile+7
-         elseif(e_in < 1000.0)then
-            write(file_name(ifile+1:ifile+7),'(f8.4)')e_in
-            ifile=ifile+8
+         if(.not. file_energy_index)then
+            ifile = core_file
+            file_name(ifile:ifile+4) = '_Ein_'
+            ifile =ifile + 4
+            if(e_in < 10.0)then
+               file_name(ifile+1:ifile+2)='00'
+               ifile=ifile+2
+               write(file_name(ifile+1:ifile+6),'(f6.4)')e_in
+               ifile=ifile+6
+            elseif(e_in < 100.0)then
+               file_name(ifile+1:ifile+2)='0'
+               ifile=ifile+1
+               write(file_name(ifile+1:ifile+7),'(f7.4)')e_in
+               ifile=ifile+7
+            elseif(e_in < 1000.0)then
+               write(file_name(ifile+1:ifile+7),'(f8.4)')e_in
+               ifile=ifile+8
+            end if
+         else
+            ifile = core_file
+            file_name(ifile:ifile+3) = '_iE_'
+            ifile =ifile + 3
+            
+            file_name(ifile+1:ifile+3) = '000'
+            if(in < 10)then
+               write(file_name(ifile+3:ifile+3),'(i1)')in
+            elseif(in < 100)then
+               write(file_name(ifile+2:ifile+3),'(i2)')in
+            else
+               write(file_name(ifile+1:ifile+2),'(i3)')in
+            end if
+            ifile = ifile + 3
          end if
+
+!       write(6,*)ifile, file_name(1:ifile)
+!       write(6,*)'dump_events ',dump_events
 
          directory(1:ilib_dir) = lib_dir(1:ilib_dir)
          idir = ilib_dir + 1

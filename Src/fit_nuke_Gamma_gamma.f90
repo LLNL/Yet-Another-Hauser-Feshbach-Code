@@ -84,6 +84,7 @@ subroutine fit_nuke_Gamma_gamma
              nucleus(icomp)%EL_mode(1)%gsf(num_res)%sr =                            &
                    nucleus(icomp)%EL_mode(1)%gsf(num_res)%sr + step
             call Gamma_gamma(icomp, 0, Gamma_g, g_error)
+
             diff = abs(Gamma_g - Gamma_g_exp)
             if(diff < tolerance)then
                converged = .true.

@@ -713,4 +713,26 @@ Version 3.50
     from node 0. 
 2.  Cleaned up printing of warning message with MPI when using obsolete command
     all_gammas.
+
+Version 3.51
+1.  Fixed bug reading in strength of electric and magnetic strengths with
+    command  el_param and ml_param. Form is:
+ 
+    el_param  Z  A  L  j  E_0   Width   Strength
+
+    Strength was not being read correctly.
+2.  Reordered setup for EM parameters so that they aren't conflicted while 
+    reading parameters in and check on number of strength functions so
+    that gamma_gamma is calculated correctly for read in strength functions.
+3.  Added optional answer to "event_generator" to change the type of name for
+    the file containing events. The new command is: 
+
+    event_generator  Ans1  Ans2
+
+    If Ans1 = y/t/1, then it will operate in event generator mode. The default
+    file is based on the energy of the calculation, either the incident
+    projectile energy or the initial population energy. If Ans = y/t/1, the 
+    file name will be based on the indes of the energy; something like 
+    87Se_iE_001.Events.bin for a population calculation and the first energy.
+
     

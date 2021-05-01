@@ -156,7 +156,7 @@ subroutine parse_command(icommand, command, finish)
 !
    if(command(startw(1):stopw(1)) == 'event_generator')then
       icommand = icommand + 1
-      if(numw /= 2)then
+      if(numw < 2)then
 !         write(6,*)'Error in input for option "event_generator"'
          call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
          return
@@ -170,6 +170,15 @@ subroutine parse_command(icommand, command, finish)
       end if
 
       event_generator = logic_char
+
+      if(numw == 3)then
+         call char_logical(command(startw(2):stopw(2)), logic_char, read_error)
+         if(read_error)then
+            call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
+            return
+         end if
+         file_energy_index = logic_char
+      end if
 
       if(logic_char)then
          dump_events = .true.
@@ -1418,7 +1427,7 @@ subroutine parse_command(icommand, command, finish)
    if(command(startw(1):stopw(1)) == 'el_param')then          !   global setting of this parameter
       icommand = icommand + 1
 
-      ndat = 4
+      ndat = 5
       call extract_ZA_data(command, numw, startw, stopw, ndat,         &
                            iZ, iA, X, nw, read_error)
       if(read_error)then
@@ -1432,6 +1441,10 @@ subroutine parse_command(icommand, command, finish)
       X(3) = X(5)
 
       if(j > max_num_gsf)then
+         if(iproc ==0)write(6,*)'Bad input for el_param, requesting more than max components =',max_num_gsf
+         call MPI_Abort(icomm,101,ierr)
+      end if
+      if(lx > e_l_max)then
          if(iproc ==0)write(6,*)'Bad input for el_param, requesting more than max components =',max_num_gsf
          call MPI_Abort(icomm,101,ierr)
       end if
@@ -1456,7 +1469,7 @@ subroutine parse_command(icommand, command, finish)
    if(command(startw(1):stopw(1)) == 'ml_param')then          !   global setting of this parameter
       icommand = icommand + 1
 
-      ndat = 4
+      ndat = 5
       call extract_ZA_data(command, numw, startw, stopw, ndat,         &
                            iZ, iA, X, nw, read_error)
       if(read_error)then
@@ -1471,6 +1484,10 @@ subroutine parse_command(icommand, command, finish)
 
       if(j > max_num_gsf)then
          if(iproc ==0)write(6,*)'Bad input for ml_param, requesting more than max components =',max_num_gsf
+         call MPI_Abort(icomm,101,ierr)
+      end if
+      if(lx > m_l_max)then
+         if(iproc ==0)write(6,*)'Bad input for el_param, requesting more than max components =',max_num_gsf
          call MPI_Abort(icomm,101,ierr)
       end if
       do i = 1, num_comp

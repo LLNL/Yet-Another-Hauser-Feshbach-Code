@@ -113,7 +113,7 @@ subroutine Gamma_gamma(icomp, l, Gamma_g, g_error)
                j_f_max = min(nint(xj_f_max-nucleus(icomp)%jshift),nucleus(icomp)%j_max)      !  max j-index
                do j_f = j_f_min, j_f_max                    !  loop over final j
                   xj_f = dfloat(j_f) + nucleus(icomp)%jshift
-                  if(xj < 1.0d-5.and.xj_f <= 1.0d-5)cycle        !  O -> 0 not allowed
+                  if(xj < 1.0d-5 .and. xj_f <= 1.0d-5)cycle        !  O -> 0 not allowed
                   Gamma_g = Gamma_g + trans*nucleus(icomp)%bins(j_f,ip_f,n_f)%rho*delta_e
                end do
             end do
