@@ -32,7 +32,7 @@ module options
 !
    use variable_kinds
    character(len=132) :: version
-   parameter (version = 'MC-3.51')
+   parameter (version = 'MC-3.52')
    integer(kind=int_64) :: iseed_64
    integer(kind=int_32) :: iseed_32
    integer(kind=4) :: PREEQ_Model
@@ -493,8 +493,8 @@ module nuclei
    type define_nuclei                     !  data for each compound nucleus in the chain
       integer(kind=4) :: Z                                            !  Number of protons
       integer(kind=4) :: A                                            !  Number of nucleons
-      character(len=2) atomic_symbol                               !  Character for atomic symbol
-      character(len=5) Label                               !  Character for atomic symbol
+      character(len=2) :: atomic_symbol                               !  Character for atomic symbol
+      character(len=5) :: Label                               !  Character for atomic symbol
       real(kind=8) :: BE                                              !  mass excess
       real(kind=8) :: ME                                              !  mass excess
       real(kind=8) :: Mass
@@ -509,6 +509,9 @@ module nuclei
       real(kind=8) :: dKinetic_energy                                 !  Lab kinetic energy of nucleus
       logical :: PREEQ
       logical :: modified
+      logical :: lev_den_read
+      logical :: lev_den_both
+      character(len=100), dimension (0:1) :: lev_den_file
 !-----  Info definging bin structure
       integer(kind=4) :: nbin                                         !  number of excitation energy bins
       real(kind=8) :: jshift                                          !  = 0.5 of odd A = 0 for even A

@@ -322,15 +322,8 @@ subroutine output_nucleus_data(j_max, itarget)
 
 
 !------------------------------------------------------------------
-      E0 = nucleus(i)%level_param(15)
-      T = nucleus(i)%level_param(14)
-      E1 = -10.0d0
-      if(E0 < 0.0d0)E1 = T*log(1.0d0-exp(E0/T))
       write(13,*)
       write(13,'(''Level Density information for '',a5)')nuke_label(1:inuke_end)
-      write(13,'(''E1 defined as the energy so that int(E1,0)rho(E)dE = 1'')')
-      write(13,'(''Generally, E1 < 0 if E0 < 0'')')
-      write(13,'(''Otherwise E1 undefined as int(-infty,0)rho(E)DE < 1'')')
       if(nucleus(i)%fit_D0 .and. nucleus(i)%fit_aparam)then
          write(13,*)'Fitting to D0 by adjusting the a-parameter'
       elseif(nucleus(i)%fit_D0 .and. .not. nucleus(i)%fit_aparam)then
@@ -350,249 +343,289 @@ subroutine output_nucleus_data(j_max, itarget)
       else
          write(13,'('' D0 Not Calculated'')')
       end if
-      write(13,*)'Level-density parameters'
-      write(13,*)'Level-density model = ',nucleus(i)%level_model
-      write(13,'('' a =        '',f12.7)')nucleus(i)%level_param(1)
-      write(13,'('' lambda =   '',f12.7)')nucleus(i)%level_param(2)
-      write(13,'('' Delta =    '',f12.7)')nucleus(i)%level_param(3)
-      write(13,'('' Shell =    '',f12.7)')nucleus(i)%level_param(4)
-      write(13,'('' gamma =    '',f12.7)')nucleus(i)%level_param(5)
-      write(13,'('' E_match =  '',f12.7)')nucleus(i)%level_param(6)
-      write(13,'('' E_cut =    '',f12.7)')nucleus(i)%level_param(7)
-      write(13,'('' sigma_cut ='',f12.7)')nucleus(i)%level_param(8)
-      write(13,'('' T =        '',f12.7)')nucleus(i)%level_param(14)
-      write(13,'('' E0 =       '',f12.7)')nucleus(i)%level_param(15)
-      write(13,'('' a(Sn) =    '',f12.7)')nucleus(i)%a_Sn
-      write(13,'('' sig2(Sn) = '',f12.7)')nucleus(i)%sig2_Sn
-      if(E1 < 0.0d0)then
-          write(13,'('' E1 =       '',f12.7)')E1
-      else
-          write(13,'(''E1 is undefined as E0 > 0, E1 ~ -10.0'')')
-      end if
-      write(13,*)
-      if(nint(nucleus(i)%level_param(10)) == 0)then
-         write(13,*)'No rotational collective enhancement included'
-         write(13,*)'K_rot = 1.0'
-      else
-         write(13,*)'Rotational Collective enhancement model = ',    &
-             nucleus(i)%level_param(10)
-         write(13,*)'Collective enhancement factors'
-         write(13,*)'K_rot = Max[x(1)*(Factor-1)/(1+exp((E-x(2))/x(3))),0]+1'
-         if(nint(nucleus(i)%level_param(10)) == 1)then
-            write(13,*)'Factor = x(1)*sig2*(1+beta2/3)'
-         elseif(nint(nucleus(i)%level_param(10)) == 2)then
-            write(13,*)'Factor = 2.0*x(1)*sig2*(1+beta2/3)'
-         elseif(nint(nucleus(i)%level_param(10)) == 3)then
-            write(13,*)'Factor = x(1)*sig2**3/2*(1+beta2/3)*(1-2*beta2/3)'
-         elseif(nint(nucleus(i)%level_param(10)) == 4)then
-            write(13,*)'Factor = 2.0*x(1)*sig2**3/2*(1+beta2/3)*(1-2*beta2/3)'
+!-----------------------------------------------------------------------------
+!------    Modeled or read in level densities
+!------    First in the list is modeled
+!-----------------------------------------------------------------------------
+      if(.not. nucleus(i)%lev_den_read)then
+         write(13,'(''E1 defined as the energy so that int(E1,0)rho(E)dE = 1'')')
+         write(13,'(''Generally, E1 < 0 if E0 < 0'')')
+         write(13,'(''Otherwise E1 undefined as int(-infty,0)rho(E)DE < 1'')')
+         E0 = nucleus(i)%level_param(15)
+         T = nucleus(i)%level_param(14)
+         E1 = -10.0d0
+         if(E0 < 0.0d0)E1 = T*log(1.0d0-exp(E0/T))
+         write(13,*)'Level-density parameters'
+         write(13,*)'Level-density model = ',nucleus(i)%level_model
+         write(13,'('' a =        '',f12.7)')nucleus(i)%level_param(1)
+         write(13,'('' lambda =   '',f12.7)')nucleus(i)%level_param(2)
+         write(13,'('' Delta =    '',f12.7)')nucleus(i)%level_param(3)
+         write(13,'('' Shell =    '',f12.7)')nucleus(i)%level_param(4)
+         write(13,'('' gamma =    '',f12.7)')nucleus(i)%level_param(5)
+         write(13,'('' E_match =  '',f12.7)')nucleus(i)%level_param(6)
+         write(13,'('' E_cut =    '',f12.7)')nucleus(i)%level_param(7)
+         write(13,'('' sigma_cut ='',f12.7)')nucleus(i)%level_param(8)
+         write(13,'('' T =        '',f12.7)')nucleus(i)%level_param(14)
+         write(13,'('' E0 =       '',f12.7)')nucleus(i)%level_param(15)
+         write(13,'('' a(Sn) =    '',f12.7)')nucleus(i)%a_Sn
+         write(13,'('' sig2(Sn) = '',f12.7)')nucleus(i)%sig2_Sn
+         if(E1 < 0.0d0)then
+             write(13,'('' E1 =       '',f12.7)')E1
+         else
+             write(13,'(''E1 is undefined as E0 > 0, E1 ~ -10.0'')')
          end if
+         write(13,*)
+         if(nint(nucleus(i)%level_param(10)) == 0)then
+            write(13,*)'No rotational collective enhancement included'
+            write(13,*)'K_rot = 1.0'
+         else
+            write(13,*)'Rotational Collective enhancement model = ',    &
+                nucleus(i)%level_param(10)
+            write(13,*)'Collective enhancement factors'
+            write(13,*)'K_rot = Max[x(1)*(Factor-1)/(1+exp((E-x(2))/x(3))),0]+1'
+            if(nint(nucleus(i)%level_param(10)) == 1)then
+               write(13,*)'Factor = x(1)*sig2*(1+beta2/3)'
+            elseif(nint(nucleus(i)%level_param(10)) == 2)then
+               write(13,*)'Factor = 2.0*x(1)*sig2*(1+beta2/3)'
+            elseif(nint(nucleus(i)%level_param(10)) == 3)then
+               write(13,*)'Factor = x(1)*sig2**3/2*(1+beta2/3)*(1-2*beta2/3)'
+            elseif(nint(nucleus(i)%level_param(10)) == 4)then
+               write(13,*)'Factor = 2.0*x(1)*sig2**3/2*(1+beta2/3)*(1-2*beta2/3)'
+            end if
 
-         write(13,*)'Rotational collective-enhancement parameters'
+            write(13,*)'Rotational collective-enhancement parameters'
 
-         write(13,'(''x(1) = '',f10.4)')nucleus(i)%rot_enh(1)
-         write(13,'(''x(2) = '',f10.4)')nucleus(i)%rot_enh(2)
-         write(13,'(''x(3) = '',f10.4)')nucleus(i)%rot_enh(3)
+            write(13,'(''x(1) = '',f10.4)')nucleus(i)%rot_enh(1)
+            write(13,'(''x(2) = '',f10.4)')nucleus(i)%rot_enh(2)
+            write(13,'(''x(3) = '',f10.4)')nucleus(i)%rot_enh(3)
+            write(13,*)
+         end if
+         if(nint(nucleus(i)%level_param(11)) == 0)then
+            write(13,*)'No vibrational collective enhancement included'
+            write(13,*)'K_vib = 1.0'
+         elseif(nint(nucleus(i)%level_param(11)) == 1)then
+            write(13,*)'Vibrational collective enhancement model 1 used'
+            write(13,*)
+            write(13,*)'K_vib = exp(0.05555*A**(2./3.)*T**(4./3.))'
+            write(13,*)'K_vib = Max[x(1)*(K_vib-1)/(1+exp((E-x(2))/x(3))),0]+1'
+            write(13,*)'T = sqrt(U/apu)'
+            write(13,*)
+            write(13,'(''x(1) = '',f10.4)')nucleus(i)%vib_enh(1)
+            write(13,'(''x(2) = '',f10.4)')nucleus(i)%vib_enh(2)
+            write(13,'(''x(3) = '',f10.4)')nucleus(i)%vib_enh(3)
+            write(13,*)
+         elseif(nint(nucleus(i)%level_param(11)) == 2)then
+            write(13,*)'K_vib model 2 - approximated with Bose-gas relationship'
+            write(13,*)
+            write(13,*)'K_vib = exp(dS - dU/T)'
+            write(13,*)'T = sqrt(U/apu)'
+            write(13,*)
+            write(13,*)'dS = Sum_i (2*L(i)+1)*[(1+n(i))*log(1+n(i)) - n(i)*log(n(i))]'
+            write(13,*)'dU = Sum_i (2*L(i)+1)*w(i)*n(i)'
+            write(13,*)'n(i) = exp(-g(i)/2*w(i))/[exp(w(i)/T) - 1]'
+            write(13,*)'g(i) = C*(w(i)**2 + 4*pi**2T**2)'
+            write(13,*)
+            write(13,*)'C = 0.0075*A**(1/3)'
+            write(13,*)'w(2) = 65*A**(-5/6)/(1*0.05*Shell)'
+            write(13,*)'w(3) = 100*A**(-5/6)/(1*0.05*Shell)'
+            write(13,*)
+            write(13,*)'The sum extends over quadrupole and octupole vibrations, L=2,3'
+         elseif(nint(nucleus(i)%level_param(11)) == 3)then
+            write(13,*)'Vibrational collective enhancement model 1 used'
+            write(13,*)
+            write(13,*)'K_vib = exp(0.05555*A**(2./3.)*T**(4./3.))'
+            write(13,*)'K_vib = Max[x(1)*(K_vib-1)/(1+exp((E-x(2))/x(3))),0]+1'
+            write(13,*)'T = sqrt(U/a);  a = A/13'
+            write(13,*)
+            write(13,'(''x(1) = '',f10.4)')nucleus(i)%vib_enh(1)
+            write(13,'(''x(2) = '',f10.4)')nucleus(i)%vib_enh(2)
+            write(13,'(''x(3) = '',f10.4)')nucleus(i)%vib_enh(3)
+            write(13,*)
+         elseif(nint(nucleus(i)%level_param(11)) == 4)then
+            write(13,*)'K_vib model 2 - approximated with Bose-gas relationship'
+            write(13,*)
+            write(13,*)'K_vib = exp(dS - dU/T)'
+            write(13,*)'T = sqrt(U/a);  a = A/13'
+            write(13,*)
+            write(13,*)'dS = Sum_i (2*L(i)+1)*[(1+n(i))*log(1+n(i)) - n(i)*log(n(i))]'
+            write(13,*)'dU = Sum_i (2*L(i)+1)*w(i)*n(i)'
+            write(13,*)'n(i) = exp(-g(i)/2*w(i))/[exp(w(i)/T) - 1]'
+            write(13,*)'g(i) = C*(w(i)**2 + 4*pi*T**2)'
+            write(13,*)
+            write(13,*)'C = 0.0075*A**(1/3)'
+            write(13,*)'w(2) = 65*A**(-5/6)/(1*0.05*Shell)'
+            write(13,*)'w(3) = 100*A**(-5/6)/(1*0.05*Shell)'
+            write(13,*)
+            write(13,*)'The sum extends over quadrupole and octupole vibrations, L=2,3'
+         end if
          write(13,*)
-      end if
-      if(nint(nucleus(i)%level_param(11)) == 0)then
-         write(13,*)'No vibrational collective enhancement included'
-         write(13,*)'K_vib = 1.0'
-      elseif(nint(nucleus(i)%level_param(11)) == 1)then
-         write(13,*)'Vibrational collective enhancement model 1 used'
-         write(13,*)
-         write(13,*)'K_vib = exp(0.05555*A**(2./3.)*T**(4./3.))'
-         write(13,*)'K_vib = Max[x(1)*(K_vib-1)/(1+exp((E-x(2))/x(3))),0]+1'
-         write(13,*)'T = sqrt(U/apu)'
-         write(13,*)
-         write(13,'(''x(1) = '',f10.4)')nucleus(i)%vib_enh(1)
-         write(13,'(''x(2) = '',f10.4)')nucleus(i)%vib_enh(2)
-         write(13,'(''x(3) = '',f10.4)')nucleus(i)%vib_enh(3)
-         write(13,*)
-      elseif(nint(nucleus(i)%level_param(11)) == 2)then
-         write(13,*)'K_vib model 2 - approximated with Bose-gas relationship'
-         write(13,*)
-         write(13,*)'K_vib = exp(dS - dU/T)'
-         write(13,*)'T = sqrt(U/apu)'
-         write(13,*)
-         write(13,*)'dS = Sum_i (2*L(i)+1)*[(1+n(i))*log(1+n(i)) - n(i)*log(n(i))]'
-         write(13,*)'dU = Sum_i (2*L(i)+1)*w(i)*n(i)'
-         write(13,*)'n(i) = exp(-g(i)/2*w(i))/[exp(w(i)/T) - 1]'
-         write(13,*)'g(i) = C*(w(i)**2 + 4*pi**2T**2)'
-         write(13,*)
-         write(13,*)'C = 0.0075*A**(1/3)'
-         write(13,*)'w(2) = 65*A**(-5/6)/(1*0.05*Shell)'
-         write(13,*)'w(3) = 100*A**(-5/6)/(1*0.05*Shell)'
-         write(13,*)
-         write(13,*)'The sum extends over quadrupole and octupole vibrations, L=2,3'
-      elseif(nint(nucleus(i)%level_param(11)) == 3)then
-         write(13,*)'Vibrational collective enhancement model 1 used'
-         write(13,*)
-         write(13,*)'K_vib = exp(0.05555*A**(2./3.)*T**(4./3.))'
-         write(13,*)'K_vib = Max[x(1)*(K_vib-1)/(1+exp((E-x(2))/x(3))),0]+1'
-         write(13,*)'T = sqrt(U/a);  a = A/13'
-         write(13,*)
-         write(13,'(''x(1) = '',f10.4)')nucleus(i)%vib_enh(1)
-         write(13,'(''x(2) = '',f10.4)')nucleus(i)%vib_enh(2)
-         write(13,'(''x(3) = '',f10.4)')nucleus(i)%vib_enh(3)
-         write(13,*)
-      elseif(nint(nucleus(i)%level_param(11)) == 4)then
-         write(13,*)'K_vib model 2 - approximated with Bose-gas relationship'
-         write(13,*)
-         write(13,*)'K_vib = exp(dS - dU/T)'
-         write(13,*)'T = sqrt(U/a);  a = A/13'
-         write(13,*)
-         write(13,*)'dS = Sum_i (2*L(i)+1)*[(1+n(i))*log(1+n(i)) - n(i)*log(n(i))]'
-         write(13,*)'dU = Sum_i (2*L(i)+1)*w(i)*n(i)'
-         write(13,*)'n(i) = exp(-g(i)/2*w(i))/[exp(w(i)/T) - 1]'
-         write(13,*)'g(i) = C*(w(i)**2 + 4*pi*T**2)'
-         write(13,*)
-         write(13,*)'C = 0.0075*A**(1/3)'
-         write(13,*)'w(2) = 65*A**(-5/6)/(1*0.05*Shell)'
-         write(13,*)'w(3) = 100*A**(-5/6)/(1*0.05*Shell)'
-         write(13,*)
-         write(13,*)'The sum extends over quadrupole and octupole vibrations, L=2,3'
-      end if
-      write(13,*)
 
-      write(13,*)'Rho = K_rot*K_vib*Rho'
+         write(13,*)'Rho = K_rot*K_vib*Rho'
 
-      write(13,*)
-      if(nint(nucleus(i)%level_param(16)) == 0)then
-          write(13,*)'Parity Factor = 0.5 for positive and negative parities'
-      elseif(nint(nucleus(i)%level_param(16)) == 1)then
-          write(13,*)'Parity Factor = 0.5*tanh(a*(E-E0)) for positive parity states'
-          write(13,'(''E0 = '',f5.3)')nucleus(i)%level_param(17)
-          write(13,'(''a = '',f5.3)')nucleus(i)%level_param(18)
-      elseif(nint(nucleus(i)%level_param(16)) == 2)then
-          write(13,*)'Parity Factor = 0.5*tanh(a*(E-E0)) for negative parity states'
-          write(13,'(''E0 = '',f5.3)')nucleus(i)%level_param(17)
-          write(13,'(''a = '',f5.3)')nucleus(i)%level_param(18)
-      end if
-      write(13,*)
+         write(13,*)
+         if(nint(nucleus(i)%level_param(16)) == 0)then
+             write(13,*)'Parity Factor = 0.5 for positive and negative parities'
+         elseif(nint(nucleus(i)%level_param(16)) == 1)then
+             write(13,*)'Parity Factor = 0.5*tanh(a*(E-E0)) for positive parity states'
+             write(13,'(''E0 = '',f5.3)')nucleus(i)%level_param(17)
+             write(13,'(''a = '',f5.3)')nucleus(i)%level_param(18)
+         elseif(nint(nucleus(i)%level_param(16)) == 2)then
+             write(13,*)'Parity Factor = 0.5*tanh(a*(E-E0)) for negative parity states'
+             write(13,'(''E0 = '',f5.3)')nucleus(i)%level_param(17)
+             write(13,'(''a = '',f5.3)')nucleus(i)%level_param(18)
+         end if
+         write(13,*)
+ 
+         write(13,'(''Level density States/MeV for '',a5)')nuke_label(1:inuke_end)
+         write(13,'(''Positive Parity '')')
 
-      write(13,'(''Level density States/MeV for '',a5)')nuke_label(1:inuke_end)
-      write(13,'(''Positive Parity '')')
+         write(temp_string,*)min(j_max,60)+1
+         fstring = "(6x,'E',9x,'a(U)',1x,'sqrt(sig2)',6x,'P_fac',"//                &
+                   "6x,'K_vib',6x,'K_rot',8x,'Enh',9x,'Rho',5x,"                    &
+                   //trim(adjustl(temp_string))//"(5x,'J = ',f4.1,3x))"
 
-      write(temp_string,*)min(j_max,60)+1
-      fstring = "(6x,'E',9x,'a(U)',1x,'sqrt(sig2)',6x,'P_fac',"//                &
-                "6x,'K_vib',6x,'K_rot',8x,'Enh',9x,'Rho',5x,"                    &
-                //trim(adjustl(temp_string))//"(5x,'J = ',f4.1,3x))"
-
-      write(13,fstring)(real(jj) + nucleus(i)%jshift, jj = 0, min(j_max,60))
+         write(13,fstring)(real(jj) + nucleus(i)%jshift, jj = 0, min(j_max,60))
 !      write(13,1901)(real(jj) + nucleus(i)%jshift, jj = 0, min(j_max,60))
 ! 1901 format('      E         a(U)    sqrt(sig2)   P_fac      K_vib      K_rot       Enh         Rho     ',     &
 !            40(5x,'J = ',f4.1,3x))
-      fstring = "(1x,'--------',6(1x,'----------'),1x,'---------------',"        &
-                //trim(adjustl(temp_string))//"(1x,'---------------'))"
-      write(13,fstring)
-      pmode = nucleus(i)%level_param(16)
-      pe1 = nucleus(i)%level_param(17)
-      pbb = nucleus(i)%level_param(18)
+         fstring = "(1x,'--------',6(1x,'----------'),1x,'---------------',"        &
+                   //trim(adjustl(temp_string))//"(1x,'---------------'))"
+         write(13,fstring)
+         pmode = nucleus(i)%level_param(16)
+         pe1 = nucleus(i)%level_param(17)
+         pbb = nucleus(i)%level_param(18)
 
-      fstring = "(1x,f8.3,6(1x,f10.3),(1x,e15.7),"//trim(adjustl(temp_string))//"(1x,e15.7))"
-
-      do k = 1, nucleus(i)%nbin
-         energy = nucleus(i)%e_grid(k)
-         sum_rho = 0.0d0
-         call rhoe(energy,nucleus(i)%level_param,                                &
-                   nucleus(i)%vib_enh,                                           &
-                   nucleus(i)%rot_enh,                                           &
-                   ia,rho_Fm,apu,sig2,K_vib,K_rot)
-          ip = 1
-          pfac=parity_fac(energy,xj,ip,pmode,pe1,pbb)
-          do jj = 0, min(j_max,60)
-             xj = jj + nucleus(i)%jshift
-             jfac=spin_fac(xj,sig2)
-             rho(jj,ip)=rho_FM*jfac*pfac
-             sum_rho = sum_rho + nucleus(i)%bins(jj,ip,k)%rho
-          end do
+         fstring = "(1x,f8.3,6(1x,f10.3),(1x,e15.7),"//trim(adjustl(temp_string))//"(1x,e15.7))"
+         do k = 1, nucleus(i)%nbin
+            energy = nucleus(i)%e_grid(k)
+            sum_rho = 0.0d0
+            call rhoe(energy,nucleus(i)%level_param,                                &
+                      nucleus(i)%vib_enh,                                           &
+                      nucleus(i)%rot_enh,                                           &
+                      ia,rho_Fm,apu,sig2,K_vib,K_rot)
+             ip = 1
+             pfac=parity_fac(energy,xj,ip,pmode,pe1,pbb)
+             do jj = 0, min(j_max,60)
+                xj = jj + nucleus(i)%jshift
+                jfac=spin_fac(xj,sig2)
+                rho(jj,ip)=rho_FM*jfac*pfac
+                sum_rho = sum_rho + nucleus(i)%bins(jj,ip,k)%rho
+             end do
 !          write(13,'(1x,f8.3,6(1x,f10.3),60(1x,e15.7))')                         &
-          write(13,fstring)                                                      &
-               energy,apu,sqrt(sig2),pfac,K_vib,K_rot,K_vib*K_rot,sum_rho,       &
-               (nucleus(i)%bins(jj,ip,k)%rho,jj = 0, min(j_max,60))
-      end do
+             write(13,fstring)                                                      &
+                  energy,apu,sqrt(sig2),pfac,K_vib,K_rot,K_vib*K_rot,sum_rho,       &
+                  (nucleus(i)%bins(jj,ip,k)%rho,jj = 0, min(j_max,60))
+         end do
 !----   Format to write j_max elements to file
-      write(temp_string,*)min(j_max,60)+1
-      write(13,'(''Negative Parity '')')
-      fstring = "(6x,'E',9x,'a(U)',1x,'sqrt(sig2)',6x,'P_fac',"//                &
-                "6x,'K_vib',6x,'K_rot',8x,'Enh',9x,'Rho',5x,"                    &
-                //trim(adjustl(temp_string))//"(5x,'J = ',f4.1,3x))"
-      write(13,fstring)(real(jj) + nucleus(i)%jshift, jj = 0, min(j_max,60))
-      fstring = "(1x,'--------',6(1x,'----------'),1x,'---------------',"        &
-                //trim(adjustl(temp_string))//"(1x,'---------------'))"
-      write(13,fstring)
+         write(temp_string,*)min(j_max,60)+1
+         write(13,'(''Negative Parity '')')
+         fstring = "(6x,'E',9x,'a(U)',1x,'sqrt(sig2)',6x,'P_fac',"//                &
+                   "6x,'K_vib',6x,'K_rot',8x,'Enh',9x,'Rho',5x,"                    &
+                   //trim(adjustl(temp_string))//"(5x,'J = ',f4.1,3x))"
+         write(13,fstring)(real(jj) + nucleus(i)%jshift, jj = 0, min(j_max,60))
+         fstring = "(1x,'--------',6(1x,'----------'),1x,'---------------',"        &
+                   //trim(adjustl(temp_string))//"(1x,'---------------'))"
+         write(13,fstring)
 !      write(13,1902)(real(jj) + nucleus(i)%jshift, jj = 0, min(j_max,60))
 ! 1902 format('      E         a(U)    sqrt(sig2)   P_fac      K_vib      K_rot       Enh         Rho     ',     &
 !            40(5x,'J = ',f4.1,3x))
-      pmode = nucleus(i)%level_param(16)
-      pe1 = nucleus(i)%level_param(17)
-      pbb = nucleus(i)%level_param(18)
+         pmode = nucleus(i)%level_param(16)
+         pe1 = nucleus(i)%level_param(17)
+         pbb = nucleus(i)%level_param(18)
 
-      fstring = "(1x,f8.3,6(1x,f10.3),(1x,e15.7),"//trim(adjustl(temp_string))//"(1x,e15.7))"
-      do k = 1, nucleus(i)%nbin
-         energy = nucleus(i)%e_grid(k)
-         sum_rho = 0.0d0
-         call rhoe(energy,nucleus(i)%level_param,                                &
-                   nucleus(i)%vib_enh,                                           &
-                   nucleus(i)%rot_enh,                                           &
-                   ia,rho_Fm,apu,sig2,K_vib,K_rot)
-          ip = 0
-          pfac=parity_fac(energy,xj,ip,pmode,pe1,pbb)
-          do jj = 0, min(j_max,60)
-             xj = jj + nucleus(i)%jshift
-             jfac=spin_fac(xj,sig2)
-             rho(jj,ip)=rho_FM*jfac*pfac
-             sum_rho = sum_rho + nucleus(i)%bins(jj,ip,k)%rho
-          end do
+         fstring = "(1x,f8.3,6(1x,f10.3),(1x,e15.7),"//trim(adjustl(temp_string))//"(1x,e15.7))"
+
+         do k = 1, nucleus(i)%nbin
+            energy = nucleus(i)%e_grid(k)
+            sum_rho = 0.0d0
+           call rhoe(energy,nucleus(i)%level_param,                                 &
+                      nucleus(i)%vib_enh,                                           &
+                      nucleus(i)%rot_enh,                                           &
+                      ia,rho_Fm,apu,sig2,K_vib,K_rot)
+            ip = 0
+            pfac=parity_fac(energy,xj,ip,pmode,pe1,pbb)
+            do jj = 0, min(j_max,60)
+               xj = jj + nucleus(i)%jshift
+               jfac=spin_fac(xj,sig2)
+               rho(jj,ip)=rho_FM*jfac*pfac
+               sum_rho = sum_rho + nucleus(i)%bins(jj,ip,k)%rho
+            end do
 !          write(13,'(1x,f8.3,6(1x,f10.3),60(1x,e15.7))')                         &
-          write(13,fstring)                                                      &
-               energy,apu,sqrt(sig2),pfac,K_vib,K_rot,K_vib*K_rot,sum_rho,       &
-               (nucleus(i)%bins(jj,ip,k)%rho,jj = 0, min(j_max,60))
-      end do
- !------------------------------------------------------------------
-      nfit = max(nucleus(i)%num_discrete,nucleus(i)%ncut)
-      allocate(cum_rho(nfit))
-      allocate(cumm_fit(nfit))
-      allocate(elv(nfit))
-      if(nucleus(i)%ncut >= 5) then
-         if(nucleus(i)%fit_ematch)then
-            write(13,*)'E_match was fit cummulative density for known discrete states'
-         else
-            write(13,*)'E_match was not fit cummulative density for known discrete states'
-            write(13,*)'User input over rides fitting or default was used'
-         end if
-         nfit = nucleus(i)%ncut
-         write(13,*)
-         write(13,*)'Cummulative level density up to E_cut'
-         cum_rho(1) = 1.0d0
-         elv(1) = nucleus(i)%state(1)%energy
-         cum_rho(1) = 1.0d0
-         do j = 2, nfit
-            elv(j) = nucleus(i)%state(j)%energy
-            cum_rho(j) = cum_rho(j-1) + 1.0d0
+            write(13,fstring)                                                       &
+                 energy,apu,sqrt(sig2),pfac,K_vib,K_rot,K_vib*K_rot,sum_rho,        &
+                 (nucleus(i)%bins(jj,ip,k)%rho,jj = 0, min(j_max,60))
          end do
-         do j = 1, nfit
-            if(j > 1)cum_rho(j) = cum_rho(j-1) + 1.0d0
-            write(13,'(f10.4,1x,f15.2)')elv(j), cum_rho(j)
-            if(j < nfit)then
-               write(13,'(f10.4,1x,f15.2)')elv(j+1), cum_rho(j)
-            end if
+!-----------------------------------------------------------------------------
+!------   Next is the case where they are read in
+!-----------------------------------------------------------------------------
+      else
+         write(13,*)
+         write(13,*)'Level density read in from user input'
+         write(13,'(''Level density States/MeV for '',a5)')nuke_label(1:inuke_end)
+         write(13,'(''Positive Parity '')')
+
+         write(temp_string,*)min(j_max,60)+1
+         fstring = "(6x,'E',10x,'Rho',5x,"                                              &
+                   //trim(adjustl(temp_string))//"(5x,'J = ',f4.1,3x))"
+         write(13,fstring)(real(jj) + nucleus(i)%jshift, jj = 0, min(j_max,60))
+         fstring = "(1x,'--------',1x,'---------------',"                           &
+                   //trim(adjustl(temp_string))//"(1x,'---------------'))"
+         write(13,fstring)
+
+         fstring = "(1x,f8.3,(1x,e15.7),"//trim(adjustl(temp_string))//"(1x,e15.7))"
+         ip = 1
+         do k = 1, nucleus(i)%nbin
+            energy = nucleus(i)%e_grid(k)
+            sum_rho = 0.0d0
+            do jj = 0, min(j_max,60)
+               sum_rho = sum_rho + nucleus(i)%bins(jj,ip,k)%rho
+            end do
+            write(13,fstring)                                                       &
+                  energy,sum_rho,                                    &
+                  (nucleus(i)%bins(jj,ip,k)%rho,jj = 0, min(j_max,60))
          end do
          write(13,*)
-         write(13,*)'Modeled cummulative level density up to E_cut'
-         cumm_fit(1:nfit) = 0.0d0
-         call cumm_rho(nfit,elv,ia,nucleus(i)%level_param,             &
-                       nucleus(i)%vib_enh,nucleus(i)%rot_enh,cumm_fit)
-         do j = 1, nfit
-            write(13,'(f10.4,1x,f15.2)')elv(j),cumm_fit(j)
+         write(13,'(''Negative Parity '')')
+
+         write(temp_string,*)min(j_max,60)+1
+         fstring = "(6x,'E',10x,'Rho',5x,"                                              &
+                   //trim(adjustl(temp_string))//"(5x,'J = ',f4.1,3x))"
+         write(13,fstring)(real(jj) + nucleus(i)%jshift, jj = 0, min(j_max,60))
+         fstring = "(1x,'--------',1x,'---------------',"                           &
+                   //trim(adjustl(temp_string))//"(1x,'---------------'))"
+         write(13,fstring)
+
+         fstring = "(1x,f8.3,(1x,e15.7),"//trim(adjustl(temp_string))//"(1x,e15.7))"
+         ip = 0
+         do k = 1, nucleus(i)%nbin
+            energy = nucleus(i)%e_grid(k)
+            sum_rho = 0.0d0
+            do jj = 0, min(j_max,60)
+               sum_rho = sum_rho + nucleus(i)%bins(jj,ip,k)%rho
+            end do
+            write(13,fstring)                                                       &
+                  energy,sum_rho,                                    &
+                  (nucleus(i)%bins(jj,ip,k)%rho,jj = 0, min(j_max,60))
          end do
 
-         if(nucleus(i)%ncut /= nucleus(i)%num_discrete)then
-            nfit = nucleus(i)%num_discrete
+      end if
+
+ !------------------------------------------------------------------
+      if(.not. nucleus(i)%lev_den_read)then
+         nfit = max(nucleus(i)%num_discrete,nucleus(i)%ncut)
+         allocate(cum_rho(nfit))
+         allocate(cumm_fit(nfit))
+         allocate(elv(nfit))
+         if(nucleus(i)%ncut >= 5) then
+            if(nucleus(i)%fit_ematch)then
+               write(13,*)'E_match was fit cummulative density for known discrete states'
+            else
+               write(13,*)'E_match was not fit cummulative density for known discrete states'
+               write(13,*)'User input over rides fitting or default was used'
+            end if
+            nfit = nucleus(i)%ncut
             write(13,*)
-            write(13,*)'Cummulative level density for all discrete states'
-            cum_rho(1:nfit) = 0.0d0
+            write(13,*)'Cummulative level density up to E_cut'
             cum_rho(1) = 1.0d0
             elv(1) = nucleus(i)%state(1)%energy
             cum_rho(1) = 1.0d0
@@ -608,18 +641,47 @@ subroutine output_nucleus_data(j_max, itarget)
                end if
             end do
             write(13,*)
-            write(13,*)'Modeled cummulative level density up to maximum discrete state'
+            write(13,*)'Modeled cummulative level density up to E_cut'
             cumm_fit(1:nfit) = 0.0d0
             call cumm_rho(nfit,elv,ia,nucleus(i)%level_param,             &
                           nucleus(i)%vib_enh,nucleus(i)%rot_enh,cumm_fit)
             do j = 1, nfit
-               write(13,'(f10.4,1x,f15.2)')elv(j), cumm_fit(j)
+               write(13,'(f10.4,1x,f15.2)')elv(j),cumm_fit(j)
             end do
+
+            if(nucleus(i)%ncut /= nucleus(i)%num_discrete)then
+               nfit = nucleus(i)%num_discrete
+               write(13,*)
+               write(13,*)'Cummulative level density for all discrete states'
+               cum_rho(1:nfit) = 0.0d0
+               cum_rho(1) = 1.0d0
+               elv(1) = nucleus(i)%state(1)%energy
+               cum_rho(1) = 1.0d0
+               do j = 2, nfit
+                  elv(j) = nucleus(i)%state(j)%energy
+                  cum_rho(j) = cum_rho(j-1) + 1.0d0
+               end do
+               do j = 1, nfit
+                  if(j > 1)cum_rho(j) = cum_rho(j-1) + 1.0d0
+                  write(13,'(f10.4,1x,f15.2)')elv(j), cum_rho(j)
+                  if(j < nfit)then
+                     write(13,'(f10.4,1x,f15.2)')elv(j+1), cum_rho(j)
+                  end if
+               end do
+               write(13,*)
+               write(13,*)'Modeled cummulative level density up to maximum discrete state'
+               cumm_fit(1:nfit) = 0.0d0
+               call cumm_rho(nfit,elv,ia,nucleus(i)%level_param,             &
+                             nucleus(i)%vib_enh,nucleus(i)%rot_enh,cumm_fit)
+               do j = 1, nfit
+                  write(13,'(f10.4,1x,f15.2)')elv(j), cumm_fit(j)
+               end do
+            end if
          end if
+         deallocate(cum_rho)
+         deallocate(cumm_fit)
+         deallocate(elv)
       end if
-      deallocate(cum_rho)
-      deallocate(cumm_fit)
-      deallocate(elv)
 
       if(.not. allocated(gsf))allocate(gsf(max_num_gsf))
 

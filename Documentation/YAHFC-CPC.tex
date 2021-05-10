@@ -252,8 +252,14 @@ The level density is parameterized along the lines of the early work of Gilbert 
 where $U=E_x - \Delta$, with $\Delta$ being the pairing parameter, $\sigma$ is the spin cutoff parameter, and $a$ is the single-particle, level-density parameter. The angular momentum distribution is given by
 \begin{equation}
 P_J(E_x) = \frac{2J+1}{2\sigma^2}\exp \left [ - \frac{(J+\frac{1}{2})^2}{2\sigma^2} \right ],
+\label{eq:J_prob}
 \end{equation}
-while the parity fraction is generally taken to be $\frac{1}{2}$ for $\pi = \pm 1$, but can be a generalized function with $P_{\pi=-1}(E_x) + P_{\pi=1}(E_x) = 1$.  In YAHFC, the command ${\texttt{lev\_parity\_fac}}$ gives the option to define the parity factor for either parity, $\pi$, with the function $P_\pi(E_x) = \frac{1}{2}\tanh(B(E_x-E_0))$, with $E_0$ and $B$ being parameters to control the starting energy and how quickly the factor tends to equal the fraction value $\frac{1}{2}$.
+while the parity fraction is generally taken to be $\frac{1}{2}$ for $\pi = \pm 1$, but can be a generalized function with $P_{\pi=-1}(E_x) + P_{\pi=1}(E_x) = 1$.  In YAHFC, the command ${\texttt{lev\_parity\_fac}}$ gives the option to define the parity factor for either parity, $\pi$, with the function 
+\begin{equation}
+P_\pi(E_x) = \frac{1}{2}\tanh(B(E_x-E_0)),
+\label{eq:parity}
+\end{equation}
+with $E_0$ and $B$ being parameters to control the starting energy and how quickly the factor tends to equal the fraction value $\frac{1}{2}$.
 
 Both $\sigma$ and $a$ are, in principle, functions of the excitation energy $E_x$. The energy dependence of the single-particle, level-density parameter is taken to be that proposed by Ignatyuk
 \begin{equation}
@@ -281,7 +287,7 @@ while continuity of the level density requires
 \begin{equation}
 E_0 = E_m -T\ln\left [ T\rho_{FG}(E_m)\right].
 \end{equation}
-With $T$ and $E_0$ determined for a given matching energy $E_m$, we then compute the cumulative density, $N(E_x) = \int_0^{E_x} \rho(E^\prime)dE^\prime$, for the finite-temperature segment and select an optimal value for the matching energy by fitting to the experimental cumulative density up to excitation energy $E_{cut}$. At this point, it is to be noted that the choice of $E_{cut}$ can be subjective as it is not always clear if $N(E_x)$ is failing to rise rapidly enough. Ultimately, the selection of $E_{cut}$ needs to be confirmed by the user. In YAHFC, an automated process is in place, where the starting value of $E_{cut}$ is chosen at the point where the discrete spectrum is complete, that is all states have known $J^\pi$ values and a gamma-decay path is known. The code then examines how well the fitting procedure described above reproduces the cumulative density. If the fit is outside exceptable standards, $E_{cut}$ is lowered and the fit is performed again. The results of the automated procedure are printed in the output file. Finally, the user may manually set both $E_{cut}$ and $E_m$ with options provided.
+With $T$ and $E_0$ determined for a given matching energy $E_m$, the cumulative density, $N(E_x) = \int_0^{E_x} \rho(E^\prime)dE^\prime$,is computed for the finite-temperature segment and an optimal value for the matching energy is made by fitting to the experimental cumulative density up to excitation energy $E_{cut}$. At this point, it is to be noted that the choice of $E_{cut}$ can be subjective as it is not always clear if $N(E_x)$ is failing to rise rapidly enough. Ultimately, the selection of $E_{cut}$ needs to be confirmed by the user, and the value of $E_{cut}$ can be set manually for each nucleus with the option${\texttt{lev\_ecut}}$. In addition, the value of the matching energy can also be set manually for each nucleus with the option ${\texttt{lev\_ematch}}$.
 
 For $E_{cut} \le E_x \le E_m$, the spin cut off parameter, $\sigma^2$, is matched linearly from the value computed for the discrete spectrum to that for the standard back-shifted Fermi gas model, i.e., Eqs.~(\ref{eq:sig_0}) and (\ref{eq:sig_1}). At $E_{cut}$ the spin cutoff parameter can be found by assuming a constant temperature level density, Eq.~(\ref{eq:rho_T}), and a constant spin cutoff parameter for $E_x < E_{cut}$ by computing the mean value of $J(J+1)$ and setting that equal to the experimental value, giving
 \begin{equation}
@@ -391,6 +397,16 @@ By default, YAHFC will adjust the level-density parameter,
 $a$, for ``${\texttt{lev\_option 0}}$'' and the shell correction, $\delta W$,
 for ``${\texttt{lev\_option 0 \& 1}}$'' to reproduce $D_0$. Options exist
 to override the fit to $D_0$ or to alternatively fit to $\tilde a$ or $\delta W$.  An argument for fitting the shell correction $\delta W$ instead of the asymptotic level-density parameter is that at high energy, the level-density parameter should tend to the finite-temperature, Hartree-Fock limit, which varies smoothly from nucleus-to-nucleus. Corrections at low excitation energy due to shell corrections, pairing, and quantal correlations are more dependent on the structure of each nucleus. Evaluated values of $D_0$ and $D_1$ are tabulated in the files ${\texttt{Level-Density-Data-RIPL3-L0.dat}}$ and ${\texttt{Level-Density-Data-RIPL3-L1.dat}}$, respectively, from the Reference Input Parameter Library (${\texttt{RIPL-3}}$) data compilation~\cite{Capote:2009,RIPL-3} and are located in the YAHFC data directory.
+
+\subsubsection{Reading Level Densities into YAHFC}
+
+In addition to the internal level densities models described above, YAHFC also provides the option for the user to manually read in level density data for each nucleus\footnote{At this time, the option to read in level densities does not apply to level densities above the fission barriers.}. Reading in the level density may be evoked with the command\\
+\\
+ ${\texttt{lev\_den\_read}}~~Z~~A~~~~~P_{\rm lab}~~~~~{\texttt{file\_name}}$,\\
+\\
+where ${\texttt{file\_name}}$ (no extension is assumed) is the file name (in the execution directory) to be read in and $P_{\rm lab}$ is a character string of length one and takes on one of three distinct value types. Level densities for positive parity energy bins are read if $P_{\rm lab} = 1$, `${\texttt{p}}$', or `$+$'. If $P_{\rm lab} = 0$, `${\texttt{n}}$', or `$-$', level densities for negative parity energy bins are read in.  If, on the other hand, $P_{\rm lab}$ = `${\texttt{b}}$', the level densities read in are assumed to apply to both positive and negative parities, and the internal parity-factor model, either $\frac{1}{2}$ or Eq.~(\ref{eq:parity}) is applied. Invoking the `${\texttt{lev\_den\_read}}$' command requires input for both parities and fitting to $D_0$ is disabled.
+
+The file ${\texttt{file\_name}}$ contains the excitation energy in the first column, followed by the level density. The span of excitation energies read in must be greater than the minimum and maximum excitation energies for the continuous energy bins for that nucleus, otherwise an error exception occurs, and execution terminates with an error message specifying the value required for that nucleus. The excitation energies read in do not need to match the excitation energies of the continuous bins, as the level densities are obtained with a logarithmic linear interpolation of the level densities on the energy grid. There are two options for the angular momentum dependence. The first is that the level density for each angular momentum in the calculation is provided. In, this case, the level densities appear in the file on a single line following the excitation energy. If the number of angular momentum entries is less than what is required in the calculation, an error exception occurs, and execution is terminated with an error message specifying the value required. The second option is to read in a single value for the level density (assumed to be summed over all $J$-values\footnote{Note that if $P_{\rm lab}$ = `${\texttt{b}}$' the value read in must be the total level density, i.e., summed over both angular momentum and parity.}) and the the angular momentum dependence is taken from the internal model via Eq.~(\ref{eq:J_prob}). The number of data contained in the file are determined automatically and comment lines starting with `\#' or `!' are ignored.
 
 \subsubsection{Discrete States}
 
@@ -1352,6 +1368,17 @@ ${\texttt{lev\_vib\_enhance\_mode}}$  & $k$   &  Generic parameter defining the 
 & & \hskip 1 cm {\bf Default} for lev\_option = 2.\\
 & & $k = 3$: same as $i=1$ with $a(U)=A/13$.\\
 & & $k = 4$: same as $i=2$ with $a(U)=A/13$.\\
+\hline
+${\texttt{lev\_den\_read}}$  & $Z$, $A$, $P_{\rm lab}$, ${\texttt{file\_name}}$   &  Command to read level density information for nucleus $Z$ and $A$ from ${\texttt{file\_name}}$.\\ 
+&  &  $P_{\rm lab}$ = 1, ${\texttt{p}}$, $+$:  Level densities for positive parities are read \\
+&  &  $P_{\rm lab}$ = 0, ${\texttt{n}}$, $-$:  Level densities for negative parities are read \\
+&  &  $P_{\rm lab}$ = ${\texttt{b}}$: \hskip 0.8 cm Level densities apply to both parities\\
+& & \hskip 2.4 cm using the internal parity factor\\
+& & ${\texttt{file\_name}}$: Excitation energies in first column, followed\\
+& & \hskip 1.9 cm by level density for each angular momentum.\\
+& & \hskip 1.9 cm If only one value is present, the angular\\
+& & \hskip 1.9 cm momentum dependence is from Eq.~(\ref{eq:J_prob}).\\
+
 \hline
 \end{tabular}
 \end{center}

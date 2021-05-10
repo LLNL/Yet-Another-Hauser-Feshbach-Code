@@ -63,7 +63,6 @@ program YAHFC_MASTER
 !-----------------------------------------------------------------------
 !----------   Temporary storage for state data if we need to remove discrete states
 
-      real(kind=8) :: test_sigma, xji
       real(kind=8) :: E_in, e_rel
       real(kind=8) :: E_f, Ex_f, e_shift
       real(kind=8) :: rel_factor
@@ -148,8 +147,6 @@ program YAHFC_MASTER
       real(kind=8) ::  par_i, xnbin_i
       integer(kind=4) :: iX_i, Ix_f
       real(kind=8) :: preeq_prob
-      real(kind=8) :: xnum, dde, e_lev_min
-      integer(kind=4) :: kstart
 
       real(kind=8) :: pop_sum, prev
       real(kind=8), allocatable, dimension (:) :: pop_prob
@@ -166,7 +163,6 @@ program YAHFC_MASTER
 
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
       real(kind=8) :: KE
-      real(kind=8) :: energy
       real(kind=8) :: Ef
       real(kind=8) :: Ex
       integer(kind=4) :: i,j,k,l,m,is
@@ -175,7 +171,6 @@ program YAHFC_MASTER
       integer(kind=4) :: in,ip,ia
       integer(kind=4) :: icomp
       integer(kind=4) :: cum_fit
-      real(kind=8) :: min_e
       character(len=1) overide
       real(kind=8) :: hang
       logical :: hung_up
@@ -190,10 +185,7 @@ program YAHFC_MASTER
       logical :: check
 !---------------------------------------------------------------------
       character(len=2) char_pos,char_neg
-      real(kind=8) :: apu
-      real(kind=8) :: rho, sig
       integer(kind=4) :: max_part
-      real(kind=8) :: K_vib, K_rot
 !----------------------------------------------------------------------
       integer(kind=4) :: max_gammas
 !----------------------------------------------------------------------
@@ -201,11 +193,9 @@ program YAHFC_MASTER
       integer(kind=4) :: n, n_f, if1
       real(kind=8) :: xj_min, xj_max
       real(kind=8) :: xI_min, xI_max
-      integer(kind=4) :: max_J
       integer(kind=4) :: j_max
       real(kind=8) :: xj
       integer(kind=4) :: Ix, Ix_min, Ix_max
-      integer(kind=4) :: ipar
       real(kind=8) :: xnorm
 !--------------------  Data to collect input information -------------
       integer(kind=4) :: read_err
@@ -216,9 +206,6 @@ program YAHFC_MASTER
       integer(kind=4) :: itemp
       integer(kind=4) :: num_command
       logical finish
-!----------------------------------------------------------------------
-!---------------------   Level information ----------------------------
-      real(kind=8), allocatable :: comp_avg(:,:,:),comp_var(:,:,:)
 !----------------------------------------------------------------
       real(kind=8), allocatable :: reaction_cs(:)
       real(kind=8), allocatable :: absorption_cs(:)
@@ -310,13 +297,10 @@ program YAHFC_MASTER
 
 !--------   yrast  ---------------------------------
       real(kind=8) :: yrast(0:100,0:1)
-      real(kind=8) :: yrast_actual(0:40,0:1)
+      real(kind=8) :: yrast_actual(0:100,0:1)
       character(len=9) yrast_file
-      integer(kind=4) :: num_states
 
       real(kind=8) :: x, x1, theta
-
-      real(kind=8) :: pmode, pe1, bb
 
 !-------   Lorentz boost matrices to transform to Lab and COM frames
       real(kind=8) :: Boost_Lab(0:3,0:3), Boost_COM(0:3,0:3)
@@ -404,8 +388,6 @@ program YAHFC_MASTER
 !--------------------External functions--------------------------------
    integer(kind=4) :: find_channel
    integer(kind=4) :: find_ibin
-   real(kind=8) :: spin_fac
-   real(kind=8) :: parity_fac
    real(kind=8) :: random_64
    real(kind=8) :: random_32
    real(kind=8) :: poly
@@ -413,13 +395,15 @@ program YAHFC_MASTER
    real(kind=8) :: interpolate_exp
    real(kind=8) :: Gauss_var
    integer(kind=4) :: rank_commands
-   real(kind=8) :: compound_cs
-!   real(kind=8) :: EL_f_component
-
+!***********************************************************************
+!***********************************************************************
 !-----------------   Start Main body of calculation     ----------------
+!***********************************************************************
+!***********************************************************************
 
-!
-!------   Setup MPI world
+!----------------------------------------------------------------------+
+!------   Setup MPI world                                              +
+!----------------------------------------------------------------------+
    call MPI_INIT(ierr)
 
    icomm = MPI_COMM_WORLD
@@ -794,9 +778,12 @@ program YAHFC_MASTER
       do i = 1, num_command
          command_rank(i) = rank_commands(command_buffer(i))
       end do
-!-------   order the commands by rank
-!-------   Lowest number is highest rank! This is give extra room later if
-!-------   ranks need to be adjusted.
+
+!---------------------------------------------------------------------------+
+!-------   order the commands by rank                                       +
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!-------   ranks need to be adjusted.                                                    +
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
       do i = 1, num_command - 1
          do j = i + 1, num_command
             if(command_rank(j) < command_rank(i))then
@@ -810,7 +797,7 @@ program YAHFC_MASTER
          end do
       end do
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!-------   Write back out to unit=17 in the order of execution
+!-------   Write back out to unit=17 in the order of execution                           +
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
       if(iproc == 0)then
          open(unit=17,file='YAHFC-commands.txt',status='unknown')
@@ -824,11 +811,6 @@ program YAHFC_MASTER
       num_comp=0
       icommand=1
       finish=.false.
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!----   If user didn't specify input for calculation energy grid set up a
-!----   default grid
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
       iproj = -10
       do i = 1, num_command
          call parse_command(icommand, command_buffer(i), finish)
@@ -841,43 +823,42 @@ program YAHFC_MASTER
             A_i = target%A + projectile%A
             call set_up_decay_chain(projectile%Z,projectile%A,        &
                                     target%Z,target%A,num_comp)
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!------   now that decay chain is set up, also set up data for each
-!------   compound nucleus
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!----------------------------------------------------------------------------------------+
+!------   Now that decay chain is set up, also set up data for each                      +
+!------   compound nucleus                                                               +
+!----------------------------------------------------------------------------------------+
             overide = 'c'                             !   use discrete states marked with 'u' in RIPL-2 file
             do icomp = 1, num_comp
                Z_f = nucleus(icomp)%Z
                A_f = nucleus(icomp)%A
                if(Z_f == target%Z .and. A_f == target%A)target%icomp = icomp
                itarget = target%icomp
-               call get_spectrum(data_path,len_path,                  &
+!----------------------------------------------------------------------------------------+
+!--------   Read in discrete state data                                                  +
+!----------------------------------------------------------------------------------------+
+               call get_spectrum(data_path,len_path,                      &
                                  overide,symb(Z_f),Z_f,A_f,icomp)
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!----------   Find E1 strength function parameters
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-               nucleus(icomp)%E1_model = E1_model
-               nucleus(icomp)%E1_default = .true.
-               nucleus(icomp)%Gamma_g = 0.0d0
-               nucleus(icomp)%Gamma_g_exp = 0.0d0
-               nucleus(icomp)%dGamma_g_exp = 0.0d0
-
+!----------------------------------------------------------------------------------------+
+!--------   EM strength function parameters                                              +
+!----------------------------------------------------------------------------------------+
                call gdr_param(data_path,len_path,icomp)
-!
-!----   EM strength function parameters
-!
                call EM_str_param
-
+!----------------------------------------------------------------------------------------+
+!--------   level density setup                                                          +
+!----------------------------------------------------------------------------------------+
                if(A_f > 20)then
                   lev_option = 1
                   if(A_f > 130) lev_option = 2
                else
                   lev_option = 0
                end if
-               call get_lev_den(data_path,len_path,                     &
+               call get_lev_den(data_path,len_path,                       &
                                 symb(Z_f),Z_f,A_f,icomp)
                if(nucleus(icomp)%fit_ematch)call fit_lev_den(icomp)
                nucleus(icomp)%fission = .false.
+!----------------------------------------------------------------------------------------+
+!---------    Fission barrier info                                                       +
+!----------------------------------------------------------------------------------------+
                if(fission .and. nucleus(icomp)%Z >= 80)then
                   call Fission_data(data_path,len_path,icomp)
                end if
@@ -888,15 +869,23 @@ program YAHFC_MASTER
             compound_setup=.true.
          end if
       end do
-
+!----------------------------------------------------------------------------------------+
+!------    Finished getting input commands                                               +
+!----------------------------------------------------------------------------------------+
+!
+      mass_proj = particle(iproj)%mass
+      mass_target = nucleus(itarget)%mass + nucleus(itarget)%state(target%istate)%energy
+      rel_factor = mass_target/(mass_target + mass_proj)
+!-------------------------------------------------------------------------------------
       num_theta = num_theta_angles
       if(xs_only)num_theta = 1
       print_me = .false.
       if(iproc == 0 .and. verbose)print_me = .true.
-
-!------  After everything is set up, also check if preequilibrium model parameters
-!------  makes sense. In particular, the finite well parameter, can't have
-!------  Preq_V1 > Preeq_V
+!----------------------------------------------------------------------------------------+
+!------  After everything is set up, also check if preequilibrium model parameters       +
+!------  makes sense. In particular, the finite well parameter, can't have               +
+!------  Preq_V1 > Preeq_V                                                               +
+!----------------------------------------------------------------------------------------+
       if(preeq_V <= Preeq_V1)then
          Preeq_V1 = max(Preeq_V - 5.0d0,0.0d0)
          if(iproc == 0)then
@@ -908,13 +897,11 @@ program YAHFC_MASTER
             write(6,*)'Preeq_V1 = ',Preeq_V1
          end if
       end if
-!
-!------   First call to random number generator
-!
+!-------------------------------------------------------------------------------+
+!------   First call to random number generator                                 +
+!-------------------------------------------------------------------------------+
       ran = random_64(iseed_64)
       ran = random_32(iseed_32)
-
-
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !----   Make sure we have the correct number of strength function lines, 
 !----   check str for the components
@@ -935,26 +922,35 @@ program YAHFC_MASTER
             end do
          end do
       end do
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!------    Finished getting input commands      -------------------------+
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!
+!++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!---------    Check if we have sufficient data to proceed                       +
+!++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+      if(.not.target%specified)then
+         if(iproc == 0)write(6,*)'Target nucleus not specified, quitting'
+         call MPI_Abort(icomm,101,ierr)
+      end if
+      if(.not.projectile%specified)then
+         if(iproc == 0)write(6,*)'Projectile nucleus not specified, quitting'
+         call MPI_Abort(icomm,101,ierr)
+      end if
+!----------------------------------------------------------------------------------------+
+!------    Do clean up and finish setting up nuclei, level density, etc.                 +
+!----------------------------------------------------------------------------------------+
       do icomp = 1, num_comp
-
          ia = nucleus(icomp)%A
+!----------------------------------------------------------------------------------------+
 !-------------    Check if D0exp > 0 and requesting to fit it, if not
 !-------------    make flag to fit it .false.
+!----------------------------------------------------------------------------------------+
          if(nucleus(icomp)%D0exp <= 0.0d0 .and. nucleus(icomp)%fit_D0)   &
             nucleus(icomp)%fit_D0 = .false.
-
          call finish_lev_den(icomp)
-
+!----------------------------------------------------------------------------------------+
 !----   Check if fission is actually possible, i.e., barriers are below maximum
 !----   excitation energies
-
+!----------------------------------------------------------------------------------------+
          if(nucleus(icomp)%fission)then
             do i = 1, nucleus(icomp)%F_n_barr
-
                if(nucleus(icomp)%F_Barrier(i)%level_param(6) >                        &
                   nucleus(icomp)%F_Barrier(i)%level_param(3))then
                   call Find_T_E0(ia,nucleus(icomp)%F_Barrier(i)%level_param,          &
@@ -975,9 +971,7 @@ program YAHFC_MASTER
             end do
             call Fission_levels(icomp)
          end if
-
         if(.not. all_discrete_states)nucleus(icomp)%num_discrete = nucleus(icomp)%ncut
-
       end do
 
       do k = 1, 6
@@ -990,21 +984,9 @@ program YAHFC_MASTER
             particle(k)%opt_pot_set = .true.
          end if
       end do
-
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!---------    Check if we have sufficient data to proceed
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-      if(.not.target%specified)then
-         if(iproc == 0)write(6,*)'Target nucleus not specified, quitting'
-         call MPI_Abort(icomm,101,ierr)
-      end if
-      if(.not.projectile%specified)then
-         if(iproc == 0)write(6,*)'Projectile nucleus not specified, quitting'
-         call MPI_Abort(icomm,101,ierr)
-      end if
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!-------    Check to see if we need to overide fission
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!-------    Check to see if we need to overide fission                          +
+!++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
       if(.not.fission)then
          do icomp = 1,num_comp
             if(nucleus(icomp)%fission)fission = .false.
@@ -1015,6 +997,39 @@ program YAHFC_MASTER
             if(nucleus(icomp)%fission)fission = .true.
          end do
       end if
+!++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!-----    Set up excitation energy bins for each nucleus                  +
+!++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+      call Setup_Energy_bins(de)
+!++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!--------   Now that energy grids are set up, remap incident projectile   +
+!--------   energies to fit on excitation energy grid                     +
+!++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+      if(.not. pop_calc)then
+         call fix_incident_energies(iproj, rel_factor)
+      else
+          call fix_pop_energies
+      end if
+      num_energies = projectile%num_e
+!-------------------------------------------------------------------------------+
+!----   Setup minimum energies for the optical model calculations               +
+!-------------------------------------------------------------------------------+
+      call set_min_particle_energy
+!-------------------------------------------------------------------------------+
+!----   Run FRESCOX to get transmission coefficients and optical model data     +
+!-------------------------------------------------------------------------------+
+      call optical_setup(data_path, len_path, iproj, itarget, istate, de, Ang_L_max)
+!-------------------------------------------------------------------------------+
+!----   Check for maximum angular momentum from the reaction dynamics           +
+!-------------------------------------------------------------------------------+
+      if(.not. pop_calc)call reaction_max_J
+      j_max = Max_J_allowed
+!-------------------------------------------------------------------------------+
+!-----   Set maximum angular momentum for each nucleus                          +
+!-------------------------------------------------------------------------------+
+      do icomp = 1, num_comp
+         nucleus(icomp)%j_max = max_J_allowed
+      end do
 
       ifile=index(out_file,' ') - 1
       if(print_output)then
@@ -1026,16 +1041,12 @@ program YAHFC_MASTER
 
       cum_fit=2
 
-      mass_proj = particle(iproj)%mass
-      mass_target = nucleus(itarget)%mass + nucleus(itarget)%state(target%istate)%energy
-      rel_factor = mass_target/(mass_target + mass_proj)
-
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!--------   Calculate and print Q-values
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
       if(print_me)write(6,*)'Q-values for each channel'
       do i = 1, num_channels
          inuc = Exit_Channel(i)%Final_nucleus
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!--------   Calculate Q-value
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
          mass_exit = 0.0d0
          if(explicit_channels)then
             do n = 1, Exit_channel(i)%num_particles
@@ -1047,40 +1058,12 @@ program YAHFC_MASTER
                mass_exit = mass_exit + particle(k)%mass*Exit_channel(i)%num_part(k)
             end do
          end if
-
          Q = mass_target + particle(iproj)%mass - nucleus(inuc)%mass - mass_exit
          if(abs(Q) < 1.0d-6)Q = 0.0d0
-
          ilast = index(Exit_Channel(i)%Channel_Label,' ')
          if(print_me)write(6,'(''channel '',i4,1x,a20,f15.7)')i, Exit_Channel(i)%Channel_Label,Q
-
          Exit_Channel(i)%Q_value = Q
-
       end do
-
-
-!      num_energies = projectile%num_e
-
-!++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!-----    Set up excitation energy bins for each nucleus                  +
-!++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-      call Setup_Energy_bins(de)
-
-!++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!------                                                                   +
-!--------   Now that energy grids are set up, remap incident projectile   +
-!--------   energies to fit on excitation energy grid                     +
-!------                                                                   +
-!++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-      if(.not. pop_calc)then
-         call fix_incident_energies(iproj, rel_factor)
-      else
-         call fix_pop_energies
-      end if
-
-      num_energies = projectile%num_e
 
       pop_input = .false.
       if(pop_calc)then
@@ -1099,18 +1082,8 @@ program YAHFC_MASTER
       end if
 
 !-------------------------------------------------------------------------+
-!---------                                                                +
-!---------   Check energy levels and set up energy grid across            +
-!---------   all nuclei involved in the decay chain                       +
-!---------                                                                +
+!--------------    Allocate arrays for pre-equilibrium model              +
 !-------------------------------------------------------------------------+
-!----------------------    Allocate arrays for particle spectra
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-!++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!-------------------------------------------------------------------------+
-!----------------------    Allocate arrays for pre-equilibrium model
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
      if(.not. pop_calc .and. PREEQ_Model == 1)then
         nucleus(1)%PREEQ = .true.
         pp_max = 6
@@ -1119,8 +1092,8 @@ program YAHFC_MASTER
         p0(1) = projectile%A - p0(2)
         Preeq_gam_fact = 1.0d0
 !-------------------------------------------------------------------------+
-!----------------------    Allocate arrays for particle spectra
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!-------------    Allocate arrays for particle spectra                    +
+!-------------------------------------------------------------------------+
         do icomp = 1, num_comp
            Ef = (4.0d0/real(nucleus(icomp)%A,kind=8))*Init_Kinetic_Energy
            Ex = (sqrt(nucleus(icomp)%Ex_max)+sqrt(Ef))**2
@@ -1154,10 +1127,8 @@ program YAHFC_MASTER
         if(.not. allocated(Vwell_g))allocate(Vwell_g(0:(pn_max+pp_max)))
      end if
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!
 !--------    Allocate arrays for each nucleus to store calculated
 !--------    cross sections
-!
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
       if(fission)then
          allocate(fission_cs(1:num_energies))
@@ -1191,114 +1162,15 @@ program YAHFC_MASTER
             end if
          end do
       end do
-
-!--------------------------------------------------------------------------+
-!------    Now allocate arrays to track average excitation energy and spin +
-!------    for each nucleus before it decays- useful book-keeping          +
-!--------------------------------------------------------------------------+
-      allocate(comp_avg(2,num_comp,num_energies),comp_var(2,num_comp,num_energies))
 !--------------------------------------------------------------------------+
 !------    Now allocate arrays to track fission                            +
 !--------------------------------------------------------------------------+
-
       Ef = (4.0d0/real(nucleus(num_comp)%A,kind=8))*Init_Kinetic_Energy
       Ex = (sqrt(nucleus(1)%Ex_max)+sqrt(Ef))**2
-
-      if(.not.pop_calc)then
-         min_e = 1000.
-         do in = 1, num_energies
-            if(projectile%energy(in) < min_e) min_e = projectile%energy(in)
-         end do
-         do k = 1, 6
-            if(particle(k)%in_decay)then
-               if(k == 1)particle(k)%min_e = 1.0d-5
-               if(k == 2)particle(k)%min_e = 1.0d-3
-               if(k == 3)particle(k)%min_e = 1.0d-3
-               if(k == 4)particle(k)%min_e = 1.0d-3
-               if(k == 5)particle(k)%min_e = 1.0d-3
-               if(k == 6)particle(k)%min_e = 1.0d-3
-            end if
-         end do
-         if(iproj == 1 .and. min_e < particle(iproj)%min_e)then
-            if(iproc == 0)then
-               write(6,'(''*********************************************'')')
-               write(6,'(''*  ERROR!!!  ERROR!!!  ERROR!!!  ERROR!!!   *'')')
-               write(6,'(''*  Minimum energy projectile is below a     *'')')
-               write(6,'(''*  safe value. Restart with                 *'')')
-               write(6,'(''*  e_min >= '',1pe15.7,''                 *'')')particle(iproj)%min_e
-               write(6,'(''*********************************************'')')
-            end if
-            call MPI_Abort(icomm,101,ierr)
-         end if
-      else
-         do k = 1, 6
-            if(particle(k)%in_decay)then
-               if(k == 1)particle(k)%min_e = 1.0d-4
-               if(k == 2)particle(k)%min_e = 1.0d-2
-               if(k == 3)particle(k)%min_e = 1.0d-2
-               if(k == 4)particle(k)%min_e = 1.0d-2
-               if(k == 5)particle(k)%min_e = 1.0d-1
-               if(k == 6)particle(k)%min_e = 1.0d-1
-            end if
-         end do
-      end if
-
-!-------------------------------------------------------------------------+
-!------                                                                   +
-!------    Set up transmission coefficients for particle emission         +
-!------                                                                   +
-!-------------------------------------------------------------------------+
-
-      call optical_setup(data_path, len_path, iproj, itarget, istate, de, Ang_L_max)
-
-!
-!----   Check for maximum angular momentum from the reaction dynamics
-!
-      max_J = max_J_allowed
-      if(.not. pop_calc)then
-         if(iproj > 0)then
-            e_in = projectile%energy(num_energies)
-
-            xJ_max = real(particle(iproj)%lmax,kind=8) + particle(iproj)%spin + nucleus(1)%state(istate)%spin
-            max_J = nint(xJ_max - nucleus(1)%jshift)
-
-            test_sigma = 0.0d0
-            do j = 0, max_J                                          !   loop over J values
-               do ipar = 0, 1                                              !   parity of compound nucleus
-                  xji = real(j,kind=8) + nucleus(1)%jshift
-                  test_sigma = test_sigma + compound_cs(e_in,ipar,xji,itarget,istate,iproj)
-               end do
-            end do
-
-            sum = 0.0d0
-            do J = 0, max_J                                          !   loop over J values
-               do ipar = 0, 1                                              !   parity of compound nucleus
-                  xji = real(J,kind=8) + nucleus(1)%jshift
-                  sum = sum + compound_cs(e_in,ipar,xji,itarget,istate,iproj)
-               end do
-               if(abs(sum - test_sigma) < 1.d-7)exit
-            end do
-            max_J = J
-            do n = 1, OpticalCS%numcc
-               xI_f = OpticalCS%state(n)%spin
-               J = nint(xI_f - nucleus(itarget)%jshift)
-               if(J > max_J)max_J = J
-            end do
-!         else
-!            max_J = 20
-         end if
-!----
-!         if(max_J > 60 .and. iproc == 0)then
-!            write(6,*)'***************************************************'
-!            write(6,*)'*-----     max_J_allowed is limited to 60    -----*'
-!            write(6,*)'***************************************************'
-!         end if
-         max_J_allowed = min(max_J,20)
-      end if
-!
+!--------------------------------------------------------------------------+
 !-----  Now check for any discrete states have J greater than max_J_allowed or any states
 !-----  that decay to a state greater than max_J_allowed. If so, remove them the list of discrete states
-!
+!--------------------------------------------------------------------------+
       do i = 1, num_comp
          numd = 0
          do n = 1, nucleus(i)%num_discrete
@@ -1310,8 +1182,10 @@ program YAHFC_MASTER
                   ibranch = nucleus(i)%state(n)%ibranch(m)
                   JJ = nint(nucleus(i)%state(ibranch)%spin - nucleus(i)%jshift)
                   if(JJ > max_J_allowed)check = .false.
-!----   Also check if the final state has been marked for removal
+!--------------------------------------------------------------------------+
+!----   Check if the final state has been marked for removal
 !----   if so, remove this one too
+!--------------------------------------------------------------------------+
                   if(state_map(ibranch) == -1)check = .false.
                end do
                if(check)then
@@ -1322,45 +1196,34 @@ program YAHFC_MASTER
          end do
          if(numd < nucleus(i)%num_discrete)call remove_states(i,nucleus(i)%num_discrete,state_map)
       end do
-
-!-------------------------------------------------------------------------+
-!
-!-----   Set maximum angular momentum for each nucleus
-!
-!-------------------------------------------------------------------------+
-      do i = 1, num_comp
-         nucleus(i)%j_max = max_J_allowed
-      end do
-!-------------------------------------------------------------------------+
-!------                                                                   +
-!------   We have the transmission coefficients with maximum l-value      +
-!------   so set up largest spin we need to track in the calculation      +
-!------                                                                   +
-!-------------------------------------------------------------------------+
-
-      j_max = Max_J_allowed
-
-!++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!----------------------------------------------------------------------------------------+
 !-----  set up and initialze arrays for starting populations
+!----------------------------------------------------------------------------------------+
       if(.not.allocated(target%pop_xjpi))allocate(target%pop_xjpi(0:j_max,0:1))
 
       sp1 = abs(spin_target-spin_proj)
       sp2 = spin_target+spin_proj
       isp = int(sp2-sp1)
-!++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!------                                                                   +
-!-------   Create level density arrays                                    +
-!------                                                                   +
-!++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!----------------------------------------------------------------------------------------+
+!-------   Create level density arrays                                                   +
+!----------------------------------------------------------------------------------------+
       do i = 1, num_comp
          nbin = nucleus(i)%nbin
-!         allocate(nucleus(i)%HF_den(0:j_max,0:1,1:nbin))
          allocate(nucleus(i)%bins(0:j_max,0:1,1:nbin))
-!         nucleus(i)%HF_den(0:j_max,0:1,1:nbin)=0.0d0
          nucleus(i)%bins(0:j_max,0:1,1:nbin)%rho = 0.0d0
          nucleus(i)%bins(0:j_max,0:1,1:nbin)%pop = 0.0d0
          nucleus(i)%state(1:nucleus(i)%num_discrete)%pop = 0.0d0
-
+!----------------------------------------------------------------------------------------+
+!----   Continuous level density with internal models                                    +
+!----------------------------------------------------------------------------------------+
+         if(.not. nucleus(i)%lev_den_read)call modeled_level_density(i, yrast, yrast_actual)
+!----------------------------------------------------------------------------------------+
+!----   Continuous level density read in from file                                       +
+!----------------------------------------------------------------------------------------+
+         if(nucleus(i)%lev_den_read)call read_level_density(i, yrast, yrast_actual)
+!----------------------------------------------------------------------------------------+
+!------   Write yrast data to file in unit=99                                            +
+!----------------------------------------------------------------------------------------+
          yrast_file(1:1)='Z'
          if(nucleus(i)%z < 10)then
             yrast_file(2:3)='00'
@@ -1383,110 +1246,9 @@ program YAHFC_MASTER
          end if
 
          if(iproc == 0)open(unit=99,file=yrast_file//'.yrast.dat',status='unknown')
-
-         yrast(0:100,0:1) = -1.0
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!------   Find yrast energies for each spin
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-         num_states = nucleus(i)%ncut
-         if(all_discrete_states)num_states = nucleus(i)%num_discrete
-         do ii = 1, num_states
-             j = nint(nucleus(i)%state(ii)%spin - nucleus(i)%jshift)
-             ipar = nint((nucleus(i)%state(ii)%parity + 1.0d0)/2.0d0)
-             if(yrast(j,ipar) < 0.0)then
-                yrast(j,ipar) = nucleus(i)%state(ii)%energy
-                yrast_actual(j,ipar) = nucleus(i)%state(ii)%energy
-             end if
-         end do
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!---- Calculate yrast energy for each spin with modeled level density
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-         if(nbin > 0)then
-            j_max = nucleus(i)%j_max
-            pmode = nucleus(i)%level_param(16)
-            pe1 = nucleus(i)%level_param(17)
-            bb = nucleus(i)%level_param(18)
-            do j = 0, j_max
-               xj = dfloat(j) + nucleus(i)%jshift
-               do ipar = 0, 1
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!----   Start level density arrays when cummlative level density has reached xnum >= rho_cut
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-                  xnum = 0.0d0
-                  dde = 0.0025d0
-                  e_lev_min = 0.0d0
-                  do k = 1, 100000
-                     energy = real(k,kind=8)*dde
-                     call rhoe(energy,nucleus(i)%level_param,                          &
-                                      nucleus(i)%vib_enh,                              &
-                                      nucleus(i)%rot_enh,                              &
-                                      nucleus(i)%A,rho,apu,sig,K_vib,K_rot)
-                     xnum = xnum + rho*spin_fac(xj,sig)*                               &
-                                   parity_fac(energy,xj,ipar,pmode,pe1,bb)*dde
-                     if(xnum >= rho_cut)then
-                        e_lev_min = energy
-                        exit
-                     end if
-                  end do
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!-----   Reset. If yrast is determined by discrete level, use this.
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-                  if(yrast(j,ipar) > 0.0)then
-                     e_lev_min = yrast(j,ipar)
-                  else
-                     if(j <= j_max .and. yrast(j,ipar) < 0.0)then
-                          yrast(j,ipar) = e_lev_min
-                          yrast_actual(j,ipar) = max(e_lev_min,nucleus(i)%e_grid(1))
-                     end if
-                  end if
-
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!-----     First bin to start filling the level density at this spin and parity
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-                  kstart = max(find_ibin(e_lev_min,i),1)
-                  pmode = nucleus(i)%level_param(16)
-                  pe1 = nucleus(i)%level_param(17)
-                  bb = nucleus(i)%level_param(18)
-                  do k = 1, nbin
-                     energy = nucleus(i)%e_grid(k)
-!                     if(k >= kstart)then         !  check if above computed yrast line
-                     if(energy >= e_lev_min)then         !  check if above computed yrast line
-                        call rhoe(energy,nucleus(i)%level_param,                           &
-                                         nucleus(i)%vib_enh,                               &
-                                         nucleus(i)%rot_enh,                               &
-                                         nucleus(i)%A,rho,apu,sig,K_vib,K_rot)
-                        nucleus(i)%bins(j,ipar,k)%rho = max(rho*spin_fac(xj,sig)*          &
-                                parity_fac(energy,xj,ipar,pmode,pe1,bb),0.0d0)
-                     end if
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!-----      Still check if rho is < 0 from embedded discrete states, if so, set to zero.
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-                     if(nucleus(i)%bins(j,ipar,k)%rho < 0.0d0) nucleus(i)%bins(j,ipar,k)%rho = 0.0d0
-                  end do
-               end do
-            end do
-         end if
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!------   With discrete states above E_cut, reduce continuous level density
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-         if(all_discrete_states)then
-            do ii = 1, nucleus(i)%num_discrete
-                j = nint(nucleus(i)%state(ii)%spin - nucleus(i)%jshift)
-                ipar = nint((nucleus(i)%state(ii)%parity + 1.0d0)/2.0d0)
-                if(j <= Max_J_allowed .and. ii > nucleus(i)%ncut)then
-                   k = find_ibin(nucleus(i)%state(ii)%energy,i)
-                   if(k <= nbin .and. k > 0)nucleus(i)%bins(j,ipar,k)%rho =                       &
-                                            max(nucleus(i)%bins(j,ipar,k)%rho -                   &
-                                                1.0d0/nucleus(i)%delta_e(k), 0.0d0)
-                end if
-            end do
-         end if
-
-
          if(iproc == 0)then
             write(99,'(''#               Negative Parity          Positive Parity'')')
             write(99,'(''#  J           Yrast  Yrast-lev          Yrast  Yrast-lev'')')
-
             do j = 0, max_J_allowed
                xj = dfloat(j) + nucleus(i)%jshift
                write(99,'(1x,f4.1,2(4x,2(1x,f10.4)))')xj,          &
@@ -1495,35 +1257,9 @@ program YAHFC_MASTER
             close(unit=99)
          end if
       end do
-
-!!-----   TEST!!!!!
-!      do i = 1, num_comp
-!         nucleus(i)%fit_gamma_gamma = .false.
-!         do L = 1, nucleus(i)%lmax_E
-!            do k = 1, nucleus(i)%EL_mode(L)%num_gsf
-!               num = 401
-!               nucleus(i)%EL_mode(L)%gsf(k)%num_data = num
-!               allocate(nucleus(i)%EL_mode(L)%gsf(k)%e_gsf_r(num))
-!               nucleus(i)%EL_mode(L)%gsf(k)%e_gsf_r(1:num) = 0.0d0
-!               allocate(nucleus(i)%EL_mode(L)%gsf(k)%gsf_r(num))
-!               nucleus(i)%EL_mode(L)%gsf(k)%gsf_r(1:num) = 0.0d0
-!!   write(50,*)i,L,k
-!               do n = 1, num
-!                  energy = real(n-1,kind=8)*0.1d0
-!                  nucleus(i)%EL_mode(L)%gsf(k)%e_gsf_r(n) = energy
-!                  nucleus(i)%EL_mode(L)%gsf(k)%gsf_r(n) =                      &
-!                       EL_f_component(i, L, k, energy, nucleus(i)%sep_e(1))
-!!   write(50,*)energy, nucleus(i)%EL_mode(L)%gsf(k)%gsf_r(n)
-!               end do
-!            end do
-!            nucleus(i)%EL_mode(L)%gsf_read = .true.
-!         end do
-!      end do
-
-
-!
-!----  Fit to Gamma_gamma
-!
+!----------------------------------------------------------------------------------------+
+!----  Fit to Gamma_gamma                                                                +
+!----------------------------------------------------------------------------------------+
       call fit_nuke_Gamma_gamma
 
       if(.not.pop_calc)then
@@ -1537,7 +1273,9 @@ program YAHFC_MASTER
          end do
       end if
 
-!----   Setup the energy bin for the spectra: de_spec
+!----------------------------------------------------------------------------------------+
+!----   Setup the energy bin for the spectra: de_spec                                    +
+!----------------------------------------------------------------------------------------+
       de_spec = de
       if(de <= 1.0d0)then
          ii = nint(1.0d0/de)
@@ -1561,41 +1299,36 @@ program YAHFC_MASTER
              allocate(preeq_spect_full(0:6,0:num_e))
           end if
        end if
-
 !-------------------------------------------------------------------------+
 !------                                                                   +
 !-------   Set up Hauser-Feshbach denominators                            +
 !------                                                                   +
 !-------------------------------------------------------------------------+
-
        if(iproc == 0)write(6,*)'Calculating HF probabilities'
        do i = 1, num_comp
           if(print_me)write(6,*)'HF-denominators for nucleus #',i
           call HF_denominator(i)
        end do
 
-!
-!++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!
-!-----     Print data to .out file
-!
-
+!----------------------------------------------------------------------------------------+
+!-----     Print data to .out file                                                       +
+!----------------------------------------------------------------------------------------+
       if(iproc == 0 .and. print_output)then
          call start_IO
          call output_trans_coef
-!---------   Print out data used in the calculation for each              +
-!---------   compound nucleus                                             +
+!----------------------------------------------------------------------------------------+
+!---------   Print out data used in the calculation for each                             +
+!---------   compound nucleus                                                            +
+!----------------------------------------------------------------------------------------+
          call output_nucleus_data(j_max, itarget)
       end if
-!
-
+!----------------------------------------------------------------------------------------+
+!---------   Print out memory used in this calculation                                   +
+!----------------------------------------------------------------------------------------+
       call memory_used
-
-
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !     Now set up array tracking particles in the decay chain               +
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
       max_gammas = 0
       do icomp = 1, num_comp
          if(nucleus(icomp)%num_discrete > max_gammas) max_gammas = nucleus(icomp)%num_discrete
@@ -1621,12 +1354,10 @@ program YAHFC_MASTER
             end do
          end do
       end if
-
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !     Arrays tracking explicit Exit Channel Data                           +
 !     Fill in remaining info not done in subroutine decay_chain            +
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
       do i = 1, num_channels
          inuc = Exit_Channel(i)%Final_nucleus
          num_s = 1
@@ -1793,11 +1524,7 @@ program YAHFC_MASTER
 !--------------------------------------------------------------------------------------------------
          if(.not.allocated(Inelastic_Total))allocate(Inelastic_Total(1:num_energies))
          inelastic_Total(1:num_energies) = 0.0d0
-!         if(PREEQ_Model > 0 .and. iproj > 0)then
-!            if(.not.allocated(preeq_Spectrum))allocate(preeq_Spectrum(0:num_e))
-!            preeq_Spectrum(0:num_e) = 0.0d0
-!         end if
-!
+!--------------------------------------------------------------------------------------------------
 !-----    Series of dummy allocations for variables only used for a reaction calculation
 !-----    allocated because the gfortran compiler gives "erroneous" warnings of uninitialized
 !-----    stride and offset for these variables later on. They are accessed within if blocks
@@ -1805,7 +1532,7 @@ program YAHFC_MASTER
 !-----    conditional check seems to be lost. Thus, allocating to size one, and initializing to zero.
 !-----    This eliminates the warnings, which will allow for other checks if a variable is not
 !-----    properly initialized.
-!
+!--------------------------------------------------------------------------------------------------
       else
          if(.not.allocated(Inelastic_cs))allocate(Inelastic_cs(1,1))
          Inelastic_cs(1,1) = 0.0d0
@@ -2070,17 +1797,6 @@ program YAHFC_MASTER
 
                if(print_me)write(6,'(''Reaction cross section = '',1x,1pe15.7,1x,a2)')absorption_cs(in)*cs_scale,cs_units
 
-!               do nn = 1, num_channel
-!                  ipar = 2*ichannel(4,nn)-1
-!                  population = 0.0
-!                  if(nn == 1)then
-!                     population = channel_prob(nn)
-!                  else
-!                     population = channel_prob(nn) - channel_prob(nn-1)
-!                  end if
-!                  xI = ichannel(3,nn) + nucleus(1)%jshift
-!               end do
-
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !------  Setup decay first nucleus in the chain. Apply width-fluctations    +
 !------  if necessary. Thus, this nucleus is treated slightly differnet     +
@@ -2135,14 +1851,8 @@ program YAHFC_MASTER
 
                call photo_xs(e_in, itarget, istate, absorption_cs(in),           &
                              num_channel, channel_prob, ichannel)
-!               write(6,*)'xs = ',absorption_cs(in)
-!               do i = 1, num_channel
-!                  write(6,'(5(1x,i5),1x,e17.7)')i,(ichannel(j,i),j=1,4),channel_prob(i)
-!               end do
             end if
          elseif(pop_calc)then              !*******    Population calculation
-!            reaction_cs(in) = 1.0d0
-!            absorption_cs(in) = 1.0d0
              reaction_cs(in) = Pop_data(in)%Norm_pop
              absorption_cs(in) = reaction_cs(in)
          end if
@@ -4697,7 +4407,7 @@ integer(kind=4) function find_channel(n_dat, dim_part, num_part, part_data, num_
 end function find_channel
 !
 !
-integer(kind=4) function find_ibin(Ex,inuc)
+integer(kind=4) function find_ibin(Ex, inuc)
 !
 !*****************************************************************************80
 !
@@ -4881,4 +4591,701 @@ subroutine memory_used
 
    return
 end subroutine memory_used
+!
+!*****************************************************************************80
+!
+!  Discussion:
+!
+!    This Subroutine calculates the maximum angular momentum 
+!    in the calculation based on the cross section
+!
+!  Licensing:
+!
+!    This code is distributed under the GNU LGPL version 2 license.
+!
+!  Date:
+!
+!    25 September 2019
+!
+!  Author:
+!
+!      Erich Ormand, LLNL
+!
+!*****************************************************************************80
+!
+subroutine reaction_max_J
+   use nodeinfo
+   use options
+   use useful_data
+   use Channel_info
+   use particles_def
+   use nuclei
+   implicit none
+   integer (kind=4) :: j, n
+   integer(kind=4) :: ipar
+   integer(kind=4) :: max_J
+   integer(kind=4) :: iproj
+   integer(kind=4) :: itarget, istate
+   real(kind=8) :: e_in
+   real(kind=8) :: xJ_max
+   real(kind=8) :: xji, xI_f
+   real(kind=8) :: test_sigma
+   real(kind=8) :: sum
+!------------------------------------------------------
+   real(kind=8) :: compound_cs
+!------------------------------------------------------
+   iproj = projectile%particle_type
+   itarget = target%icomp
+   istate = target%istate
+   if(projectile%particle_type > 0)then
+      e_in = projectile%energy(projectile%num_e)
+
+      xJ_max = real(particle(iproj)%lmax,kind=8) + particle(iproj)%spin + nucleus(1)%state(istate)%spin
+      max_J = nint(xJ_max - nucleus(1)%jshift)
+
+      test_sigma = 0.0d0
+      do j = 0, max_J                                          !   loop over J values
+         do ipar = 0, 1                                              !   parity of compound nucleus
+            xji = real(j,kind=8) + nucleus(1)%jshift
+            test_sigma = test_sigma + compound_cs(e_in,ipar,xji,itarget,istate,iproj)
+         end do
+      end do
+
+      sum = 0.0d0
+      do J = 0, max_J                                          !   loop over J values
+         do ipar = 0, 1                                              !   parity of compound nucleus
+            xji = real(J,kind=8) + nucleus(1)%jshift
+            sum = sum + compound_cs(e_in,ipar,xji,itarget,istate,iproj)
+         end do
+         if(abs(sum - test_sigma) < 1.d-7)exit
+      end do
+      max_J = J
+      do n = 1, OpticalCS%numcc
+         xI_f = OpticalCS%state(n)%spin
+         J = nint(xI_f - nucleus(itarget)%jshift)
+         if(J > max_J)max_J = J
+      end do
+      max_J_allowed = min(max_J,20)
+   else
+      max_J_allowed = 20
+   end if
+   return
+end subroutine reaction_max_J
+!
+!*****************************************************************************80
+!
+!  Discussion:
+!
+!    This Subroutine sets up the minimum energy for the incident energy
+!    grid to set up the optical model calculations
+!
+!  Licensing:
+!
+!    This code is distributed under the GNU LGPL version 2 license.
+!
+!  Date:
+!
+!    25 September 2019
+!
+!  Author:
+!
+!      Erich Ormand, LLNL
+!
+!*****************************************************************************80
+!
+subroutine set_min_particle_energy
+   use nodeinfo
+   use options
+   use particles_def
+   use nuclei
+   implicit none
+   integer(kind=4) :: k, in, iproj
+   integer(kind=4) :: num_energies
+   real(kind=8) :: min_e
+!-----------------------------------------------------------------
+   iproj = projectile%particle_type
+   num_energies = projectile%num_e
+   if(.not.pop_calc)then
+      min_e = 1000.
+      do in = 1, num_energies
+         if(projectile%energy(in) < min_e) min_e = projectile%energy(in)
+      end do
+      do k = 1, 6
+         if(particle(k)%in_decay)then
+            if(k == 1)particle(k)%min_e = 1.0d-5
+            if(k == 2)particle(k)%min_e = 1.0d-3
+            if(k == 3)particle(k)%min_e = 1.0d-3
+            if(k == 4)particle(k)%min_e = 1.0d-3
+            if(k == 5)particle(k)%min_e = 1.0d-3
+            if(k == 6)particle(k)%min_e = 1.0d-3
+         end if
+      end do
+      if(iproj == 1 .and. min_e < particle(iproj)%min_e)then
+         if(iproc == 0)then
+            write(6,'(''*********************************************'')')
+            write(6,'(''*  ERROR!!!  ERROR!!!  ERROR!!!  ERROR!!!   *'')')
+            write(6,'(''*  Minimum energy projectile is below a     *'')')
+            write(6,'(''*  safe value. Restart with                 *'')')
+            write(6,'(''*  e_min >= '',1pe15.7,''                 *'')')particle(iproj)%min_e
+            write(6,'(''*********************************************'')')
+         end if
+         call MPI_Abort(icomm,101,ierr)
+      end if
+   else
+      do k = 1, 6
+         if(particle(k)%in_decay)then
+            if(k == 1)particle(k)%min_e = 1.0d-4
+            if(k == 2)particle(k)%min_e = 1.0d-2
+            if(k == 3)particle(k)%min_e = 1.0d-2
+            if(k == 4)particle(k)%min_e = 1.0d-2
+            if(k == 5)particle(k)%min_e = 1.0d-2
+            if(k == 6)particle(k)%min_e = 1.0d-2
+         end if
+      end do
+   end if
+   return
+end subroutine set_min_particle_energy
+!
+!*****************************************************************************80
+!
+!  Discussion:
+!
+!    This Subroutine sets up continuous energy level density using internal models
+!
+!  Licensing:
+!
+!    This code is distributed under the GNU LGPL version 2 license.
+!
+!  Date:
+!
+!    25 September 2019
+!
+!  Author:
+!
+!      Erich Ormand, LLNL
+!
+!*****************************************************************************80
+!
+subroutine modeled_level_density(inuc, yrast, yrast_actual)
+   use nodeinfo
+   use options
+   use nuclei
+   implicit none
+   integer(kind=4) :: inuc
+   real(kind=8) :: yrast(0:100,0:1), yrast_actual(0:100,0:1)
+!-----------------------------------------------------------------------
+   integer(kind=4) :: num_states, nbin
+   integer(kind=4) :: j, k, ii, ipar
+   integer(kind=4) :: kstart
+   real(kind=8) :: pmode, bb, pe1
+   integer(kind=4) :: j_max
+   real(kind=8) :: xj, xnum, dde, e_lev_min, energy
+   real(kind=8) :: rho
+   real(kind=8) :: apu, sig, K_vib, K_rot
+!-----------------------------------------------------------------------
+   integer(kind=4) :: find_ibin
+   real(kind=8) :: parity_fac
+   real(kind=8) :: spin_fac
+!-----------------------------------------------------------------------
+
+   yrast(0:100,0:1) = -1.0d0
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!------   Find yrast energies for each spin
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+   num_states = nucleus(inuc)%ncut
+   nbin = nucleus(inuc)%nbin
+   if(all_discrete_states)num_states = nucleus(inuc)%num_discrete
+   do ii = 1, num_states
+       j = nint(nucleus(inuc)%state(ii)%spin - nucleus(inuc)%jshift)
+       ipar = nint((nucleus(inuc)%state(ii)%parity + 1.0d0)/2.0d0)
+       if(yrast(j,ipar) < 0.0d0)then
+          yrast(j,ipar) = nucleus(inuc)%state(ii)%energy
+          yrast_actual(j,ipar) = nucleus(inuc)%state(ii)%energy
+       end if
+   end do
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!---- Calculate yrast energy for each spin with modeled level density
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+   if(nbin > 0)then
+      j_max = nucleus(inuc)%j_max
+      pmode = nucleus(inuc)%level_param(16)
+      pe1 = nucleus(inuc)%level_param(17)
+      bb = nucleus(inuc)%level_param(18)
+      do j = 0, j_max
+         xj = real(j,kind=8) + nucleus(inuc)%jshift
+         do ipar = 0, 1
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!----   Start level density arrays when cummlative level density has reached xnum >= rho_cut
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+            xnum = 0.0d0
+            dde = 0.0025d0
+            e_lev_min = 0.0d0
+            do k = 1, 100000
+               energy = real(k,kind=8)*dde
+               call rhoe(energy,nucleus(inuc)%level_param,                          &
+                                nucleus(inuc)%vib_enh,                              &
+                                nucleus(inuc)%rot_enh,                              &
+                                nucleus(inuc)%A,rho,apu,sig,K_vib,K_rot)
+               xnum = xnum + rho*spin_fac(xj,sig)*                                  &
+                             parity_fac(energy,xj,ipar,pmode,pe1,bb)*dde
+               if(xnum >= rho_cut)then
+                  e_lev_min = energy
+                  exit
+               end if
+            end do
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!-----   Reset. If yrast is determined by discrete level, use this.
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+            if(yrast(j,ipar) > -1.0d0)then
+               e_lev_min = yrast(j,ipar)
+            else
+               if(j <= j_max .and. yrast(j,ipar) < 0.0)then
+                  yrast(j,ipar) = e_lev_min
+                  yrast_actual(j,ipar) = max(e_lev_min,nucleus(inuc)%e_grid(1))
+               end if
+            end if
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!-----     First bin to start filling the level density at this spin and parity
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+            kstart = max(find_ibin(e_lev_min,inuc),1)
+            pmode = nucleus(inuc)%level_param(16)
+            pe1 = nucleus(inuc)%level_param(17)
+            bb = nucleus(inuc)%level_param(18)
+            do k = 1, nbin
+               energy = nucleus(inuc)%e_grid(k)
+!               if(energy >= e_lev_min)then         !  check if above computed yrast line
+               if(energy >= e_lev_min)then         !  check if above computed yrast line
+                  call rhoe(energy,nucleus(inuc)%level_param,                           &
+                                   nucleus(inuc)%vib_enh,                               &
+                                   nucleus(inuc)%rot_enh,                               &
+                                   nucleus(inuc)%A,rho,apu,sig,K_vib,K_rot)
+                  nucleus(inuc)%bins(j,ipar,k)%rho = max(rho*spin_fac(xj,sig)*          &
+                           parity_fac(energy,xj,ipar,pmode,pe1,bb),0.0d0)
+               end if
+            end do
+         end do
+      end do
+   end if
+
+!   write(600,'(''# '',2(3x,i4))')nucleus(inuc)%Z, nucleus(inuc)%A
+!   write(601,'(''# '',2(3x,i4))')nucleus(inuc)%Z, nucleus(inuc)%A
+!   write(602,'(''# '',2(3x,i4))')nucleus(inuc)%Z, nucleus(inuc)%A
+!   write(603,'(''# '',2(3x,i4))')nucleus(inuc)%Z, nucleus(inuc)%A
+!   write(600,'(1x,i6,1x,f10.3)')nbin, real(j_max,kind=8)+nucleus(inuc)%jshift
+!   write(601,'(1x,i6,1x,f10.3)')nbin, real(j_max,kind=8)+nucleus(inuc)%jshift
+!   write(602,'(1x,i6,1x,f10.3)')nbin, real(j_max,kind=8)+nucleus(inuc)%jshift
+!   write(603,'(1x,i6,1x,f10.3)')nbin, real(j_max,kind=8)+nucleus(inuc)%jshift
+!   do k = 1, nbin
+!      write(600,'(1x,f10.5,60(1x,1pe15.7))')nucleus(inuc)%e_grid(k),(nucleus(inuc)%bins(j,1,k)%rho,j=0,j_max)
+!      sum = 0.0d0
+!      energy = nucleus(inuc)%e_grid(k)
+!      call rhoe(energy,nucleus(inuc)%level_param,                           &
+!                       nucleus(inuc)%vib_enh,                               &
+!                       nucleus(inuc)%rot_enh,                               &
+!                       nucleus(inuc)%A,rho,apu,sig,K_vib,K_rot)!
+!
+!      write(601,'(1x,f10.5,60(1x,1pe15.7))')nucleus(inuc)%e_grid(k),rho*0.5d0
+!      write(602,'(1x,f10.5,60(1x,1pe15.7))')nucleus(inuc)%e_grid(k),(nucleus(inuc)%bins(j,0,k)%rho,j=0,j_max)
+!      sum = 0.0d0
+!      write(603,'(1x,f10.5,60(1x,1pe15.7))')nucleus(inuc)%e_grid(k),rho*0.5d0
+!      write(604,'(1x,f10.5,60(1x,1pe15.7))')nucleus(inuc)%e_grid(k),rho
+!   end do      
+
+
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!------   With discrete states above E_cut, reduce continuous level density
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+   if(all_discrete_states)then
+      do ii = 1, nucleus(inuc)%num_discrete
+         j = nint(nucleus(inuc)%state(ii)%spin - nucleus(inuc)%jshift)
+         ipar = nint((nucleus(inuc)%state(ii)%parity + 1.0d0)/2.0d0)
+         if(j <= Max_J_allowed .and. ii > nucleus(inuc)%ncut)then
+            k = find_ibin(nucleus(inuc)%state(ii)%energy,inuc)
+            if(k <= nbin .and. k > 0)nucleus(inuc)%bins(j,ipar,k)%rho =                       &
+                                     max(nucleus(inuc)%bins(j,ipar,k)%rho -                   &
+                                     1.0d0/nucleus(inuc)%delta_e(k), 0.0d0)
+         end if
+      end do
+   end if
+   return
+end subroutine modeled_level_density
+!
+!*****************************************************************************80
+!
+!  Discussion:
+!
+!    This Subroutine sets up continuous energy level density using internal models
+!
+!  Licensing:
+!
+!    This code is distributed under the GNU LGPL version 2 license.
+!
+!  Date:
+!
+!    25 September 2019
+!
+!  Author:
+!
+!      Erich Ormand, LLNL
+!
+!*****************************************************************************80
+!
+subroutine read_level_density(inuc, yrast, yrast_actual)
+   use nodeinfo
+   use options
+   use nuclei
+   implicit none
+   integer(kind=4) :: inuc
+   real(kind=8) :: yrast(0:100,0:1), yrast_actual(0:100,0:1)
+!-----------------------------------------------------------------------
+   integer(kind=4) :: num_states, nbin
+   integer(kind=4) :: i, ii, j, iJ, jj, k, l, ll
+   integer(kind=4) :: ip
+   integer(kind=4) :: ipar, ipar_max, n
+   real(kind=8) :: xI, xJ
+!   integer(kind=4) :: kstart
+   real(kind=8) :: pmode, bb, pe1
+   integer(kind=4) :: num_read, j_max
+   real(kind=8) :: energy
+   real(kind=8) :: rho
+   real(kind=8) :: apu, sig, K_vib, K_rot
+   real(kind=8), allocatable, dimension (:,:) :: rho_temp
+   real(kind=8), allocatable, dimension (:,:) :: rho_sep
+   real(kind=8), allocatable, dimension (:) :: e_grid
+   character(len=2000) :: line
+!   integer(kind=4) :: numw
+!   real(kind=8) :: sum
+   logical :: exist_den_file
+   integer(kind=4) :: io_error
+   integer(kind=4) :: ilast
+!----------------------------------------------------------------------------------------+
+!-------------    External functions                                                     +
+!----------------------------------------------------------------------------------------+
+   integer(kind=4) :: count_words
+   integer(kind=4) :: find_ibin
+   real(kind=8) :: parity_fac
+   real(kind=8) :: spin_fac
+   real(kind=8) :: interpolate_exp
+!----------------------------------------------------------------------------------------+
+!-----     Start exectution of subroutine                                                +
+!----------------------------------------------------------------------------------------+
+   if(.not. allocated(rho_sep))allocate(rho_sep(0:nucleus(inuc)%j_max,0:1))
+   j_max = -1
+   nbin = nucleus(inuc)%nbin
+   ipar_max = 1
+   pmode = nucleus(inuc)%level_param(16)
+   pe1 = nucleus(inuc)%level_param(17)
+   bb = nucleus(inuc)%level_param(18)
+   if(nucleus(inuc)%lev_den_both)ipar_max = 0
+!----------------------------------------------------------------------------------------+
+!-----     Loop over parities                                                            +
+!----------------------------------------------------------------------------------------+
+   do ipar = 0, ipar_max
+      exist_den_file = .false.
+      ilast = index(nucleus(inuc)%lev_den_file(ipar),' ') - 1
+      inquire(file = nucleus(inuc)%lev_den_file(ipar)(1:ilast), exist = exist_den_file)
+      if(.not. exist_den_file)then
+         if(iproc == 0)write(6,*)'Error in subroutine read_level_density'
+         if(iproc == 0)write(6,*)'Level density file does not exist. Looking for ',  &
+             nucleus(inuc)%lev_den_file(ipar)(1:ilast)
+         call MPI_Abort(icomm, 101, ierr)
+      end if
+      open(unit=50, file = nucleus(inuc)%lev_den_file(ipar)(1:ilast), status= 'unknown')
+!----------------------------------------------------------------------------------------+
+!-----    Find out how many data elements to read num_read, and number of J j_max        +
+!----------------------------------------------------------------------------------------+
+      num_read = 0
+      io_error = 0
+      do while(io_error == 0)
+         line(1:2000) = ' '
+         read(50,'(a)',iostat = io_error)line
+         if(line(1:1) == '#' .or. line(1:1) == '!' .or. io_error /= 0)cycle
+         num_read = num_read + 1
+         if(j_max < 0)j_max = count_words(line) - 2
+      end do
+      if(j_max > 0 .and. j_max < nucleus(inuc)%j_max)then
+         if(iproc == 0)write(6,*)'Error in subroutine read_level_density'
+         if(iproc == 0)write(6,*)'Not enough j-values. Maximum J >= ',     &
+            real(nucleus(inuc)%j_max,kind=8) + nucleus(inuc)%jshift
+         if(iproc == 0)write(6,*)'Number of entries musy be >= ',nucleus(inuc)%j_max + 1
+         call MPI_Abort(icomm,101,ierr)
+      end if
+      if(.not. allocated(e_grid))allocate(e_grid(num_read))
+      if(.not. allocated(rho_temp))allocate(rho_temp(num_read,0:j_max))
+!----------------------------------------------------------------------------------------+
+!-----    Read level density data in                                                     +
+!----------------------------------------------------------------------------------------+
+      rewind(50)
+      io_error = 0
+      n = 0
+      do while(io_error == 0)
+         line(1:2000) = ' '
+         read(50,'(a)', iostat = io_error)line
+            if(line(1:1) == '#' .or. line(1:1) == '!'.or. io_error /= 0)cycle
+            n = n + 1
+            read(line,*)e_grid(n),(rho_temp(n,j),j=0,j_max)
+!----------------------------------------------------------------------------------------+
+!----   If rho_temp < 1.0d-6, set to 1.0d-6, otherwise, interpolation will get crazy     +
+!----------------------------------------------------------------------------------------+
+         do j = 0, j_max
+            if(rho_temp(n,j) < 1.0d-9)rho_temp(n,j) = 1.0d-9
+         end do
+      end do
+!----------------------------------------------------------------------------------------+
+!----   Some error checks                                                                +
+!----------------------------------------------------------------------------------------+
+      if(e_grid(1) > nucleus(inuc)%e_grid(1))then
+         if(iproc == 0)write(6,*)'Error in subroutine read_level_density'
+         if(iproc == 0)write(6,*)'Min energy in read is greater than in energy in level-density grid'
+         if(iproc == 0)write(6,*)'Minimum energy must be <= ',nucleus(inuc)%e_grid(1)
+         call MPI_Abort(icomm,101,ierr)
+      end if
+      if(e_grid(num_read) < nucleus(inuc)%e_grid(nbin))then
+         if(iproc == 0)write(6,*)'Error in subroutine read_level_density'
+         if(iproc == 0)write(6,*)'Max energy in read is less than max energy in level-density grid'
+         if(iproc == 0)write(6,*)'Maximum energy must be >= ',nucleus(inuc)%e_grid(nbin)
+         call MPI_Abort(icomm,101,ierr)
+      end if
+!----------------------------------------------------------------------------------------+
+!----   Fill level density array nucleus(inuc)%bins(j,ipar,n)%rho                        +
+!----   Start with normal, that is all j values were read in.                            +
+!----   Follow with case when j_max == 0, and use spin cutoff parameter to calculate     +
+!----   spin distribution                                                                +
+!----------------------------------------------------------------------------------------+
+      if(j_max > 0)then
+         do n = 1, nucleus(inuc)%nbin
+            do j = 0, nucleus(inuc)%j_max
+               xj = real(j,kind=8) + nucleus(inuc)%jshift
+               rho = interpolate_exp(1, nucleus(inuc)%e_grid(n), num_read, e_grid, rho_temp(1,j))
+               if(ipar_max == 1)then
+                  nucleus(inuc)%bins(j,ipar,n)%rho = rho
+               else              !----   Use internal model for parity distribution
+                  nucleus(inuc)%bins(j,ipar,n)%rho = rho*parity_fac(energy,xj,ipar,pmode,pe1,bb)
+                  nucleus(inuc)%bins(j,ipar+1,n)%rho = rho*parity_fac(energy,xj,ipar+1,pmode,pe1,bb)
+               end if
+            end do
+!----------------------------------------------------------------------------------------+
+!----   Store level density at the separation energy                                     +
+!----------------------------------------------------------------------------------------+
+            energy = nucleus(inuc)%sep_e(1)
+            do j = 0, nucleus(inuc)%j_max
+               xj = real(j,kind=8) + nucleus(inuc)%jshift
+               rho = interpolate_exp(1, energy, num_read, e_grid, rho_temp(1,j))
+               if(ipar_max == 1)then
+                  rho_sep(j,ipar) = rho
+               else              !----   Use internal model for parity distribution
+                  rho_sep(j,ipar) = rho*parity_fac(energy, xj, ipar, pmode, pe1, bb)
+                  rho_sep(j,ipar+1) = rho*parity_fac(energy, xj, ipar+1, pmode, pe1, bb)
+               end if
+            end do
+         end do
+!----------------------------------------------------------------------------------------+
+!----   Use internal model for spin distribution                                         +
+!----------------------------------------------------------------------------------------+
+      elseif(j_max == 0)then
+         do n = 1, nucleus(inuc)%nbin
+            energy = nucleus(inuc)%e_grid(n)
+            call rhoe(energy,nucleus(inuc)%level_param,                                   &
+                             nucleus(inuc)%vib_enh,                                       &
+                             nucleus(inuc)%rot_enh,                                       &
+                             nucleus(inuc)%A,rho,apu,sig,K_vib,K_rot)
+            rho = interpolate_exp(1, nucleus(inuc)%e_grid(n), num_read, e_grid, rho_temp(1,0))
+            do j = 0, nucleus(inuc)%j_max
+               xj = real(j,kind=8) + nucleus(inuc)%jshift
+               nucleus(inuc)%bins(j,ipar,n)%rho = rho*spin_fac(xj,sig)
+               if(ipar_max == 1)then
+                  nucleus(inuc)%bins(j,ipar,n)%rho = rho*spin_fac(xj,sig)
+               else              !----   Use internal model for parity distribution
+                  nucleus(inuc)%bins(j,ipar,n)%rho = rho*spin_fac(xj,sig)*parity_fac(energy,xj,ipar,pmode,pe1,bb)
+                  nucleus(inuc)%bins(j,ipar+1,n)%rho = rho*spin_fac(xj,sig)*parity_fac(energy,xj,ipar+1,pmode,pe1,bb)
+               end if
+            end do         
+         end do
+!----------------------------------------------------------------------------------------+
+!----   Store level density at the separation energy                                     +
+!----------------------------------------------------------------------------------------+
+         energy = nucleus(inuc)%sep_e(1)
+         call rhoe(energy,nucleus(inuc)%level_param,                                      &
+                          nucleus(inuc)%vib_enh,                                          &
+                          nucleus(inuc)%rot_enh,                                          &
+                          nucleus(inuc)%A,rho,apu,sig,K_vib,K_rot)
+         do j = 0, nucleus(inuc)%j_max
+            xj = real(j,kind=8) + nucleus(inuc)%jshift
+            rho = interpolate_exp(1, energy, num_read, e_grid, rho_temp(1,j))
+            if(ipar_max == 1)then
+               rho_sep(j,ipar) = rho
+            else              !----   Use internal model for parity distribution
+               rho_sep(j,ipar) = rho*parity_fac(energy,xj,ipar,pmode,pe1,bb)
+               rho_sep(j,ipar+1) = rho*parity_fac(energy,xj,ipar+1,pmode,pe1,bb)
+            end if
+         end do
+      end if
+      if(allocated(rho_temp))deallocate(e_grid)
+      if(allocated(rho_temp))deallocate(rho_temp)
+   end do
+   yrast(0:100,0:1) = -1.0
+!----------------------------------------------------------------------------------------+
+!------   Find yrast energies for each spin                                              +
+!----------------------------------------------------------------------------------------+
+   num_states = nucleus(inuc)%ncut
+   nbin = nucleus(inuc)%nbin
+   if(all_discrete_states)num_states = nucleus(inuc)%num_discrete
+   do ii = 1, num_states
+      j = nint(nucleus(inuc)%state(ii)%spin - nucleus(inuc)%jshift)
+      ipar = nint((nucleus(inuc)%state(ii)%parity + 1.0d0)/2.0d0)
+      if(yrast(j,ipar) < 0.0)then
+         yrast(j,ipar) = nucleus(inuc)%state(ii)%energy
+         yrast_actual(j,ipar) = nucleus(inuc)%state(ii)%energy
+      end if
+   end do
+!----------------------------------------------------------------------------------------+
+!------   Impose yrast energies on the level density based on discete states, even if    +
+!------   the level density was read in                                                  +
+!----------------------------------------------------------------------------------------+
+   do j = 0, nucleus(inuc)%j_max
+      do ipar = 0, 1
+!----------------------------------------------------------------------------------------+
+!----  Yrast line for a discrete state was found, so make sure level density below this  +
+!----  energy is minimal                                                                 +
+!----------------------------------------------------------------------------------------+
+         if(yrast(j,ipar) > -1.0d0)then 
+            do n = 1, nbin
+               if(nucleus(inuc)%e_grid(n) < yrast(j,ipar))then
+                  nucleus(inuc)%bins(j,ipar,n)%rho = 1.0d-9
+               else
+                  exit
+               end if
+            end do
+         end if
+      end do
+   end do
+!----------------------------------------------------------------------------------------+
+!------   Set yrast line for j,ipar not set with discrete states.                        +
+!------   Might be nucleus(inuc)%e_grid(1)                                               +
+!----------------------------------------------------------------------------------------+
+   do j = 0, nucleus(inuc)%j_max
+      do ipar = 0, 1
+         if(yrast(j,ipar) < 0.0d0)then
+            yrast(j,ipar) = nucleus(inuc)%e_grid(1)
+            do n = 1, nbin
+               if(nucleus(inuc)%bins(j,ipar,n)%rho <= 1.0d-6)then
+                  yrast(j,ipar) = nucleus(inuc)%e_grid(n)
+                  yrast_actual(j,ipar) = nucleus(inuc)%e_grid(n)
+               else
+                  exit
+               end if
+            end do
+         end if
+      end do
+   end do
+!----------------------------------------------------------------------------------------+
+!------   With discrete states above E_cut, reduce continuous level density              +
+!----------------------------------------------------------------------------------------+
+   if(all_discrete_states)then
+      do ii = 1, nucleus(inuc)%num_discrete
+         j = nint(nucleus(inuc)%state(ii)%spin - nucleus(inuc)%jshift)
+         ipar = nint((nucleus(inuc)%state(ii)%parity + 1.0d0)/2.0d0)
+         if(j <= Max_J_allowed .and. ii > nucleus(inuc)%ncut)then
+            k = find_ibin(nucleus(inuc)%state(ii)%energy,inuc)
+            if(k <= nbin .and. k > 0)nucleus(inuc)%bins(j,ipar,k)%rho =                       &
+                                     max(nucleus(inuc)%bins(j,ipar,k)%rho -                   &
+                                     1.0d0/nucleus(inuc)%delta_e(k), 0.0d0)
+         end if
+      end do
+   end if
+!----------------------------------------------------------------------------------------+
+!------   Calculate D0 and D1                                                            +
+!----------------------------------------------------------------------------------------+
+   xI = nucleus(inuc)%target_spin
+   ipar = nucleus(inuc)%target_ipar
+   iJ = nint(2.0d0*xI)
+!----   D0
+   l = 0
+   ip = ((2*ipar-1)*(-1)**l+1)/2
+   ll = 2*l
+   rho = 0.0d0
+   do i = iabs(iJ-ll), (iJ + ll), 2
+      do j = -1, 1, 2
+         k = i + j
+         if(k < 0)cycle
+         xJ = real(k,kind=8)/2.0d0
+         jj = nint(xj - nucleus(inuc)%jshift)
+         rho = rho + rho_sep(jj,ip)
+      end do
+   end do
+   nucleus(inuc)%D0 = 1.0d6/rho
+!----   D1
+   l = 1
+   ip = ((2*ipar-1)*(-1)**l+1)/2
+   ll = 2*l
+   rho = 0.0d0
+   do i = iabs(iJ-ll), (iJ + ll), 2
+      do j = -1, 1, 2
+         k = i + j
+         if(k < 0)cycle
+         xJ = real(k,kind=8)/2.0d0
+         jj = nint(xj - nucleus(inuc)%jshift)
+         rho = rho + rho_sep(jj,ip)
+      end do
+   end do
+   nucleus(inuc)%D1 = 1.0d6/rho
+
+   if(allocated(rho_sep))deallocate(rho_sep)
+
+   return
+end subroutine read_level_density
+!
+!*******************************************************************************
+!
+!  Discussion:
+!
+!    This function counts the number distinct word elements there are in the
+!    character string input (len = 2000). 
+!
+!  Licensing:
+!
+!    This code is distributed under the GNU LGPL version 2 license. 
+!
+!  Date:
+!
+!    25 September 2019
+!
+!  Author:
+!
+!      Erich Ormand, LLNL
+!
+!*******************************************************************************
+!
+integer function count_words(input)
+   use variable_kinds
+   implicit none
+   character(len=2000), intent(in) :: input
+!----------------------------------------------------------------------
+   integer(kind=4) :: numw
+   integer(kind=4) :: k
+   logical :: word
+!----------------------------------------------------------------------
+   numw = 0
+   word = .false.
+   k = 1
+ 1 if(k > 1 .and. (input(k:k) == '!' .or. input(k:k) == '#'))then
+      goto 4
+   elseif(input(k:k) /= ' ')then
+      if(.not.word)then
+         numw = numw + 1
+         word = .true.
+         if(k == 2000)goto 4
+      end if
+   elseif(input(k:k) == ' ')then
+      if(word)word = .false.
+      if(k == 2000) goto 4
+   end if
+   k = k + 1
+   if(k > 2000)goto 4
+   goto 1
+ 4 continue
+   count_words = numw
+   return
+end function count_words
+
 

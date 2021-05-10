@@ -513,6 +513,7 @@ subroutine get_spectrum(data_path, len_path, overide, symb, iz, ia, inuc)
    end do
    nucleus(inuc)%ncut = n_cut
    nucleus(inuc)%level_ecut = nucleus(inuc)%state(nucleus(inuc)%ncut)%energy + 0.001d0
+   nucleus(inuc)%level_param(7) = nucleus(inuc)%level_ecut
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !------   Should now be done
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

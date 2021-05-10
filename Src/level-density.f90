@@ -595,6 +595,7 @@ subroutine finish_lev_den(icomp)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !------   Calcuate D0 with these level density parameters              +
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
    nucleus(icomp)%sig2_perp = (1.0d0+nucleus(icomp)%beta(2)/3.0d0)
    nucleus(icomp)%sig2_ax = sqrt(pi/2.0d0)*                         &
                        (1.0d0-2.0d0*nucleus(icomp)%beta(2)/3.0d0)
@@ -656,6 +657,7 @@ subroutine finish_lev_den(icomp)
                      nucleus(icomp)%vib_enh,                          &
                      nucleus(icomp)%rot_enh)
    end if
+
 
    aparam = nucleus(icomp)%level_param(1)
    spin_cut = nucleus(icomp)%level_param(2)
@@ -1208,8 +1210,8 @@ end function parity_fac
 !
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
-real(kind=8) function lev_space(e,xj,ipar,l,level_param,       &
-                                vib_enh,rot_enh,ia)
+real(kind=8) function lev_space(e, xj, ipar, l, level_param,       &
+                                vib_enh, rot_enh, ia)
 !
 !*******************************************************************************
 !
@@ -1242,7 +1244,7 @@ real(kind=8) function lev_space(e,xj,ipar,l,level_param,       &
    integer(kind=4), intent(in) :: ia
    real(kind=8) :: mode, e1, bb
 ! -------------------------------------------------------
-   integer(kind=4) :: i
+   integer(kind=4) :: i, k
    real(kind=8) :: rrho,rho0,apu,sg2
    real(kind=8) :: spin_fac,parity_fac
    real(kind=8) :: xl
@@ -1255,7 +1257,7 @@ real(kind=8) function lev_space(e,xj,ipar,l,level_param,       &
    e1 = level_param(17)
    bb = level_param(18)
           
-   call rhoe(e,level_param,vib_enh,rot_enh,ia,rrho, apu,sg2,k_vib,K_rot)
+   call rhoe(e,level_param,vib_enh,rot_enh,ia,rrho,apu,sg2,k_vib,K_rot)
 !---------   Factor of two is to account for parity (only one here)
    xl = real(l, kind=8)
    iparn = ((2*ipar - 1)*(-1)**l+1)/2
@@ -1266,9 +1268,9 @@ real(kind=8) function lev_space(e,xj,ipar,l,level_param,       &
    il = 2*l
    do i = iabs(iJ - il), iJ + il, 2
       do j = -1, 1, 2
-         ij = i + j
-         if(ij < 0)cycle
-         xI = real(ij,kind=8)/2.0d0
+         k = i + j
+         if(k < 0)cycle
+         xI = real(k,kind=8)/2.0d0
          rho0 = rho0 + rrho*spin_fac(xI,sg2)*                    &
                        parity_fac(e,xI,iparn,mode,e1,bb)
      end do     

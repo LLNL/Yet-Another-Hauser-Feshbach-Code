@@ -735,4 +735,13 @@ Version 3.51
     file name will be based on the indes of the energy; something like 
     87Se_iE_001.Events.bin for a population calculation and the first energy.
 
+Version 3.52
+1.  Added feature to read in level densities for a given nucleus from a file.
+    Use with command
+         lev_den_read Z A P file_name. 
+2.  Fixed error with low-energy level densities for the ground-state spin and
+    parity. The yrast energy for the ground state J and parity was being 
+    computed with the level density cut, rather than always accepting the expt 
+    value. The check was on yrast > 0.0, rather than yrast >= 0.0.
+3.  Fixed potential bug computing D0 and D1.
     

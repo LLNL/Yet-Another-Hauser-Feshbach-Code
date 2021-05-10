@@ -2830,6 +2830,59 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
+   if(command(startw(1):stopw(1)) == 'lev_den_read')then
+      icommand=icommand+1
+
+      ndat = 0
+      call extract_ZA_data(command, numw, startw, stopw, ndat,                 &
+                           iZ, iA, X, nw, read_error)
+      if(read_error)then
+         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
+         return
+      end if
+
+      if(numw - nw < 2)then
+         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
+         return
+      end if
+
+      do i = 1, num_comp
+         if(iZ == nucleus(i)%Z .and. iA == nucleus(i)%A)then
+            if(nucleus(i)%lev_den_both)then
+               if(iproc == 0)then
+                  write(6,*)'Error with command "lev_den_read"'
+                  write(6,*)'Reading both parities has already specified'
+               end if
+               call MPI_Abort(icomm, 101, ierr)
+            end if              
+            nucleus(i)%lev_den_read = .true.
+            nucleus(i)%fit_D0 = .false.
+            nucleus(i)%fit_aparam = .false.
+            ilast = stopw(nw+2) - startw(nw+2) + 1
+            if(command(startw(nw+1):stopw(nw+1)) == 'b' .or.                    &
+               command(startw(nw+1):stopw(nw+1)) == 'B')then
+               nucleus(i)%lev_den_both = .true.
+                   nucleus(i)%lev_den_file(0)(1:ilast) = command(startw(nw+2):stopw(nw+2))
+            elseif(command(startw(nw+1):stopw(nw+1)) == '0' .or.                &
+                   command(startw(nw+1):stopw(nw+1)) == 'n' .or.                &
+                   command(startw(nw+1):stopw(nw+1)) == 'N' .or.                &
+                   command(startw(nw+1):stopw(nw+1)) == '-')then
+                   nucleus(i)%lev_den_file(0)(1:ilast) = command(startw(nw+2):stopw(nw+2))
+            elseif(command(startw(nw+1):stopw(nw+1)) == '1' .or.                &
+                   command(startw(nw+1):stopw(nw+1)) == 'p' .or.                &
+                   command(startw(nw+1):stopw(nw+1)) == 'P' .or.                &
+                   command(startw(nw+1):stopw(nw+1)) == '+')then
+               nucleus(i)%lev_den_file(1)(1:ilast) = command(startw(nw+2):stopw(nw+2))
+            end if
+            return
+         end if
+      end do
+      if(iproc == 0)write(6,*)'Nucleus not found: lev_den_read',' Z = ',iZ,' A = ',iA
+   end if
+!
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!
    if(command(startw(1):stopw(1)) == 'max_j_allowed')then
       icommand=icommand+1
       read(command(startw(2):stopw(2)),*)Max_J_allowed
@@ -3281,7 +3334,6 @@ subroutine parse_command(icommand, command, finish)
                num_data = num_data + 1
             end do
             num_data = num_data - 1
-  write(6,*)'icomp = ',i,num_data
 !-----   Set number of data for this gsf
             nucleus(i)%EL_mode(lx)%gsf(n_gsf)%num_data = num_data
 !-----   Allocate energy and gsf arrays
@@ -4194,6 +4246,14 @@ integer(kind=4) function rank_commands(command)
 !
    if(command(startw(1):startw(1)+1) == 'f_')then
       rank_commands = 31
+      return
+   end if
+!
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!
+   if(command(startw(1):startw(1)+1) == 'lev_den_read')then
+      rank_commands = 35
       return
    end if
 !
