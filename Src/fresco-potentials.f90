@@ -15,10 +15,29 @@ subroutine KD_potential(part_type, iA, iZ, energy, V_pot, R_pot, a_pot, RC, D3, 
 !     A.J. Koning and J.P. Delaroche  
 !     Local and global optical models from 1 keV to 200 MeV
 !     Nuclear Physics A 713 (2003) 310
-!          
+!
+!   Dependencies:
+!
+!     Modules:
+!
+!        nodeinfo
+!        variable_kinds
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        MPI_Abort
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !     Written: 14 October 2004 by Jutta Escher 
@@ -30,6 +49,7 @@ subroutine KD_potential(part_type, iA, iZ, energy, V_pot, R_pot, a_pot, RC, D3, 
 !----    converted arithmetic to double                                    +
 !----    converted NA, NN, and NZ to real variables, used in formulae      +
 !----    especially previous use of NA**XX                                 +
+!    11 May 2021
 !
 !*******************************************************************************
 !
@@ -43,17 +63,6 @@ subroutine KD_potential(part_type, iA, iZ, energy, V_pot, R_pot, a_pot, RC, D3, 
    real(kind=8), intent(out) :: a_pot(2,3)
    real(kind=8), intent(out) :: rc, d3
    integer(kind=4), intent(out) :: iradius
-!
-!    (1,1)   Real Volume
-!    (2,1)   Imaginary Volume
-!    (1,2)   Real Surface
-!    (2,2)   Imaginary Surface
-!    (1,3)   Real Spin-orbit
-!    (2,3)   Imaginary Spin-orbit
-!
-!------------------------------------------------------------------
-!   real(kind=8) :: vv, rv, av, wv, rw, aw, wd, rd, ad
-!   real(kind=8) :: vso, rso, aso, wso, wrso, waso
 !------------------------------------------------------------------
    integer(kind=4) :: iN
    real(kind=8) :: diff
@@ -62,9 +71,8 @@ subroutine KD_potential(part_type, iA, iZ, energy, V_pot, R_pot, a_pot, RC, D3, 
    real(kind=8) :: vso_1, vso_2, wso_1, wso_2
    real(kind=8) :: eFermi, vc
    real(kind=8) :: del_vc
+!------------------------------------------------------------------
 
-!     iradius = 0    R = r0*A_T^1/3
-!     iradius = 1    R = r0*(A_Target^1/3 + A_proj^1/3)
    iradius = 0
 
    iN = iA - iZ
@@ -74,7 +82,6 @@ subroutine KD_potential(part_type, iA, iZ, energy, V_pot, R_pot, a_pot, RC, D3, 
 
    diff = (xN - xZ)/xA
 
-! part_type = 1 (neutrons)
    if(part_type > 2)then
       if(iproc == 0)write(6,*)'Error in KDParam, use only for protons and neutrons, not k = '
       call MPI_Abort(icomm,301,ierr)
@@ -96,7 +103,6 @@ subroutine KD_potential(part_type, iA, iZ, energy, V_pot, R_pot, a_pot, RC, D3, 
    rc = 0.0d0
    rc = 1.198d0 + 0.697d0/(xA**(0.6666666666d0)) + 12.994d0/(xA**(1.6666666666d0))
    vc = 0.0d0
-! part_type = 2 (protons)
    if(part_type == 2) then
       v1 = 59.30d0 + 21.0d0*diff - 2.4d-2*xA
       v2 = 7.067d-3 + 4.23d-6*xA
@@ -159,9 +165,29 @@ subroutine maslov_03_potential(E, V_pot, R_pot, a_pot, RC, iradius)
 !
 !    This subroutine calculates the parameters for the maslov potential
 !          
+!
+!   Dependencies:
+!
+!     Modules:
+!
+!        nodeinfo
+!        variable_kinds
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
@@ -183,15 +209,7 @@ subroutine maslov_03_potential(E, V_pot, R_pot, a_pot, RC, iradius)
    real(kind=8), intent(out) :: RC
    integer(kind=4), intent(out) :: iradius
 !----------------------------------------------------------
-!   real(kind=8) :: VR, RR, AR
-!   real(kind=8) :: W, RW, AW
-!   real(kind=8) :: VD, RVD, AVD
-!   real(kind=8) :: WD, RD, AD
-!   real(kind=8) :: VSO, RSO, ASO
-!   real(kind=8) :: WSO, WRSO, WASO
 
-!     iradius = 0    R = r0*A_T^1/3
-!     iradius = 1    R = r0*(A_Target^1/3 + A_proj^1/3)
    iradius = 0
 
    V_pot(1:2,1:3) = 0.0d0
@@ -243,14 +261,36 @@ subroutine soukhovitskii_potential(part_type, iA, iZ, OM_option,        &
 !
 !  Reference:
 !    Soukhovitskii et al, J. Phys. G30, p. 905 (2004)
-!          
+!
+!   Dependencies:
+!
+!     Modules:
+!
+!        nodeinfo
+!        variable_kinds
+!        directory_structure
+!        useful_data
+!        options
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        MPI_Abort
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -288,9 +328,8 @@ subroutine soukhovitskii_potential(part_type, iA, iZ, OM_option,        &
    real(kind=8) :: onethird
    real(kind=8) :: me, be, sep(0:6)
    real(kind=8) :: phase
+!--------------------------------------------------------------------
 
-!     iradius = 0    R = r0*A_T^1/3
-!     iradius = 1    R = r0*(A_Target^1/3 + A_proj^1/3)
    iradius = 0
 
    if(part_type > 2)then
@@ -427,14 +466,33 @@ subroutine perey_d_potential(part_type, iA, iZ, E,                   &
 !
 !     C. M. Perey and F. G. Perey, At. Data and Nuc. Data Tables, Vol. 17,
 !     No. 1, 1976, p. 1.
-!          
+!
+!   Dependencies:
+!
+!     Modules:
+!
+!        nodeinfo
+!        variable_kinds
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        MPI_Abort
+!
 !  Licensing:
 !
 !    This code is distrid under the GNU LGPL version 2 license. 
 !
 !  Date:
 !
-!    28 April 2020
+!    11 May 2021
 !
 !  Author:
 !
@@ -453,18 +511,11 @@ subroutine perey_d_potential(part_type, iA, iZ, E,                   &
    real(kind=8), intent(out) :: RC
    integer(kind=4), intent(out) :: iradius
 !----------------------------------------------------------
-!   real(kind=8) :: VR, RR, AR
-!   real(kind=8) :: W, RW, AW
-!   real(kind=8) :: VD, RVD, AVD
-!   real(kind=8) :: WD, RD, AD
-!   real(kind=8) :: VSO, RSO, ASO
-!   real(kind=8) :: WSO, WRSO, WASO
    integer(kind=4) :: iN
    real(kind=8) :: xZ, xN, xA, xA13
    real(kind=8) :: diff
+!----------------------------------------------------------
 
-!     iradius = 0    R = r0*A_T^1/3
-!     iradius = 1    R = r0*(A_Target^1/3 + A_proj^1/3)
    iradius = 0
 
    if(part_type /= 3)then
@@ -520,14 +571,33 @@ subroutine becchetti_t_potential(part_type, iA, iZ, E,           &
 !
 !    Quoted in C. M. Perey and F. G. Perey, At. Data and Nuc. Data Tables,
 !    Vol. 17, No. 1, 1976, p. 1.
-!          
+!
+!   Dependencies:
+!
+!     Modules:
+!
+!        nodeinfo
+!        variable_kinds
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        MPI_Abort
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    28 April 2020
+!    11 May 2021
 !
 !  Author:
 !
@@ -546,18 +616,11 @@ subroutine becchetti_t_potential(part_type, iA, iZ, E,           &
    real(kind=8), intent(out) :: RC
    integer(kind=4), intent(out) :: iradius
 !----------------------------------------------------------
-!   real(kind=8) :: VR, RR, AR
-!   real(kind=8) :: W, RW, AW
-!   real(kind=8) :: VD, RVD, AVD
-!   real(kind=8) :: WD, RD, AD
-!   real(kind=8) :: VSO, RSO, ASO
-!   real(kind=8) :: WSO, WRSO, WASO
    integer(kind=4) :: iN
    real(kind=8) :: xZ, xN, xA
    real(kind=8) :: diff
+!----------------------------------------------------------
 
-!     iradius = 0    R = r0*A_T^1/3
-!     iradius = 1    R = r0*(A_Target^1/3 + A_proj^1/3)
    iradius = 0
 
    if(part_type /= 4)then
@@ -618,14 +681,33 @@ subroutine becchetti_h_potential(part_type, iA, iZ, E,           &
 !
 !    Quoted in C. M. Perey and F. G. Perey, At. Data and Nuc. Data Tables,
 !    Vol. 17, No. 1, 1976, p. 1.
-!          
+!
+!   Dependencies:
+!
+!     Modules:
+!
+!        nodeinfo
+!        variable_kinds
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        MPI_Abort
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    28 April 2020
+!    11 May 2021
 !
 !  Author:
 !
@@ -644,18 +726,11 @@ subroutine becchetti_h_potential(part_type, iA, iZ, E,           &
    real(kind=8), intent(out) :: RC
    integer(kind=4), intent(out) :: iradius
 !----------------------------------------------------------
-!   real(kind=8) :: VR, RR, AR
-!   real(kind=8) :: W, RW, AW
-!   real(kind=8) :: VD, RVD, AVD
-!   real(kind=8) :: WD, RD, AD
-!   real(kind=8) :: VSO, RSO, ASO
-!   real(kind=8) :: WSO, WRSO, WASO
    integer(kind=4) :: iN
    real(kind=8) :: xZ, xN, xA
    real(kind=8) :: diff
+!----------------------------------------------------------
 
-!     iradius = 0    R = r0*A_T^1/3
-!     iradius = 1    R = r0*(A_Target^1/3 + A_proj^1/3)
    iradius = 0
 
    if(part_type /= 5)then
@@ -715,14 +790,33 @@ subroutine avrigeanu_a_potential(part_type, iA, iZ, E,                  &
 !    Reference:
 !
 !    V. Avrigeanu, P. E. Hodgson, and M. Avrigeanu, Phys. Rev. C49, 2136 (1994).
-!          
+!!
+!   Dependencies:
+!
+!     Modules:
+!
+!        nodeinfo
+!        variable_kinds
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        MPI_Abort
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    28 April 2020
+!    11 May 2021
 !
 !  Author:
 !
@@ -741,18 +835,11 @@ subroutine avrigeanu_a_potential(part_type, iA, iZ, E,                  &
    real(kind=8), intent(out) :: RC
    integer(kind = 4), intent(out) :: iradius
 !----------------------------------------------------------
-!   real(kind=8) :: VR, RR, AR
-!   real(kind=8) :: W, RW, AW
-!   real(kind=8) :: VD, RVD, AVD
-!   real(kind=8) :: WD, RD, AD
-!   real(kind=8) :: VSO, RSO, ASO
-!   real(kind=8) :: WSO, WRSO, WASO
    integer(kind=4) :: iN
    real(kind=8) :: xZ, xN, xA, xA13
+!----------------------------------------------------------
    real(kind=8) :: diff
 
-!     iradius = 0    R = r0*A_T^1/3
-!     iradius = 1    R = r0*(A_Target^1/3 + A_proj^1/3)
    iradius = 0
 
    if(part_type /= 6)then

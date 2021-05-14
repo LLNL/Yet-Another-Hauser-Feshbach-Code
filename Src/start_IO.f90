@@ -10,13 +10,41 @@ subroutine start_IO
 !    This subroutine prints out data defining the Hauser-Feshbach calculation,
 !    basically printing all the otpions, etc. onto the main output file
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        variable_kinds
+!        nodeinfo
+!        options
+!        pre_equilibrium_no_1
+!        print_control
+!        useful_data
+!        nuclei
+!        Channel_info
+!        particles_def
+!        directory_structure
+!        constants
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -36,10 +64,11 @@ subroutine start_IO
    use directory_structure
    use constants
    implicit none
-!-------------------------------------------------------
+!--------------------------------------------------------------------------------
    integer(kind=4) :: i, ip
    integer(kind=4) char_start
    integer(kind=4) :: ilast
+!--------------------------------------------------------------------------------
 
    ilast = index(version,' ')-1
 

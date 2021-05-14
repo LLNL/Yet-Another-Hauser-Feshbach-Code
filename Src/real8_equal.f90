@@ -6,18 +6,33 @@
 !    This function compares two real(kind=8) variables x and y for equality
 !    within a tolerance of 1.0d-7.
 !    It returns .false. if abs(x-y) > 1.0d-7, and .true. otherwise
+!    replacement for x == y, unsafe compare of real variables
 !
-!  Reference:
+!   Dependencies:
 !
-!  S. Hilaire, Ch. lagrange, and A. J. Koning, Ann. Phys. 306, 209 (2003)
+!     Modules:
+!
+!        None
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        None
 !
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -28,6 +43,7 @@
 logical function real8_equal(x,y)
    implicit none
    real(kind=8), intent(in) :: x, y
+!-------------------------------------------------------------------------------
    real8_equal = .true.
    if(abs(x-y) > 1.0d-7)real8_equal = .false.
    return

@@ -9,13 +9,41 @@ subroutine sum_HFden(icomp, xI_i, par, energy, HFden, exp_gamma)
 !
 !    This subroutine computes and sums the Hauser-Feshbach denominator
 !
+!   Dependencies:
+!
+!
+!     Modules:
+!
+!        variable_kinds
+!        options
+!        nuclei
+!        Channel_info
+!        particles_def
+!        constants
+!        nodeinfo
+!
+!     Subroutines:
+!
+!        Fission_transmission
+!
+!     External functions:
+!
+!        real(kind=8) :: tco_interpolate
+!        real(kind=8) :: EL_trans
+!        real(kind=8) :: ML_trans
+!
+!    MPI routines:
+!
+!       MPI_Abort
+!
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -82,8 +110,6 @@ subroutine sum_HFden(icomp, xI_i, par, energy, HFden, exp_gamma)
          xA_i = real(nucleus(icomp)%A,kind=8)
          Coulomb_Barrier(k) = 0.2d0*e_sq*(xZ_i-xZ_part)*xZ_part/               &
             (1.2d0*((xA_i-xA_part)**(1.0d0/3.0d0) + xA_part**(1.0d0/3.0d0)))
-!         Coulomb_Barrier(k) = 0.6d0*e_sq*(xZ_i-xZ_part)*xZ_part/               &
-!            (1.2d0*((xA_i-xA_part)**(1.0d0/3.0d0) + xA_part**(1.0d0/3.0d0)))
       end do
    end if
 

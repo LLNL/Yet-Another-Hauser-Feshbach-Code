@@ -1,19 +1,46 @@
 !
 !*****************************************************************************80
 !
+subroutine fix_incident_energies(iproj, rel_factor)
+!
+!*****************************************************************************80
+!
 !  Discussion:
 !
 !    This Subroutine examines the incident energy grid and fixes issues,
 !    such as photon energies being too small, mapping onto the nergy grid,
 !    and removing redundant incident energies
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        variable_kinds
+!        options
+!        nodeinfo
+!        useful_data
+!        nuclei
+!        particles_def
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!       integer(kind=4) :: find_ibin
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license.
+!    SPDX-License-Identifier: MIT
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -21,7 +48,6 @@
 !
 !*****************************************************************************80
 !
-subroutine fix_incident_energies(iproj, rel_factor)
    use variable_kinds
    use options
    use nodeinfo
@@ -78,22 +104,14 @@ subroutine fix_incident_energies(iproj, rel_factor)
    do in = 1, num_energies
       e_in = projectile%energy(in)
       if(.not.pop_calc)then
-!   write(6,*)in, e_in
          e_rel = e_in*rel_factor
          e_x = e_rel + nucleus(1)%sep_e(projectile%particle_type)
-!   write(6,*)e_x,nucleus(1)%sep_e(projectile%particle_type) +     &
-!               0.5d0*nucleus(1)%delta_e(1),nucleus(1)%sep_e(projectile%particle_type)
          if(e_x < nucleus(1)%sep_e(projectile%particle_type) +     &
                0.5d0*nucleus(1)%delta_e(1))cycle
 !
 !----   Find bin associated with this energy
 !
          j = find_ibin(E_x, 1)
-!   write(6,*)in, e_in, j, e_x, nucleus(1)%sep_e(projectile%particle_type)
- !  write(6,*)'j = ',j, 0.5d0*nucleus(1)%delta_e(j)
-!   if(j < nucleus(1)%nbin)write(6,*)nucleus(1)%e_grid(j+1)
-!   write(6,*)nucleus(1)%e_grid(j)
-!   if(j > 1)write(6,*)nucleus(1)%e_grid(j-1)
          if(j > 0)then
             e_x = nucleus(1)%e_grid(j)
             e_rel = e_x - nucleus(1)%sep_e(projectile%particle_type)
@@ -149,23 +167,15 @@ subroutine fix_incident_energies(iproj, rel_factor)
       in = in + 1
    end do
 
-!  do in = 1, num_energies
-!      write(6,*)in,projectile%energy(in)
-!   end do
-
-! stop
    projectile%num_e = num_energies
 
-!   if(allocated(test_e))deallocate(test_e)
-!     do in = 1, num_energies
-!        write(6,*)in,projectile%energy(in)
-!     end do
-
-!     stop
    return
 
 end subroutine fix_incident_energies
-
+!
+!*****************************************************************************80
+!
+subroutine fix_pop_energies
 !
 !*****************************************************************************80
 !
@@ -175,13 +185,36 @@ end subroutine fix_incident_energies
 !    such as photon energies being too small, mapping onto the nergy grid,
 !    and removing redundant incident energies
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        variable_kinds
+!        options
+!        nodeinfo
+!        useful_data
+!        nuclei
+!        particles_def
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        integer(kind=4) :: find_ibin
+!
+!    MPI routines:
+!
+!        MPI_Abort
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license.
+!    SPDX-License-Identifier: MIT
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -189,7 +222,6 @@ end subroutine fix_incident_energies
 !
 !*****************************************************************************80
 !
-subroutine fix_pop_energies
    use variable_kinds
    use options
    use nodeinfo

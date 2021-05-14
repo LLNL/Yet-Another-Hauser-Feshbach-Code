@@ -745,3 +745,7 @@ Version 3.52
     value. The check was on yrast > 0.0, rather than yrast >= 0.0.
 3.  Fixed potential bug computing D0 and D1.
     
+Version 3.53
+1.  fixed potential error defining ML strengths due to level density parameters
+    not being defined prior to attempting to set them relative to E1 strength.
+2.  Added comments and headers 

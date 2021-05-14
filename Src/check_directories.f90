@@ -1,18 +1,46 @@
 !
 !*****************************************************************************80
 !
+subroutine check_directories(ntar, target_label, ilib_dir, lib_dir)
+!
+!*****************************************************************************80
+!
 !  Discussion:
 !
 !    This Subroutine checks that the directory structure for the output
 !    libraries and events exists, and if not creates them
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        variable_kinds
+!        options
+!        constants
+!        nodeinfo
+!        nuclei
+!        Channel_info
+!        particles_def
+!
+!     Subroutines:
+!
+!        system
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -20,7 +48,6 @@
 !
 !*****************************************************************************80
 !
-subroutine check_directories(ntar, target_label, ilib_dir, lib_dir)
    use variable_kinds
    use options
    use constants

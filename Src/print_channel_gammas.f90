@@ -1,18 +1,47 @@
 !
 !*****************************************************************************80
 !
+subroutine print_channel_gammas(itarget, ilab, file_lab, ilib_dir, lib_dir,            &
+                                ch_par, in, e_in, reaction_cs, write_error)
+!
+!*****************************************************************************80
+!
 !  Discussion:
 !
 !    This Subroutine to write exit channel gamma ray data in the library 
 !    directory
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        variable_kinds
+!        options
+!        constants
+!        nodeinfo
+!        nuclei
+!        Channel_info
+!        particles_def
+!
+!     Subroutines:
+!
+!        nucleus_label
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -20,8 +49,6 @@
 !
 !*****************************************************************************80
 !
-subroutine print_channel_gammas(itarget, ilab, file_lab, ilib_dir, lib_dir,            &
-                                ch_par, in, e_in, reaction_cs, write_error)
    use variable_kinds
    use options
    use constants

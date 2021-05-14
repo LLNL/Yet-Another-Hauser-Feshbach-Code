@@ -10,13 +10,31 @@ real(kind=8) function interp(x, num, xx, yy)
 !    This function interpolates the array yy, which is evalauted on 
 !    the equally spaced array xx at the value x.
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        variable_kinds
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !

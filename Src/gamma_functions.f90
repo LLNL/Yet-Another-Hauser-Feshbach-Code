@@ -9,13 +9,33 @@ subroutine gdr_param(data_path, len_path, inuc)
 !
 !    This subroutine reads in and sets up data for E1 transitions
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        variable_kinds
+!        constants
+!        nuclei
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -39,7 +59,6 @@ subroutine gdr_param(data_path, len_path, inuc)
    real(kind=8) :: xA, xZ
    character(len=2) :: symbb
    real(kind=8) :: er1, gr1, sr1, er2, gr2, sr2
-!   integer(kind=4) :: iread, jread
    integer(kind=4) :: L
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    iz = nucleus(inuc)%Z
@@ -112,13 +131,33 @@ real(kind=8) function E1_f_mode(e_gam, T, e1_model, er, gr, sr)
 !
 !    This function computes the E1 strength function, f, as defiend by e1_model
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        variable_kinds
+!        constants
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        real(kind=8) gamma_t
+!        real(kind=8) M_Lorentzian
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -129,16 +168,16 @@ real(kind=8) function E1_f_mode(e_gam, T, e1_model, er, gr, sr)
    use variable_kinds
    use constants
    implicit none
-   real(kind=8), intent(in) :: e_gam,T
+   real(kind=8), intent(in) :: e_gam, T
    integer(kind=4), intent(in) :: e1_model
    real(kind=8), intent(in) :: er, gr, sr
-!---------------------------------------------------------------------
    real(kind=8) gam, str
+!-----   External functions   ---------------------------------------
    real(kind=8) gamma_t
    real(kind=8) M_Lorentzian
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    E1_f_mode = 0.0d0
-   if(er < 1.0d-5.or.gr < 1.0d-5)return
+   if(er < 1.0d-5 .or. gr < 1.0d-5)return
    if(e1_model > 1)then
       gam = gamma_t(e_gam,er,gr,T)
       if(e1_model == 3)then
@@ -166,13 +205,37 @@ real(kind=8) function gamma_t(e_gam, er, gr, T)
 !    This function computes the E1 width as a function of energy and 
 !    the parameter T
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        variable_kinds
+!        constants
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        None
+!
+!
+!   Dependencies:
+!
+!     None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -202,13 +265,31 @@ real(kind=8) function Lorentzian(e_g,er,gr)
 !
 !    This function computes a Lorentzian function
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        variable_kinds
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -235,13 +316,31 @@ real(kind=8) function M_Lorentzian(e_g,er,gr)
 !    This function computes a Lorentzian function divided by the 
 !    gamma energy eg
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        variable_kinds
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -268,13 +367,32 @@ real(kind=8) function Txl(egamma, L)
 !    This function computes the multiplicative factor to convert the 
 !    strength function to the transmission coefficient
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        variable_kinds
+!        constants
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -302,13 +420,32 @@ real(kind=8) function Kxl(L)
 !
 !    This function computes k factor needed for E&M radiation
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        variable_kinds
+!        constants
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -336,13 +473,31 @@ real(kind=8) function temperature(U,ap)
 !
 !    This function computes effective temperature with given excitation energy U
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        variable_kinds
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -361,19 +516,58 @@ end function temperature
 !
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
-real(kind=8) function Lfac(egam,T)
-   use variable_kinds
-   implicit none
-   real(kind=8) egam, T
-!------------------------------------------------------------------------------
-   if(egam < 1.0d-6)then
-      Lfac = 0.0d0
-   else
-      Lfac = 1.0d0
-      if(T > 0.0)Lfac = 1.0/(1.0-exp(-egam/T))
-   end if
-   return
-end function Lfac
+!real(kind=8) function Lfac(egam,T)
+!
+!*******************************************************************************
+!
+!  Discussion:
+!
+!    This function computes effective temperature with given excitation energy U
+!
+!   Dependencies:
+!
+!     Modules:
+!
+!        None
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        None
+!
+!  Licensing:
+!
+!    SPDX-License-Identifier: MIT 
+!
+!  Date:
+!
+!    11 May 2021
+!
+!  Author:
+!
+!      Erich Ormand, LLNL
+!
+!*******************************************************************************
+!
+!   use variable_kinds
+!   implicit none
+!   real(kind=8) egam, T
+!!------------------------------------------------------------------------------
+!   if(egam < 1.0d-6)then
+!      Lfac = 0.0d0
+!   else
+!      Lfac = 1.0d0
+!      if(T > 0.0)Lfac = 1.0/(1.0-exp(-egam/T))
+!   end if
+!   return
+!end function Lfac
 !
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
@@ -385,13 +579,36 @@ real(kind=8) function E1_f(i_f, e_gamma, energy)
 !
 !    This function computes the E1 strength function, f
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        variable_kinds
+!        nuclei
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        real(kind=8) :: Ux
+!        real(kind=8) :: aparam_U
+!        real(kind=8) :: temperature
+!        real(kind=8) :: E1_f_mode
+!        real(kind=8) :: Kxl
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -460,13 +677,36 @@ real(kind=8) function E1_f_component(i_f, k, e_gamma, energy)
 !
 !    This function returns the kth component of the E1 strength function, f
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        variable_kinds
+!        nuclei
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        real(kind=8) :: Ux
+!        real(kind=8) :: aparam_U
+!        real(kind=8) :: temperature
+!        real(kind=8) :: E1_f_mode
+!        real(kind=8) :: Kxl
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -531,13 +771,32 @@ real (kind=8) function EL_f(i_f, L, e_gamma, energy)
 !
 !    This function computes the E(L) strength function, f
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        variable_kinds
+!        nuclei
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        real(kind=8) :: E1_f_component
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -552,8 +811,9 @@ real (kind=8) function EL_f(i_f, L, e_gamma, energy)
    real(kind=8),intent(in) :: e_gamma, energy
 !------------------------------------------------------------------------------
    integer(kind=4) :: k
-!------   External functions
+!-----   External functions      ----------------------------------------------
    real(kind=8) :: EL_f_component
+!------------------------------------------------------------------------------
 
    EL_f = 0.0d0
 
@@ -575,13 +835,36 @@ real (kind=8) function EL_f_component(i_f, L, k, e_gamma, energy)
 !
 !    This function returns the kth component of the E(L) strength function, f
 !
+!
+!   Dependencies:
+!
+!     Modules:
+!
+!        variable_kinds
+!        nuclei
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        real(kind=8) :: E1_f_component
+!        real(kind=8) :: Lorentzian
+!        real(kind=8) :: Kxl
+!        real(kind=8) :: interpolate_grid
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -597,11 +880,12 @@ real (kind=8) function EL_f_component(i_f, L, k, e_gamma, energy)
 !------------------------------------------------------------------------------
    real(kind=8) :: er, gr, sr
    real(kind=8) :: factor
-!------   External functions
+!-----   External functions      ---------------------------------------
    real(kind=8) :: E1_f_component
    real(kind=8) :: Lorentzian
    real(kind=8) :: Kxl
    real(kind=8) :: interpolate_grid
+!------------------------------------------------------------------------------
 
    EL_f_component = 0.0d0
    if(L == 1)then
@@ -643,13 +927,33 @@ real (kind=8) function EL_trans(i_f, L , e_gamma, energy)
 !
 !    This function computes the E(L) transmission coefficient
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        variable_kinds
+!        nuclei
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        real(kind=8) :: EL_f
+!        real(kind=8) :: Txl
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -662,9 +966,10 @@ real (kind=8) function EL_trans(i_f, L , e_gamma, energy)
    implicit none
    integer(kind=4),intent(in) :: i_f, L
    real(kind=8),intent(in) :: e_gamma, energy
-!------------------------------------------------------------------------------
+!-----   External functions      -----------------------------------------------
    real(kind=8) :: EL_f
    real(kind=8) :: Txl
+!-------------------------------------------------------------------------------
    
    EL_trans = Txl(e_gamma, L)*EL_f(i_f, L, e_gamma, energy)
 
@@ -682,13 +987,32 @@ real (kind=8) function ML_f(i_f, L , e_gamma)
 !
 !    This function computes the M(L) strength coefficient
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        variable_kinds
+!        nuclei
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        real(kind=8) :: ML_f_component
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -703,8 +1027,9 @@ real (kind=8) function ML_f(i_f, L , e_gamma)
    real(kind=8),intent(in) :: e_gamma
 !------------------------------------------------------------------------------
    integer(kind=4) :: k
-!------   External functions
+!-----   External functions      ----------------------------------------------
    real(kind=8) :: ML_f_component
+!------------------------------------------------------------------------------
 
    ML_f = 0.0d0
    do k = 1, nucleus(i_f)%ML_mode(L)%num_gsf
@@ -725,13 +1050,34 @@ real (kind=8) function ML_f_component(i_f, L, k, e_gamma)
 !
 !    This function returns the kth component of the M(L) strength function
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        variable_kinds
+!        nuclei
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        real(kind=8) :: Lorentzian
+!        real(kind=8) :: Kxl
+!        real(kind=8) :: interpolate_grid
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -747,7 +1093,7 @@ real (kind=8) function ML_f_component(i_f, L, k, e_gamma)
 !------------------------------------------------------------------------------
    real(kind=8) :: er, gr, sr
    real(kind=8) :: factor
-!------   External functions
+!-----   External functions      ---------------------------------------
    real(kind=8) :: Lorentzian
    real(kind=8) :: Kxl
    real(kind=8) :: interpolate_grid
@@ -780,13 +1126,33 @@ real (kind=8) function ML_trans(i_f, L , e_gamma)
 !
 !    This function computes the M(L) transmission coefficient
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        variable_kinds
+!        nuclei
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        real(kind=8) :: ML_f
+!        real(kind=8) :: Txl
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -799,16 +1165,16 @@ real (kind=8) function ML_trans(i_f, L , e_gamma)
    implicit none
    integer(kind=4),intent(in) :: i_f, L
    real(kind=8),intent(in) :: e_gamma
-!------------------------------------------------------------------------------
+!-------    External functions    ---------------------------------------------
    real(kind=8) :: ML_f
    real(kind=8) :: Txl
+!------------------------------------------------------------------------------
 
    ML_trans = Txl(e_gamma, L)*ML_f(i_f, L, e_gamma)
 
    return
 
 end function ML_trans
-
 !
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
@@ -820,13 +1186,33 @@ real (kind=8) function EL_absorption(icomp, L, egamma, ex)
 !
 !    This function computes the E(L) photoabsorption cross section
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        variable_kinds
+!        nuclei
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        real(kind=8) :: EL_f
+!        real(kind=8) :: Kxl
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -843,18 +1229,17 @@ real (kind=8) function EL_absorption(icomp, L, egamma, ex)
    real(kind=8),intent(in) :: ex
 !------------------------------------------------------------------------------
    real(kind=8) :: factor
-!------------------------------------------------------------------------------
+!-----   External functions      ---------------------------------------
    real(kind=8) :: EL_f
    real(kind=8) :: Kxl
+!------------------------------------------------------------------------------
 
    factor = egamma**(2*L-1)
-!   EL_absorption = 0.001d0*egamma*EL_f(icomp, L, egamma, ex)/Kxl(L)
    EL_absorption = 0.001d0*factor*EL_f(icomp, L, egamma, ex)/Kxl(L)
 
    return
 
 end function EL_absorption
-
 !
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
@@ -866,13 +1251,33 @@ real (kind=8) function ML_absorption(icomp, L, egamma)
 !
 !    This function computes the M(L) photoabsorption cross section
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        variable_kinds
+!        nuclei
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        real(kind=8) :: ML_f
+!        real(kind=8) :: Kxl
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -888,7 +1293,7 @@ real (kind=8) function ML_absorption(icomp, L, egamma)
    real(kind=8),intent(in) :: egamma
 !------------------------------------------------------------------------------
    real(kind=8) :: factor
-!------------------------------------------------------------------------------
+!-----   External functions          ------------------------------------------
    real(kind=8) :: ML_f
    real(kind=8) :: Kxl
 !------------------------------------------------------------------------------
@@ -912,13 +1317,33 @@ real (kind=8) function photo_absorption(icomp, lmax_E, lmax_M, egamma, ex)
 !
 !    This function computes the M(L) photoabsorption cross section
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        variable_kinds
+!        nuclei
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        real(kind=8) :: EL_absorption
+!        real(kind=8) :: ML_absorption
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -937,7 +1362,7 @@ real (kind=8) function photo_absorption(icomp, lmax_E, lmax_M, egamma, ex)
 !------------------------------------------------------------------------------
    integer(kind=4) :: L
    real(kind=8) :: sum
-!------------------------------------------------------------------------------
+!------   External functions            ---------------------------------------
    real(kind=8) :: EL_absorption
    real(kind=8) :: ML_absorption
 
@@ -954,7 +1379,6 @@ real (kind=8) function photo_absorption(icomp, lmax_E, lmax_M, egamma, ex)
    return
 
 end function photo_absorption
-
 !
 !*****************************************************************************80
 !
@@ -971,13 +1395,31 @@ real(kind=8) function interpolate_grid(x_in, num, x, y)
 !    The function will do an interpolation that is either linear in y (itype == 0)
 !    or log in y (itype == 1).
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        nodeinfo
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!         det3_3
+!
+!     MPI routines:
+!
+!        MPI_Abort
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license.
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -998,9 +1440,9 @@ real(kind=8) function interpolate_grid(x_in, num, x, y)
    real(kind=8) :: ym1, y0, yp1, yy
    real(kind=8) :: denom,numer
    real(kind=8) :: diff1, diff2
-!------------------------------------------------------
+!-----   External functions      ---------------------------------------
    real(kind=8) :: det3_3
-!------------------------------------------------------
+!-----------------------------------------------------------------------
 
   if(x_in > x(num))then
      if(iproc == 0)then
@@ -1095,7 +1537,4 @@ real(kind=8) function interpolate_grid(x_in, num, x, y)
 
   return
 end function interpolate_grid
-
-
-
 

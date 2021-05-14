@@ -8,13 +8,31 @@ subroutine unpack_data(Ix_f, ip_f, n_f, idb, l, iss, itemp)
 !    This subroutine unpacks data in the integer(kind=4) itemp
 !    that was packed into it using the subroutine pack_data
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        variable_kinds
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !

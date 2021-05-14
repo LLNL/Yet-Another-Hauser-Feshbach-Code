@@ -15,13 +15,41 @@ subroutine PREEQ_sample(iproj, in, itarget, istate, e_in, ex_tot,      &
 !    This is a subroutine to Monte Carlo sample the pre-equilibrium decay 
 !    of an energy bin
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        variable_kinds
+!        constants
+!        options
+!        nodeinfo
+!        print_control
+!        useful_data
+!        nuclei
+!        particles_def
+!        pre_equilibrium_no_1
+!
+!     Subroutines:
+!
+!        PREEQ_Angular
+!
+!     External functions:
+!
+!       integer(kind=4) :: preeq_l
+!       integer(kind=4) :: find_ibin
+!       logical :: real8_equal
+!
+!     MPI routines:
+!
+!        MPI_Abort
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -80,7 +108,6 @@ subroutine PREEQ_sample(iproj, in, itarget, istate, e_in, ex_tot,      &
 
    real(kind=8) :: dee
 
-!   real(kind=8) :: costhp, sinthp
    real(kind=8) :: theta_0, phi_0
 
    real(kind=8) :: prob_part(0:6)
@@ -88,7 +115,6 @@ subroutine PREEQ_sample(iproj, in, itarget, istate, e_in, ex_tot,      &
    real(kind=8) :: tally_prob
 
 !--------------------------------    External functions
-!   real(kind=8) :: random_64
    real(kind=8) :: random_32
    integer(kind=4) :: preeq_l
    integer(kind=4) :: find_ibin
@@ -121,7 +147,6 @@ subroutine PREEQ_sample(iproj, in, itarget, istate, e_in, ex_tot,      &
 
      tally_prob =1.0d0
 
-!     dee = de/2.0d0
      cpar = particle(iproj)%par*nucleus(itarget)%state(istate)%parity
      par = cpar*(-1.0d0)**l_i
      xj_i = abs(real(l_i,kind=8) - particle(iproj)%spin) + real(is_i,kind=8) 
@@ -132,7 +157,6 @@ subroutine PREEQ_sample(iproj, in, itarget, istate, e_in, ex_tot,      &
 
      xI_i = dfloat(Ix_i) + nucleus(1)%jshift
      par = 2*ip_i - 1
-!     ran = random_64(iseed_64)
      ran = random_32(iseed_32)
      preeq_cs = nucleus(icomp_i)%PREEQ_cs(in)
      k = -1
@@ -171,12 +195,10 @@ subroutine PREEQ_sample(iproj, in, itarget, istate, e_in, ex_tot,      &
            if(ran < prob)exit
         end do
         tally_prob = nucleus(icomp_i)%PREEQ_part_cs(kk,in)*tally_norm*sum_prob
-!        tally_prob = (nucleus(icomp_i)%PREEQ_part_cs(kk,in)/preeq_cs)*(prob_part(k)/sum_prob)
      end if
 
      if(k == -1)stop 'k not set properly in PREEQ_Samp'
 
-!     ran = random_64(iseed_64)
      ran = random_32(iseed_32)
      preeq_cs_k = nucleus(icomp_i)%PREEQ_part_cs(kk,in)
      e_max = max(ex_tot - nucleus(icomp_i)%sep_e(k),0.0d0)
@@ -425,11 +447,6 @@ subroutine PREEQ_sample(iproj, in, itarget, istate, e_in, ex_tot,      &
         part_data(8,num_part) = xj_f
      end if
 
-!     costhp = 2.0*random_64(iseed_64) - 1.0
-!     costhp = 2.0d0*random_32(iseed_32) - 1.0
-!     sinthp = sqrt(1.0d0-costhp**2)
-!     phi_0 = two_pi*random_64(iseed_64)
-
 
      part_data(10,num_part) = theta_0
      part_data(11,num_part) = phi_0
@@ -466,16 +483,36 @@ subroutine PREEQ_Angular(icomp_C, icomp_B, iproj, E_A, ieject, E_B, x_Ang)
 !
 !  Discussion:
 !
-!    This subroutine returns the angles for a particle emitted by
-!    pre-equilibirum emission
+!   Dependencies:
+!
+!     Modules:
+!
+!        variable_kinds
+!        options 
+!        nuclei
+!        particles_def
+!        constants
+!        nodeinfo
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        real(kind=8) :: expdev
+!
+!     MPI routines:
+!
+!        None
 !
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -496,9 +533,6 @@ subroutine PREEQ_Angular(icomp_C, icomp_B, iproj, E_A, ieject, E_B, x_Ang)
    real(kind=8), intent(in) :: E_A
    integer(kind=4), intent(in) :: ieject
    real(kind=8), intent(in) :: E_B
-!   integer(kind=4), intent(in) :: dim_part, num_part
-!   integer(kind=4), intent(in) :: Ang_L_max
-!   real(kind=8), intent(inout) :: part_Ang_data(0:Ang_L_max,dim_part)
    real(kind=8), intent(out) :: x_Ang
 !-------------------   Internal data
    real(kind=8) :: a, E1, E3, eap, ebp, Sa, Sb
@@ -506,14 +540,9 @@ subroutine PREEQ_Angular(icomp_C, icomp_B, iproj, E_A, ieject, E_B, x_Ang)
    real(kind=8) :: A_C, A_B, Z_C, Z_B, N_C, N_B, Ia, Ib
 
    real(kind=8) :: ex1, ex2, ex4
-
-!   integer(kind=4) :: L
-!   real(kind=8) :: xL
-!------------   External functions
-!   real(kind=8) :: exp_leg_int
+!------------   External functions    -------------------------------
    real(kind=8) :: expdev
-!-------------------   Run program
-
+!-------------------   Run program    -------------------------------
 
    Ma = 0.0d0
    if(iproj < 6)Ma = 1.0d0
@@ -563,17 +592,8 @@ subroutine PREEQ_Angular(icomp_C, icomp_B, iproj, E_A, ieject, E_B, x_Ang)
 
    a = 0.04d0*E1*ebp/eap + 1.8d-6*(E1*ebp/eap)**3 +      &
        6.7d-7*Ma*mb*(E3*ebp/eap)**4
-!
-!   if(part_Ang_data(0,num_part) < 1.0d-6)then
-!      part_Ang_data(0,num_part) = 0.5d0
-!      do L = 1, Ang_L_max
-!         xL = real(L,kind=8)
-!         part_Ang_data(L,num_part) = exp_leg_int(L,a)*(2.0d0*xL+1.0d0)/2.0d0
-!      end do
-!   end if
 
    x_Ang = expdev(iseed_32,a)
-!   x_Ang = expdev(iseed_64,a)
 
    return
 end subroutine PREEQ_Angular
@@ -592,13 +612,33 @@ real(kind=8) function exp_leg_int(n,a)
 !    routine with a call to gauleg. The points x_gleg, and
 !    w_gleg are stored in the module Gauss_integration.
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        variable_kinds
+!        constants
+!        Gauss_integration
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        poly
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -617,7 +657,6 @@ real(kind=8) function exp_leg_int(n,a)
    integer(kind=4) :: m
    real(kind=8) :: sum
 !------------  External functions
-!   real(kind=8) :: Legendre
    real(kind=8) :: poly
 !------------  Start calculation
 !-----   Legendre(n,x) polynomials are compouted with function poly(n,kind,alf,bet,x)
@@ -627,7 +666,6 @@ real(kind=8) function exp_leg_int(n,a)
    bet = 0.0d0
    sum = 0.0d0
    do m = 1 , n_gleg
-!      sum = sum + w_gleg(m)*exp(a*x_gleg(m))*Legendre(n,x_gleg(m))
       sum = sum + w_gleg(m)*exp(a*x_gleg(m))*poly(n,1,alf,bet,x_gleg(m))
    end do
    sum = sum*(0.5d0*a/sinh(a))
@@ -648,13 +686,31 @@ integer(kind=4) function preeq_l(l_p, mass_p, E_p, mass_e, E_e, theta_e, A_p, A_
 !    It assumes momentum conservation and that the reaction occurs on 
 !    the nuclear surface.
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        variable_kinds
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -693,23 +749,15 @@ integer(kind=4) function preeq_l(l_p, mass_p, E_p, mass_e, E_e, theta_e, A_p, A_
       end if
    else
       b_e = R*abs(cos(theta_e))
-!      b_e = b_p*abs(cos(theta_e))
    end if
 
    preeq_l = nint(b_e*k_e)
 
-!   if(preeq_l > 20)then
-!      write(6,*)E_p,E_e, theta_e
-!      write(6,*)mass_p, mass_e
-!      write(6,*)k_p,b_p,R
-!      write(6,*)k_e
-!    end if
    return
 end function preeq_l
 !
 !*******************************************************************************
 !
-!real(kind=8) function expdev(iseed_64,a)
 real(kind=8) function expdev(iseed_32,a)
 !
 !*******************************************************************************
@@ -720,13 +768,32 @@ real(kind=8) function expdev(iseed_32,a)
 !    according to exp(a*x) on the interval (-1,1)
 !    actually, properly normalized is a*exp(a*x)/(2*sinh(a))
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        variable_kinds
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!       real(kind=8) random_32
+!       logical :: real8_equal
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -737,21 +804,12 @@ real(kind=8) function expdev(iseed_32,a)
    use variable_kinds
    implicit none
    integer(kind=int_32), intent(inout) :: iseed_32
-!   integer(kind=int_64), intent(inout) :: iseed_64
    real(kind=8), intent(in) :: a
-!-------------------------
    real(kind=8) dum
+!--------    External Functions    -------------------------------------------
    real(kind=8) random_32
    logical :: real8_equal
-!   real(kind=8) random_64
-!------------------------------
-!! 1 dum = 1.0d0 - random_32(iseed_32)*(1.0d0-exp(-2.0d0*a))
-!! 1 dum = 1.0d0 - random_64(iseed_64)*(1.0d0-exp(-2.0d0*a))
-!   if(dum == 0.0d0) goto 1
-!   expdev = -log(dum)/a
-!   expdev = -(expdev - 1.0d0)
-!   if(abs(expdev) > 1.0d0)goto 1
-
+!-----------------------------------------------------------------------------
    expdev = 10.0d0
    do while(expdev > 1.0d0)
       dum = 1.0d0 - random_32(iseed_32)*(1.0d0-exp(-2.0d0*a))

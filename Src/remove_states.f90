@@ -1,18 +1,41 @@
 !
 !*****************************************************************************80
 !
+subroutine remove_states(inuc, num, state_map)
+!
+!*****************************************************************************80
+!
 !  Discussion:
 !
 !    This Subroutine examines discrete states and removes them based on the marker
 !    marker state_map(i)=-1.  
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        nodeinfo
+!        nuclei
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -20,7 +43,6 @@
 !
 !*****************************************************************************80
 !
-subroutine remove_states(inuc, num, state_map)
    use nodeinfo
    use nuclei
    implicit none
@@ -31,6 +53,7 @@ subroutine remove_states(inuc, num, state_map)
    integer(kind=4) :: m, n
    integer(kind=4) :: ibranch
    integer(kind=4) :: nnd
+!---------------------------------------------------------------------------
    nnd = 0   
    do n = 1, nucleus(inuc)%num_discrete
       if(state_map(n) > 0)then

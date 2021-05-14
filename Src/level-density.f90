@@ -8,13 +8,35 @@ subroutine get_lev_den(data_path,len_path,symb,iz,ia,icomp)
 !    This subroutine sets up level density data, parameters, array data
 !    based on the selected level density option
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        options
+!        nuclei
+!        nodeinfo
+!        constants
+!        particles_def
+!
+!     Subroutines:
+!
+!        Find_T_E0
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -66,8 +88,6 @@ subroutine get_lev_den(data_path,len_path,symb,iz,ia,icomp)
    real(kind=8) :: Gamma_g_exp,dGamma_g_exp
    real(kind=8) :: D1exp,dD1exp
    real(kind=8) :: Gamma_g_1_exp,dGamma_g_1_exp
-!-------------  External functions
-!-------------  Standard integers
    integer(kind=4) :: i, in
       
 !-----   Gibert & cameron parameters 
@@ -540,8 +560,6 @@ subroutine get_lev_den(data_path,len_path,symb,iz,ia,icomp)
 
    spin_cut = nucleus(icomp)%level_param(2)
 
-!   call finish_lev_den(icomp)
-
    return
 end subroutine get_lev_den
 !
@@ -557,13 +575,37 @@ subroutine finish_lev_den(icomp)
 !    all options are read in so that it updates all level density information,
 !    refits D0 if needed, and fits Ematch if needed
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        nodeinfo
+!        options
+!        nuclei
+!        constants
+!        particles_def
+!
+!     Subroutines:
+!
+!        find_prob
+!        unpack_data
+!
+!     External functions:
+!
+!        real(kind=8) :: random_64
+!        real(kind=8) :: random_32
+!
+!    MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -599,12 +641,6 @@ subroutine finish_lev_den(icomp)
    nucleus(icomp)%sig2_perp = (1.0d0+nucleus(icomp)%beta(2)/3.0d0)
    nucleus(icomp)%sig2_ax = sqrt(pi/2.0d0)*                         &
                        (1.0d0-2.0d0*nucleus(icomp)%beta(2)/3.0d0)
-!   nucleus(icomp)%vib_enh(1) = 1.0d0
-!   nucleus(icomp)%vib_enh(2) = 30.0d0
-!   nucleus(icomp)%vib_enh(3) = 5.0d0
-!   nucleus(icomp)%rot_enh(1) = 1.0d0
-!   nucleus(icomp)%rot_enh(2) = 30.0d0
-!   nucleus(icomp)%rot_enh(3) = 5.0d0
    nucleus(icomp)%rot_enh(4) = nucleus(icomp)%sig2_perp
    nucleus(icomp)%rot_enh(5) = nucleus(icomp)%sig2_ax
 !---------------------------------------------------------------------
@@ -691,13 +727,34 @@ subroutine fit_lev_den(icomp)
 !    This subroutine fits the matching energy to the experimental cummlative
 !    level density
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        nuclei
+!        lev_fit
+!        nodeinfo
+!
+!     Subroutines:
+!
+!        cum_rho
+!        Find_T_E0
+!
+!     External functions:
+!
+!        lev_space
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -726,6 +783,7 @@ subroutine fit_lev_den(icomp)
    real(kind=8) :: xI
    integer(kind=4) :: ipar
    integer(kind=4) :: numf
+   real(kind=8) :: ratio
 !-------------  External functions
    real(kind=8) :: lev_space
 
@@ -794,7 +852,7 @@ subroutine fit_lev_den(icomp)
 !   and E_cut = level_param(7)
 !   Search for E_match in 10 keV steps
 
-   emin  = max(nucleus(icomp)%level_param(7),          &
+   emin  = max(nucleus(icomp)%level_param(7),                   &
                nucleus(icomp)%level_param(3)) + 0.2
    emax = nucleus(icomp)%sep_e(1) - 0.2d0          !   neutron separation energy
    numf = int((emax-emin)/0.01d0) + 1
@@ -815,7 +873,7 @@ subroutine fit_lev_den(icomp)
                     nucleus(icomp)%rot_enh,cum_fit)
       chisq = 0.0d0
       do i = 1,nfit
-         chisq = chisq+(cum_rho(i)-cum_fit(i))**2/dcum_rho(i)**2
+         chisq = chisq + (cum_rho(i)-cum_fit(i))**2/dcum_rho(i)**2
       end do
       chisq = chisq/real(nfit-2,kind=8)
       if(chisq < chi_min)then
@@ -827,6 +885,15 @@ subroutine fit_lev_den(icomp)
    call Find_T_E0(ia,nucleus(icomp)%level_param,                &
                   nucleus(icomp)%vib_enh,                       &
                   nucleus(icomp)%rot_enh)
+   call cumm_rho(nfit,elv,ia,nucleus(icomp)%level_param,        &
+                 nucleus(icomp)%vib_enh,                        &
+                 nucleus(icomp)%rot_enh,cum_fit)
+   ratio = cum_fit(nfit)/cum_rho(nfit)
+
+   nucleus(icomp)%cum_rho_ratio = ratio
+
+   if(ratio > 1.25 .or. ratio < 0.75)nucleus(icomp)%ematch_warn = .true.
+
 
  119  if(allocated(elv))deallocate(elv)
    if(allocated(cum_rho))deallocate(cum_rho)
@@ -847,13 +914,35 @@ subroutine rhoe(E,level_param,vib_enhance,rot_enhance,ia,rho,     &
 !    This subroutine returns level density rho(E)
 !    and spin-cutoff parameter,sig at excitation energy E
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        None
+!
+!     Subroutines:
+!
+!        rho_FT
+!        rho_BFM
+!
+!     External functions:
+!
+!        real(kind=8) :: aparam_u
+!        real(kind=8) :: sig2_param
+!        real(kind=8) :: enhance_rot
+!        real(kind=8) :: enhance_vib
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -879,12 +968,14 @@ subroutine rhoe(E,level_param,vib_enhance,rot_enhance,ia,rho,     &
    real(kind=8) :: T
    real(kind=8) :: de
    real(kind=8) :: low_e_mod
-   real(kind=8) :: enhance, enhance_rot, enhance_vib
+   real(kind=8) :: enhance
    integer(kind=4) :: vib_mode, rot_mode
-!-----------------------------------------------------------
-!    Functions
+!-----    External Functions-----------------------------------------------------
    real(kind=8) :: aparam_u
    real(kind=8) :: sig2_param
+   real(kind=8) :: enhance_rot
+   real(kind=8) :: enhance_vib
+!--------------------------------------------------------------------------------
 !-----------   Atomic mass -> real value
       A=dfloat(ia)
 !-----------   level-density parameters --------------------
@@ -947,13 +1038,32 @@ real(kind=8) function sig2_param(E,level_param,A)
 !
 !    This function returns the spin cutoff parameter
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        nodeinfo
+!        constants
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        aparam_u
+!
+!     MPI routines:
+!
+!        MPI_Abort
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -972,9 +1082,9 @@ real(kind=8) function sig2_param(E,level_param,A)
    real(kind=8) :: ecut,ematch,low_e_mod
    real(kind=8) :: U,Um,sig2,sig2_em,deriv, sig
    integer(kind=4) :: i, sig_model
-!------  External functions
+!------  External functions  ---------------------------------------------------
    real(kind=8) :: aparam_u
-!------  Start Calculation
+!------  Start Calculation -----------------------------------------------------
    aparam = level_param(1)
    spin_cut = level_param(2)
    delta = level_param(3)
@@ -1039,13 +1149,31 @@ subroutine rho_FT(e,E0,T,rho)
 !    This subroutine returns the level density using the 
 !    finite-temperature model
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        constants
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -1075,13 +1203,31 @@ subroutine rho_BFM(U,apu,low_e_mod,sig2,rho)
 !    This subroutine returns the level density using the 
 !    back-shifted fermi gas model
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        constants
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -1105,7 +1251,6 @@ subroutine rho_BFM(U,apu,low_e_mod,sig2,rho)
    if(U <= 0.0d0)U1 = 1.0d-6
    rho_F = exp(exponent1)/                                            &
          (sqrt(2.0d0*sig2)*12.0d0*apu**(0.25)*U1**(1.25))
-!      write(6,*)U1,apu,exponent1,rho_F
    T = sqrt(U/apu)
    an = apu/2.0d0
    ap = apu/2.0d0
@@ -1132,13 +1277,31 @@ real(kind=8) function spin_fac(xj,sg2)
 !
 !    This function returns the spin-dependence factor for the level density
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        constants
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -1165,13 +1328,31 @@ real(kind=8) function parity_fac(E,xJ,ipar,mode,e1,bb)
 !
 !    This function returns the parity-dependence factor for the level density
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        None
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -1184,6 +1365,7 @@ real(kind=8) function parity_fac(E,xJ,ipar,mode,e1,bb)
    integer(kind=4) :: ipar
    integer(kind=4) :: ippar
    real(kind=8) :: xj_fac
+!-------------------------------------------------------------------------------
    xj_fac = 1.0d0
    if(xj < 0.0d0)xj_fac = 0.0d0
    if(nint(mode) == 0)then
@@ -1221,13 +1403,32 @@ real(kind=8) function lev_space(e, xj, ipar, l, level_param,       &
 !    at the separation energy for neutrons with orbital angular momentum l 
 !    on A-1 target nucleus
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        None
+!
+!     Subroutines:
+!
+!        rhoe
+!
+!     External functions:
+!
+!        real(kind=8) :: spin_fac
+!        real(kind=8) :: parity_fac
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -1246,12 +1447,14 @@ real(kind=8) function lev_space(e, xj, ipar, l, level_param,       &
 ! -------------------------------------------------------
    integer(kind=4) :: i, k
    real(kind=8) :: rrho,rho0,apu,sg2
-   real(kind=8) :: spin_fac,parity_fac
    real(kind=8) :: xl
    integer(kind=4) :: iparn
    integer(kind=4) :: j
    integer(kind=4) :: iJ, il
    real(kind=8) :: K_vib, K_rot, xI
+!------------    External functions     -----------------------------
+   real(kind=8) :: spin_fac
+   real(kind=8) :: parity_fac
 !--------------------------------------------------------------------  
    mode = level_param(16)
    e1 = level_param(17)
@@ -1291,13 +1494,31 @@ real(kind=8) function aparam_u(u,aparam,shell,gamma)
 !
 !    This function returns the excitation-energy dependent a-parameter
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        None
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -1326,13 +1547,31 @@ real(kind=8) function Ux(energy,delta)
 !
 !    This function returns pairing shifted excitation energy
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        None
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -1358,13 +1597,33 @@ subroutine cumm_rho(nfit,elv,ia,level_param,vib_enh,rot_enh,cumrho)
 !
 !    This function returns the cummulative level density
 !
+!   Dependencies:
+!
+!   Dependencies:
+!
+!     Modules:
+!
+!        rhoe
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -1435,13 +1694,29 @@ subroutine fit_D0(D0exp,sep_e,xj,ipar,lev_param,fit_aparam,vib_enh,rot_enh,iA)
 !    This subroutine fits D0 by adjusting the level-density a-parameter 
 !    or the shell corrections
 !
+!     Modules:
+!
+!        None
+!
+!     Subroutines:
+!
+!        Find_T_E0
+!
+!     External functions:
+!
+!        lev_space
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    12 November 2020
+!    11 May 2021
 !
 !  Author:
 !
@@ -1464,13 +1739,14 @@ subroutine fit_D0(D0exp,sep_e,xj,ipar,lev_param,fit_aparam,vib_enh,rot_enh,iA)
    real(kind=8) :: Wp,Wm,dW,Wnew
    real(kind=8) :: D0,D0p,D0m
    integer(kind=4) :: icount
-   real(kind=8) :: lev_space
    real(kind=8) :: a_old
+!------   External Functions         ----------------------------------------------
+   real(kind=8) :: lev_space
+!----------------------------------------------------------------------------------
    if(D0exp <= 0.0d0)return
    a_old = lev_param(1)
    icount = 0
    da = 0.05d0
-!   if(nint(lev_param(9)) == 0)then
    if(fit_aparam)then
       D0 = lev_space(sep_e,xj,ipar,0,lev_param,vib_enh,rot_enh,iA)
       if(D0 < D0exp)then
@@ -1519,7 +1795,6 @@ subroutine fit_D0(D0exp,sep_e,xj,ipar,lev_param,fit_aparam,vib_enh,rot_enh,iA)
       return
    end if
    dW = 0.01d0
-!   if(nint(lev_param(9)) == 1)then
    if(.not. fit_aparam)then
       D0 = lev_space(sep_e,xj,ipar,0,lev_param,vib_enh,rot_enh,iA)
       if(D0 < D0exp)then
@@ -1568,49 +1843,6 @@ subroutine fit_D0(D0exp,sep_e,xj,ipar,lev_param,fit_aparam,vib_enh,rot_enh,iA)
    end if
    return
 end subroutine fit_D0
-!!
-!!*******************************************************************************
-!!
-!      subroutine vib_enhance(mode,A,U,apu,enhance_v)
-!!
-!!*******************************************************************************
-!!
-!!  Discussion:
-!!
-!!    This subroutine computes the vibrational enhancement factor
-!!
-!!  Licensing:
-!!
-!!    This code is distributed under the GNU LGPL version 2 license. 
-!!
-!!  Date:
-!!
-!!    25 September 2019
-!!
-!!  Author:
-!!
-!!      Erich Ormand, LLNL
-!!
-!!*******************************************************************************
-!!
-!      implicit none
-!      integer(kind=4) :: mode
-!      real(kind=8) :: A, U, apu
-!      real(kind=8) :: enhance_v
-!!-----------------------------------------------------
-!      real(kind=8) :: T
-!!----------   Calculation   --------------------------
-!      enhance_v = 1.0d0
-!      if(mode == 1)then
-!         T = sqrt(U/apu)
-!         enhance_v = exp(0.05555*A**(2./3.)*T**(4./3.))
-!         return
-!      end if
-!      return
-!      end subroutine vib_enhance
-!
-!*******************************************************************************
-!
 real(kind=8) function enhance_vib(mode, A, U, E, apu, Shell, enh)
 !
 !*******************************************************************************
@@ -1619,13 +1851,29 @@ real(kind=8) function enhance_vib(mode, A, U, E, apu, Shell, enh)
 !
 !    This function computes the vibrational enhancement factor
 !
+!     Modules:
+!
+!        None
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -1699,13 +1947,29 @@ real(kind=8) function enhance_rot(mode, sig2, enh, Ex)
 !
 !    This function computes the rotational enhancement factor
 !
+!     Modules:
+!
+!        None
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -1717,6 +1981,7 @@ real(kind=8) function enhance_rot(mode, sig2, enh, Ex)
    real(kind=8), intent(in) :: sig2, enh(5), Ex
    real(kind=8) :: K_r
    real(kind=8) :: damp
+!----------------------------------------------------------------------------------
    K_r = 0.0d0
    if(mode > 0)K_r = enh(4)*sig2
    if(mode == 2 )then
@@ -1745,13 +2010,29 @@ real(kind=8) function damp(E, B, C)
 !    This function computes the damping factor for the rotational and vibrational
 !    enhancement factors
 !
+!     Modules:
+!
+!        None
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -1762,6 +2043,7 @@ real(kind=8) function damp(E, B, C)
    real(kind=8), intent(in) :: E, B, C
 !------------------------------------------------------------------------
    real(kind=8) :: exponent
+!----------------------------------------------------------------------------------
    damp = 0.0d0      
    exponent = (E-B)/C
    if(exponent <= -100.0d0)exponent = -100.0d0
@@ -1781,13 +2063,32 @@ subroutine Find_T_E0(ia, level_param, vib_enhance, rot_enhance)
 !    This subroutine calculates T and E0 for Gilbert and Cameron from
 !    continuity of rho and d rho/dE at ematch
 !
+!     Modules:
+!
+!        None
+!
+!     Subroutines:
+!
+!        rho_BFM
+!
+!     External functions:
+!
+!        real(kind=8) :: aparam_u
+!        real(kind=8) :: sig2_param
+!        real(kind=8) :: enhance_rot
+!        real(kind=8) :: enhance_vib    
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -1816,10 +2117,12 @@ subroutine Find_T_E0(ia, level_param, vib_enhance, rot_enhance)
       
    real(kind=8) rho_F0, rho_Fm, rho_Fp
       
-!---------------    intrinsic functions
-   real(kind=8) :: aparam_u, sig2_param
-   real(kind=8) :: enhance_rot, enhance_vib    
-!++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!------     External functions     ------------------------------------------------
+   real(kind=8) :: aparam_u
+   real(kind=8) :: sig2_param
+   real(kind=8) :: enhance_rot
+   real(kind=8) :: enhance_vib    
+!----------------------------------------------------------------------------------
    A = real(ia, kind=8)
       
    rho_F0 = 0.0d0
@@ -1901,6 +2204,3 @@ subroutine Find_T_E0(ia, level_param, vib_enhance, rot_enhance)
 
    return
 end subroutine Find_T_E0
-
-
-     

@@ -9,13 +9,37 @@ subroutine Fission_data(data_path,len_path,icomp)
 !
 !    This subroutine to set up fission data for nuclei in the calculation
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        variable_kinds
+!        options
+!        nuclei
+!        nodeinfo
+!        constants
+!
+!     Subroutines:
+!
+!       init_barrier_data
+!       parse_string
+!       lower_case_word
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -45,12 +69,8 @@ subroutine Fission_data(data_path,len_path,icomp)
    integer(kind=4) :: numw
    integer(kind=4) :: startw(66), stopw(66)
    integer(kind=4) :: read_err
-
    integer(kind=4) :: nchar
-
-
 !-------------------------------------------------------------------
-!   write(6,*)'fission'
 
    ia = nucleus(icomp)%A
 
@@ -137,7 +157,6 @@ subroutine Fission_data(data_path,len_path,icomp)
  2 continue
    close(unit=53)
 
-
 !------   Now check the file 'Fission-Parameters.txt'
    open(unit=53,file=data_path(1:len_path)//'Fission-Parameters.txt',status='old')
    finished = .false.
@@ -186,13 +205,35 @@ subroutine Fission_levels(icomp)
 !    This subroutine to fit matching energy given transition states above the 
 !    fission barrier
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        variable_kinds
+!        options
+!        nuclei
+!        nodeinfo
+!
+!     Subroutines:
+!
+!       find_T_E0
+!       cumm_rho
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -334,13 +375,38 @@ subroutine Fission_transmission(icomp,Ex,xji,ipar,F_trans)
 !    excitation energy ex, angular moment xji, and parity ipar 
 !    for nucleus icomp
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        variable_kinds
+!        options
+!        nuclei
+!        nodeinfo
+!        constants
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!      real(kind=8) :: HW_trans
+!      real(kind=8) :: spin_fac
+!      real(kind=8) :: parity_fac
+!      logical :: real8_equal
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -360,12 +426,12 @@ subroutine Fission_transmission(icomp,Ex,xji,ipar,F_trans)
    real(kind=8), intent(out) :: F_trans(4)
 !-----------------------------------------------------
    real(kind=8) :: trans(3)
-   real(kind=8) de
+   real(kind=8) :: de
    real(kind=8) :: T_f
    integer(kind=4) :: i, j, j_min
    real(kind=8) :: Ef
    real(kind=8) :: apar,spin_cut,delta,ecut,sg2cut,sig_mod,ematch
-   real(kind=8) par
+   real(kind=8) :: par
    real(kind=8) :: rho,rho_FM,sig2,apu
    real(kind=8) :: tt
    real(kind=8) :: jfac,pfac
@@ -379,9 +445,10 @@ subroutine Fission_transmission(icomp,Ex,xji,ipar,F_trans)
    real(kind=8) :: E0, T, E1
    real(kind=8) :: b, Max_J, F_Barrier, F_Barrier_hbw
    real(kind=8) :: aa, bb, cc
-!--------   Functions  -------------------------------
+!--------   External Functions  ----------------------
    real(kind=8) :: HW_trans
-   real(kind=8) :: spin_fac,parity_fac
+   real(kind=8) :: spin_fac
+   real(kind=8) :: parity_fac
    logical :: real8_equal
 !-----------------------------------------------------
 
@@ -430,8 +497,6 @@ subroutine Fission_transmission(icomp,Ex,xji,ipar,F_trans)
 
 
       do j = 1,nucleus(icomp)%F_Barrier(i)%num_discrete
-!         if(nucleus(icomp)%F_barrier(i)%state_j(j) == xji .and.                &
-!            nucleus(icomp)%F_barrier(i)%state_pi(j) == par)then
          if(real8_equal(nucleus(icomp)%F_barrier(i)%state_j(j),xji) .and.   &
             real8_equal(nucleus(icomp)%F_barrier(i)%state_pi(j),par))then
             Ef = nucleus(icomp)%F_barrier(i)%state_e(j)
@@ -500,13 +565,32 @@ real(kind=8) function HW_trans(Ex,ei,Barrier,hbw)
 !    This function computes the Hill-Wheeler transmission coefficient for 
 !    fission barrier
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        variable_kinds
+!        constants
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -539,13 +623,37 @@ subroutine init_barrier_data(i)
 !
 !    This subroutine initializes fission parameter info for nucleus i
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        variable_kinds
+!        nodeinfo
+!        options
+!        useful_data
+!        nuclei
+!        particles_def
+!        constants
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -562,11 +670,12 @@ subroutine init_barrier_data(i)
    use constants
    implicit none
    integer(kind=4), intent(in) :: i
-!--------------------------------------------------
+!-----------------------------------------------------------------------------
    integer(kind=4) :: j
    real(kind=8) :: beta_2
    real(kind=8) :: sig2_perp
    real(kind=8) :: sig2_ax
+!-----------------------------------------------------------------------------
 
    do j = 1, nucleus(i)%F_n_barr
       if(Fiss_Max_J > 0.0d0)then
@@ -671,13 +780,40 @@ subroutine fission_command(command, numw, startw, stopw, icomp)
 !    This subroutine parses the input command, interprets it, and puts
 !    fission parameter data into the proper data slot.
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        variable_kinds
+!        nodeinfo
+!        options
+!        print_control
+!        useful_data
+!        nuclei
+!        particles_def
+!        directory_structure
+!        constants
+!        pre_equilibrium_no_1
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        MPI_Abort
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -786,7 +922,6 @@ subroutine fission_command(command, numw, startw, stopw, icomp)
       read(command(startw(2):stopw(2)),*)iZ
       read(command(startw(3):stopw(3)),*)iA
       read(command(startw(4):stopw(4)),*)j
-!      read(command(startw(5):stopw(5)),*)k
       if(iZ == nucleus(icomp)%Z .and. iA == nucleus(icomp)%A)then
          if(j > nucleus(icomp)%F_n_barr)then
             if(iproc == 0)write(6,*)'Error: requesting too many barriers for F_Barrier for nucleus Z = ',iZ,' A = ',iA
@@ -1087,7 +1222,6 @@ subroutine fission_command(command, numw, startw, stopw, icomp)
       read(command(startw(3):stopw(3)),*)iZ
       read(command(startw(4):stopw(4)),*)iA
       read(command(startw(5):stopw(5)),*)j
-!      read(command(istart:iend),*) iZ, iA, j
       if(nucleus(icomp)%Z == iZ .and. nucleus(icomp)%A == iA)then
          open(unit=8, file = read_file(1:ilast), status='old')
          num = 0

@@ -1,18 +1,48 @@
 !
 !*****************************************************************************80
 !
+subroutine print_pop_mult_data(itarget, istate, ilab, file_lab, ilib_dir, lib_dir,    &
+                               ch_par, num_energies, decay_mult, decay_var,           &
+                               write_error)
+!
+!*****************************************************************************80
+!
 !  Discussion:
 !
 !    This Subroutine to write reaction, absorption,and total cross sections
 !    to the library directory
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        variable_kinds
+!        options
+!        constants
+!        nodeinfo
+!        nuclei
+!        Channel_info
+!        particles_def
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license.
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -20,9 +50,6 @@
 !
 !*****************************************************************************80
 !
-subroutine print_pop_mult_data(itarget, istate, ilab, file_lab, ilib_dir, lib_dir,    &
-                               ch_par, num_energies, decay_mult, decay_var,           &
-                               write_error)
    use variable_kinds
    use options
    use constants

@@ -6,13 +6,37 @@
 !    This Subroutine fit to experimental values of Gamma_gamma (if known)
 !    by adding an additional E1 mode 
 !
+!  Dependencies:
+!
+!   Dependencies:
+!
+!     Modules:
+!
+!        variable_kinds
+!        options
+!        constants
+!        nodeinfo
+!        nuclei
+!
+!     Subroutines:
+!
+!       Gamma_gamma
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !

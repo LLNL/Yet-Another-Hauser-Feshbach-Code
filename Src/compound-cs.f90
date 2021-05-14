@@ -10,13 +10,37 @@ subroutine compound_xs(e_in, itarget, istate, iproj, sigma,      &
 !
 !    This subroutine calculates reaction cross section
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        variable_kinds
+!        options
+!        nuclei
+!        particles_def
+!        constants 
+!        nodeinfo
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!       real(kind=8) :: jhat
+!       real(kind=8) :: tco_interpolate
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -51,9 +75,9 @@ subroutine compound_xs(e_in, itarget, istate, iproj, sigma,      &
    integer(kind=4) i, l, nn
    integer(kind=4) cpar, par
    real(kind=8) :: tcoef
-!   real(kind=8) :: mass_target
 !----------   External functions
-   real(kind=8) :: jhat, tco_interpolate
+   real(kind=8) :: jhat
+   real(kind=8) :: tco_interpolate
 !-----------------------------------------------------------
    spin_target = nucleus(itarget)%state(istate)%spin
    spin_proj = particle(iproj)%spin
@@ -146,13 +170,36 @@ real(kind=8) function comp_cs(ie,itarget,istate,k)
 !
 !    This function calculates compound reaction cross section
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        variable_kinds
+!        options
+!        nuclei
+!        particles_def
+!        constants 
+!        nodeinfo
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!       real(kind=8) :: jhat
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -167,7 +214,6 @@ real(kind=8) function comp_cs(ie,itarget,istate,k)
    use constants 
    use nodeinfo
    implicit none
-!!   real(kind=8) :: e_in
    integer(kind=4), intent(in) :: ie, itarget, istate, k
 !----------------------------------------------------------
    real(kind=8) :: sigma
@@ -180,7 +226,6 @@ real(kind=8) function comp_cs(ie,itarget,istate,k)
    real(kind=8) :: momentum,wave_number
    real(kind=8) :: spin_proj,spin_target
    integer(kind=4) isp
-!   integer(kind=4) nume
    real(kind=8) sum,sum1
    integer(kind=4) i, l
    real(kind=8) :: cpar
@@ -241,13 +286,37 @@ real(kind=8) function compound_cs(e_in,ipar,xI,itarget,istate,iproj)
 !
 !    This is an alternative function calculates compound reaction cross section
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        variable_kinds
+!        options
+!        nuclei
+!        particles_def
+!        constants 
+!        nodeinfo
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!       real(kind=8) :: jhat
+!       real(kind=8) :: tco_interpolate
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -280,7 +349,8 @@ real(kind=8) function compound_cs(e_in,ipar,xI,itarget,istate,iproj)
    real(kind=8) :: xj
    real(kind=8) :: channel_xs
 !----------   External functions
-   real(kind=8) :: jhat, tco_interpolate
+   real(kind=8) :: jhat
+   real(kind=8) :: tco_interpolate
 !-----------------------------------------------------------
    compound_cs = 0.0d0
    par = 2*ipar - 1
@@ -333,13 +403,38 @@ subroutine photo_xs(e_in, itarget, istate, sigma,                 &
 !
 !    This subroutine calculates reaction cross section
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        variable_kinds
+!        options
+!        nuclei
+!        particles_def
+!        constants 
+!        nodeinfo
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!       real(kind=8) :: jhat
+!       real(kind=8) :: EL_absorption
+!       real(kind=8) :: ML_absorption
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -378,7 +473,6 @@ subroutine photo_xs(e_in, itarget, istate, sigma,                 &
 !-----------------------------------------------------------
    spin_target = nucleus(itarget)%state(istate)%spin
    cpar = nint(nucleus(itarget)%state(istate)%parity)
-!   ex = nucleus(itarget)%state(istate)%energy
    ex = nucleus(itarget)%sep_e(1)
 
    cs = 0.0d0

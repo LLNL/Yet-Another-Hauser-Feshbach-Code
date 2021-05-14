@@ -6,13 +6,37 @@
 !    This Subroutine to write reaction, absorption,and total cross sections 
 !    to the library directory
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        variable_kinds
+!        options
+!        constants
+!        nodeinfo
+!        nuclei
+!        Channel_info
+!        particles_def
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -99,13 +123,37 @@ end subroutine print_total_cs
 !    This Subroutine to write reaction, absorption,and total cross sections 
 !    to the library directory
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        variable_kinds
+!        options
+!        constants
+!        nodeinfo
+!        nuclei
+!        Channel_info
+!        particles_def
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -191,13 +239,37 @@ end subroutine print_reaction_cs
 !    This Subroutine to write reaction, absorption,and total cross sections 
 !    to the library directory
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        variable_kinds
+!        options
+!        constants
+!        nodeinfo
+!        nuclei
+!        Channel_info
+!        particles_def
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -280,13 +352,37 @@ end subroutine print_absorption_cs
 !    This Subroutine to write pre-equilibrium cross section to the library 
 !    directory
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        variable_kinds
+!        options
+!        constants
+!        nodeinfo
+!        nuclei
+!        Channel_info
+!        particles_def
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -367,13 +463,37 @@ end subroutine print_preeq_cs
 !    This Subroutine to write direct, coupled-channles cross section to the library 
 !    directory
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        variable_kinds
+!        options
+!        constants
+!        nodeinfo
+!        nuclei
+!        Channel_info
+!        particles_def
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -454,13 +574,37 @@ end subroutine print_direct_cs
 !    This Subroutine to write fission cross section to the library 
 !    directory
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        variable_kinds
+!        options
+!        constants
+!        nodeinfo
+!        nuclei
+!        Channel_info
+!        particles_def
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !

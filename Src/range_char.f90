@@ -10,13 +10,31 @@ subroutine range_char(line,iend)
 !    This routine finds the last set character in a character(len=132)
 !    string line
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        variable_kinds
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -28,7 +46,7 @@ subroutine range_char(line,iend)
    implicit none
    character(len=132), intent(in) :: line
    integer(kind=4), intent(out) :: iend
-!-----------------------------------------------
+!--------------------------------------------------------------------------
    integer i
    iend = 0
    do i = 132, 1, -1

@@ -1,4 +1,6 @@
+!
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++       
+!
 subroutine particle_data
 !
 !*******************************************************************************
@@ -7,13 +9,34 @@ subroutine particle_data
 !
 !    This subroutine puts particle data into appropriate arrays for later use
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        variable_kinds
+!        constants
+!        particles_def
+!        directory_structure
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !

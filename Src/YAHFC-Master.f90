@@ -1,3 +1,6 @@
+!
+!*****************************************************************************
+!
 program YAHFC_MASTER
 !
 !*****************************************************************************
@@ -6,13 +9,121 @@ program YAHFC_MASTER
 !
 !    This program is the driver for the Hauser-Feshbach code system YAHFC
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        variable_kinds
+!        options
+!        constants
+!        nodeinfo
+!        print_control
+!        useful_data
+!        log_factorial
+!        nuclei
+!        Channel_info
+!        particles_def
+!        directory_structure
+!        pre_equilibrium_no_1
+!        Gauss_integration
+!
+!     Subroutines:
+!
+!        log_fact
+!        gauss_quad
+!        system_clock
+!        getenv
+!        particle_data
+!        parse_string
+!        parse_command
+!        lower_case_word
+!        set_up_decay_chain
+!        get_spectrum
+!        gdr_param
+!        EM_str_param
+!        get_lev_den
+!        fit_lev_den
+!        Fission_data
+!        Fission_levels
+!        finish_lev_den
+!        Find_T_E0
+!        Setup_Energy_bins
+!        fix_incident_energies
+!        fix_pop_energies
+!        set_min_particle_energy
+!        optical_setup
+!        reaction_max_J
+!        remove_states
+!        modeled_level_density
+!        read_level_density
+!        fit_nuke_Gamma_gamma
+!        HF_denominator
+!        start_IO
+!        output_trans_coef
+!        output_nucleus_data
+!        memory_used
+!        nucleus_label
+!        check_directories
+!        compound_xs
+!        gauss_quad
+!        HF_primary_decay_setup
+!        photo_xs
+!        pre_equilibrium_1
+!        PREEQ_sample
+!        find_prob_point
+!        MC_primary_decay
+!        MC_decay_bin
+!        force_decay
+!        MC_decay_state
+!        Boost_frame
+!        print_preeq_spectra
+!        print_direct_spectra
+!        print_x_particle_spectra
+!        print_primary_decay
+!        Legendre_expand
+!        print_channel_gammas
+!        print_nuke_data
+!        print_total_cs
+!        print_reaction_cs
+!        print_absorption_cs
+!        print_preeq_cs
+!        print_direct_cs
+!        print_elastic
+!        print_compound_elastic
+!        print_inelastic
+!        print_pop_mult_data
+!        print_channels
+!        print_fission_cs
+!
+!     External functions:
+!
+!        integer(kind=4) :: find_channel
+!        integer(kind=4) :: find_ibin
+!        real(kind=8) :: random_64
+!        real(kind=8) :: random_32
+!        real(kind=8) :: poly
+!        real(kind=8) :: clebr
+!        real(kind=8) :: interpolate_exp
+!        real(kind=8) :: Gauss_var
+!        integer(kind=4) :: rank_commands
+!
+!     MPI routines:
+!
+!        MPI_INIT
+!        MPI_COMM_RANK
+!        MPI_COMM_SIZE
+!        MPI_Abort
+!        MPI_Bcast
+!        MPI_Barrier
+!        MPI_AllReduce
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license.
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -36,7 +147,6 @@ program YAHFC_MASTER
       use directory_structure
       use pre_equilibrium_no_1
       use Gauss_integration
-      !use mpi
 !---------------------------------------------------------------------
       implicit none
 !---------------------------------------------------------------------
@@ -180,7 +290,6 @@ program YAHFC_MASTER
 !---------------------------------------------------------------------
       integer(kind=4) :: state_map(1000)
       integer(kind=4) :: ibranch, numd
-!      integer(kind=4) :: lev_below
       integer(kind=4) :: JJ
       logical :: check
 !---------------------------------------------------------------------
@@ -218,7 +327,6 @@ program YAHFC_MASTER
       integer(kind=4) :: ilab
       character(len=100) :: file_lab
 
-!      real(kind=8) :: population
 !------------------------------------------------------------------
 !--------   Data to reconstruct angular distributions
       integer(kind=4) :: ixx_max
@@ -284,7 +392,6 @@ program YAHFC_MASTER
       real(kind=8), allocatable :: x_particle_Spectrum(:,:)
       real(kind=8) :: de_spec2
 
-!      real(kind=8), allocatable :: preeq_Spectrum(:)
       real(kind=8), allocatable :: direct_Spectrum(:)
       real(kind=8), allocatable :: dwba_Spectrum(:)
 !---------   Statistics on Fissioning nuclei
@@ -382,9 +489,6 @@ program YAHFC_MASTER
       end subroutine find_prob_point
    end interface
 
-!      integer(kind=4) :: num
-
-
 !--------------------External functions--------------------------------
    integer(kind=4) :: find_channel
    integer(kind=4) :: find_ibin
@@ -415,6 +519,15 @@ program YAHFC_MASTER
       write(6,'(''****************************************************************'')')
       write(6,'(''* Yet Another Hauser Monte Hauser-Feshbach code - Monte Carlo  *'')')
       write(6,'(''* Version # '',a8,43x,''*'')')version(1:ilast)
+      write(6,'(''* Author W. E. Ormand, Lawrence Livermore national Laboratory  *'')')
+!      write(6,'(''* This code system is distributed under the license            *'')')
+      write(6,'(''*--------------------------------------------------------------*'')')
+      write(6,'(''* This code makes use of RIPL-3 data, with modifcations by the *'')')
+      write(6,'(''* author and users. RIPL-3 data is available at                *'')')
+      write(6,'(''* https://www-nds.iaea.org/RIPL-3/. Discrete level information *'')')
+      write(6,'(''* is based on M. Verpelli and R. Capote Noy, INDC(NDS)-0702,   *'')')
+      write(6,'(''* IAEA, 2015, and R. Capote, et al., Nuclear Data Sheets 110   *'')')
+      write(6,'(''* (2009), 3107-3214.                                           *'')')
       write(6,'(''****************************************************************'')')
       write(6,*)
    end if
@@ -839,11 +952,6 @@ program YAHFC_MASTER
                call get_spectrum(data_path,len_path,                      &
                                  overide,symb(Z_f),Z_f,A_f,icomp)
 !----------------------------------------------------------------------------------------+
-!--------   EM strength function parameters                                              +
-!----------------------------------------------------------------------------------------+
-               call gdr_param(data_path,len_path,icomp)
-               call EM_str_param
-!----------------------------------------------------------------------------------------+
 !--------   level density setup                                                          +
 !----------------------------------------------------------------------------------------+
                if(A_f > 20)then
@@ -855,6 +963,11 @@ program YAHFC_MASTER
                call get_lev_den(data_path,len_path,                       &
                                 symb(Z_f),Z_f,A_f,icomp)
                if(nucleus(icomp)%fit_ematch)call fit_lev_den(icomp)
+!----------------------------------------------------------------------------------------+
+!--------   EM strength function parameters                                              +
+!----------------------------------------------------------------------------------------+
+               call gdr_param(data_path,len_path,icomp)
+               call EM_str_param(icomp)
                nucleus(icomp)%fission = .false.
 !----------------------------------------------------------------------------------------+
 !---------    Fission barrier info                                                       +
@@ -945,6 +1058,43 @@ program YAHFC_MASTER
          if(nucleus(icomp)%D0exp <= 0.0d0 .and. nucleus(icomp)%fit_D0)   &
             nucleus(icomp)%fit_D0 = .false.
          call finish_lev_den(icomp)
+!----------------------------------------------------------------------------------------+
+!----   If fitted cumulative density differs from experiment by more than a
+!----   factor of 1.25 or less than a factor of 0.75, warn users to check
+!----------------------------------------------------------------------------------------+
+        if(nucleus(icomp)%fit_ematch .and. nucleus(icomp)%cum_rho_ratio > 1.3d0)then
+           if(iproc == 0)then
+              write(6,*)
+              write(6,'(''******************************************************************'')')
+              write(6,'(''*****    CAUTION   CAUTION   CAUTION  CAUTION   CAUTION      *****'')')
+              write(6,'(''*****  The fitted cumulative level density for '',a5,'' at      *****'')')nucleus(icomp)%Label
+              write(6,'(''*****  E_cut is more than 1.3 larger than the experimental   *****'')')
+              write(6,'(''*****  value. You should check this and possibly change      *****'')')
+              write(6,'(''*****  E_cut with the command "lev_ecut Z A  Value"          *****'')')
+              write(6,'(''*****  Problems of this nature usually means E_cut           *****'')')
+              write(6,'(''*****  is too high                                           *****'')')
+              write(6,'(''*****    CAUTION   CAUTION   CAUTION  CAUTION   CAUTION      *****'')')
+              write(6,'(''******************************************************************'')')
+              write(6,*)
+           end if
+         end if
+        if(nucleus(icomp)%fit_ematch .and. nucleus(icomp)%cum_rho_ratio < 0.7d0)then
+           if(iproc == 0)then
+              write(6,*)
+              write(6,'(''******************************************************************'')')
+              write(6,'(''*****    CAUTION   CAUTION   CAUTION  CAUTION   CAUTION      *****'')')
+              write(6,'(''*****  The fitted cumulative level density for '',a5,'' at      *****'')')nucleus(icomp)%Label
+              write(6,'(''*****  E_cut is more than 0.7 smaller than the experimental  *****'')')
+              write(6,'(''*****  value. You should check this and possibly change      *****'')')
+              write(6,'(''*****  E_cut with the command "lev_ecut Z A  Value"          *****'')')
+              write(6,'(''*****  Problems of this nature usually means E_cut           *****'')')
+              write(6,'(''*****  is too high                                           *****'')')
+              write(6,'(''*****    CAUTION   CAUTION   CAUTION  CAUTION   CAUTION      *****'')')
+              write(6,'(''******************************************************************'')')
+              write(6,*)
+           end if
+         end if
+
 !----------------------------------------------------------------------------------------+
 !----   Check if fission is actually possible, i.e., barriers are below maximum
 !----   excitation energies
@@ -1599,7 +1749,6 @@ program YAHFC_MASTER
       if(.not.allocated(x_particle_Spectrum))allocate(x_particle_Spectrum(0:num_e,0:6))
       x_particle_cs(1:num_energies,0:6) = 0.0d0
 
-
       if(track_primary_gammas)allocate(Primary_Gamma_Spectrum(0:num_e))
 
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -1779,7 +1928,6 @@ program YAHFC_MASTER
             if(PREEQ_Model > 0)then
                preeq_Spect(0:6,0:num_e) = 0.0d0
                preeq_Spect_full(0:6,0:num_e) = 0.0d0
-!               preeq_Spectrum(0:num_e) = 0.0d0
             end if
             direct_Spectrum(0:num_e) = 0.0d0
             dwba_Spectrum(0:num_e) = 0.0d0
@@ -1879,14 +2027,12 @@ program YAHFC_MASTER
             preeq_prob = nucleus(1)%PREEQ_cs(in)/absorption_cs(in)
          end if
 
-
          if(pop_calc)then
             if(.not. j_pop_calc)then
                pop_sum = 0.0d0
                do i = 1, Pop_data(in)%num_pop
                   pop_sum = pop_sum + Pop_data(in)%bin_pop(i)
                end do
-!               absorption_cs(in) = pop_sum
                pop_prob(1:Pop_data(in)%num_pop) = 0.0d0
                pop_prob(1) = Pop_data(in)%bin_pop(1)/pop_sum
                target%pop_xjpi(0:j_max,0:1) = 0.0d0
@@ -1915,9 +2061,6 @@ program YAHFC_MASTER
                         write(13,'(2(1x,f4.1),2(1x,f10.6))')xj,2.0*real(ip)-1.0,target%pop_xjpi(j,ip)
                      end do
                   end do
-!                  do ijj = 1, num_pop
-!                     write(13,'(3(1x,i5),f10.6)')ijj,pop_j(ijj), pop_ip(ijj), pop_prob(ijj)
-!                  end do
                end if
             else
                pop_sum = 0.0d0
@@ -1926,7 +2069,6 @@ program YAHFC_MASTER
                      pop_sum = pop_sum + nucleus(1)%bins(j,ip,nbin)%rho
                   end do
                end do
-!               absorption_cs(in) = 1.0d0
                ijj = 0
                pop_prob(1:num_pop) = 0.0d0
                prev = 0.0d0
@@ -2085,7 +2227,6 @@ program YAHFC_MASTER
 !------
          else
             if(print_me)write(6,*)'Total population ',absorption_cs(in)
-!            if(print_me)write(6,*)'Total population ',reaction_cs(in)
          end if
 
          if(.not. file_energy_index)then
@@ -2121,9 +2262,6 @@ program YAHFC_MASTER
             end if
             ifile = ifile + 3
          end if
-
-!       write(6,*)ifile, file_name(1:ifile)
-!       write(6,*)'dump_events ',dump_events
 
          directory(1:ilib_dir) = lib_dir(1:ilib_dir)
          idir = ilib_dir + 1
@@ -2199,7 +2337,6 @@ program YAHFC_MASTER
 !--------    Monte Carlo sampling loop for each event                              -----
 !---------------------------------------------------------------------------------------
 !
-!         do nsamp = 1, num_mc_samp
          do nsamp = iproc, num_mc_samp - 1, nproc
 
             fission_decay = .false.
@@ -2269,7 +2406,6 @@ program YAHFC_MASTER
                      end do
                   end do
                   if(pop_sum <= 1.0d-7) goto 10001             !   No levels, get new excitation energy
-!                  absorption_cs(in) = 1.0
                   ijj = 0
                   pop_prob(1:num_pop) = 0.0d0
                   prev = 0.0d0
@@ -2301,6 +2437,7 @@ program YAHFC_MASTER
 !-------   or direct reaction                                                +
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
+
             compound = .false.
             direct = .false.
             preeq_decay = .false.
@@ -2309,7 +2446,6 @@ program YAHFC_MASTER
             cc_decay = .false.
             dwba_decay = .false.
             if(.not.pop_calc .and. iproj > 0)then      !***********   particle projectile   *******
-!               ran = random_64(iseed_64)
                ran = random_32(iseed_32)
                if(ran <= absorption_cs(in)/reaction_cs(in))then         !   Normal Compound formation
                   sp1 = abs(spin_target-spin_proj)
@@ -2323,7 +2459,6 @@ program YAHFC_MASTER
 
                   xnbin_i = nbin_i
                   par_i = 2*ip_i - 1
-!                  ran = random_64(iseed_64)
                   ran = random_32(iseed_32)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !-----------  Check if this part of reaction cross section is populated by pre-equilibirum
@@ -2347,6 +2482,7 @@ program YAHFC_MASTER
 !-----------   matters because of width fluctuations. In addition, angular distribution
 !-----------   is not isotropic for first decay.
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
                      compound = .true.
                      preeq_decay = .false.
                      num_part = 0
@@ -2376,7 +2512,6 @@ program YAHFC_MASTER
                   cc_decay = .false.
                   dwba_decay = .false.
                   icomp_i = 1
-!                  ran = random_64(iseed_64)
                   ran = random_32(iseed_32)
                   sum_d = 0.0d0
                   j = 1
@@ -2411,7 +2546,6 @@ program YAHFC_MASTER
                            ip_f = nint((xip_f + 1.0d0)/2.0d0)
                            Ex = OpticalCS%state(n)%E_min +                          &
                                 random_32(iseed_32)*OpticalCS%state(n)%Delta_E
-!                                random_64(iseed_64)*OpticalCS%state(n)%Delta_E
                            nbin_f = find_ibin(Ex,itarget)
                            Ex = nucleus(itarget)%e_grid(nbin_f)
                            E_f = ex_tot - nucleus(icomp_i)%sep_e(iproj) - Ex
@@ -2419,7 +2553,6 @@ program YAHFC_MASTER
                            dwba_decay = .true.
                         elseif(OpticalCS%state(n)%state_type == -1)then    !  Direct to continuum bin w/o explicit J
                            idb = 0
-!                           ran = random_64(iseed_64)
                            ran = random_32(iseed_32)
                            do Ix_f = OpticalCS%state(n)%Ix_min, OpticalCS%state(n)%Ix_max   !  find final spin for DWBA K state
                               if(ran <= OpticalCS%state(n)%spin_prob(Ix_f))exit
@@ -2429,7 +2562,6 @@ program YAHFC_MASTER
                            ip_f = nint((xip_f + 1.0d0)/2.0d0)
                            Ex = OpticalCS%state(n)%E_min +                          &
                                 random_32(iseed_32)*OpticalCS%state(n)%Delta_E
-!                                random_64(iseed_64)*OpticalCS%state(n)%Delta_E
                            nbin_f = find_ibin(Ex,itarget)
                            Ex = nucleus(itarget)%e_grid(nbin_f)
                            dwba_decay = .true.
@@ -2454,18 +2586,15 @@ program YAHFC_MASTER
 
                         if(.not. xs_only)then
                            do nang = 1, num_theta
-!                              ran = random_64(iseed_64)
                               ran = random_32(iseed_32)
                               do i = 1, ixx_max
                                  x = real(i,kind=8)*delta_ix - 1.0d0
                                  if(direct_prob(i,n) > ran)exit
                               end do
                               x = x - random_32(iseed_32)*delta_ix*0.999999d0
-!                              x = x - random_64(iseed_64)*delta_ix*0.999999d0
                               extra_angle_data(nang,num_part) = acos(x)
                            end do
                            theta_0 = extra_angle_data(1,num_part)
-!                          ran = random_64(iseed_64)
                            ran = random_32(iseed_32)
                            phi_0 = ran*2.0d0*pi
                         end if
@@ -2533,7 +2662,6 @@ program YAHFC_MASTER
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
                compound = .true.
-!               ran = random_64(iseed_64)
                ran = random_32(iseed_32)
                do i = 1, Pop_data(in)%num_pop
                   if(ran <= pop_prob(i))exit
@@ -2599,10 +2727,6 @@ program YAHFC_MASTER
                write(6,*)'nbin_i = ', nbin_i
                write(6,*)'idb = ', idb
                write(6,'(2(1x,i10),3(1x,f10.5))')nsamp, num_part
-!               do i = 1, num_part
-!                  write(6,'(1x,i5,21(2x,f12.5))')i,(part_data(k,i), k = 1, n_dat)
-!               end do
-!               flush(89)
                call MPI_ABort(icomm,101,ierr)
             end if
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -2797,7 +2921,6 @@ program YAHFC_MASTER
                   call Boost_frame(e_rel, mass_1, mass_2, theta_0, phi_0,                 &
                                    Boost_Lab, Boost_COM, T_1, theta, phi,                 &
                                    T_2, T_L, theta_L, phi_L)
-
 
                   part_data(12,nn) = T_1
                   part_data(13,nn) = theta
@@ -3429,6 +3552,7 @@ program YAHFC_MASTER
             end do
             if(iproc == 0)then
                if(iproj > 0)then
+
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !------   Pre-equilibrium decays                                                         +
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -3459,11 +3583,9 @@ program YAHFC_MASTER
             call print_primary_decay(ilib_dir, lib_dir, ifile, file_name, e_in, reaction_cs(in))
          end if
 
-
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ! ---- finished with printing spectra                                                    +
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
 
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !--------------------   Distribute cs hung in discrete states to final states            +
@@ -3859,11 +3981,9 @@ program YAHFC_MASTER
          write(6,*)'****************************************************'
          call MPI_Abort(icomm,101,ierr)
       end if
-
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !---------    Reaction Label       -----------------------------------+
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
       ilab = ntar
       file_lab(1:ntar) = target_label(1:ntar)
       ilab = ilab + 1
@@ -4029,13 +4149,13 @@ program YAHFC_MASTER
             end if
          if(write_error)call MPI_Abort(icomm,51,ierr)
       end if
+
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !------------    Finished Library output    -----------------------------------+
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !---------------------------------------------------------------------+
      if(iproc == 0)write(6,*)'That'//quote//'s all Folks'
 
-!
 end program YAHFC_MASTER
 !
 !*****************************************************************************80
@@ -4048,13 +4168,31 @@ subroutine nucleus_label(icomp,length,label)
 !
 !    This routine puts nucleus symbol and A into character string
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        nuclei
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license.
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -4064,6 +4202,7 @@ subroutine nucleus_label(icomp,length,label)
 !
    use nuclei
    implicit none
+!--------------------------------------------------------------
    integer(kind=4) icomp,length
    character(len=5) label
    if(nucleus(icomp)%A > 99)then
@@ -4095,13 +4234,31 @@ real(kind=8) function jhat(xj)
 !
 !    This function computes 2*J+1
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        None
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license.
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -4111,6 +4268,7 @@ real(kind=8) function jhat(xj)
 !
    implicit none
    real(kind=8) xj
+!--------------------------------------------------------------
    jhat=2.0d0*xj+1.0d0
    return
 end function jhat
@@ -4130,13 +4288,31 @@ real(kind=8) function interpolate_exp(itype, x_in, num, grid, vec)
 !    The function will do an interpolation that is either linear in y (itype == 0)
 !    or log in y (itype == 1).
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        nodeinfo
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        real(kind=8) :: det3_3
+!
+!     MPI routines:
+!
+!        MPI_Abort
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license.
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -4158,9 +4334,9 @@ real(kind=8) function interpolate_exp(itype, x_in, num, grid, vec)
    real(kind=8) :: ym1, y0, yp1, y
    real(kind=8) :: denom,numer
    real(kind=8) :: diff1, diff2
-!------------------------------------------------------
+!---------   External Functions        ------------------------
    real(kind=8) :: det3_3
-!------------------------------------------------------
+!--------------------------------------------------------------
 
   i0 = 0
   if(x_in < grid(1))then
@@ -4257,8 +4433,9 @@ real(kind=8) function interpolate_exp(itype, x_in, num, grid, vec)
      interpolate_exp = exp(y)
   end if
 end function interpolate_exp
-
-
+!
+!*****************************************************************************80
+!
 real(kind=8) function det3_3(mat)
 !
 !*****************************************************************************80
@@ -4267,13 +4444,31 @@ real(kind=8) function det3_3(mat)
 !
 !    This functions computes the detemrinant of a 3x3 matrix
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        None
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license.
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -4288,9 +4483,9 @@ real(kind=8) function det3_3(mat)
             mat(1,3)*(mat(2,1)*mat(3,2) - mat(2,2)*mat(3,1))
    return
 end function det3_3
-
-
-!real(kind=8) function Gauss_var(iseed_64)
+!
+!*****************************************************************************80
+!
 real(kind=8) function Gauss_var(iseed_32)
 !
 !*****************************************************************************80
@@ -4299,13 +4494,32 @@ real(kind=8) function Gauss_var(iseed_32)
 !
 !    This function returns Gaussian distributed variables
 !
+!   Dependencies:
+!
+!     Modules:
+!
+ !        variable_kinds
+ !        constants
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        real(kind=8) :: random_32
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license.
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -4316,18 +4530,13 @@ real(kind=8) function Gauss_var(iseed_32)
     use variable_kinds
     use constants
     implicit none
-!    integer(kind=int_64), intent(inout) :: iseed_64
     integer(kind=int_32), intent(inout) :: iseed_32
     real(kind=8) :: u, v
 !--------   External functions
-!    real(kind=8) :: random_64
     real(kind=8) :: random_32
 !------------------------------------------------------------------------------
-!    u = random_64(iseed_64)
-!    v = random_64(iseed_64)
     u = random_32(iseed_32)
     v = random_32(iseed_32)
-!    if(random_64(iseed_64) < 0.5) then
     if(random_32(iseed_32) < 0.5) then
        Gauss_var = sqrt(-2.0*log(u))*cos(two_pi*v)
     else
@@ -4335,8 +4544,9 @@ real(kind=8) function Gauss_var(iseed_32)
     end if
     return
 end function Gauss_var
-
-
+!
+!*****************************************************************************80
+!
 integer(kind=4) function find_channel(n_dat, dim_part, num_part, part_data, num_part_type)
 !
 !*****************************************************************************80
@@ -4345,13 +4555,32 @@ integer(kind=4) function find_channel(n_dat, dim_part, num_part, part_data, num_
 !
 !    This function returns the channel number given a set of decay particles
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        options
+!        Channel_info
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license.
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -4359,7 +4588,6 @@ integer(kind=4) function find_channel(n_dat, dim_part, num_part, part_data, num_
 !
 !*****************************************************************************80
 !
-
    use options
    use Channel_info
    implicit none
@@ -4406,6 +4634,7 @@ integer(kind=4) function find_channel(n_dat, dim_part, num_part, part_data, num_
   return
 end function find_channel
 !
+!*****************************************************************************80
 !
 integer(kind=4) function find_ibin(Ex, inuc)
 !
@@ -4416,13 +4645,32 @@ integer(kind=4) function find_ibin(Ex, inuc)
 !    This function returns the index for the bin that brackets energy Ex in
 !    nucleus inuc
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        options
+!        nuclei
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license.
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -4437,7 +4685,7 @@ integer(kind=4) function find_ibin(Ex, inuc)
    integer(kind=4), intent(in) :: inuc
 !-------------------------------------------------------------------------------
    integer(kind=4) :: i
-
+!-------------------------------------------------------------------------------
    find_ibin = 0
    do i = 1, nucleus(inuc)%nbin
       if(ex >= nucleus(inuc)%e_grid(i) - 0.5d0*nucleus(inuc)%delta_e(i) .and.   &
@@ -4448,7 +4696,10 @@ integer(kind=4) function find_ibin(Ex, inuc)
    end do
    return
 end function find_ibin
-
+!
+!*****************************************************************************80
+!
+real(kind=8) function delta_e_value(Ex, ex_base, de)
 !
 !*****************************************************************************80
 !
@@ -4458,13 +4709,31 @@ end function find_ibin
 !    current excitation energy. Increasing the value with increasing
 !    excitation energy
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        None
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license.
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -4472,7 +4741,6 @@ end function find_ibin
 !
 !*****************************************************************************80
 !
-real(kind=8) function delta_e_value(Ex, ex_base, de)
    implicit none
    real(kind=8) :: Ex, ex_base, de
 !---------------------------------------------------
@@ -4489,18 +4757,44 @@ end function delta_e_value
 !
 !*****************************************************************************80
 !
+subroutine memory_used
+!
+!*****************************************************************************80
+!
 !  Discussion:
 !
 !    This Subroutine calculates and prints out the amount of memory used
 !    in the calculation, nucleus arrays, etc.
 !
+!   Dependencies:
+!
+!        variable_kinds
+!        options
+!        constants
+!        nodeinfo
+!        nuclei
+!
+!        None
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license.
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -4508,7 +4802,6 @@ end function delta_e_value
 !
 !*****************************************************************************80
 !
-subroutine memory_used
    use variable_kinds
    use options
    use constants
@@ -4519,8 +4812,6 @@ subroutine memory_used
    integer(kind=4) :: icomp
    integer(kind=4) :: j, ip, n, nn, nbin, k, lx
    real(kind=8) :: mem, mem_tot, mem_icomp, mem_bins
-
-!++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
 !-------------------------------------------------------------------------+
 !---------                                                                +
@@ -4594,18 +4885,45 @@ end subroutine memory_used
 !
 !*****************************************************************************80
 !
+subroutine reaction_max_J
+!
+!*****************************************************************************80
+!
 !  Discussion:
 !
 !    This Subroutine calculates the maximum angular momentum 
 !    in the calculation based on the cross section
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        nodeinfo
+!        options
+!        useful_data
+!        Channel_info
+!        particles_def
+!        nuclei
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        real(kind=8) :: compound_cs
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license.
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -4613,7 +4931,6 @@ end subroutine memory_used
 !
 !*****************************************************************************80
 !
-subroutine reaction_max_J
    use nodeinfo
    use options
    use useful_data
@@ -4674,18 +4991,43 @@ end subroutine reaction_max_J
 !
 !*****************************************************************************80
 !
+subroutine set_min_particle_energy
+!
+!*****************************************************************************80
+!
 !  Discussion:
 !
 !    This Subroutine sets up the minimum energy for the incident energy
 !    grid to set up the optical model calculations
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        nodeinfo
+!        options
+!        particles_def
+!        nuclei
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license.
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -4693,7 +5035,6 @@ end subroutine reaction_max_J
 !
 !*****************************************************************************80
 !
-subroutine set_min_particle_energy
    use nodeinfo
    use options
    use particles_def
@@ -4748,17 +5089,43 @@ end subroutine set_min_particle_energy
 !
 !*****************************************************************************80
 !
+subroutine modeled_level_density(inuc, yrast, yrast_actual)
+!
+!*****************************************************************************80
+!
 !  Discussion:
 !
 !    This Subroutine sets up continuous energy level density using internal models
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        nodeinfo
+!        options
+!        nuclei
+!
+!     Subroutines:
+!
+!        rhoe
+!
+!     External functions:
+!
+!        integer(kind=4) :: find_ibin
+!        real(kind=8) :: parity_fac
+!        real(kind=8) :: spin_fac
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license.
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -4766,7 +5133,6 @@ end subroutine set_min_particle_energy
 !
 !*****************************************************************************80
 !
-subroutine modeled_level_density(inuc, yrast, yrast_actual)
    use nodeinfo
    use options
    use nuclei
@@ -4782,12 +5148,11 @@ subroutine modeled_level_density(inuc, yrast, yrast_actual)
    real(kind=8) :: xj, xnum, dde, e_lev_min, energy
    real(kind=8) :: rho
    real(kind=8) :: apu, sig, K_vib, K_rot
-!-----------------------------------------------------------------------
+!---------    External Functions   -------------------------------------------
    integer(kind=4) :: find_ibin
    real(kind=8) :: parity_fac
    real(kind=8) :: spin_fac
-!-----------------------------------------------------------------------
-
+!-----------------------------------------------------------------------------
    yrast(0:100,0:1) = -1.0d0
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !------   Find yrast energies for each spin
@@ -4853,7 +5218,6 @@ subroutine modeled_level_density(inuc, yrast, yrast_actual)
             bb = nucleus(inuc)%level_param(18)
             do k = 1, nbin
                energy = nucleus(inuc)%e_grid(k)
-!               if(energy >= e_lev_min)then         !  check if above computed yrast line
                if(energy >= e_lev_min)then         !  check if above computed yrast line
                   call rhoe(energy,nucleus(inuc)%level_param,                           &
                                    nucleus(inuc)%vib_enh,                               &
@@ -4866,32 +5230,6 @@ subroutine modeled_level_density(inuc, yrast, yrast_actual)
          end do
       end do
    end if
-
-!   write(600,'(''# '',2(3x,i4))')nucleus(inuc)%Z, nucleus(inuc)%A
-!   write(601,'(''# '',2(3x,i4))')nucleus(inuc)%Z, nucleus(inuc)%A
-!   write(602,'(''# '',2(3x,i4))')nucleus(inuc)%Z, nucleus(inuc)%A
-!   write(603,'(''# '',2(3x,i4))')nucleus(inuc)%Z, nucleus(inuc)%A
-!   write(600,'(1x,i6,1x,f10.3)')nbin, real(j_max,kind=8)+nucleus(inuc)%jshift
-!   write(601,'(1x,i6,1x,f10.3)')nbin, real(j_max,kind=8)+nucleus(inuc)%jshift
-!   write(602,'(1x,i6,1x,f10.3)')nbin, real(j_max,kind=8)+nucleus(inuc)%jshift
-!   write(603,'(1x,i6,1x,f10.3)')nbin, real(j_max,kind=8)+nucleus(inuc)%jshift
-!   do k = 1, nbin
-!      write(600,'(1x,f10.5,60(1x,1pe15.7))')nucleus(inuc)%e_grid(k),(nucleus(inuc)%bins(j,1,k)%rho,j=0,j_max)
-!      sum = 0.0d0
-!      energy = nucleus(inuc)%e_grid(k)
-!      call rhoe(energy,nucleus(inuc)%level_param,                           &
-!                       nucleus(inuc)%vib_enh,                               &
-!                       nucleus(inuc)%rot_enh,                               &
-!                       nucleus(inuc)%A,rho,apu,sig,K_vib,K_rot)!
-!
-!      write(601,'(1x,f10.5,60(1x,1pe15.7))')nucleus(inuc)%e_grid(k),rho*0.5d0
-!      write(602,'(1x,f10.5,60(1x,1pe15.7))')nucleus(inuc)%e_grid(k),(nucleus(inuc)%bins(j,0,k)%rho,j=0,j_max)
-!      sum = 0.0d0
-!      write(603,'(1x,f10.5,60(1x,1pe15.7))')nucleus(inuc)%e_grid(k),rho*0.5d0
-!      write(604,'(1x,f10.5,60(1x,1pe15.7))')nucleus(inuc)%e_grid(k),rho
-!   end do      
-
-
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !------   With discrete states above E_cut, reduce continuous level density
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -4912,17 +5250,45 @@ end subroutine modeled_level_density
 !
 !*****************************************************************************80
 !
+subroutine read_level_density(inuc, yrast, yrast_actual)
+!
+!*****************************************************************************80
+!
 !  Discussion:
 !
 !    This Subroutine sets up continuous energy level density using internal models
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        nodeinfo
+!        options
+!        nuclei
+!
+!     Subroutines:
+!
+!        rhoe
+!
+!     External functions:
+!
+!        integer(kind=4) :: count_words
+!        integer(kind=4) :: find_ibin
+!        real(kind=8) :: parity_fac
+!        real(kind=8) :: spin_fac
+!        real(kind=8) :: interpolate_exp
+!
+!     MPI routines:
+!
+!        MPI_Abort
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license.
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -4930,7 +5296,6 @@ end subroutine modeled_level_density
 !
 !*****************************************************************************80
 !
-subroutine read_level_density(inuc, yrast, yrast_actual)
    use nodeinfo
    use options
    use nuclei
@@ -4943,7 +5308,6 @@ subroutine read_level_density(inuc, yrast, yrast_actual)
    integer(kind=4) :: ip
    integer(kind=4) :: ipar, ipar_max, n
    real(kind=8) :: xI, xJ
-!   integer(kind=4) :: kstart
    real(kind=8) :: pmode, bb, pe1
    integer(kind=4) :: num_read, j_max
    real(kind=8) :: energy
@@ -4953,8 +5317,6 @@ subroutine read_level_density(inuc, yrast, yrast_actual)
    real(kind=8), allocatable, dimension (:,:) :: rho_sep
    real(kind=8), allocatable, dimension (:) :: e_grid
    character(len=2000) :: line
-!   integer(kind=4) :: numw
-!   real(kind=8) :: sum
    logical :: exist_den_file
    integer(kind=4) :: io_error
    integer(kind=4) :: ilast
@@ -5237,18 +5599,40 @@ end subroutine read_level_density
 !
 !*******************************************************************************
 !
+integer function count_words(input)
+!
+!*******************************************************************************
+!
 !  Discussion:
 !
 !    This function counts the number distinct word elements there are in the
 !    character string input (len = 2000). 
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        variable_kinds
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -5256,7 +5640,6 @@ end subroutine read_level_density
 !
 !*******************************************************************************
 !
-integer function count_words(input)
    use variable_kinds
    implicit none
    character(len=2000), intent(in) :: input
@@ -5287,5 +5670,3 @@ integer function count_words(input)
    count_words = numw
    return
 end function count_words
-
-

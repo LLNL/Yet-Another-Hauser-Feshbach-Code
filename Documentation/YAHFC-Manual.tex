@@ -1005,7 +1005,7 @@ with
 \section{Input Commands}
 \label{App:Commands}
 The Hauser-Feshbach code YAHFC is controlled by a series of commands. These commands should be entered into script command file, say ``${\texttt{My\_YAHFC\_run.com}}$''. This file should be made to be executable, such as with the unix command ${\texttt{chmod +x}}$. Commands for YAHFC can be entered in any order and my have any case (but they must be spelled correctly). For commands requiring inputs, the input can be delimited by either a comma or a space. The program YAHFC reads the commands, sorts them, and orders them for proper execution. The commands are then printed in the file 
-${\texttt{YAHFC\_commands.tx}}$. Commands can be skipped (without deleting them from the file) by placing a \# or ! at the beginning of a command line. Comments may also be added to any line using \# or !, as any data entries following these delimiters are ignored. 
+${\texttt{YAHFC\_commands.txt}}$. Commands can be skipped (without deleting them from the file) by placing a \# or ! at the beginning of a command line. Comments may also be added to any line using \# or !, as any data entries following these delimiters are ignored. 
 
 For commands defining data for a particular isotope, the isotope may be identified by either entering the $Z$ and $A$ for the nucleus or the isotope name, for example, the following commands are equivalent\\
 \\
@@ -1184,8 +1184,10 @@ ${\texttt{explicit\_channels}}$ & ${\texttt{Answer}}$ & ${\texttt{Answer}}$ = ${
 ${\texttt{primary\_decay}}$ & ${\texttt{Answer}}$ & ${\texttt{Answer}}$ = ${\texttt{y/t/1}}$: Cross sections for the first step are printed in the ${\texttt{Primary-decay}}$ directory as a function of incident energy. \\
   &  &  ${\texttt{Answer}}$ = ${\texttt{y/t/1}}$: Cross sections for the first step are {\bf not} printed in the ${\texttt{Primary-decay}}$ directory as a function of incident energy ({\bf Default}). \\
 \hline
-${\texttt{event\_generator}}$ & ${\texttt{Answer}}$ & ${\texttt{Answer}}$ = ${\texttt{y/t/1}}$: Prints events only, no library files. \\
-   &    & ${\texttt{Answer}}$ = ${\texttt{n/f/0}}$: Normal run, prints libraries, and events if requested ({\bf Default}) \\\hline
+${\texttt{event\_generator}}$ & ${\texttt{Answer}}_1$~~~${\texttt{Answer}}_2$ & ${\texttt{Answer}}_1$ = ${\texttt{y/t/1}}$: Prints events only, no library files. \\
+   &    & ${\texttt{Answer}}_1$ = ${\texttt{n/f/0}}$: Normal run, prints libraries, and events if requested ({\bf Default}). \\
+   &    & ${\texttt{Answer}}_2$ = ${\texttt{y/t/1}}$: Event files are labeled by the index of the energy in the calculation; 1-$N_e$. \\
+   &    & ${\texttt{Answer}}_2$(optional) = ${\texttt{n/f/0}}$: Event files are labeled by the energy in the calculation; incident projectile energy or population energy ({\bf Default}). \\\hline
 ${\texttt{cs\_units}}$ & ${\texttt{Answer}}$ & Specifies the units used for cross sections in the libraries.\\
 & & ${\texttt{Answer}}$ = ${\texttt{b}}$: Cross sections are listed in barns.\\
 & & ${\texttt{Answer}}$ = ${\texttt{mb}}$: Cross sections are listed in millibarns.\\

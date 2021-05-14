@@ -1,26 +1,54 @@
 !
 !*******************************************************************************
 !
-   subroutine MC_decay_bin(icomp_i, Ix_i, ip_i, nbin_i,                &
-                           icomp_f, Ix_f, ip_f, nbin_f, idb,           &
-                           n_dat, dim_part, num_part_type, part_fact,  &
-                           num_part, part_data,                        &
-                           Ang_L_max, part_Ang_data,                   &
-                           num_theta, extra_angle_data)
+subroutine MC_decay_bin(icomp_i, Ix_i, ip_i, nbin_i,                &
+                        icomp_f, Ix_f, ip_f, nbin_f, idb,           &
+                        n_dat, dim_part, num_part_type, part_fact,  &
+                        num_part, part_data,                        &
+                        Ang_L_max, part_Ang_data,                   &
+                        num_theta, extra_angle_data)
 !
 !*******************************************************************************
 !
 !  Discussion:
 !
-!    idbThis subroutine Monte Carlo decays a continuous energy bin
+!    This subroutine Monte Carlo decays a continuous energy bin
+!
+!   Dependencies:
+!
+!     Modules:
+!
+!        variable_kinds
+!        options 
+!        nuclei
+!        particles_def
+!        constants
+!        nodeinfo
+!        useful_data
+!
+!   Dependencies:
+!
+!     Subroutines:
+!
+!        find_prob
+!        unpack_data
+!
+!     External functions:
+!
+!        real(kind=8) :: random_64
+!        real(kind=8) :: random_32
+!
+!    MPI routines:
+!
+!        MPI_Abort
 !
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -116,7 +144,6 @@
 !--------  First, check which nucleus it decays to
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-!   prob = random_64(iseed_64)                !  starting probability
    prob = random_32(iseed_32)                !  starting probability
 
    if1 = 0
@@ -125,16 +152,6 @@
    if(nucleus(icomp_i)%bins(Ix_i,ip_i,nbin_i)%num_decay == 0)return   ! no way to decay, hung up
 !
    tally_prob = 1.0d0
-
-!   part_fact(0:7) = 1.0d0
-!   num_part_type(0:6) = 0
-!   do i = 1, num_part
-!      k = nint(part_data(2,i))
-!      if(k > 0 .and. k <= 6)then
-!         num_part_type(k) = num_part_type(k) + 1
-!         if(num_part_type(k) >= max_particle(k))part_fact(k) = 0.0d0
-!      end if
-!   end do
 
    xnnn = 0.0d0
    tally_norm = 0.0d0
@@ -161,7 +178,6 @@
       do if1 = 1, nucleus(icomp_i)%bins(Ix_i,ip_i,nbin_i)%num_decay
          k = nucleus(icomp_i)%bins(Ix_i,ip_i,nbin_i)%decay_particle(if1)
          check_prob = check_prob + base_prob*part_fact(k)
-!         check_prob = check_prob + base_prob*part_fact(k)*tally_norm
          if(prob <= check_prob)exit
       end do
       tally_prob = nucleus(icomp_i)%bins(Ix_i,ip_i,nbin_i)%HF_prob(if1)*xnnn*tally_norm
@@ -194,8 +210,6 @@
    icomp_f = nucleus(icomp_i)%bins(Ix_i,ip_i,nbin_i)%decay_to(if1)
 
    if(icomp_f < 1)then
-! write(6,*)icomp_i, Ix_i,ip_i,nbin_i
-! write(6,*)'num_decay = ',nucleus(icomp_i)%bins(Ix_i,ip_i,nbin_i)%num_decay
       write(6,*)xnnn, base_prob
       do k = 1, 6
          write(6,*)num_part_type(k),max_particle(k)
@@ -364,14 +378,14 @@
    if(.not.pop_calc)part_Ang_data(0,num_part) = 0.5d0
    return
 
-   end subroutine MC_decay_bin
+end subroutine MC_decay_bin
 !
 !*******************************************************************************
 !
-   subroutine MC_decay_state(icomp_i, istate_i,                       &
-                             n_dat,dim_part,num_part,part_data,       &
-                             Ang_L_max,part_Ang_data,                 &
-                             num_theta, extra_angle_data, ichan, in)
+subroutine MC_decay_state(icomp_i, istate_i,                       &
+                          n_dat,dim_part,num_part,part_data,       &
+                          Ang_L_max,part_Ang_data,                 &
+                          num_theta, extra_angle_data, ichan, in)
 !
 !*******************************************************************************
 !
@@ -379,13 +393,38 @@
 !
 !    This subroutine Monte Carlo decays a discrete state
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        variable_kinds
+!        options 
+!        nuclei
+!        particles_def
+!        constants
+!        nodeinfo
+!        Channel_info
+!
+!     Subroutines:
+!
+!        find_prob
+!        unpack_data
+!
+!     External functions:
+!
+!        real(kind=8) :: random_32
+!
+!    MPI routines:
+!
+!        MPI_Abort
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -433,13 +472,9 @@
    real(kind=8) :: tally_prob, tally_weight
    integer(kind=4) :: n
 
-!   real(kind=8) :: mass_i, mass_f, mass
-!   real(kind=8) :: xkpxc, xk_0xc, xKKp_0xc, gamma, theta_f, phi_f
-
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !----------   External Functions
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ 
-!   real(kind=8) :: random_64
    real(kind=8) :: random_32
 
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -452,7 +487,6 @@
 
    k = 0
 
-!   write(6,*)'istate ', icomp_i, istate
 
  1 continue
 
@@ -461,14 +495,10 @@
    if(istate > nucleus(icomp_i)%num_discrete)then
        write(6,*)'Trying to decay to a state # greater than num_discrete'
        write(6,*)icomp_i,istate,nucleus(icomp_i)%num_discrete
-!   stop
    end if
    if(istate == 1 .or. nucleus(icomp_i)%state(istate)%isomer) return
 
    prob = random_32(iseed_32)
-!   prob = random_64(iseed_64)
-!    write(46,'(1x,e30.16)')prob
-!    flush(46)
 
    check = 0.0d0
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -477,13 +507,6 @@
 !-----   complete calculation just in case a state slips through     +
 !-----   with no decay path. Note, isomers are trapped up above      +
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-!   if(nsamp == 3391)then
-!      write(36,*)'Decay discrete state'
-!      write(36,*)icomp_i,istate
-!      write(36,*)nucleus(icomp_i)%state(istate)%nbranch
-!      flush(36)
-!   end if
 
    if(nucleus(icomp_i)%state(istate)%nbranch == 0)then
       n_f = 1
@@ -515,7 +538,6 @@
 
       if(.not. xs_only)then
          do nang = 1, num_theta
-!            costhp = 2.0d0*random_64(iseed_64) - 1.0d0
             costhp = 2.0d0*random_32(iseed_32) - 1.0d0
             if(abs(costhp) > 1.0d0)then
                write(6,*) 'cos(theta) wrong in MC_decay_state'
@@ -525,7 +547,6 @@
          end do
          theta_0 = extra_angle_data(1,num_part)
          phi_0 = two_pi*random_32(iseed_32)
-!         phi_0 = two_pi*random_64(iseed_64)
       end if
 
       part_data(9,num_part) = e_gamma
@@ -562,7 +583,6 @@
       if(prob <= check) exit
    end do
 
-!   prob = random_64(iseed_64)
    prob = random_32(iseed_32)
    if(prob <= nucleus(icomp_i)%state(istate)%p_gamma(j))then   !  Gamma decay
       k = 0
@@ -644,10 +664,11 @@
    goto 1
 
    return
-   end subroutine MC_decay_state
+end subroutine MC_decay_state
 !
+!*******************************************************************************
 !
-   subroutine find_prob(num,prob_array,prob,ifind)
+subroutine find_prob(num,prob_array,prob,ifind)
 !
 !*******************************************************************************
 !
@@ -656,13 +677,32 @@
 !    This subroutine search the array prob_array for the value prob
 !    using bisection
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        nodeinfo
+!        variable_kinds
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -687,12 +727,6 @@
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
    p_norm = prob_array(num)
-!  write(6,*)num,p_norm
-!   if(p_norm <= 1.0d-20)then
-!      write(6,*)'p_norm too small in find_prob = ',p_norm
-!      write(6,*)'iproc = ',iproc
-!      call MPI_Abort(icomm,201,ierr)
-!   end if
    upper = num
    lower = 1
 
@@ -737,11 +771,11 @@
    end do
 
    return
-   end
+end subroutine find_prob
 !
 !*******************************************************************************
 !
-   subroutine find_prob_point(num,prob_array,prob,ifind)
+subroutine find_prob_point(num,prob_array,prob,ifind)
 !
 !*******************************************************************************
 !
@@ -750,13 +784,32 @@
 !    This subroutine to find position of a probability within the pointer array
 !    prob_array(ifind-1) <= prob <= prob_array(ifind)
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        nodeinfo
+!        variable_kinds
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -820,11 +873,11 @@
    end do
 
    return
-   end
+end subroutine find_prob_point
 !
 !*******************************************************************************
 !
-   subroutine MC_primary_decay(iproj,spin_target,                          &
+subroutine MC_primary_decay(iproj,spin_target,                          &
                                l_i, is_i, Ix_i, e_i, icomp_i,              &
                                icomp_f, Ix_f, ip_f, nbin_f, idb,           &
                                n_dat, dim_part, num_part_type, part_fact,  &
@@ -840,13 +893,41 @@
 !    This subroutine decays first compound state - done differently than others
 !    due to width fluctuations                                            
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        variable_kinds
+!        options 
+!        nuclei
+!        Channel_info
+!        particles_def
+!        constants
+!        nodeinfo
+!        useful_data
+!
+!     Subroutines:
+!
+!        find_prob
+!        unpack_data
+!
+!     External functions:
+!
+!        real(kind=8) :: random_32
+!        real(kind=8) :: random_64
+!        real(kind=8) :: racahr
+!
+!    MPI routines:
+!
+!       MPI_Abort
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -903,14 +984,11 @@
    integer(kind=4) :: L_ang, max_L
    real(kind=8) :: factor
    real(kind=8) :: x, sum, ran
-!   real(kind=8) :: x, x1, check, sum, ran
-!   real(kind=8) :: check
    real(kind=8) :: theta_0, phi_0
    integer(kind=4) :: nang
 
    real(kind=8) :: tally_prob
    real(kind=8) :: xnnn
-!   real(kind=8) :: alf, bet
 
    real(kind=8) :: ang_prob(0:ixx_max)
    real(kind=8) :: pnorm
@@ -922,7 +1000,6 @@
    real(kind=8) :: random_32
    real(kind=8) :: random_64
    real(kind=8) :: racahr
-!   real(kind=8) :: poly
 
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !----------   Start Program
@@ -957,11 +1034,6 @@
       xnnn = Channel(l_i,is_i,Ix_i)%num_decay
       ran = random_32(iseed_32)
       if1 = min(int(ran*xnnn)+1,Channel(l_i,is_i,Ix_i)%num_decay)  !  just in case ran = 1.0
-!      if(if1 > Channel(l_i,is_i,Ix_i)%num_decay)then
-!         write(6,*)'xnnn, ran, if1 ',xnnn, ran, if1
-!         write(6,*)'l_i, is_i, Ix_i ',l_i,is_i,Ix_i
-!      end if
-!      if1 = int(random_64(iseed_64)*xnnn) + 1
       tally_prob = Channel(l_i,is_i,Ix_i)%Channel_prob(if1)
       if(if1 > 1) tally_prob = tally_prob - Channel(l_i,is_i,Ix_i)%Channel_prob(if1-1)
       tally_prob = tally_prob*xnnn
@@ -1026,15 +1098,6 @@
 
    call unpack_data(Ix_f, ip_f, nbin_f, idb, l_f, iss, itemp)
 
-!   if(Ix_f > max_J_allowed)then
-!       write(6,*)Ix_f
-!       write(6,*)icomp_f
-!       write(6,*)idb
-!       write(6,*)nbin_f
-!       write(6,*)nucleus(icomp_f)%state(nbin_f)%energy
-!       write(6,*)nucleus(icomp_f)%state(nbin_f)%spin
-!   end if
-
    xl_f = l_f
    xI_f = real(Ix_f,kind=8) + real(nucleus(icomp_f)%jshift,kind=8)
    xj_f_min = abs(real(l_f,kind=8) - real(particle(k)%spin,kind=8)) 
@@ -1077,8 +1140,6 @@
    part_Ang_data(0:0:Ang_L_max,num_part) = 0.0d0
 
    part_Ang_data(0,num_part) = 0.5d0
-!   ran = random_64(iseed_64)
-!   ran = random_32(iseed_32)
 
    max_L = 0
 
@@ -1124,14 +1185,6 @@
             x = 2.0d0*ran - 1.0d0
          else
             call find_prob(ixx_max, ang_prob(1), ran, i)
-!            if(abs(x) > 1.0d0)then
-!               write(6,*) 'cos(theta) =',x,' wrong in primary decay'
-!               call MPI_Abort(icomm,101,ierr)
-!            end if
-!            if(abs(x) < -1.0d0)then
-!               write(6,*) 'cos(theta) =',x,' wrong in primary decay'
-!               call MPI_Abort(icomm,101,ierr)
-!            end if
             shift = random_32(iseed_32)*delta_x*0.9999999d0
             x = real(i,kind=8)*delta_x - 1.0d0 - shift
          end if
@@ -1160,20 +1213,10 @@
    part_data(22,num_part) = xI_i
    part_data(23,num_part) = 0.0d0
    part_data(24,num_part) = -1.0d0
-!   nucleus(icomp_f)%Kinetic_Energy = T_2
-
-
-!   if(k == 2 .and. T_L >= 3.40001d0 .and. T_L <= 3.5d0)then
-!       write(61,*)e_f, T_1, T_L, rrr, x, cos(theta), cos(theta_L)
-!   end if
-!   if(k == 2 .and. T_L >= 3.50001d0 .and. T_L <= 3.6d0)then
-!       write(62,*)e_f, T_1, T_L, rrr, x, cos(theta), cos(theta_L)
-!   end if
-
 
    return
 
-   end subroutine MC_primary_decay
+end subroutine MC_primary_decay
 !
 !*******************************************************************************
 !
@@ -1190,15 +1233,40 @@ subroutine force_decay(icomp_i, nbin_i,                              &
 !    This subroutine forces a decay from a continuous energy bin where
 !    the probability to decay is too small, and is hung up. That is it
 !    has no way to decay to a discrete state. This is a so-called
-!    comoutaitonal isomer                                           
+!    comoutational isomer                                           
+!
+!   Dependencies:
+!
+!     Modules:
+!
+!        variable_kinds
+!        options 
+!        nuclei
+!        Channel_info
+!        particles_def
+!        constants
+!        nodeinfo
+!        useful_data
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        real(kind=8) :: random_32
+!
+!    MPI routines:
+!
+!       None
 !
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -1243,7 +1311,6 @@ subroutine force_decay(icomp_i, nbin_i,                              &
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !----------   External Functions
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ 
-!   real(kind=8) :: random_64
    real(kind=8) :: random_32
 !---------------------------------------------------------------------------
 
@@ -1261,7 +1328,6 @@ subroutine force_decay(icomp_i, nbin_i,                              &
 !--------------   find final state randomly   -----------------------
    xnstate = real(nucleus(icomp_f)%ncut,kind=8)
 
-!   nbin_f = int(xnstate*random_64(iseed_64)) + 1
    nbin_f = int(xnstate*random_32(iseed_32)) + 1
 !--------------------------------------------------------------------
    ex_f = nucleus(icomp_f)%state(nbin_f)%energy
@@ -1288,13 +1354,11 @@ subroutine force_decay(icomp_i, nbin_i,                              &
 
    if(.not. xs_only)then
       do nang = 1, num_theta
-!         costhp = 2.0d0*random_64(iseed_64) - 1.0d0
          costhp = 2.0d0*random_32(iseed_32) - 1.0d0
          extra_angle_data(nang,num_part) = acos(costhp)
       end do
       theta_0 = extra_angle_data(1,num_part)
       phi_0 = two_pi*random_32(iseed_32)
-!      phi_0 = two_pi*random_64(iseed_64)
    end if
 
    part_data(9,num_part) = e_f
@@ -1352,13 +1416,33 @@ subroutine Boost_frame(e_f, mass_1, mass_2, theta_0, phi_0,                   &
 !    theta_L:   Theta of emitted particle in Lab frame
 !    phi_L:     Azimutal angle of emitted particle in Lab frame
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        nodeinfo
+!        variable_kinds
+!        constants
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -1477,13 +1561,11 @@ subroutine Boost_frame(e_f, mass_1, mass_2, theta_0, phi_0,                   &
       Lor(0,i) = Lor(i,0)
       Lor(i,i) = 1.0d0
    end do
-!   v_2 = v_2/beta
    gamma_m1 = (gamma - 1.0d0)/beta**2
    do j = 1, 3
       vtemp = gamma_m1*v_2(j)
       do i = 1, 3
          Lor(i,j) = Lor(i,j) + v_2(i)*vtemp
-!         Lor(i,j) = Lor(i,j) + (gamma - 1.0d0)*V_2(i)*vtemp
       end do
    end do
 !--------------------------   Update Boost for next decay Boost_COM = Boost_COM*Lor

@@ -10,13 +10,39 @@ subroutine optical_setup(data_path, len_path, iproj, itarget,                  &
 !
 !    This subroutine sets up and runs the optical model program
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        variable_kinds
+!        nodeinfo
+!        nuclei
+!        options
+!        Channel_info
+!        particles_def
+!
+!     Subroutines:
+!
+!        fresco_make_tco
+!
+!     External functions:
+!
+!        real(kind=8) :: tco_interpolate
+!        real(kind=8) :: clebr
+!        real(kind=8) :: comp_cs
+!        integer(kind=4) :: state_index
+!
+!     MPI routines:
+!
+!        MPI_Abort
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -81,8 +107,6 @@ subroutine optical_setup(data_path, len_path, iproj, itarget,                  &
 
    real(kind=8) :: E_in, E_rel, mass_target, mass_proj
 
-!   real(kind=8) :: de_read
-
    real(kind=8) :: total_cs, new_total_cs
    real(kind=8) :: sum_direct
    real(kind=8) :: elastic_cs, new_elastic_cs
@@ -93,7 +117,6 @@ subroutine optical_setup(data_path, len_path, iproj, itarget,                  &
    real(kind=8) :: ex_min
 
    real(kind=8) :: dx, emin, emax
-
 
 !--------------------External functions--------------------------------
    real(kind=8) :: tco_interpolate
@@ -150,9 +173,6 @@ subroutine optical_setup(data_path, len_path, iproj, itarget,                  &
          len_tco=len_tco+3
       end if
 
-!   write(6,*)jtarget
-!   write(6,*)k,nucleus(jtarget)%Z, nucleus(jtarget)%A
-!   write(6,*)tco_file(1:len_tco)
       tco_exist = .false.
       inquire(file=tco_file(1:len_tco)//'.tcoef',exist=tco_exist)
 !----    Only need Ang_exist for k=iproj
@@ -167,8 +187,6 @@ subroutine optical_setup(data_path, len_path, iproj, itarget,                  &
 !-------------------------------------------------------------------------+
 !------  Set up optical model calculation                                 +
 !-------------------------------------------------------------------------+
-!         call make_fresco_tco(data_path,len_path,tco_file,len_tco,      &
-!                              de,k,iproj,jtarget,jstate,Ang_L_max)
          call fresco_make_tco(data_path,len_path,tco_file,len_tco,        &
                               k,iproj,jtarget,jstate,Ang_L_max)
       end if
@@ -197,7 +215,6 @@ subroutine optical_setup(data_path, len_path, iproj, itarget,                  &
       do ll = 1, num_e_lines
          minl = (ll-1)*10 + 1
          maxl = min(nume,minl+9)
-!         read(50,'(10(1x,1pe16.9))')(particle(k)%e_grid(i),i = minl, maxl)
          read(50,*)(particle(k)%e_grid(i),i = minl, maxl)
       end do
 
@@ -230,7 +247,6 @@ subroutine optical_setup(data_path, len_path, iproj, itarget,                  &
                do l = minl, maxl
                   if(particle(k)%trans_read(ie,ii,l) < 1.0d-9)particle(k)%trans_read(ie,ii,l) = 1.0d-9
                end do
-!   write(80,'(2(1x,i4),10(1x,1pe16.7))')isp,ie,(particle(k)%trans_read(ie,ii,l),l= minl, maxl)
             end do
          end do
       end do
@@ -274,8 +290,6 @@ subroutine optical_setup(data_path, len_path, iproj, itarget,                  &
 !--------   Data is read in on Ecis energy grid, later we will interpolate
 !--------   on this grid to fill in output data
 
-!   write(6,*)'k = ', ' iproj = ',iproj,' scale_elastic', scale_elastic
-
       if(k == iproj)then
          open(unit=50, file=prn_file(1:len_prn)//'.data',status='old')
          read(50,*)OpticalCS%nume, OpticalCS%numcc, OpticalCS%Max_L           ! data dimensions
@@ -315,11 +329,8 @@ subroutine optical_setup(data_path, len_path, iproj, itarget,                  &
 
          check_dwba = .false.
          do i = 1, OpticalCS%numcc
-!            read(50,*)idummy, cc_index(i), OpticalCS%state(i)%spin,OpticalCS%state(i)%parity,    &
-!                      OpticalCS%state(i)%K, OpticalCS%state(i)%energy, OpticalCS%state(i)%state_type
             read(50,*)idummy, temp_index, OpticalCS%state(i)%spin,OpticalCS%state(i)%parity,    &
                       OpticalCS%state(i)%K, OpticalCS%state(i)%energy, OpticalCS%state(i)%state_type
-!            if(OpticalCS%state(i)%state_type < 1)particle(k)%do_dwba = .true.
             if(OpticalCS%state(i)%state_type < 1)check_dwba = .true.
          end do
 
@@ -341,8 +352,6 @@ subroutine optical_setup(data_path, len_path, iproj, itarget,                  &
          rewind(50)
          read(50,*)
          do i = 1, OpticalCS%numcc
-!            read(50,*)idummy, cc_index(i), OpticalCS%state(i)%spin,OpticalCS%state(i)%parity,    &
-!                      OpticalCS%state(i)%K, OpticalCS%state(i)%energy, OpticalCS%state(i)%state_type
             read(50,*)idummy, temp_index, OpticalCS%state(i)%spin, OpticalCS%state(i)%parity,       &
                       OpticalCS%state(i)%K, OpticalCS%state(i)%energy, OpticalCS%state(i)%state_type
 !-----    find cc_index for discrete states - allows for changes in spectrum file without having to 
@@ -382,7 +391,6 @@ subroutine optical_setup(data_path, len_path, iproj, itarget,                  &
                   if(ee >= nucleus(jtarget)%e_grid(ibin) - 0.5d0*nucleus(jtarget)%delta_e(ibin) .and.   &
                      ee < nucleus(jtarget)%e_grid(ibin) + 0.5d0*nucleus(jtarget)%delta_e(ibin))exit
                end do              
-!               ibin = int((OpticalCS%state(i)%energy - ex_min)/de) + 1
                cc_index(i) = ibin
             end if
             if(OpticalCS%state(i)%state_type > 0 .and. OpticalCS%state(i)%spin < K_band)     &
@@ -448,7 +456,6 @@ subroutine optical_setup(data_path, len_path, iproj, itarget,                  &
                      else
                         OpticalCS%state(in)%Delta_E = OpticalCS%state(in+1)%energy -             &
                                                       OpticalCS%state(in)%energy
-!                        OpticalCS%state(in)%Delta_E = de
                         OpticalCS%state(in)%E_min = OpticalCS%state(in)%energy -               &
                                                     OpticalCS%state(in)%Delta_E/2.0d0
                      end if
@@ -537,9 +544,6 @@ subroutine optical_setup(data_path, len_path, iproj, itarget,                  &
          new_absorption_cs = total_cs - sum_direct - new_elastic_cs
          T_factor = new_absorption_cs/absorption_cs
          OpticalCS%optical_cs(ie,n_elastic) = new_elastic_cs
-!         write(6,*)'***************************************'
-!         write(6,*)'T_factor = ',T_factor
-!         write(6,*)'***************************************'
          do l = 0, particle(iproj)%lmax
             do j = 0, isp
                particle(iproj)%trans_read(ie,j,l) =               &
@@ -550,13 +554,8 @@ subroutine optical_setup(data_path, len_path, iproj, itarget,                  &
          new_absorption_cs = comp_cs(ie,jtarget,istate,iproj)
          new_total_cs = new_elastic_cs + sum_direct + new_absorption_cs
  
-!         write(6,*)'Incident Energy = ',E_in, 'E_rel = ',particle(iproj)%e_grid(ie)
-!         write(6,*)'Before ',total_cs, elastic_cs, sum_direct, absorption_cs
-!         write(6,*)'After ',new_total_cs, new_elastic_cs, sum_direct, new_absorption_cs
       end do
    end if
-
-
 
     do k = 1, 6
        nume = particle(k)%nume

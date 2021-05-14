@@ -1,3 +1,6 @@
+!
+!*******************************************************************************
+!
 subroutine set_up_decay_chain(Z_p, A_p, Z_t, A_t)
 !
 !*******************************************************************************
@@ -6,13 +9,41 @@ subroutine set_up_decay_chain(Z_p, A_p, Z_t, A_t)
 !
 !    This subroutine to sets up the entire decay chain for the calculation
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        variable_kinds
+!        nodeinfo
+!        options
+!        print_control
+!        useful_data
+!        nuclei
+!        Channel_info
+!        particles_def
+!        directory_structure
+!        constants
+!
+!     Subroutines:
+!
+!       get_binding_energy
+!       make_channels
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        MPI_Abort
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -90,8 +121,6 @@ subroutine set_up_decay_chain(Z_p, A_p, Z_t, A_t)
       xA_part = real(particle(k)%A,kind=8)
       Coulomb_Barrier(k) = 0.2d0*e_sq*(xZ_i-xZ_part)*xZ_part/                  &
             (1.2d0*((xA_i-xA_part)**(1.0d0/3.0d0) + xA_part**(1.0d0/3.0d0)))
-!      Coulomb_Barrier(k) = 0.6d0*e_sq*(xZ_i-xZ_part)*xZ_part/                  &
-!            (1.2d0*((xA_i-xA_part)**(1.0d0/3.0d0) + xA_part**(1.0d0/3.0d0)))
    end do
 
 !--- Clipping at a maximum of 30 of any type
@@ -101,10 +130,6 @@ subroutine set_up_decay_chain(Z_p, A_p, Z_t, A_t)
    max_p(4) = min(t_i,30)
    max_p(5) = min(h_i,30)
    max_p(6) = min(alpha_i,30)
-
-!   write(6,*)N_i, Z_i, d_i, t_i, h_i
-
-      
 
    call get_binding_energy(data_path,len_path,              &
                            Z_i,A_i,me,be, sep)
@@ -189,10 +214,8 @@ subroutine set_up_decay_chain(Z_p, A_p, Z_t, A_t)
                                it*Coulomb_Barrier(4) +           &
                                ih*Coulomb_Barrier(5) +           &
                                ia*Coulomb_Barrier(6)
-!                     if(emax < sep_tot + Coul)cycle
                      if(emax < sep_tot + Coul)exit
 
-!   write(6,'(8(1x,i4),1x,f15.6)')in,ip,id,it,ih,ia, Z_f, A_f, me_f
                      exmax = emax - sep_tot
                      found = .false.
 !------   Check temporary storage   -------
@@ -335,6 +358,8 @@ subroutine set_up_decay_chain(Z_p, A_p, Z_t, A_t)
                         nucleus(num_nuc)%beta(5) = 0.0d0
                         nucleus(num_nuc)%beta(6) = 0.0d0
                         nucleus(num_nuc)%fit_gamma_gamma = .true.
+                        nucleus(num_nuc)%ematch_warn = .false.
+                        nucleus(num_nuc)%cum_rho_ratio = 0.0d0
                         nucleus(num_nuc)%lev_den_read = .false.
                         nucleus(num_nuc)%lev_den_both = .false.
                         nucleus(num_nuc)%lev_den_file(0:1)(1:100) = ' '
@@ -419,7 +444,6 @@ subroutine set_up_decay_chain(Z_p, A_p, Z_t, A_t)
                         nucleus(num_nuc)%BE = be_f
                         nucleus(num_nuc)%ME = me_f
                         nucleus(num_nuc)%Mass = real(A_f, kind=8)*mass_u + me_f
-!                        nucleus(num_nuc)%Ex_max = exmax
                         nucleus(num_nuc)%Ex_max = max(exmax,sep_f(1))
                         nucleus(num_nuc)%Kinetic_energy = 0.0
                         nucleus(num_nuc)%dKinetic_energy = 0.0
@@ -474,7 +498,6 @@ subroutine set_up_decay_chain(Z_p, A_p, Z_t, A_t)
                            channel_code = ior(channel_code,ishft(int(nump(k),kind=8),(k-1)*5))
                         end do
                         Exit_Channel(ichannel)%Channel_code = channel_code
-!           write(6,*)ichannel,Exit_Channel(ichannel)%Channel_Label(1:ifinish)
                      end if
                   end do
                end do
@@ -571,8 +594,6 @@ subroutine set_up_decay_chain(Z_p, A_p, Z_t, A_t)
       A_f = nucleus(inuc)%A
       N_f = A_f - Z_f
 
-!  write(6,*)Z_f, N_f, A_f
-
       D_n = 0.0d0
       Z_pp = Z_f
       N_pp = N_f - 2
@@ -652,13 +673,33 @@ subroutine make_channels(num_part_tot, num_part, inuc, ichannel)
 !    This subroutine defines the channels and gives the appropriate label
 !    based on emitted particles
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        variable_kinds
+!        Channel_info
+!        particles_def
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -680,13 +721,11 @@ subroutine make_channels(num_part_tot, num_part, inuc, ichannel)
    logical too_many
    integer(kind=4) :: k, n, nloops
    integer(kind=4), allocatable :: low(:), hi(:), idex(:)
-!   integer(kind=8) :: itemp
 
    integer(kind=8) :: channel_code
-!   integer(kind=4) :: channel_code
+!---------------------------------------------------
 
    nloops = num_part_tot 
-
 
    if(nloops == 0)then
       ichannel = ichannel + 1

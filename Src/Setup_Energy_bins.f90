@@ -1,18 +1,42 @@
 !
 !*****************************************************************************80
 !
+subroutine Setup_Energy_bins(de)
+!
+!*****************************************************************************80
+!
 !  Discussion:
 !
 !    This Subroutine sets up the energy bins for the continuous part of the 
 !    energy spectrum
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        options
+!        nuclei
+!        nodeinfo
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        real(kind=8) :: delta_e_value
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -20,7 +44,6 @@
 !
 !*****************************************************************************80
 !
-subroutine Setup_Energy_bins(de)
    use options
    use nuclei
    use nodeinfo
@@ -46,9 +69,7 @@ subroutine Setup_Energy_bins(de)
       do i = 1, num_comp                  !    loop over nuclei
          Ex_max = nucleus(i)%Ex_max       !   max energy
          S_part = nucleus(i)%sep_e(1)
-!         E_cut = nucleus(i)%level_param(7)
          E_cut = nucleus(i)%level_ecut
-!  write(6,*)'3.50 i = ',i, Ex_max, S_part, E_cut, nucleus(i)%Z, nucleus(i)%A
          if(E_cut + de < S_part)then
             Ex_calc = min(Ex_max,S_part) - E_cut - de   !   start at E_cut
             nbin = max(int(Ex_calc/de),1)               !   number of bins
@@ -66,9 +87,7 @@ subroutine Setup_Energy_bins(de)
                dep = de
                nbin = 1
             end if
-!   write(6,*)Ex_max,Ex_calc, dep, nbin
          end if
-!   write(6,*)Ex_max,Ex_calc, dep, nbin
          if(nbin > 0)then
             allocate(nucleus(i)%e_grid(nbin))
             allocate(nucleus(i)%delta_e(nbin))
@@ -79,7 +98,6 @@ subroutine Setup_Energy_bins(de)
          do j = 1, nbin
             nucleus(i)%e_grid(j) = E_cut + dep*real(j-1) + 0.5d0*dep
             nucleus(i)%delta_e(j) = dep
-!   write(20,*)j, nucleus(i)%e_grid(j), nucleus(i)%delta_e(j)  
          end do
         nucleus(i)%Ex_max = nucleus(i)%e_grid(nbin)
       end do
@@ -92,7 +110,6 @@ subroutine Setup_Energy_bins(de)
       do i = 1, num_comp                  !    loop over nuclei
          Ex_max = nucleus(i)%Ex_max       !   max energy
          S_part = nucleus(i)%sep_e(1)
-!         E_cut = nucleus(i)%level_param(7)
          E_cut = nucleus(i)%level_ecut
          Ex_calc = min(Ex_max,S_part) - E_cut - de   !   start at E_cut
          nbin = max(int(Ex_calc/de),1)               !   number of bins
@@ -108,7 +125,6 @@ subroutine Setup_Energy_bins(de)
 !----   Cycle until e_grid > Ex_max
          do while(.not. finished)
             e_grid = e_grid + 0.5d0*delta_e_old + 0.5d0*delta_e
-!   write(6,*)e_grid, delta_e_old, delta_e
             nbin = nbin + 1
             delta_e_old = delta_e
             delta_e = delta_e_value(e_grid, ex_base, dep)
@@ -123,16 +139,12 @@ subroutine Setup_Energy_bins(de)
          delta_e_old = delta_e
          e_grid = E_cut - 0.5d0*delta_e
 !-------------------   Set up energy grids 
-!   write(6,*)'E_cut = ',E_cut,Ex_max,S_part
          do j = 1, nucleus(i)%nbin
             e_grid = e_grid + 0.5d0*delta_e_old + 0.5d0*delta_e
             nucleus(i)%e_grid(j) = e_grid
             nucleus(i)%delta_e(j) = delta_e
             delta_e_old = delta_e
             delta_e = delta_e_value(e_grid, ex_base, dep)
-!   write(20,'(16x,f16.7)')nucleus(i)%e_grid(j) - 0.5d0*nucleus(i)%delta_e(j)
-!   write(20,'(1x,f16.7)')nucleus(i)%e_grid(j) 
-!   write(20,'(16x,f16.7)')nucleus(i)%e_grid(j) + 0.5d0*nucleus(i)%delta_e(j)
          end do
          nucleus(i)%Ex_max = nucleus(i)%e_grid(nbin)
       end do

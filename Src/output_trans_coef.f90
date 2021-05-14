@@ -10,13 +10,40 @@ subroutine output_trans_coef
 !    This subroutine prints out transmission coefficients on the calculation
 !    grid
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        variable_kinds
+!        nodeinfo
+!        options
+!        print_control
+!        useful_data
+!        nuclei
+!        Channel_info
+!        particles_def
+!        directory_structure
+!        constants
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !

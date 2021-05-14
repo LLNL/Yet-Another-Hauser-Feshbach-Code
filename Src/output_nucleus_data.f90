@@ -9,13 +9,49 @@ subroutine output_nucleus_data(j_max, itarget)
 !
 !    This subroutine prints out data for each nucleus in the decay network
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        variable_kinds
+!        nodeinfo
+!        options
+!        print_control
+!        useful_data
+!        nuclei
+!        Channel_info
+!        particles_def
+!        directory_structure
+!        constants
+!
+!     Subroutines:
+!
+!        rhoe
+!        cumm_rho
+!
+!     External functions:
+!
+!        real(kind=8) :: spin_fac
+!        real(kind=8) :: parity_fac
+!        real(kind=8) :: EL_f
+!        real(kind=8) :: EL_f_component, EL_trans
+!        real(kind=8) :: ML_f, ML_f_component
+!        real(kind=8) :: ML_trans
+!        real(kind=8) :: EL_absorption
+!        real(kind=8) :: ML_absorption
+!        integer(kind=4) :: find_ibin
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license.
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -74,9 +110,12 @@ subroutine output_nucleus_data(j_max, itarget)
    integer(kind=4) :: nnn
    character(len=7) :: f_units
 !---------   External functions
-   real(kind=8) :: spin_fac, parity_fac
-   real(kind=8) :: EL_f, EL_f_component, EL_trans
-   real(kind=8) :: ML_f, ML_f_component, ML_trans
+   real(kind=8) :: spin_fac
+   real(kind=8) :: parity_fac
+   real(kind=8) :: EL_f
+   real(kind=8) :: EL_f_component, EL_trans
+   real(kind=8) :: ML_f, ML_f_component
+   real(kind=8) :: ML_trans
    real(kind=8) :: EL_absorption
    real(kind=8) :: ML_absorption
    integer(kind=4) :: find_ibin
@@ -130,9 +169,6 @@ subroutine output_nucleus_data(j_max, itarget)
          inuke_end = inuke_end + 1
       end if
 
-!      if(char_start == 2)write(13,'(i3,a1)')nucleus(i)%A,nucleus(i)%atomic_symbol(char_start:2)
-!      write(13,'(''Maximum excitation energy = '',f10.3,'' MeV'')')nucleus(i)%Ex_max
-
       write(13,'(a5)')nuke_label(1:inuke_end)
       write(13,'(''Mass excess = '',f10.3,'' MeV'')')nucleus(i)%ME
       write(13,'(''Binding energy = '',f10.3,'' MeV'')')nucleus(i)%BE
@@ -174,7 +210,6 @@ subroutine output_nucleus_data(j_max, itarget)
            particle(k)%name,nucleus(i)%sep_e(k)
       end do
 
-!      write(6,*)'Level density information for this compound nucleus - not target'
       if(nucleus(i)%D0exp > 0.0d0)then
          write(13,'('' Experimental D0   ='',f10.3,'' +/- '',f10.3,'' eV'')')    &
                      nucleus(i)%D0exp,nucleus(i)%dD0exp
@@ -202,7 +237,6 @@ subroutine output_nucleus_data(j_max, itarget)
       end if
 
 
-!      write(6,*)'Gamma_gamma data for this compound nucleus - not as a target'
       if(nucleus(i)%Gamma_g >= 0.0d0)write(13,'('' Calcuated Gamma_gamma(l=0)    = '',f12.3,'' meV'')')nucleus(i)%Gamma_g
       if(nucleus(i)%Gamma_g < 0.0d0)write(13,'('' Gamma_gamma(l=0) is NOT CALCULATED; Ex_max < Sn in this run'')')
       if(nucleus(i)%Gamma_g_exp > 0.0d0)then
@@ -227,6 +261,15 @@ subroutine output_nucleus_data(j_max, itarget)
          write(13,'('' Experimental Gamma_gamma(l=1) = UNAVAILABLE'')')
       end if
 !------------------------------------------------------------------
+      write(13,*)
+      write(13,'(''******************************************************************'')')
+      write(13,'(''  Data on discrete levels are based on the RIPL-3 data, with     *'')')
+      write(13,'(''  modifcations by the author and users. RIPL-3 data is           *'')')
+      write(13,'(''  available at https://www-nds.iaea.org/RIPL-3/. Discrete level  *'')')
+      write(13,'(''  information is based on M. Verpelli and R. Capote Noy,         *'')')
+      write(13,'(''  INDC(NDS)-0702, IAEA, 2015, and R. Capote, et al., Nuclear     *'')')
+      write(13,'(''  Data Sheets 110 (2009), 3107-3214.                             *'')')
+      write(13,'(''******************************************************************'')')
       write(13,*)
       write(13,*)'Discrete states used in calculation'
       write(13,'(''State'',6x,''Energy'',2x,''Spin'','//               &
@@ -485,9 +528,6 @@ subroutine output_nucleus_data(j_max, itarget)
                    //trim(adjustl(temp_string))//"(5x,'J = ',f4.1,3x))"
 
          write(13,fstring)(real(jj) + nucleus(i)%jshift, jj = 0, min(j_max,60))
-!      write(13,1901)(real(jj) + nucleus(i)%jshift, jj = 0, min(j_max,60))
-! 1901 format('      E         a(U)    sqrt(sig2)   P_fac      K_vib      K_rot       Enh         Rho     ',     &
-!            40(5x,'J = ',f4.1,3x))
          fstring = "(1x,'--------',6(1x,'----------'),1x,'---------------',"        &
                    //trim(adjustl(temp_string))//"(1x,'---------------'))"
          write(13,fstring)
@@ -511,7 +551,6 @@ subroutine output_nucleus_data(j_max, itarget)
                 rho(jj,ip)=rho_FM*jfac*pfac
                 sum_rho = sum_rho + nucleus(i)%bins(jj,ip,k)%rho
              end do
-!          write(13,'(1x,f8.3,6(1x,f10.3),60(1x,e15.7))')                         &
              write(13,fstring)                                                      &
                   energy,apu,sqrt(sig2),pfac,K_vib,K_rot,K_vib*K_rot,sum_rho,       &
                   (nucleus(i)%bins(jj,ip,k)%rho,jj = 0, min(j_max,60))
@@ -526,9 +565,6 @@ subroutine output_nucleus_data(j_max, itarget)
          fstring = "(1x,'--------',6(1x,'----------'),1x,'---------------',"        &
                    //trim(adjustl(temp_string))//"(1x,'---------------'))"
          write(13,fstring)
-!      write(13,1902)(real(jj) + nucleus(i)%jshift, jj = 0, min(j_max,60))
-! 1902 format('      E         a(U)    sqrt(sig2)   P_fac      K_vib      K_rot       Enh         Rho     ',     &
-!            40(5x,'J = ',f4.1,3x))
          pmode = nucleus(i)%level_param(16)
          pe1 = nucleus(i)%level_param(17)
          pbb = nucleus(i)%level_param(18)
@@ -550,7 +586,6 @@ subroutine output_nucleus_data(j_max, itarget)
                rho(jj,ip)=rho_FM*jfac*pfac
                sum_rho = sum_rho + nucleus(i)%bins(jj,ip,k)%rho
             end do
-!          write(13,'(1x,f8.3,6(1x,f10.3),60(1x,e15.7))')                         &
             write(13,fstring)                                                       &
                  energy,apu,sqrt(sig2),pfac,K_vib,K_rot,K_vib*K_rot,sum_rho,        &
                  (nucleus(i)%bins(jj,ip,k)%rho,jj = 0, min(j_max,60))
@@ -619,13 +654,39 @@ subroutine output_nucleus_data(j_max, itarget)
          if(nucleus(i)%ncut >= 5) then
             if(nucleus(i)%fit_ematch)then
                write(13,*)'E_match was fit cummulative density for known discrete states'
+               if(nucleus(i)%cum_rho_ratio > 1.25)then
+                  write(13,*)
+                  write(13,'(''******************************************************************'')')
+                  write(13,'(''*****    CAUTION     CAUTION     CAUTION    CAUTION          *****'')')
+                  write(13,'(''*****  The fitted cumulative level density for at            *****'')')
+                  write(13,'(''*****  E_cut is more than 1.3 larger than the experimental   *****'')')
+                  write(13,'(''*****  value. You should check this and possibly change      *****'')')
+                  write(13,'(''*****  E_cut with the command "lev_ecut Z A  Value"          *****'')')
+                  write(13,'(''*****  Problems of this nature usually means E_cut           *****'')')
+                  write(13,'(''*****  is too high                                           *****'')')
+                  write(13,'(''******************************************************************'')')
+                  write(13,*)
+               end if
+               if(nucleus(i)%cum_rho_ratio < 0.75)then
+                  write(13,*)
+                  write(13,'(''******************************************************************'')')
+                  write(13,'(''*****    CAUTION     CAUTION     CAUTION    CAUTION          *****'')')
+                  write(13,'(''*****  The fitted cumulative level density for at            *****'')')
+                  write(13,'(''*****  E_cut is more than 0.7 smaller than the experimental  *****'')')
+                  write(13,'(''*****  value. You should check this and possibly change      *****'')')
+                  write(13,'(''*****  E_cut with the command "lev_ecut Z A  Value"          *****'')')
+                  write(13,'(''*****  Problems of this nature usually means E_cut           *****'')')
+                  write(13,'(''*****  is too high                                           *****'')')
+                  write(13,'(''******************************************************************'')')
+                  write(13,*)
+               end if
             else
-               write(13,*)'E_match was not fit cummulative density for known discrete states'
+               write(13,*)'E_match was not fit cumulative density for known discrete states'
                write(13,*)'User input over rides fitting or default was used'
             end if
             nfit = nucleus(i)%ncut
             write(13,*)
-            write(13,*)'Cummulative level density up to E_cut'
+            write(13,*)'Cumulative level density up to E_cut'
             cum_rho(1) = 1.0d0
             elv(1) = nucleus(i)%state(1)%energy
             cum_rho(1) = 1.0d0
@@ -641,7 +702,7 @@ subroutine output_nucleus_data(j_max, itarget)
                end if
             end do
             write(13,*)
-            write(13,*)'Modeled cummulative level density up to E_cut'
+            write(13,*)'Modeled cumulative level density up to E_cut'
             cumm_fit(1:nfit) = 0.0d0
             call cumm_rho(nfit,elv,ia,nucleus(i)%level_param,             &
                           nucleus(i)%vib_enh,nucleus(i)%rot_enh,cumm_fit)
@@ -652,7 +713,7 @@ subroutine output_nucleus_data(j_max, itarget)
             if(nucleus(i)%ncut /= nucleus(i)%num_discrete)then
                nfit = nucleus(i)%num_discrete
                write(13,*)
-               write(13,*)'Cummulative level density for all discrete states'
+               write(13,*)'Cumulative level density for all discrete states'
                cum_rho(1:nfit) = 0.0d0
                cum_rho(1) = 1.0d0
                elv(1) = nucleus(i)%state(1)%energy
@@ -669,7 +730,7 @@ subroutine output_nucleus_data(j_max, itarget)
                   end if
                end do
                write(13,*)
-               write(13,*)'Modeled cummulative level density up to maximum discrete state'
+               write(13,*)'Modeled cumulative level density up to maximum discrete state'
                cumm_fit(1:nfit) = 0.0d0
                call cumm_rho(nfit,elv,ia,nucleus(i)%level_param,             &
                              nucleus(i)%vib_enh,nucleus(i)%rot_enh,cumm_fit)
@@ -996,10 +1057,6 @@ subroutine output_nucleus_data(j_max, itarget)
             end if
             n_bin = int((20.0d0 - nucleus(i)%F_barrier(j)%ecut)/dde)
 
-
-!            write(13,1903)(real(jj) + nucleus(i)%jshift, jj = 0, min(j_max,60))
-! 1903       format('      E         a(U)    sqrt(sig2)   P_fac      K_vib      K_rot       Enh         Rho     ',     &
-!                  40(5x,'J = ',f4.1,3x))
             pmode = nucleus(i)%F_barrier(j)%level_param(16)
             pe1 = nucleus(i)%F_barrier(j)%level_param(17)
             pbb = nucleus(i)%F_barrier(j)%level_param(18)
@@ -1034,7 +1091,6 @@ subroutine output_nucleus_data(j_max, itarget)
                   rho(jj,ip)=rho_FM*jfac*pfac
                   sum_rho = sum_rho + rho(jj,ip)
                end do
-!               write(13,'(1x,f8.3,6(1x,f10.3),60(1x,e15.7))')                        &
                write(13,fstring)                                                     &
                    energy,apu,sqrt(sig2),pfac,K_vib,K_rot,K_vib*K_rot,rho_FM*pfac,   &
                    (rho(jj,ip),jj = 0, min(j_max,60))
@@ -1070,7 +1126,6 @@ subroutine output_nucleus_data(j_max, itarget)
                   rho(jj,ip)=rho_FM*jfac*pfac
                   sum_rho = sum_rho + rho(jj,ip)
                end do
-!               write(13,'(1x,f8.3,6(1x,f10.3),60(1x,e15.7))')                        &
                write(13,fstring)                                                     &
                    energy,apu,sqrt(sig2),pfac,K_vib,K_rot,K_vib*K_rot,rho_FM*pfac,   &
                    (rho(jj,ip),jj = 0, min(j_max,60))
@@ -1093,7 +1148,6 @@ subroutine output_nucleus_data(j_max, itarget)
       fstring = '(f10.6,'//trim(adjustl(temp_string))//'(1x,e15.7))'
       do n = 1, nucleus(i)%nbin
          energy=nucleus(i)%e_grid(n)
-!         write(13,'(f10.6,60(1x,e15.7))')                                            &
          write(13,fstring)                                                           &
            energy,(nucleus(i)%bins(j,0,n)%HF_den,j=0,min(j_max,60))
       end do
@@ -1130,8 +1184,6 @@ subroutine output_nucleus_data(j_max, itarget)
             do j = 0, min(j_max,60)
                prob1(j) = nucleus(i)%bins(j,0,n)%HF_trans(if1)
             end do
-!            write(13,'(f10.6,60(1x,e15.7))')                                         &
-!              energy,(prob1(j),j = 0, j_max)
             write(13,fstring)energy,(prob1(j),j=0,min(j_max,60))
          end do
          write(13,*)
@@ -1169,8 +1221,6 @@ subroutine output_nucleus_data(j_max, itarget)
                prob1(j) = nucleus(i)%bins(j,0,n)%HF_trans(if1)
             end do
             write(13,fstring)energy,(prob1(j),j = 0, min(j_max,60))
-!            write(13,'(f10.6,60(1x,e15.7))')                                         &
-!              energy,(prob1(j),j = 0, min(j_max,60))
          end do
          write(13,*)
          write(13,*)'Negative Parity: Decay type = Fission'
@@ -1205,8 +1255,6 @@ subroutine output_nucleus_data(j_max, itarget)
                   prob1(j) = nucleus(i)%bins(j,0,n)%HF_trans(if1+ii)
                end do
                write(13,fstring)energy,(prob1(j),j = 0, min(j_max,60))
-!               write(13,'(f10.6,60(1x,e15.7))')                                      &
-!                 energy,(prob1(j),j = 0, min(j_max,60))
             end do
             write(13,*)
             write(13,*)'Negative Parity: Trans-Coef for Fission Barrier #', ii

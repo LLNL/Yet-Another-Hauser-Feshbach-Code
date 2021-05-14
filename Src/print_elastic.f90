@@ -1,18 +1,50 @@
 !
 !*****************************************************************************80
 !
+subroutine print_elastic(itarget, istate, ilab, file_lab, ilib_dir, lib_dir, ch_par,     &
+                         num_energies, Ang_L_max, max_jx_100, delta_Jx_100,              &
+                         SE_cs, SE_Ang, Elastic_cs, Elastic_Ang,                         &
+                         nstates, Inelastic_cs, Inelastic_Ang_L, Inelastic_L_max,        &
+                         write_error)
+!
+!*****************************************************************************80
+!
 !  Discussion:
 !
 !    This Subroutine to write all the elastic cross sections to the library 
 !    directory
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        variable_kinds
+!        options
+!        constants
+!        nodeinfo
+!        nuclei
+!        Channel_info
+!        particles_def
+!
+!     Subroutines:
+!
+!        Legendre_expand
+!
+!     External functions:
+!
+!        poly
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -20,11 +52,6 @@
 !
 !*****************************************************************************80
 !
-subroutine print_elastic(itarget, istate, ilab, file_lab, ilib_dir, lib_dir, ch_par,     &
-                         num_energies, Ang_L_max, max_jx_100, delta_Jx_100,              &
-                         SE_cs, SE_Ang, Elastic_cs, Elastic_Ang,                         &
-                         nstates, Inelastic_cs, Inelastic_Ang_L, Inelastic_L_max,        &
-                         write_error)
    use variable_kinds
    use options
    use constants
@@ -73,7 +100,7 @@ subroutine print_elastic(itarget, istate, ilab, file_lab, ilib_dir, lib_dir, ch_
    character(len=132) :: outfile
    real(kind=8), allocatable :: xvalue(:)
    real(kind=8), allocatable :: Ang_Dist(:)
-!----------------------------------------------------------------------
+!-------    External Functions   -----------------------------------------
    real(kind=8) :: poly
 !----------------------------------------------------------------------
    write_error = .false.
@@ -498,8 +525,12 @@ subroutine print_elastic(itarget, istate, ilab, file_lab, ilib_dir, lib_dir, ch_
    close(unit=100)
    return
 end subroutine print_elastic
-
-
+!
+!*****************************************************************************80
+!
+subroutine print_compound_elastic(itarget, istate, ilab, file_lab, ilib_dir, lib_dir, ch_par,     &
+                         num_energies, Ang_L_max, max_jx_100, delta_Jx_100, cs_threshold,         &
+                         nstates, Inelastic_cs, Inelastic_Ang_L, Inelastic_L_max, write_error)
 !
 !*****************************************************************************80
 !
@@ -508,13 +539,37 @@ end subroutine print_elastic
 !    This Subroutine to write all the compound elastic cross sections to 
 !    the library directory
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        variable_kinds
+!        options
+!        constants
+!        nodeinfo
+!        nuclei
+!        Channel_info
+!        particles_def
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        poly
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -522,9 +577,6 @@ end subroutine print_elastic
 !
 !*****************************************************************************80
 !
-subroutine print_compound_elastic(itarget, istate, ilab, file_lab, ilib_dir, lib_dir, ch_par,     &
-                         num_energies, Ang_L_max, max_jx_100, delta_Jx_100, cs_threshold,         &
-                         nstates, Inelastic_cs, Inelastic_Ang_L, Inelastic_L_max, write_error)
    use variable_kinds
    use options
    use constants
@@ -550,27 +602,21 @@ subroutine print_compound_elastic(itarget, istate, ilab, file_lab, ilib_dir, lib
    real(kind=8), intent(in) :: Inelastic_Ang_L(0:Ang_L_max,0:nstates,num_energies)
    integer(kind=4), intent(in) :: Inelastic_L_max(0:nstates,num_energies)
    logical, intent(out) :: write_error
-!----------------------------------------------------------------------
    integer(kind=4) :: iproj
    integer(kind=4) :: ipi, ipf, in, j, jx, L
-!-rem   real(kind=8) :: xA
    real(kind=8) :: x
    real(kind=8) :: e_in, cs
    real(kind=8) :: xnorm
    real(kind=8) :: Temp
    real(kind=8) :: alf, bet
    real(kind=8) :: sum
-!-rem   real(kind=8) :: comp
-!-rem   real(kind=8) :: P_L
-!-rem   real(kind=8) :: shape, Coul, Sig_C
    integer(kind=4) :: ilab2
    character(len=20) :: file_lab2
    integer(kind=4) :: idir, ifile
    character(len=132) :: directory
    character(len=132) :: outfile
-!-rem   real(kind=8), allocatable :: xvalue(:)
    real(kind=8), allocatable :: Ang_Dist(:)
-!----------------------------------------------------------------------
+!------   External Functions     --------------------------------------
    real(kind=8) :: poly
 !----------------------------------------------------------------------
    write_error = .false.

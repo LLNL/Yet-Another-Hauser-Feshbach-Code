@@ -13,13 +13,39 @@ subroutine HF_primary_decay_setup(e_in,iproj,itarget,icomp,istate,energy)
 !    population due to pre-equilibrium emission, and finally
 !    apply effects of width fluctuations
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        variable_kinds
+!        options
+!        nuclei
+!        Channel_info
+!        particles_def
+!        constants
+!        nodeinfo
+!
+!     Subroutines:
+!
+!        sum_HFden
+!        Fission_transmission
+!        Moldauer_WF
+!        pack_data
+!
+!     External functions:
+!
+!        real(kind=8) :: tco_interpolate
+!        real(kind=8) :: jhat
+!        real(kind=8) :: EL_trans
+!        real(kind=8) :: ML_trans
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -130,8 +156,6 @@ subroutine HF_primary_decay_setup(e_in,iproj,itarget,icomp,istate,energy)
          xA_i = real(nucleus(icomp)%A,kind=8)
          Coulomb_Barrier(k) = 0.2d0*e_sq*(xZ_i-xZ_part)*xZ_part/               &
             (1.2d0*((xA_i-xA_part)**(1.0d0/3.0d0) + xA_part**(1.0d0/3.0d0)))
-!         Coulomb_Barrier(k) = 0.6d0*e_sq*(xZ_i-xZ_part)*xZ_part/               &
-!            (1.2d0*((xA_i-xA_part)**(1.0d0/3.0d0) + xA_part**(1.0d0/3.0d0)))
       end do
    end if
 
@@ -409,7 +433,6 @@ subroutine HF_primary_decay_setup(e_in,iproj,itarget,icomp,istate,energy)
                call Fission_transmission(icomp,energy,xI_i,ip_i,F_trans)
                CHnorm2 = CHnorm2 + F_trans(4)
             end if
-
 
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !-------      Run again to count and to implement other cuts on prob   +

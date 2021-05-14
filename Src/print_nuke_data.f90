@@ -6,13 +6,37 @@
 !    This Subroutine to write data on nuclear states: properties and how they 
 !    decay to the library directory
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        variable_kinds
+!        options
+!        constants
+!        nodeinfo
+!        nuclei
+!        Channel_info
+!        particles_def
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -73,6 +97,16 @@ subroutine print_nuke_data(ilib_dir, lib_dir)
          ifile = ifile + 2
       end if
       open(unit=100, file = directory(1:idir)//outfile(1:ifile)//'-decay-properties.dat',status = 'unknown')            
+      write(100,'(''#'')')
+      write(100,'(''#******************************************************************'')')
+      write(100,'(''#  Data on discrete levels are based on the RIPL-3 data, with     *'')')
+      write(100,'(''#  modifcations by the author and users. RIPL-3 data is           *'')')
+      write(100,'(''#  available at https://www-nds.iaea.org/RIPL-3/. Discrete level  *'')')
+      write(100,'(''#  information is based on M. Verpelli and R. Capote Noy,         *'')')
+      write(100,'(''#  INDC(NDS)-0702, IAEA, 2015, and R. Capote, et al., Nuclear     *'')')
+      write(100,'(''#  Data Sheets 110 (2009), 3107-3214.                             *'')')
+      write(100,'(''#******************************************************************'')')
+      write(100,'(''#'')')
       write(100,'(''#Decay properties of discrete states for'',a5)')outfile(1:ifile)
       write(100,'(''#Mass = '',1pe23.16,'' MeV'')')nucleus(i)%mass
       write(100,'(''#Mass = '',1pe23.16,'' amu'')')nucleus(i)%mass/mass_u

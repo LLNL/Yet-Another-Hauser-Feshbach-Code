@@ -1,3 +1,6 @@
+!
+!*******************************************************************************
+!
 subroutine log_fact(lfactc, faclog)
 !
 !*******************************************************************************
@@ -6,13 +9,31 @@ subroutine log_fact(lfactc, faclog)
 !
 !    This subroutine sets up a stored array of the log of n factorial
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        None
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -25,6 +46,7 @@ subroutine log_fact(lfactc, faclog)
    real(kind=8), intent(out) :: faclog(lfactc)
    integer(kind=4) :: i
    real(kind=8) :: fn
+!-------------------------------------------------------------------------------
    faclog(1) = 0.0d0
    faclog(2) = 0.0d0
    fn = 1.0d0
@@ -48,13 +70,40 @@ real(kind=8) function wigner3j(j1,j2,j3,m1,m2,m3)
 !    Converted and updtated to FORTRAN 90 to remove outdated
 !    FORTRAN 
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        None
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        None
+!
+!     Functions:
+!
+!        real(kind=8) :: phase 
+!        logical :: frac
+!        logical :: triangle
+!
+!     MPI routines:
+!
+!        None
+!
+!  Dependencies:
+!
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -76,7 +125,7 @@ real(kind=8) function wigner3j(j1,j2,j3,m1,m2,m3)
    integer(kind=4) :: ix, iy, iz
    integer(kind=4) :: minn, nin
    real(kind=8) :: s, t, ta, tb, xddd
-
+!----    Function definitions    ------------------------------
    real(kind=8) :: phase 
    logical :: frac, triangle
 !----  Phase (-1)**i
@@ -85,10 +134,9 @@ real(kind=8) function wigner3j(j1,j2,j3,m1,m2,m3)
    frac(x) = abs(x-int(x)) > 1.0d-10
 !----   Triangle relation to check if angular momenta can couple
    triangle(x,y,z) = frac(x+y+z) .or. x > y+z .or. x < abs(y-z)
-
+!--------------------------------------------------------------------------
    wigner3j = 0.0d0
 
-!   if((m1 + m2 + m3) /= 0.0d0)return    !   check on z-component 
    if(abs(m1 + m2 + m3) > 1.0d-6)return    !   check on z-component 
    if(triangle(j3,j1,j2))return            !   angular momenta can't couple
    if(j1 - abs(m1) < 0)return           !   m1 > j1 - not allowed
@@ -176,13 +224,35 @@ real(kind=8) function clebr(j1,m1,j2,m2,j3,m3)
 !    Converted and updtated to FORTRAN 90 to remove outdated
 !    FORTRAN 
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        None
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        real(kind=8) :: wigner3j
+!
+!     Functions:
+!
+!        real(kind=8) :: phase 
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -197,9 +267,10 @@ real(kind=8) function clebr(j1,m1,j2,m2,j3,m3)
 !---------------------------------------------------------------------------
    integer(kind=4) :: i
    integer(kind=4) :: iphase
+!----    External functions
    real(kind=8) :: wigner3j
+!----  Function definitions    
    real(kind=8) :: phase
-!----  Phase (-1)**i
    phase(i) = (-1.0d0)**i
 !--------------------------------------------------------------
 
@@ -223,13 +294,40 @@ real(kind=8) function wigner6j(j1,j2,j3,j4,j5,j6)
 !    Converted and updtated to FORTRAN 90 to remove outdated
 !    FORTRAN 
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        None
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        None
+!
+!     Functions:
+!
+!        real(kind=8) :: phase 
+!        logical :: frac
+!        logical :: triangle
+!
+!     MPI routines:
+!
+!        None
+!
+!  Dependencies:
+!
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -248,11 +346,8 @@ real(kind=8) function wigner6j(j1,j2,j3,j4,j5,j6)
    real(kind=8) :: xd
    real(kind=8) :: ta, tb, t, s
 
-!   integer(kind=4), parameter :: num_fac = 200
-!   real(kind=8) :: fact(num_fac)
-
    real(kind=8) :: x, y, z
-!--------------------------------------------------------------
+!----    Function definitions    ------------------------------
    real(kind=8) :: phase 
    logical :: frac, triangle
 !----  Phase (-1)**i
@@ -328,13 +423,37 @@ real(kind=8) function wigner9j(j1,j2,j3,j4,j5,j6,j7,j8,j9)
 !    Converted and updtated to FORTRAN 90 to remove outdated
 !    FORTRAN 
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        None
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        real(kind=8) :: wigner6j
+!
+!     Functions:
+!
+!        real(kind=8) :: phase 
+!        logical :: frac
+!        logical :: triangle
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -350,8 +469,9 @@ real(kind=8) function wigner9j(j1,j2,j3,j4,j5,j6,j7,j8,j9)
    integer(kind=4) :: k
    integer(kind=4) :: i
    real(kind=8) :: xx, yy, zz
+!----  External functions    ---------------------------------------------
    real(kind=8) :: wigner6j
-!------------------------------------------------------------------------
+!----    Function definitions    ------------------------------
    real(kind=8) :: phase 
    logical :: frac, triangle
 !----  Phase (-1)**i
@@ -405,13 +525,35 @@ real(kind=8) function racahr(j1,j2,j3,j4,j5,j6)
 !    Converted and updtated to FORTRAN 90 to remove outdated
 !    FORTRAN 
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        None
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        real(kind=8) :: wigner6j
+!
+!     Functions:
+!
+!        real(kind=8) :: phase 
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -424,8 +566,11 @@ real(kind=8) function racahr(j1,j2,j3,j4,j5,j6)
 !---------------------------------------------------------------------------
    integer(kind=4) :: i
    real(kind=8) :: z
+!----    Internal inline function
    real(kind=8) :: phase
+!----    External functions      -------------------------------
    real(kind=8) :: wigner6j
+!----    Function definitions    ------------------------------
 !----   Compute phase (-1)**i
    phase(i) = (-1.0d0)**i
 !--------------------------------------------------------------

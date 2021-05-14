@@ -6,13 +6,37 @@
 !    This Subroutine prints out direct (coupled-channels) and dwba emission spectra 
 !    to appropriate file in the directory 
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        variable_kinds
+!        options
+!        constants
+!        nodeinfo
+!        nuclei
+!        Channel_info
+!        particles_def
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -51,7 +75,7 @@ subroutine print_direct_spectra(ilib_dir, lib_dir, ifile, file_name,            
    character(len=132) :: directory
    real(kind=8), allocatable :: res1(:)
    real(kind=8), allocatable :: res2(:)   
-
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
    if(.not. allocated(res1))allocate(res1(0:num_e))
    if(.not. allocated(res2))allocate(res2(0:num_e))
@@ -121,12 +145,6 @@ subroutine print_direct_spectra(ilib_dir, lib_dir, ifile, file_name,            
          energy = energy + de_spec2
          write(24,'(1x,f10.4,14(1x,1pe15.7))')energy, direct_Spectrum(i), dwba_Spectrum(i)
       end do
-!      do i = 0, max_num
-!         energy = real(i,kind=8)*de_spec2
-!          write(24,'(1x,f10.4,14(1x,1pe15.7))')energy, res1(i), res2(i)
-!         energy = energy + de_spec2
-!         write(24,'(1x,f10.4,14(1x,1pe15.7))')energy, res1(i), res2(i)
-!      end do
       close(unit=24)
    end if
    if(allocated(res1))deallocate(res1)

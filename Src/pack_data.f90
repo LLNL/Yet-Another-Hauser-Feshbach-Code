@@ -10,12 +10,31 @@ subroutine pack_data(Ix_f, ip_f, n_f, idb, l, iss, itemp)
 !    This subroutine packs integer data defining aspects of a decay
 !    into a single integer(kind=4) itemp
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        variable_kinds
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
-!    This code is distributed under the GNU LGPL version 2 license. 
+!
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -27,7 +46,6 @@ subroutine pack_data(Ix_f, ip_f, n_f, idb, l, iss, itemp)
    implicit none
    integer(kind=4), intent(in) :: Ix_f, ip_f, n_f, idb, l, iss
    integer(kind=4), intent(out) :: itemp
-
 
    itemp = Ix_f
    itemp = ior(itemp,ishft(ip_f,6))

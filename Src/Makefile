@@ -28,6 +28,7 @@ fresco-potentials.o        \
 Gamma_gamma.o              \
 fit_nuke_Gamma_gamma.o     \
 Gauss-quadrature.o         \
+eig_eis.o                  \
 Legendre-expand.o          \
 gamma_functions.o          \
 EM_str_param.o             \

@@ -6,13 +6,37 @@
 !    This Subroutine prints out pre-equilibrium emission spectra to appropriate
 !    file in the directory 
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        variable_kinds
+!        options
+!        constants
+!        nodeinfo
+!        nuclei
+!        Channel_info
+!        particles_def
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -20,8 +44,9 @@
 !
 !*****************************************************************************80
 !
-subroutine print_preeq_spectra(ilib_dir, lib_dir, ifile, file_name,                             &
-                               e_in, de_spec2, num_e, Preeq_spect, Preeq_spect_full, smear)
+subroutine print_preeq_spectra(ilib_dir, lib_dir, ifile, file_name,                   &
+                               e_in, de_spec2, num_e, Preeq_spect,                    &
+                               Preeq_spect_full, smear)
    use variable_kinds
    use options
    use constants
@@ -49,7 +74,7 @@ subroutine print_preeq_spectra(ilib_dir, lib_dir, ifile, file_name,             
    character(len=132) :: directory
    real(kind=8), allocatable :: resp(:,:)
    real(kind=8), allocatable :: resp2(:,:)   
-
+!-------------------------------------------------------------------------------------------
 
    if(.not. allocated(resp))allocate(resp(0:6,0:num_e))
    if(.not. allocated(resp2))allocate(resp2(0:6,0:num_e))

@@ -26,9 +26,31 @@
 !  The generator is augmented with Marsaglia shift operartors for a 
 !  64-bit random number generator
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        None
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        None
+!
+!  Licensing:
+!
+!    SPDX-License-Identifier: MIT 
+!
 !  Date:
 !
-!    20 March 2020
+!    11 May 2021
 !
 !  Author:
 !

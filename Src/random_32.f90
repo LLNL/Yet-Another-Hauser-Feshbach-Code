@@ -1,4 +1,7 @@
-
+!
+!*******************************************************************************
+!
+real(kind=8) function random_32(iseed_32)
 !
 !*******************************************************************************
 !
@@ -27,9 +30,31 @@
 !  The generator is augmented with Marsaglia shift operartors for a 
 !  64-bit random number generator
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        None
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        None
+!
+!  Licensing:
+!
+!    SPDX-License-Identifier: MIT 
+!
 !  Date:
 !
-!    20 March 2020
+!    11 May 2021
 !
 !  Author:
 !
@@ -37,7 +62,6 @@
 !
 !*******************************************************************************
 !
-real(kind=8) function random_32(iseed_32)
    implicit none
    integer, parameter :: int32 = selected_int_kind(9)
    integer(kind=int32), intent(inout) :: iseed_32

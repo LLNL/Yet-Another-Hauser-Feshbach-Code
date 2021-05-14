@@ -17,6 +17,39 @@ subroutine Moldauer_WF(icomp,                                       &
 !
 !  S. Hilaire, Ch. Lagrange, and A. J. Koning, Ann. Phys. 306, 209 (2003)
 !
+!
+!   Dependencies:
+!
+!     Modules:
+!
+!        nodeinfo
+!        variable_kinds
+!        options
+!        nuclei
+!        particles_def
+!        constants 
+!        Gauss_integration
+!
+!     Subroutines:
+!
+!        Moldauer_product
+!
+!     External functions:
+!
+!        real(kind=8) :: xnu
+!
+!     MPI routines:
+!
+!        MPI_Allreduce
+!
+!  Licensing:
+!
+!    SPDX-License-Identifier: MIT 
+!
+!  Date:
+!
+!    11 May 2021
+!
 !  Licensing:
 !
 !    This code is distributed under the GNU LGPL version 2 license. 
@@ -68,7 +101,7 @@ subroutine Moldauer_WF(icomp,                                       &
    real(kind=8) :: afit
    save xx
    data xx/ 0.2d0,  0.4d0, 0.6d0, 0.8d0, 1.0d0, 1.2d0, 1.4d0, 1.6d0, 1.8d0, 2.0d0/
-   
+!-------------     External Functions   
    real(kind=8) :: xnu
 !-------------------------------------------------------------------------+
 !------                                                                   +
@@ -130,7 +163,7 @@ subroutine Moldauer_WF(icomp,                                       &
    if(nproc > 1)call MPI_Allreduce(MPI_IN_PLACE, WF, 1, MPI_REAL8, MPI_SUM, icomm, ierr)
    WF = WF/afit
 
-return
+   return
 end subroutine Moldauer_WF
 !
 !*******************************************************************************
@@ -146,6 +179,33 @@ real(kind=8) function xnu(trans_eff,HF_den)
 !  Reference:
 !
 !  S. Hilaire, Ch. lagrange, and A. J. Koning, Ann. Phys. 306, 209 (2003)
+!
+!   Dependencies:
+!
+!     Modules:
+!
+!        variable_kinds
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        None
+!
+!  Licensing:
+!
+!    SPDX-License-Identifier: MIT 
+!
+!  Date:
+!
+!    11 May 2021
+!
 !
 !  Licensing:
 !
@@ -186,6 +246,45 @@ subroutine Moldauer_product(icomp,                               &
 !  Reference:
 !
 !  S. Hilaire, Ch. lagrange, and A. J. Koning, Ann. Phys. 306, 209 (2003)
+!
+!   Dependencies:
+!
+!     Modules:
+!
+!        nodeinfo
+!        variable_kinds
+!        options
+!        nuclei
+!        particles_def
+!        constants
+!        Channel_info
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!       real(kind=8) :: tco_interpolate
+!       real(kind=8) :: xnu
+!       real(kind=8) :: exp_1,exp_2
+!       real(kind=8) :: spin_fac
+!       real(kind=8) :: parity_fac
+!       real(kind=8) :: HW_trans
+!       logical :: real8_equal
+!
+!     MPI routines:
+!
+!        None
+!
+!  Licensing:
+!
+!    SPDX-License-Identifier: MIT 
+!
+!  Date:
+!
+!    11 May 2021
+!
 !
 !  Licensing:
 !
@@ -255,12 +354,10 @@ subroutine Moldauer_product(icomp,                               &
    real(kind=8) :: Max_J
    real(kind=8) :: e1, b, bbb, mode
    real(kind=8) :: E0, T, E11,ecut
-!   integer(kind=4) :: j_min
    real(kind=8) :: xZ_i, xA_i, xZ_part, xA_part
    real(kind=8) :: Coulomb_Barrier(6)
-
 !-------------------------------------------------------------------------+
-!------     Function declarations
+!------   External  Functions
    real(kind=8) :: tco_interpolate
    real(kind=8) :: xnu
    real(kind=8) :: exp_1,exp_2
@@ -282,8 +379,6 @@ subroutine Moldauer_product(icomp,                               &
          xA_i = real(nucleus(icomp)%A,kind=8)
          Coulomb_Barrier(k_c) = 0.2d0*e_sq*(xZ_i-xZ_part)*xZ_part/               &
             (1.2d0*((xA_i-xA_part)**(1.0d0/3.0d0) + xA_part**(1.0d0/3.0d0)))
-!         Coulomb_Barrier(k_c) = 0.6d0*e_sq*(xZ_i-xZ_part)*xZ_part/               &
-!            (1.2d0*((xA_i-xA_part)**(1.0d0/3.0d0) + xA_part**(1.0d0/3.0d0)))
       end do
    end if
 
@@ -424,7 +519,6 @@ subroutine Moldauer_product(icomp,                               &
          else if(nucleus(icomp)%F_n_barr == 3)then
             ib = 1
             P_f = (F_trans(2) + F_trans(3))/(F_trans(1) + F_trans(2) + F_trans(3))
-!         P_f = trans(2)*trans(3)/(trans(1)*trans(2)+trans(1)*trans(3)+trans(2)*trans(3))
          end if
          Max_j = nucleus(icomp)%F_barrier(ib)%Max_J
          aa = nucleus(icomp)%F_Barrier(ib)%barrier_damp(1)
@@ -434,8 +528,6 @@ subroutine Moldauer_product(icomp,                               &
          do j = 1, nucleus(icomp)%F_Barrier(1)%num_discrete
             par = -1.0d0
             if(ip == 1) par = 1.0d0
-!            if(nucleus(icomp)%F_barrier(ib)%state_j(j) == xI .and.                        &
-!               nucleus(icomp)%F_barrier(ib)%state_pi(j) == par)then
             if(real8_equal(nucleus(icomp)%F_barrier(ib)%state_j(j),xI) .and.                        &
                real8_equal(nucleus(icomp)%F_barrier(ib)%state_pi(j),par))then
                F_Barrier = nucleus(icomp)%F_Barrier(ib)%barrier
@@ -472,12 +564,7 @@ subroutine Moldauer_product(icomp,                               &
          else
             E11 = -5.0d0
          end if
-!         j_min = nint(E11/de)
-!         if(ecut > 0.0d0)then
-!            j = 0
-!         else
-!            j = j_min
-!         end if
+
          T_f = 0.0d0
          j = 0
          converged = .false.
@@ -522,16 +609,8 @@ subroutine Moldauer_product(icomp,                               &
       end if
    end if
 
-
-
-
-
    Product=exp(Product)
-!write(6,*)'Product=',Product
-!write(6,*)'sum_Tg=',sum_Tg
-!write(6,*)'sum_n= ',sum_n
-!write(6,*)'sum_p=',sum_p
-!write(6,*)'HF_den ',HF_den
-return
+   return
+
 end subroutine Moldauer_product
 

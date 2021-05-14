@@ -1,3 +1,6 @@
+!
+!*******************************************************************************
+!
 subroutine Legendre_expand(jx_max,xval,Ang_Dist,L_max,Ang_L)
 !
 !*******************************************************************************
@@ -14,9 +17,32 @@ subroutine Legendre_expand(jx_max,xval,Ang_Dist,L_max,Ang_L)
 !  Note, input array is interpolated to be put onto the grid for the 
 !  Gauss-Legendre integration points
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        None
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        real(kind=8) :: Poly
+!        real(kind=8) :: interp
+!
+!     MPI routines:
+!
+!        None
+!
+!  Licensing:
+!
+!    SPDX-License-Identifier: MIT 
+!
 !  Date:
 !
-!    20 March 2020
+!    11 May 2021
 !
 !  Author:
 !
@@ -80,7 +106,6 @@ subroutine Legendre_expand(jx_max,xval,Ang_Dist,L_max,Ang_L)
          value = interp(x_gleg(n),jx_max,xval,Ang_Dist)
          sum = sum + value*w_gleg(n)*poly(L,1,alpha,beta,x_gleg(n))
       end do
-!      Ang_L(L) = sum*0.5d0*(2.0d0*real(L,kind=8)+1.0d0)
       Ang_L(L) = sum*0.5d0*(2.0d0*real(L,kind=8)+1.0d0)/xnorm
    end do
    if(allocated(x_gleg))deallocate(x_gleg)

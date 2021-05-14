@@ -13,13 +13,46 @@ subroutine pre_equilibrium_1(icomp, istate, in, E_inc,    &
 !    in the main code (pre-equilibirum probability) PREEQ-Samp.f90 (spectra),
 !    which Monte Carlo samples the decay.
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        variable_kinds
+!        options
+!        nuclei
+!        channel_info
+!        particles_def
+!        constants 
+!        nodeinfo
+!        pre_equilibrium_no_1
+!
+!     Subroutines:
+!
+!        int_trans_rate
+!
+!     External functions:
+!
+!        real(kind=8) :: compound_cs
+!        real(kind=8) :: omega2
+!        real(kind=8) :: Well
+!        real(kind=8) :: Delta_pre
+!        real(kind=8) :: Pauli
+!        real(kind=8) :: Prob_func
+!        real(kind=8) :: finite_well
+!        real(kind=8) :: aparam_u
+!        real(kind=8) :: EL_absorption
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -113,7 +146,6 @@ subroutine pre_equilibrium_1(icomp, istate, in, E_inc,    &
    real(kind=8) :: finite_well
    real(kind=8) :: aparam_u
    real(kind=8) :: EL_absorption
-!   real(kind=8) :: photo_absorption
 !--------   Start Calculation    ---------------------------
 
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -130,8 +162,6 @@ subroutine pre_equilibrium_1(icomp, istate, in, E_inc,    &
          xA_i = real(nucleus(icomp)%A,kind=8)
          Coulomb_Barrier(k) = 0.2d0*e_sq*(xZ_i-xZ_part)*xZ_part/               &
             (1.2d0*((xA_i-xA_part)**(1.0d0/3.0d0) + xA_part**(1.0d0/3.0d0)))
-!         Coulomb_Barrier(k) = 0.6d0*e_sq*(xZ_i-xZ_part)*xZ_part/               &
-!            (1.2d0*((xA_i-xA_part)**(1.0d0/3.0d0) + xA_part**(1.0d0/3.0d0)))
       end do
    end if
 
@@ -275,12 +305,10 @@ subroutine pre_equilibrium_1(icomp, istate, in, E_inc,    &
      
          do kk = 1, nucleus(icomp)%num_decay                       !   Loop over particle allowed to decay from this nucleus
             k = nucleus(icomp)%decay_particle(kk)
-!            if(k == 0)cycle
             if(k > 0 .and. pn == p0(1) .and. pp == p0(2))cycle        !  only photons as there are no hole states, and thus emission 
                                                                    ! from here is just elastic scattering
             ifinal = nucleus(icomp)%decay_to(kk)
 
-!  write(100,*)'nucleus = ',ifinal
 
             z_k = particle(k)%Z
             n_k = particle(k)%A-z_k
@@ -317,7 +345,6 @@ subroutine pre_equilibrium_1(icomp, istate, in, E_inc,    &
                energy = dfloat(m)*de
                if(energy - Coulomb_Barrier(k) <= 1.0d-6)cycle
                Ex_final = Ex_tot - energy - Sep
-!               if(energy > Ex_tot - nucleus(icomp)%sep_e(k)+0.5d0*de)exit         !  Check if there is enough energy to emit this particle
                Delta = Delta_pre(pn_res,hn,pp_res,hp,Zf,Af,gpf,gnf,Ex_final)
                gnf = aparam_u(Ex_final, gnnf, shell, gamma)
                gpf = aparam_u(Ex_final, gppf, shell, gamma)
@@ -387,17 +414,10 @@ subroutine pre_equilibrium_1(icomp, istate, in, E_inc,    &
                dWk(pn,pp,m,k) = factor*term/omdenom                            !   decay rate for each particle type and energy
 
                Wk(pn,pp,k) = Wk(pn,pp,k) + dWk(pn,pp,m,k)*de                          !   its integral
-!   write(100,'(4(1x,i4),2(1x,f15.5),6(1x,1pe12.5))')pn, pp, k, m, energy, Coulomb_Barrier(k),sig_inv,   &
-!                                        om/omdenom,                                                     &
-!                                        0.5d0*(om1+om2)/omdenom,                                        &
-!                                        Preeq_gam_fact*factor*direct/omdenom,                           &
-!                                        Preeq_gam_fact*factor*semi_direct/omdenom,                      &
-!                                        dWk(pn,pp,m,k)
             end do
 
             W(pn,pp) = W(pn,pp) + Wk(pn,pp,k)
 
-!   write(100,*)'Total = ',W(pn,pp)
          end do
          
          denom = Lamb_p_p(pn,pp) + Lamb_p_n(pn,pp) +                       &
@@ -454,7 +474,6 @@ subroutine pre_equilibrium_1(icomp, istate, in, E_inc,    &
       z_k = particle(k)%Z
       n_k = particle(k)%A - z_k
       ifinal = nucleus(icomp)%decay_to(kk)
-!      if(k == 0)cycle                                     !  We don't do photons yet
       e_max = ex_tot - nucleus(icomp)%sep_e(k)
       e_cut = nucleus(ifinal)%level_param(7)
       e_bin = e_max
@@ -463,7 +482,6 @@ subroutine pre_equilibrium_1(icomp, istate, in, E_inc,    &
          energy = dfloat(m)*de
          if(energy - Coulomb_Barrier(k) <= 1.0d-6)cycle
          nucleus(icomp)%PREEQ_part_spectrum(kk,m)=0.0d0
-!         if(energy > ex_tot - nucleus(icomp)%sep_e(k)+de/2.0) exit
          ex_final = ex_tot - energy - nucleus(icomp)%sep_e(k)
          pn_min = max(p0(1),n_k)
          pp_min = max(p0(2),z_k)
@@ -476,17 +494,12 @@ subroutine pre_equilibrium_1(icomp, istate, in, E_inc,    &
                if(k > 0 .and. pn == p0(1) .and. pp == p0(2))cycle                       !  Particle emission only for n_tot >= 3
                sum = sum + dWk(pn,pp,m,k)*tau(pn,pp)*Pre_Prob(pn,pp)
 
-!    write(130,'(3(1x,i4),1x,f10.5,4(1x,e17.7))')k,pn,pp,energy,tau(pn,pp),Pre_Prob(pn,pp),dWk(pn,pp,m,k),   &
-!              dWk(pn,pp,m,k)*tau(pn,pp)*Pre_Prob(pn,pp)
 
            end do
          end do
          nucleus(icomp)%PREEQ_part_spectrum(kk,m) = reac_cs*sum
          pre_eq_cs(k) = pre_eq_cs(k) + nucleus(icomp)%PREEQ_part_spectrum(kk,m)*de
-!    write(130,'(1x,i4,1x,f10.5,2(1x,e15.6))')k,energy,nucleus(icomp)%PREEQ_part_spectrum(kk,m),pre_eq_cs(k)
       end do
-
-!    write(130,*)'pe_eq_cs , k = ',k,pre_eq_cs(k)
 
       sum = 0.0d0
       do m = 0, nbin_end
@@ -500,13 +513,7 @@ subroutine pre_equilibrium_1(icomp, istate, in, E_inc,    &
       end if
       nucleus(icomp)%PREEQ_part_cs(kk,in) = pre_eq_cs(k)
       nucleus(icomp)%PREEQ_cs(in) = nucleus(icomp)%PREEQ_cs(in) + pre_eq_cs(k)
-!  write(6,*)k,nucleus(icomp)%PREEQ_part_cs(kk,in)
    end do
-!  write(6,*)nucleus(icomp)%PREEQ_cs(in)
-
-
-
-
 
    return
 end subroutine pre_equilibrium_1
@@ -521,13 +528,32 @@ real(kind=8) function Well(h,A,energy,V1,V3,K)
 !
 !    This function calculates well depth
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        variable_kinds
+!        constants
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -564,13 +590,33 @@ real(kind=8) function omega2(pn,hn,pp,hp,Z,A,gp,gn,Ex,Delta,h_max,Vwell)
 !
 !    This function calculates the exciton level density
 !
+!  Dependencies:
+!
+!     Modules:
+!
+!        variable_kinds
+!        constants
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        real(kind=8) :: Pauli
+!        real(kind=8) :: Finite_well
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -581,7 +627,6 @@ real(kind=8) function omega2(pn,hn,pp,hp,Z,A,gp,gn,Ex,Delta,h_max,Vwell)
 !----------  Input Data          -------------------------------------
    use variable_kinds
    use constants
-!   use pre_equilibrium_no_1
    implicit none
    integer(kind=4), intent(in) :: pn,hn,pp,hp,Z,A
    real(kind=8), intent(in) :: gp,gn
@@ -632,13 +677,32 @@ real(kind=8) function Delta_pre(pn,hn,pp,hp,Z,A,gp,gn,Ex)
 !
 !    This function calculates the Pre-equilibrium Pairing term 
 !
+!  Dependencies:
+!
+!     Modules:
+!
+!        variable_kinds
+!        options
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -705,13 +769,31 @@ real(kind=8) function Pauli(pn,hn,pp,hp,gp,gn)
 !
 !    This function calculates the Pauli Correction Factor
 !
+!  Dependencies:
+!
+!     Modules:
+!
+!        variable_kinds
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -741,13 +823,33 @@ real(kind=8) function finite_well(p,h,Ex,h_max,Vwell)
 !
 !    This function calculates the Finte Well function 
 !
+!  Dependencies:
+!
+!     Modules:
+!
+!        variable_kinds
+!        options
+!        constants
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -768,9 +870,7 @@ real(kind=8) function finite_well(p,h,Ex,h_max,Vwell)
    real(kind=8) :: sum
    real(kind=8) :: Ux
    real(kind=8) :: Step
-   real(kind=8) :: V,VV,R
-!------------   External Functions
-!---unused   real(kind=8) :: Well
+   real(kind=8) :: V, VV, R
 !------   Start Calculation    ---------------------------------------
 !------   Orignal model uses step function, which causes a kink to occur in the 
 !------   outgoing spectrum, especially if the well depth is lowered. Made a modification
@@ -818,13 +918,31 @@ real(kind=8) function Prob_func(pn,pp,pn_max,pp_max,                      &
 !    emission. Solve recurssively. Note depends only on previous
 !    probabilities with 1 less total exciton  
 !
+!  Dependencies:
+!
+!     Modules:
+!
+!        variable_kinds
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -843,9 +961,9 @@ real(kind=8) function Prob_func(pn,pp,pn_max,pp_max,                      &
    real(kind=8), intent(in) :: Gam_0_pn(0:pn_max,0:pp_max)
    real(kind=8), intent(in) :: Gam_0_np(0:pn_max,0:pp_max)
    real(kind=8), intent(in) :: Pre_Prob(0:pn_max,0:pp_max)
-!---------------------    Internal Data 
+!---------------------    Internal Data        -----------------------------
    real(kind=8) sum
-!---------------------    Start Calculation
+!---------------------    Start Calculation    -----------------------------
    sum=0.0d0
    if(pp-1 >= 0)sum = sum + Pre_Prob(pn,pp-1)*Gam_p(pn,pp-1)
    if(pn-1 >= 0)sum = sum + Pre_Prob(pn-1,pp)*Gam_n(pn-1,pp)
@@ -869,15 +987,28 @@ subroutine int_trans_rate(pn,hn,pp,hp,Z,A,gp,gn,Ex,Delta,h_max,Vwell,          &
 !
 !  Discussion:
 !
-!    This subroutine calculates the internal exciton transition rates  
+!  This subroutine calculates the internal transition rate for one exciton
+!  state to another
 !
-!  Licensing:
+!  Dependencies:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!     Modules:
 !
-!  Date:
+!        variable_kinds
+!        constants
 !
-!    25 September 2019
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        real(kind=8) :: omega2
+!        real(kind=8) :: Pauli
+!
+!     MPI routines:
+!
+!        None
 !
 !  Author:
 !
@@ -930,9 +1061,7 @@ subroutine int_trans_rate(pn,hn,pp,hp,Z,A,gp,gn,Ex,Delta,h_max,Vwell,          &
    real(kind=8) :: om_denom
    real(kind=8) :: U
    real(kind=8) :: dee
-   
-!----------  External Functions      ---------------------------------
-
+   !----------  External Functions      ---------------------------------
    real(kind=8) :: omega2
    real(kind=8) :: Pauli
 !-----------   Start Calculation    ----------------------------------

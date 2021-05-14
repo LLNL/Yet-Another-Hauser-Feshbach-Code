@@ -9,13 +9,34 @@ subroutine get_spectrum(data_path, len_path, overide, symb, iz, ia, inuc)
 !
 !    This subroutine reads in spectroscopic data and stores it in arrays
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        variable_kinds
+!        options
+!        nodeinfo
+!        nuclei
+!
+!     Subroutines:
+!
+!        remove_states
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        MPI_Abort
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -104,12 +125,12 @@ subroutine get_spectrum(data_path, len_path, overide, symb, iz, ia, inuc)
         file=data_path(1:len_path)//'levels/'//fname(1:len_fname),    &
         status='old')
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!----------   First look for Z,A-1 element to get its ground state spin
-!----------   Used to compute D0, i.e., the level spacing at the 
-!----------   neutron-separation energy 
+!------  First look for Z,A-1 element to get its ground state spin
+!------  Used to compute D0, i.e., the level spacing at the 
+!------  neutron-separation energy 
 !------  Search for element in data file
 !------  in A and element name if same get data
-!------   Use a default value to signal if it is known or not
+!------  Use a default value to signal if it is known or not
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    s1 = -1.5d0
    s2 = -0.5d0
@@ -178,13 +199,11 @@ subroutine get_spectrum(data_path, len_path, overide, symb, iz, ia, inuc)
          line(1:300) = ' '
          read(51,'(a)', iostat=io_error)line
          if(line(1:1) == '#' .or. line(1:1) == '!')cycle
-!            read(51,'(i3,a2)',iostat=io_error)iap,symbb !  find element, end -. end of subroutine abort
          read(line,'(i3,a2)')iap,symbb !  find element, end -. end of subroutine abort
          if(symbb(2:2) == ' ')then
             symbb(2:2) = symbb(1:1)
             symbb(1:1) = ' '
          end if
-!  write(6,*)ia,iap,symb, symbb
          if(ia == iap .and. symb == symbb)then
             backspace(51)
             read(51,'(a5,6i5,2f12.6)',iostat=io_error)char, iap, izp, nol, nog, nmax, nc, sn, sp
@@ -231,16 +250,12 @@ subroutine get_spectrum(data_path, len_path, overide, symb, iz, ia, inuc)
       nucleus(inuc)%num_discrete = nol
       if(.not. allocated(nucleus(inuc)%state))allocate(nucleus(inuc)%state(nol))
       complete_decay(1:nol) = 1
-!      complete_decay(1) = 1
       state_map(1:nol) = 1
-!      do i = 1, nol
       io_error = 0
       i = 1
       do while(i <= nol .and. io_error == 0)
          line(1:300) = ' '
          read(51,'(a)', iostat=io_error)line
-!         read(line,'(i3,1x,f10.6,1x,f5.1,i3,1x,e10.3,i3,1x,a1,24x,i3,220x,f10.6,1x,i2)')      &
-!              ilab, ex_energy, spin, par, t12, ngr, unc, nd, shift, iband
          if(line(1:1) == '#' .or. line(1:1) == '!')cycle
          read(line,'(i3,1x,f10.6,a1,f5.1,a1,i2,a1,e10.3,a1,i2,a1,a1,24x,i3,220x,f10.6,1x,i2)')      &
               ilab, ex_energy, e_mod, spin, j_mod, par, par_mod, t12, t12_mod, ngr, ngr_mod,        &
@@ -263,13 +278,11 @@ subroutine get_spectrum(data_path, len_path, overide, symb, iz, ia, inuc)
             call MPI_Abort(icomm,101,ierr)
          end if
          ng = 0
-!         do m = 1, ngr
          m = 1
          do while(m <= ngr .and. io_error == 0)
             line(1:300) = ' '
             read(51,'(a)', iostat = io_error)line
             if(line(1:1) == '#' .or. line(1:1) == '!')cycle
-!            read(line,'(39x,i4,1x,f10.4,3(1x,e10.3))')nf(m),eg(m),pg(m),pe(m),icc(m)
             read(line,'(39x,i4,a1,f10.4,a1,e10.3,a1,e10.3,a1,e10.3,a1)')                               &
                                                    nf(m), nf_mod(m), eg(m), eg_mod(m),           &
                                                    pg(m), pg_mod(m), pe(m), pe_mod(m),           &
@@ -444,11 +457,6 @@ subroutine get_spectrum(data_path, len_path, overide, symb, iz, ia, inuc)
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    n_cut = 1
    do i = 2, nucleus(inuc)%num_discrete
-!     write(6,*)i, nucleus(inuc)%state(i)%level_float
-!     write(6,*)i, nucleus(inuc)%state(i)%spin
-!     write(6,*)i, nucleus(inuc)%state(i)%parity
-!     write(6,*)i, complete_decay(i)
-!     write(6,*)i, nucleus(inuc)%state(i)%nbranch
       if(nucleus(inuc)%state(i)%level_float)cycle
       if(nucleus(inuc)%state(i)%spin < 0.0d0)exit
       if(nint(nucleus(inuc)%state(i)%parity) == 0)exit
@@ -462,7 +470,6 @@ subroutine get_spectrum(data_path, len_path, overide, symb, iz, ia, inuc)
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !------   Now set state_map for the states to be removed
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!   write(6,*)'state_map'
 !----   Always have the ground state
    numd = 1
    state_map(1) = numd
@@ -486,9 +493,6 @@ subroutine get_spectrum(data_path, len_path, overide, symb, iz, ia, inuc)
          numd = numd + 1
          state_map(i) = numd
       end if
-!      write(6,*)i, state_map(i), nucleus(inuc)%state(i)%spin, nucleus(inuc)%state(i)%parity,      &
-!                nucleus(inuc)%state(i)%energy, nucleus(inuc)%state(i)%nbranch, complete_decay(i), &
-!                nucleus(inuc)%state(i)%level_float
    end do
 
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -517,22 +521,6 @@ subroutine get_spectrum(data_path, len_path, overide, symb, iz, ia, inuc)
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !------   Should now be done
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!   write(6,*)'inuc = ',inuc
-!   write(6,*)'num_discrete = ',nucleus(inuc)%num_discrete
-!   write(6,*)'ncut = ',nucleus(inuc)%ncut
-!   do i = 1, nucleus(inuc)%num_discrete
-!      write(6,*)nucleus(inuc)%state(i)%spin, nucleus(inuc)%state(i)%parity,                       &
-!                nucleus(inuc)%state(i)%energy, nucleus(inuc)%state(i)%isomer
-!   end do
-!   do i = 1, nucleus(inuc)%num_discrete
-!      write(6,*)i, nucleus(inuc)%state(i)%energy, nucleus(inuc)%state(i)%nbranch
-!      do n = 1, nucleus(inuc)%state(i)%nbranch
-!         write(6,*)nucleus(inuc)%state(i)%ibranch(n),nucleus(inuc)%state(i)%egamma(n),            &
-!                   nucleus(inuc)%state(i)%branch(n),nucleus(inuc)%state(i)%p_gamma(n),            &
-!                   nucleus(inuc)%state(i)%p_ic(n)
-!      end do
-!   end do
-
    if(allocated(complete_decay))deallocate(complete_decay)
    if(allocated(state_map))deallocate(state_map)
 

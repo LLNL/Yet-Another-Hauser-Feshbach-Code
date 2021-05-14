@@ -11,13 +11,48 @@ subroutine fresco_make_tco(data_path, len_path, tco_file, len_tco,           &
 !    coupled-channels data are collected and written to files for
 !    processing during the Hauser-Feshbach calculation.
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        variable_kinds
+!        constants
+!        nodeinfo
+!        particles_def
+!        nuclei
+!        Channel_info
+!        options
+!
+!     Subroutines:
+!
+!        parse_string
+!        gauss_quad
+!        system
+!        KD_potential
+!        soukhovitskii_potential
+!        maslov_03_potential
+!        perey_d_potential
+!        becchetti_t_potential
+!        avrigeanu_a_potential
+!        run_fresco
+!
+!     External functions:
+!
+!        real(kind=8) :: poly
+!        real(kind=8) :: interp
+!        integer(kind=4) :: state_index
+!
+!     MPI routines:
+!
+!        MPI_Abort
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -177,19 +212,15 @@ subroutine fresco_make_tco(data_path, len_path, tco_file, len_tco,           &
 
   real(kind=8) :: alf, bet
 
-!-rem  character(len=2) :: opt_label
 
 !--------------------------------------------------------------------
   integer(kind=4) :: numw
   integer(kind=4) :: startw(66), stopw(66)
 !--------------------------------------------------------------------
 !--------    External functions   -----------------------------------
-
-!  real(kind=8) :: Legendre
   real(kind=8) :: poly
   real(kind=8) :: interp
   integer(kind=4) :: state_index
-!-rem  real(kind=8) :: clebr
 
 !-----   set up templates for protons and neutrons so that we can run 
 !-----   RunTemplate
@@ -630,19 +661,15 @@ subroutine fresco_make_tco(data_path, len_path, tco_file, len_tco,           &
      end if
      if(.not. remove) n = n + 1
   end do
-
+!
 !---   We have all the states read in and set up to do DWBA, but check if DWBA is
 !---   wanted. If not, set nex = ncc
   if(.not. particle(pindex)%do_dwba)nex = ncc
-
-
+!
 !---    Find K of the coupled-channels band, smallest J 
-
-
 !
 !-------   Set up energy grid. multiplication, to make log-log grid
 !
-
   nume = 200
   xnume = real(nume,kind=8)
   emin = e_min
@@ -659,7 +686,6 @@ subroutine fresco_make_tco(data_path, len_path, tco_file, len_tco,           &
   do while(ener < elab_max)
      nume = nume + 1
      ener = ener*factor
-!  write(6,*)ener, emax
   end do
 
   allocate(energy(nume))
@@ -676,7 +702,6 @@ subroutine fresco_make_tco(data_path, len_path, tco_file, len_tco,           &
      e_lab = ener
      energy(ie) = e_lab                                                           !   Lab frame
      if(iproc == 0)write(6,*)ie, energy(ie)
-!     if(iproc == 0)write(6,*)ie, energy(ie), particle(pindex)%e_grid(ie)
   end do
 
   Radius = 1.30d0*(A**(1.0d0/3.0d0) + Ap**(1.0d0/3.0d0))
@@ -821,7 +846,6 @@ subroutine fresco_make_tco(data_path, len_path, tco_file, len_tco,           &
      r_nuc = 0.0d0
      if(pindex > 1)then
         r_turn = e_sq*particle(pindex)%Z*real(iZ,kind=8)/ener
-!        r_nuc = R_pot(1,1)*(A**(1.0d0/3.0d0) + 1.0d0)
         r_nuc = R_pot(1,1)*(A**(1.0d0/3.0d0) + Apart**(1.0d0/3.0d0))
         if(iproc == 0)write(6,*)'r_turn = ',r_turn,' r_nuc = ',r_nuc
      end if
@@ -907,7 +931,6 @@ subroutine fresco_make_tco(data_path, len_path, tco_file, len_tco,           &
                     sum = sum + w_gleg2(ix)*value*poly(L,1,alf,bet,x_gleg2(ix))
                  end do
                  if(xnorm > 1.0d-20)optical_leg(ie,L,n) = sum*0.5d0*(2.0d0*real(L,kind=8)+1.0d0)/xnorm
-!                 optical_leg(ie,L,n) = sum*0.5d0*(2.0d0*real(L,kind=8)+1.0d0)
               end do
            end do
            close(unit=20)

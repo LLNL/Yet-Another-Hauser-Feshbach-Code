@@ -6,13 +6,37 @@
 !    This Subroutine prints out (proj,Xk) spectra (k = g,n,p,d,t,h,a) to appropriate
 !    file in the directory 
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        variable_kinds
+!        options
+!        constants
+!        nodeinfo
+!        nuclei
+!        Channel_info
+!        particles_def
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -123,16 +147,6 @@ subroutine print_x_particle_spectra(ilib_dir, lib_dir, ifile, file_name,        
       write(24,'(1x,f10.4,14(1x,1pe15.7))')energy,                                              &
          (x_particle_Spectrum(i,k)*cs_scale,k=0, 6)   
    end do
-!   do i = 0, max_num
-!      energy = real(i,kind=8)*de_spec2
-!      write(24,'(1x,f10.4,14(1x,1pe15.7))')energy,                                              &
-!         (x_particle_Spectrum_res(i,k)*cs_scale,k=0, 6),                                        &
-!         (x_particle_Spectrum_res_dist(i,k),k=0, 6)    
-!      energy = energy + de_spec2
-!      write(24,'(1x,f10.4,14(1x,1pe15.7))')energy,                                              &
-!         (x_particle_Spectrum_res(i,k)*cs_scale,k=0, 6),                                        &
-!         (x_particle_Spectrum_res_dist(i,k),k=0, 6)    
-!   end do
    close(unit=24)
    if(allocated(x_particle_Spectrum_res))deallocate(x_particle_Spectrum_res)
    if(allocated(x_particle_Spectrum_res_dist))deallocate(x_particle_Spectrum_res_dist)

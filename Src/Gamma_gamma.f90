@@ -9,13 +9,38 @@ subroutine Gamma_gamma(icomp, l, Gamma_g, g_error)
 !
 !    This subroutine computes Gamma_gamma
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        variable_kinds
+!        nuclei
+!        particles_def
+!        constants 
+!        nodeinfo
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!       real(kind=8) :: Gamma_g2
+!       real(kind=8) :: EL_trans
+!       real(kind=8) :: ML_trans
+!       integer(kind=4) :: find_ibin
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -39,7 +64,6 @@ subroutine Gamma_gamma(icomp, l, Gamma_g, g_error)
    real(kind=8) :: j_shift, xj_f, xj_f_min, xj_f_max
    integer(kind=4) n
    integer(kind=4) ip
-!   integer(kind=4) i_f,n_f,j_f,j_f_min,j_f_max,ip_f
    integer(kind=4) n_f, j_f, j_f_min, j_f_max, ip_f
    real(kind=8) :: energy, e_f
    real(kind=8) :: trans 
@@ -52,7 +76,7 @@ subroutine Gamma_gamma(icomp, l, Gamma_g, g_error)
    real(kind=8) :: delta_e
    real(kind=8) :: temp
 !-------------------------------------------------------------------------+
-!------     Function declarations
+!------     External Functions    ----------------------------------------
    real(kind=8) :: Gamma_g2
    real(kind=8) :: EL_trans, ML_trans
    integer(kind=4) :: find_ibin
@@ -72,7 +96,6 @@ subroutine Gamma_gamma(icomp, l, Gamma_g, g_error)
       Gamma_g = -1.0
       return
    end if
-!   n = int((S_part - nucleus(icomp)%e_grid(1))/delta_e) + 1
    energy = S_part
    n = find_ibin(energy, icomp)
    j_shift=nucleus(icomp)%jshift
@@ -90,7 +113,6 @@ subroutine Gamma_gamma(icomp, l, Gamma_g, g_error)
       num = nint(xj_max - xj_min)
       do k = 0, num
          xj = xj_min + real(k, kind=8)
-!         i_f = icomp
 !---------------------------   gamma decay to continuous level bins
          do n_f = n, 1, -1              !  loop over final excitation energies
             e_f = energy - nucleus(icomp)%e_grid(n_f)
@@ -144,7 +166,6 @@ subroutine Gamma_gamma(icomp, l, Gamma_g, g_error)
       num = nint(xj_max - xj_min)
       do k = 0, num
          xj = xj_min + real(k, kind=8)
-!         i_f = icomp
          j_f_max = nucleus(icomp)%j_max + nint(nucleus(icomp)%jshift)
          xj_f_max = real(j_f_max,kind=8)
 !---------------------------   gamma decay to discrete states

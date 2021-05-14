@@ -9,20 +9,54 @@ subroutine parse_command(icommand, command, finish)
 !
 !    This subroutine parses commands controlling the calculation
 !
+!  Dependencies:
+!
+!     Modules:
+!
+!        variable_kinds
+!        options
+!        constants
+!        nodeinfo
+!        print_control
+!        useful_data
+!        nuclei
+!        particles_def
+!        directory_structure
+!        pre_equilibrium_no_1
+!
+!     Subroutines:
+!
+!        parse_string
+!        lower_case_word
+!        char_logical
+!        print_command_error
+!        find_ZA
+!        extract_ZA_data
+!        incident_energy_setup
+!        init_barrier_data
+!        get_lev_den
+!
+!     External functions:
+!
+!        integer(kind=4) :: particle_index
+!
+!     MPI routines
+!
+!        MPI_Abort
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
 !      Erich Ormand, LLNL
 !
 !*******************************************************************************
-!
 !----------------------------------------------------------------------
 !-------    Use modules
 !----------------------------------------------------------------------
@@ -52,8 +86,6 @@ subroutine parse_command(icommand, command, finish)
    integer(kind=4) :: istart, istop, ilast
    integer(kind=4) :: ibegin, iend
    real(kind=8) :: e_min,e_max
-!   character(len=132) :: error_line
-!   integer(kind=4) :: ierr_last
    character(len=132) :: temp_char
 
    integer(kind=4) :: ix, lx, gsf_type
@@ -79,7 +111,7 @@ subroutine parse_command(icommand, command, finish)
    integer(kind=int_64) :: one_int_64
    integer(kind=4) :: iseed
 !-----------------   External functions ------------------------------
-   integer particle_index
+   integer(kind=4) :: particle_index
    real(kind=8) :: Kxl
 !---------------------------------------------------------------------
    interact=.false.
@@ -87,16 +119,12 @@ subroutine parse_command(icommand, command, finish)
    istart = 1
    istop = index(command,' ')-1
 
-!   if(iproc == 0)write(6,*)command
-
    call parse_string(command,numw,startw,stopw)
 
    if(numw <= 0)then
       finish = .true.
       return
    end if
-
-!   if(iproc == 0)write(6,*)'Command: ',command
 !
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -154,10 +182,10 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
+
    if(command(startw(1):stopw(1)) == 'event_generator')then
       icommand = icommand + 1
       if(numw < 2)then
-!         write(6,*)'Error in input for option "event_generator"'
          call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
          return
       end if
@@ -180,7 +208,7 @@ subroutine parse_command(icommand, command, finish)
          file_energy_index = logic_char
       end if
 
-      if(logic_char)then
+      if(event_generator)then
          dump_events = .true.
          binary_event_file = .true.
          print_libraries = .false.
@@ -205,7 +233,6 @@ subroutine parse_command(icommand, command, finish)
    if(command(startw(1):stopw(1)) == 'use_unequal_bins')then
       icommand = icommand + 1
       if(numw /= 2)then
-!         write(6,*)'Error in input for option "event_generator"'
          call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
          return
       end if
@@ -228,7 +255,6 @@ subroutine parse_command(icommand, command, finish)
    if(command(startw(1):stopw(1)) == 'xs_only')then
       icommand = icommand + 1
       if(numw /= 2)then
-!         write(6,*)'Error in input for option "event_generator"'
          call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
          return
       end if
@@ -297,7 +323,6 @@ subroutine parse_command(icommand, command, finish)
          projectile%A = particle(i)%A
          projectile%specified = .true.
          particle(i)%do_dwba = .false.
-!         if(i > 0 .and. i <= 2)particle(i)%do_dwba = .true.
 !-----    Set values for pree-equilibrium model for incident neutrons and protons
          if(i == 1)then
             Preeq_V = 38.0d0
@@ -311,7 +336,6 @@ subroutine parse_command(icommand, command, finish)
 !------   If user didn't specify either proj_e_file or proj_eminmax
 !------   set up default incident energy grid
 
-!  write(6,*)'Calling incident_energy_setup'
          if(.not. energy_input)call incident_energy_setup
 !
 !------   Make sure max_particle(iproj) >= 1
@@ -345,7 +369,6 @@ subroutine parse_command(icommand, command, finish)
 !
 !------   Make sure max_particle(iproj) >= 1
 !
-!              if(max_particle(i) >= 0)max_particle(i) = max(max_particle(i),1)
               if(max_particle(i) >= 0)max_particle(i) = -1
               return
          end if
@@ -385,7 +408,6 @@ subroutine parse_command(icommand, command, finish)
             read(8,*)nread
             k = 0
             do j = 1, nread
-!               read(8,*)x(1), x(2)  
 !-----   Read line with energy, energy spread, and possibly the overall normalization          
                read(8,'(a)')temp_char
                call parse_string(temp_char,numw,startw,stopw)
@@ -1493,9 +1515,6 @@ subroutine parse_command(icommand, command, finish)
       do i = 1, num_comp
          if(iZ == nucleus(i)%Z .and. iA == nucleus(i)%A)then
             if(nucleus(i)%E1_default)nucleus(i)%E1_default = .false.
-!            nucleus(i)%er_E1(j) = x(1)
-!            nucleus(i)%gr_E1(j) = x(2)
-!            nucleus(i)%sr_E1(j) = x(3)
             nucleus(i)%ML_mode(lx)%gsf(j)%er = X(1)
             nucleus(i)%ML_mode(lx)%gsf(j)%gr = X(2)
             nucleus(i)%ML_mode(lx)%gsf(j)%sr = X(3)
@@ -2075,7 +2094,6 @@ subroutine parse_command(icommand, command, finish)
          return
       end if
       read(command(startw(2):stopw(2)),*)iseed
-!      read(command(startw(2):stopw(2)),*)iseed_64
       iseed_32 = iseed
       iseed_64 = int(iseed,kind=int_64)
       one_int_64 = 1_int_64
@@ -3565,11 +3583,11 @@ subroutine parse_string(input,numw,startw,stopw)
 !
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -3625,14 +3643,32 @@ subroutine lower_case_word(nchar,word)
 !
 !    This subroutine changes all lower case characters in a string 
 !    to upper case
-!****************
+!
+!   Dependencies:
+!
+!     Modules:
+!
+!        variable_kinds
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -3667,13 +3703,31 @@ subroutine upper_case_word(nchar,word)
 !    This subroutine changes all lower case characters in a string 
 !    to upper case
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        None
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -3706,13 +3760,31 @@ logical function is_char_number(char)
 !
 !    This function checks if a character variable is a number
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        None
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -3741,13 +3813,31 @@ logical function is_char_letter(char)
 !    This function checks if a character variable is a letter - upper or 
 !    lower case
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        None
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -3780,13 +3870,31 @@ integer(kind=4) function rank_commands(command)
 !    the relative ranking, i.e., add more granularity
 !    if needed later.
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        variable_kinds
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -4275,11 +4383,11 @@ integer function particle_index(char)
 !
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -4313,13 +4421,31 @@ subroutine find_ZA(nchar, word, iZ, iA)
 !    If the element is not found, either iZ = -1 or iA = -1 is returned
 !    signifying an error
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        useful_data
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -4338,14 +4464,17 @@ subroutine find_ZA(nchar, word, iZ, iA)
    integer(kind=4) :: i, n, nn, nc
    logical is_char_number
    logical is_char_letter
-
+!-------------------------------------------------------------------------
 !-----   Element symbols are found in module useful_data in the 
 !-----   file modules.f90
+!-------------------------------------------------------------------------
 
    iZ = -1
    iA = -1
 
+!-------------------------------------------------------------------------
 !----   Check if mass number is at the front or the end
+!-------------------------------------------------------------------------
    n = 0
    do i = 1, nchar
       if(is_char_number(word(i)))then
@@ -4405,13 +4534,31 @@ subroutine extract_ZA_data(command, numw, startw, stopw, ndat,     &
 !    read_error is returned as .false.
 !    The integer nw is the number of words in the line that were read
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        None
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -4470,13 +4617,31 @@ subroutine char_logical(char, logic_char, read_error)
 !    This function checks a character and returns .true. if char = 'y', 't', or '1';
 !    .false. if char = 'n', 'f', or '0'. Otherwise, it returns read_error = .true.
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        None
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -4505,18 +4670,40 @@ end subroutine char_logical
 !
 !*******************************************************************************
 !
+subroutine print_command_error(nchar,word)
+!
+!*******************************************************************************
+!
 !  Discussion:
 !
 !    This Subroutine prints that an error in the input for a given command has 
 !    has been detected
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        nodeinfo
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -4524,7 +4711,6 @@ end subroutine char_logical
 !
 !*******************************************************************************
 !
-subroutine print_command_error(nchar,word)
    use nodeinfo
    integer(kind=4), intent(in) :: nchar
    character(len=132), intent(in) :: word
@@ -4540,18 +4726,42 @@ end subroutine print_command_error
 !
 !*****************************************************************************80
 !
+subroutine incident_energy_setup
+!
+!*****************************************************************************80
+!
 !  Discussion:
 !
 !    This Subroutine to setup the incident energy grid in the event that the
 !    user doesnot specify it with either proj_e_file or proj_eminmax 
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        nodeinfo
+!        options
+!        nuclei
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -4559,7 +4769,6 @@ end subroutine print_command_error
 !
 !*****************************************************************************80
 !
-subroutine incident_energy_setup
    use nodeinfo
    use options
    use nuclei

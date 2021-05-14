@@ -10,13 +10,34 @@ subroutine get_binding_energy(data_path, len_path,         &
 !
 !    This subroutine reads in binding energies and stores in arrays
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        nodeinfo
+!        useful_data
+!        particles_def
+!        nodeinfo
+!
+!     Subroutines:
+!
+!        None
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -45,20 +66,18 @@ subroutine get_binding_energy(data_path, len_path,         &
   integer(kind=4) :: i, j, k
   real(kind=8) :: xtemp
   real(kind=8) :: mass_ex_aw, mass_ex_mn
-!  real(kind=8) :: u,mh,mn
   integer(kind=4) :: eof
   integer :: read_error
   character(len=132) :: line
 
-
   save mass_ex, binding_e, istart, iz, ia
 !-------------------------------------------------------------------
 
+!-------------------------------------------------------------------
 !---   If arrays are not allocated, then subroutine hasn't been called before
 !---   Therefore, read in mass data
+!-------------------------------------------------------------------
 !
-
-!  write(6,*)iz1,ia1
 
   if(.not. allocated(mass_ex))then
      open(unit=50,file=data_path(1:len_path)//'mass-frdm95.dat',status='old')
@@ -138,7 +157,6 @@ subroutine get_binding_energy(data_path, len_path,         &
   return
  101  continue
 !----   now for the separation energies
-!   write(6,*)'iz1 ',iz1, ia1
   sep_e(0) = 0.0d0
   do j = 1, 6
      sep_e(j) = 1.0d3          !  default it to a large value if not found

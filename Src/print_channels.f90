@@ -1,18 +1,48 @@
 !
 !*****************************************************************************80
 !
+subroutine print_channels(itarget, istate, ilab, file_lab, ilib_dir, lib_dir, ch_par,     &
+                          num_energies, num_e, max_jx_20, delta_jx_20,                    &
+                          de_spec, cs_threshold, reaction_cs, write_error)
+!
+!*****************************************************************************80
+!
 !  Discussion:
 !
 !    This Subroutine to write exit channel reaction data the library
 !    directory
 !
+!   Dependencies:
+!
+!     Modules:
+!
+!        variable_kinds
+!        options
+!        constants
+!        nodeinfo
+!        nuclei
+!        Channel_info
+!        particles_def
+!
+!     Subroutines:
+!
+!        nucleus_label
+!
+!     External functions:
+!
+!        poly
+!
+!     MPI routines:
+!
+!        None
+!
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license.
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -20,9 +50,6 @@
 !
 !*****************************************************************************80
 !
-subroutine print_channels(itarget, istate, ilab, file_lab, ilib_dir, lib_dir, ch_par,     &
-                          num_energies, num_e, max_jx_20, delta_jx_20,                    &
-                          de_spec, cs_threshold, reaction_cs, write_error)
    use variable_kinds
    use options
    use constants
@@ -663,10 +690,6 @@ subroutine print_channels(itarget, istate, ilab, file_lab, ilib_dir, lib_dir, ch
             if(cs < cs_threshold)cycle
             fstring = "('#',9x,'E_in',13x,'cos(theta)',6x,7(3x,(5x,'Prob(',a1,')',4x)))"
             write(100,fstring)(particle(k)%label, k = 0,6)
-!            write(100,1903)(particle(k)%label, k = 0,6)
-! 1903       format('#',9x,'E_in',13x,'cos(theta)',6x,7(3x,(5x,'Prob(',a1,')',4x)))
-! 1903       format('#         E_in             cos(theta)   ',3x,7(3x,(5x,'Prob(',a1,')',4x)))
-! 1903       format('#         E_in             cos(theta)   ',3x,7(3x,(5x,'Prob(',a1,')',4x)))
             write(100,'(''#'',9(''   ----------------''))')
 !----    Calculate Angular distribution again and then integrate over energy
             alf = 0.0d0

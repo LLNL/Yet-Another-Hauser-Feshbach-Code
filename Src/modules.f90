@@ -18,11 +18,11 @@ module options
 !
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -32,7 +32,7 @@ module options
 !
    use variable_kinds
    character(len=132) :: version
-   parameter (version = 'MC-3.52')
+   parameter (version = 'MC-3.53')
    integer(kind=int_64) :: iseed_64
    integer(kind=int_32) :: iseed_32
    integer(kind=4) :: PREEQ_Model
@@ -69,9 +69,6 @@ module options
    real(kind=8) :: prob_cut
    real(kind=8) :: pop_check
    real(kind=8) :: t12_isomer    ! lifetime in seconds defining an isomer
-!-rem   real(kind=8) sig_sum, sig_sumg, sig_sumn, sig_sep_e, sig_in
-!-rem   real(kind=8) sigb(3)
-!-rem   integer(kind=4) :: numn1, numn2, numn3
    integer(kind=4) :: part_lmax
    integer(kind=4) :: E1_model
    integer(kind=4) :: e_l_max, m_l_max
@@ -154,11 +151,11 @@ module log_factorial
 !
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -183,11 +180,11 @@ module useful_data
 !
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -236,11 +233,11 @@ module Channel_info
 !
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -271,7 +268,6 @@ module Channel_info
 
    integer(kind=4) :: num_channels
    logical :: Apply_Coulomb_Barrier
-!   real(kind=8) :: Coulomb_Barrier(6)
 
    type discrete_state
       integer(kind=4) :: nbranch
@@ -295,7 +291,6 @@ module Channel_info
       integer(kind=4), allocatable, dimension(:) :: decay_particles
       integer(kind=4), dimension(1:6) :: num_part
       integer(kind=8) :: Channel_code
-!      integer(kind=4) :: Channel_code
       character(len=100) :: Channel_Label
       integer(kind=4) :: Final_nucleus
       integer(kind=4) :: num_cs
@@ -304,7 +299,6 @@ module Channel_info
       integer(kind=4), allocatable, dimension(:) :: StateLabel
       type(discrete_state), allocatable, dimension(:) :: state
       real(kind=8), allocatable, dimension(:,:,:) :: part_mult
-!      real(kind=8), allocatable, dimension(:,:,:,:,:) :: Spectrum
       real(kind=8), allocatable, dimension(:,:,:,:,:) :: Ang_L
       real(kind=8), allocatable, dimension(:,:,:,:) :: Max_L
       type(E_A_Spectrum), allocatable, dimension(:,:,:) :: Spect
@@ -355,11 +349,11 @@ module nuclei
 !
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -383,8 +377,6 @@ module nuclei
       integer(kind=4), allocatable, dimension (:) :: decay_to
       integer(kind=4), allocatable, dimension (:) :: decay_particle
       real(kind=8), allocatable, dimension (:) :: HF_prob
-!      real(kind=8), allocatable, dimension (:) :: HF_prob2
-!      real(kind=8), allocatable, dimension (:) :: HF_prob3
       real(kind=8), allocatable, dimension (:) :: HF_trans
       type(bin_decay), allocatable, dimension (:) :: nuke_decay
    end type bin_data
@@ -432,7 +424,6 @@ module nuclei
       integer(kind=4) :: symmetry
       real(kind=8) :: beta_2
       real(kind=8) :: level_param(20)
-!      integer(kind=4) :: vib_mode
       real(kind=8) :: vib_enh(3)
       real(kind=8) :: rot_enh(5)
       real(kind=8) :: ecut
@@ -445,29 +436,6 @@ module nuclei
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !---------    Derived types for Electromagnetic Strength Functions
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!-----    Electric
-!   nucleus(inuc)%EL_mode(L)%gsf_read
-!   nucleus(inuc)%EL_mode(L)%num_gsf   
-!   nucleus(inuc)%EL_mode(L)%gsf(k)%er
-!   nucleus(inuc)%EL_mode(L)%gsf(k)%gr
-!   nucleus(inuc)%EL_mode(L)%gsf(k)%sr
-!   nucleus(inuc)%EL_mode(L)%gsf(k)%num_data
-!   nucleus(inuc)%EL_mode(L)%gsf(k)%gsf_norm
-!   nucleus(inuc)%EL_mode(L)%gsf(k)%gsf_type
-!   nucleus(inuc)%EL_mode(L)%gsf(k)%e_gsf_r(n)
-!   nucleus(inuc)%EL_mode(L)%gsf(k)%gsf_r(n)
-!-----   Magnetic
-!   nucleus(inuc)%ML_mode(L)%gsf_read
-!   nucleus(inuc)%ML_mode(L)%num_gsf   
-!   nucleus(inuc)%ML_mode(L)%gsf(k)%er
-!   nucleus(inuc)%ML_mode(L)%gsf(k)%gr
-!   nucleus(inuc)%ML_mode(L)%gsf(k)%sr
-!   nucleus(inuc)%ML_mode(L)%gsf(k)%num_data
-!   nucleus(inuc)%ML_mode(L)%gsf(k)%gsf_norm
-!   nucleus(inuc)%ML_mode(L)%gsf(k)%gsf_type
-!   nucleus(inuc)%ML_mode(L)%gsf(k)%e_gsf_r(n)
-!   nucleus(inuc)%ML_mode(L)%gsf(k)%gsf_r(n)
-
    type gsf_data
 !-----   Data for strength function read in
       integer(kind=4) :: num_data              !  number of data points read in
@@ -511,6 +479,8 @@ module nuclei
       logical :: modified
       logical :: lev_den_read
       logical :: lev_den_both
+      logical :: ematch_warn
+      real(kind=8) :: cum_rho_ratio
       character(len=100), dimension (0:1) :: lev_den_file
 !-----  Info definging bin structure
       integer(kind=4) :: nbin                                         !  number of excitation energy bins
@@ -656,11 +626,11 @@ module particles_def
 !
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -709,11 +679,11 @@ module directory_structure
 !
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -740,11 +710,11 @@ module constants
 !
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -780,11 +750,11 @@ module Gauss_integration
 !
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -812,11 +782,11 @@ module lev_fit
 !
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -840,13 +810,11 @@ module nodeinfo
 !
 !------   Module holding data for node information when MPI is implemented
 !
-!  Licensing:
-!
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
@@ -873,7 +841,7 @@ module print_control
 !
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
@@ -902,11 +870,11 @@ module pre_equilibrium_no_1
 !
 !  Licensing:
 !
-!    This code is distributed under the GNU LGPL version 2 license. 
+!    SPDX-License-Identifier: MIT 
 !
 !  Date:
 !
-!    25 September 2019
+!    11 May 2021
 !
 !  Author:
 !
