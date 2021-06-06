@@ -73,7 +73,13 @@ subroutine optical_setup(data_path, len_path, iproj, itarget,                  &
    logical tco_exist, Ang_exist
    integer(kind=4), allocatable :: cc_index(:)
    integer(kind=4) :: temp_index
-   logical optical_run 
+   logical optical_run
+   character(len=132) :: input_line
+   integer(kind=4) :: numw
+   integer(kind=4) :: startw(66), stopw(66)
+   integer(kind=4) :: izz, iaa
+   real(kind=8) :: beta_temp(2:6)
+
 !-------------------------
    integer(kind=4) :: i, j, k, l, n, idummy, in, isp
    integer(kind=4) :: ie
@@ -157,20 +163,20 @@ subroutine optical_setup(data_path, len_path, iproj, itarget,                  &
       len_tco = 1
       if(nucleus(jtarget)%atomic_symbol(1:1) == ' ')then
          tco_file(len_tco+1:len_tco+1) = nucleus(jtarget)%atomic_symbol(2:2)
-         len_tco=len_tco+1
+         len_tco = len_tco+1
       else
          tco_file(len_tco+1:len_tco+2) = nucleus(jtarget)%atomic_symbol(1:2)
-         len_tco=len_tco+2
+         len_tco = len_tco+2
       end if
       if(nucleus(jtarget)%A < 10)then
          write(tco_file(len_tco+1:len_tco+1),'(i1)')nucleus(jtarget)%A
-         len_tco=len_tco+1
+         len_tco = len_tco + 1
       elseif(nucleus(jtarget)%A < 100)then
          write(tco_file(len_tco+1:len_tco+2),'(i2)')nucleus(jtarget)%A
-         len_tco=len_tco+2
+         len_tco = len_tco + 2
       elseif(nucleus(jtarget)%A < 1000)then
          write(tco_file(len_tco+1:len_tco+3),'(i3)')nucleus(jtarget)%A
-         len_tco=len_tco+3
+         len_tco = len_tco + 3
       end if
 
       tco_exist = .false.
@@ -292,7 +298,23 @@ subroutine optical_setup(data_path, len_path, iproj, itarget,                  &
 
       if(k == iproj)then
          open(unit=50, file=prn_file(1:len_prn)//'.data',status='old')
-         read(50,*)OpticalCS%nume, OpticalCS%numcc, OpticalCS%Max_L           ! data dimensions
+!----   Added to find a way to get deformation from local CC_file
+         read(50,'(a)')input_line
+         call parse_string(input_line, numw, startw, stopw)
+         if(numw == 3)then
+            read(input_line,*)OpticalCS%nume, OpticalCS%numcc, OpticalCS%Max_L          ! data dimensions
+         else
+            read(input_line,*)OpticalCS%nume, OpticalCS%numcc, OpticalCS%Max_L, &
+                              izz, iaa, (beta_temp(i),i = 2, 6)
+            if(izz == nucleus(jtarget)%Z .and. iaa == nucleus(jtarget)%A)then
+               do i = 2, 6
+                  nucleus(jtarget)%beta(i) = beta_temp(i)
+               end do
+            else
+               if(iproc == 0)write(6,*)'Error, target in ,data file does not match target in calculation'
+               call MPI_Abort(icomm, 101, ierr)
+            end if
+         end if
 !----   Now OpticalCS%max_L is tied to Ang_L_max and should always be the same
 !----   But, if one had increased Ang_L_max, ran FRESCO, and then went back 
 !----   and decreased Ang_L_max, there would be a mismatch and a possible 

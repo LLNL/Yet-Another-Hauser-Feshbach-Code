@@ -147,6 +147,8 @@ subroutine Moldauer_WF(icomp,                                       &
 
    afit = abs(yyxx/xxxx)
 
+!  write(6,*)'afit ',yyxx,xxxx,afit
+
    WF = 0.0d0
 !   do ix = 1, n_glag
    do ix = iproc + 1, n_glag, nproc
@@ -356,6 +358,7 @@ subroutine Moldauer_product(icomp,                               &
    real(kind=8) :: E0, T, E11,ecut
    real(kind=8) :: xZ_i, xA_i, xZ_part, xA_part
    real(kind=8) :: Coulomb_Barrier(6)
+!   integer(kind=4) :: itest
 !-------------------------------------------------------------------------+
 !------   External  Functions
    real(kind=8) :: tco_interpolate
@@ -531,7 +534,7 @@ subroutine Moldauer_product(icomp,                               &
             if(real8_equal(nucleus(icomp)%F_barrier(ib)%state_j(j),xI) .and.                        &
                real8_equal(nucleus(icomp)%F_barrier(ib)%state_pi(j),par))then
                F_Barrier = nucleus(icomp)%F_Barrier(ib)%barrier
-               F_Barrier = F_Barrier*aa*exp(-cc**2*(energy-bb)**2)
+               F_Barrier = F_Barrier*aa*exp(-((energy-bb)/cc)**2)
                if(Max_J > 0.0d0)then
                    b = 1.0d0/(Max_J*(Max_J+1.0d0))
                   if(xj_a <= Max_J)then
@@ -582,7 +585,7 @@ subroutine Moldauer_product(icomp,                               &
             pfac = parity_fac(Ef,xI,ip,mode,e1,bbb)
             rho = rho_FM*jfac*pfac
             F_Barrier = nucleus(icomp)%F_Barrier(ib)%barrier
-            F_Barrier = F_Barrier*aa*exp(-cc**2*(energy-bb)**2)
+            F_Barrier = F_Barrier*aa*exp(-((energy-bb)/cc)**2)
             if(Max_J > 0.0d0)then
                 b = 1.0d0/(Max_J*(Max_J+1.0d0))
                if(xj_a <= Max_J)then
@@ -609,7 +612,7 @@ subroutine Moldauer_product(icomp,                               &
       end if
    end if
 
-   Product=exp(Product)
+   Product = exp(Product)
    return
 
 end subroutine Moldauer_product

@@ -1010,7 +1010,11 @@ subroutine fresco_make_tco(data_path, len_path, tco_file, len_tco,           &
      if(pindex == iproj .and. .not. pop_calc)then
         open(unit = 12, file = tco_file(1:len_tco)//'-CC.data', status = 'unknown')
 
-        write(12,'(3(1x,i5),1x,f10.4)')nume, nex, Ang_L_max
+        if(.not. exist_cc_file)then
+           write(12,'(3(1x,i5),1x,f10.4)')nume, nex, Ang_L_max
+        else
+           write(12,'(3(1x,i5),1x,f10.4,2(1x,i4),4(1x,f10.5))')nume, nex, Ang_L_max, iZ, iA, (beta(i),i=2,6)
+        end if
 
         do n = 1, nex
            write(12,'(2(1x,i5),1x,f4.1,1x,f4.1,1x,f4.1,1x,f8.4,1x,i6)')                &

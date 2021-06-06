@@ -34,8 +34,10 @@ subroutine output_nucleus_data(j_max, itarget)
 !        real(kind=8) :: spin_fac
 !        real(kind=8) :: parity_fac
 !        real(kind=8) :: EL_f
-!        real(kind=8) :: EL_f_component, EL_trans
-!        real(kind=8) :: ML_f, ML_f_component
+!        real(kind=8) :: EL_f_component
+!        real(kind=8) :: EL_trans
+!        real(kind=8) :: ML_f
+!        real(kind=8) :: ML_f_component
 !        real(kind=8) :: ML_trans
 !        real(kind=8) :: EL_absorption
 !        real(kind=8) :: ML_absorption
@@ -653,7 +655,7 @@ subroutine output_nucleus_data(j_max, itarget)
          allocate(elv(nfit))
          if(nucleus(i)%ncut >= 5) then
             if(nucleus(i)%fit_ematch)then
-               write(13,*)'E_match was fit cummulative density for known discrete states'
+               write(13,*)'E_match was fit to the cummulative density for known discrete states'
                if(nucleus(i)%cum_rho_ratio > 1.25)then
                   write(13,*)
                   write(13,'(''******************************************************************'')')
@@ -804,7 +806,7 @@ subroutine output_nucleus_data(j_max, itarget)
          end if
          fstring = "(1x,f10.5,"//trim(adjustl(temp_string))//"(1x,e15.7),3(1x,e15.7))"
          do j = 0, nucleus(i)%nbin_em
-            energy = dfloat(j)*de
+            energy = real(j,kind=8)*de
             gsf(1:max_num_gsf) = 0.0d0
             do k = 1, nucleus(i)%EL_mode(l_radiation)%num_gsf
                gsf(k) = EL_f_component(i, l_radiation, k, energy, nucleus(i)%sep_e(1))

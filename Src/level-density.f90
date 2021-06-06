@@ -79,8 +79,11 @@ subroutine get_lev_den(data_path,len_path,symb,iz,ia,icomp)
    real(kind=8) :: b2,b3,b4,b6,beta2,beta3,beta4,beta6
    real(kind=8) :: xZ,xN,xA
    real(kind=8) :: Mass_exp,Mass_LDM
-   character(len=132) input_line
-   logical header
+   character(len=132) :: input_line
+   logical :: header
+   logical :: found
+   real(kind=8) :: xxx2, xxx4, xxx6
+   integer(kind=4) :: n1, n2
 !----------------------------------------------------------------------
    real(kind=8) :: sum
 !---------------------------------------------------------------------
@@ -262,12 +265,14 @@ subroutine get_lev_den(data_path,len_path,symb,iz,ia,icomp)
 !
 !-----   Next get GS deformation from Moller-Nix neutron separation energy
 !-----   if larger than .25 call nucleus deformed
+!-----   Check if they have already been set, if so then we can skip
+!-----   First, check moller-nix file, then check cc_file for whatever is there.
    sum = 0.0d0
    do i = 2,6
       sum = abs(nucleus(icomp)%beta(i))
    end do
 
-   if(sum <= 1.0d-4)then
+   if(sum <= 1.0d-5)then
       open(unit=53,file=data_path(1:len_path)//'mass-frdm95.dat',status='old')
       beta2 = 0.0d0
       beta3 = 0.0d0
@@ -294,6 +299,34 @@ subroutine get_lev_den(data_path,len_path,symb,iz,ia,icomp)
          end if
       end do
  100  close(unit=53)
+!----   Check the cc_file
+      open(unit=53,file = data_path(1:len_path)//'Coupled-Channels.txt',status='old')
+      found = .false.
+      do while(.not. found)
+         read(53,'(a)')input_line
+         if(input_line(1:3) == 'END' .or. input_line(1:3) == 'End' &  
+            .or. input_line(1:3) =='end')exit
+         read(53,*)izz, iaa
+         if(izz == iz .and. iaa == ia)then
+            read(53,*)xxx2, xxx4, xxx6
+            if(xxx2 > -1.0d0)then
+               beta2 = xxx2
+               beta4 = xxx4
+               beta6 = xxx6
+               beta3 = 0.0d0
+            end if
+            found = .true.
+            exit
+         else
+            read(53,*)
+            read(53,*)n1, n2
+            do i = 1, n1 + n2
+               read(53,*)
+            end do
+         end if
+      end do
+      close(unit=53)
+
       nucleus(icomp)%beta(2) = beta2
       nucleus(icomp)%beta(3) = beta3
       nucleus(icomp)%beta(4) = beta4

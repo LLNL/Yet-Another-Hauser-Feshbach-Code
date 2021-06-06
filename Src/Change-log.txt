@@ -749,3 +749,26 @@ Version 3.53
 1.  fixed potential error defining ML strengths due to level density parameters
     not being defined prior to attempting to set them relative to E1 strength.
 2.  Added comments and headers 
+
+Version 3.54
+1.  Fixed problem where deformations were not being read from the
+    Coupled-Channels.txt file for runs after fresco was run. The default
+    values are in the file mass-frdm895.dat. These are overriden by values
+    in Coupled-Channels.txt. This can affect the value of the collective 
+    enhancement factors. 
+
+Version 3.55
+1.  Added fail-safe check on some parameters that would elad to unstable
+    results. These include negative EM strength functions and if the 
+    matching energy is less than Delta + 0.2 MeV. A message is sent to unit=6
+    and the program is terminated. Termination occurs after all nuclei are
+    checked in case there is more than one offending set.
+2.  Improved calculation of memory used in the program. Includes memory used
+    in the Exit_Channel derived type and the arrays used for elastic and 
+    inelastic scattering
+3.  Removed two unised arrays attached to Exit_Channel
+4.  Restructured the Exit_Channel derived type to not be indexed with the
+    incident energy. The channel data is printed within the the incident
+    energy do loop. This significantly reduces the memory footprint.
+
+

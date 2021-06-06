@@ -878,13 +878,13 @@ end subroutine find_prob_point
 !*******************************************************************************
 !
 subroutine MC_primary_decay(iproj,spin_target,                          &
-                               l_i, is_i, Ix_i, e_i, icomp_i,              &
-                               icomp_f, Ix_f, ip_f, nbin_f, idb,           &
-                               n_dat, dim_part, num_part_type, part_fact,  &
-                               num_part, part_data,                        &
-                               Ang_L_max, part_Ang_data,                   &
-                               ixx_max, delta_x, Leg_poly,                 &
-                               num_theta, extra_angle_data)
+                            l_i, is_i, Ix_i, e_i, icomp_i,              &
+                            icomp_f, Ix_f, ip_f, nbin_f, idb,           &
+                            n_dat, dim_part, num_part_type, part_fact,  &
+                            num_part, part_data,                        &
+                            Ang_L_max, part_Ang_data,                   &
+                            ixx_max, delta_x, Leg_poly,                 &
+                            num_theta, extra_angle_data)
 !
 !*******************************************************************************
 !
@@ -990,7 +990,8 @@ subroutine MC_primary_decay(iproj,spin_target,                          &
    real(kind=8) :: tally_prob
    real(kind=8) :: xnnn
 
-   real(kind=8) :: ang_prob(0:ixx_max)
+   real(kind=8), allocatable, dimension (:) :: ang_prob
+!   real(kind=8) :: ang_prob(0:ixx_max)
    real(kind=8) :: pnorm
    real(kind=8) :: shift
 
@@ -1004,6 +1005,8 @@ subroutine MC_primary_decay(iproj,spin_target,                          &
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !----------   Start Program
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ 
+
+   if(.not. allocated(ang_prob))allocate(ang_prob(0:ixx_max))
 
    tally_prob = 1.0d0
 
@@ -1143,6 +1146,7 @@ subroutine MC_primary_decay(iproj,spin_target,                          &
 
    max_L = 0
 
+   ang_prob(0:ixx_max) = 0.0d0
    if(k /= 0)then
       max_L = min(2*l_i, 2*l_f, Ang_L_max)
       spin_eject = real(particle(k)%spin,kind=8)
@@ -1162,7 +1166,6 @@ subroutine MC_primary_decay(iproj,spin_target,                          &
             racahr(xI_i,xj_f,xI_i,xj_f,xI_f,xL_Ang)*                     &
             racahr(xj_f,xj_f,xl_f,xl_f,xL_Ang,spin_eject)
       end do
-      ang_prob(0:ixx_max) = 0.0d0
       do i = 1, ixx_max
          sum = 0.5d0*(Leg_poly(0,i) + Leg_poly(0,i-1))
          do L_ang = 2, max_L, 2
@@ -1173,7 +1176,9 @@ subroutine MC_primary_decay(iproj,spin_target,                          &
       end do
    end if
    pnorm = ang_prob(ixx_max)
-   ang_prob = ang_prob/pnorm
+   do i = 0, ixx_max
+      ang_prob(i) = ang_prob(i)/pnorm
+   end do
 
    theta_0 = 0.0d0
    phi_0 = 0.0d0

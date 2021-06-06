@@ -1598,7 +1598,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !    damping factor for fission barriers
-!    F_barrier = F_barrier*x(1)*exp(-x(3)**2*(Ex-x())**2)
+!    F_barrier = F_barrier*x(1)*exp(-((Ex-x(2))/x(3))**2)
 !   
    if(command(startw(1):stopw(1)) == 'f_barrier_damp')then          !   global setting of this parameter
       icommand = icommand + 1
@@ -1620,8 +1620,19 @@ subroutine parse_command(icommand, command, finish)
             end if
             nucleus(i)%F_Barrier(j)%barrier_damp(2) = x(2)
             nucleus(i)%F_Barrier(j)%barrier_damp(3) = x(3)
+            if(x(3) < 1.0d-6)then
+               if(iproc == 0)then
+                  write(6,*)'*************************************************'
+                  write(6,*)'*  Error damping width C is too small!          *'
+                  write(6,*)'*  Note functional form is exp(-((Ex-B)/C)**2)  *'
+                  write(6,*)'*  Input form is f_barrier_damp  Z  A  n  B  C  *'
+                  write(6,*)'*  Execution will terminate                     *'
+                  write(6,*)'*************************************************'
+               end if
+               call MPI_Abort(icomm,191,ierr)     
+            end if
 !-------   Make damping factor = 1.0 at Ex = 0.0
-            x(1) = exp((x(3)*x(2))**2)
+            x(1) = exp((x(2)/x(3))**2)
             nucleus(i)%F_Barrier(j)%barrier_damp(1) = x(1)
             return
          end if
@@ -4774,19 +4785,30 @@ subroutine incident_energy_setup
    use nuclei
 !-----------------------------------------------------
    integer(kind=4) :: i, num
-   num = 221
+   num = 216
    if(.not. allocated(projectile%energy))allocate(projectile%energy(num))
    projectile%energy(1) = 1.0d-4
    projectile%energy(2) = 1.0d-3
-   do i = 3, 22
-      projectile%energy(i) = projectile%energy(i-1) + 5.0d-3
-   end do
-   do i = 23, 221
+   projectile%energy(3) = 2.0d-3
+   projectile%energy(4) = 4.0d-3
+   projectile%energy(5) = 6.0d-3
+   projectile%energy(6) = 8.0d-3
+   projectile%energy(7) = 1.0d-2
+   projectile%energy(8) = 2.0d-2
+   projectile%energy(9) = 3.0d-2
+   projectile%energy(10) = 4.0d-2
+   projectile%energy(11) = 5.0d-2
+   projectile%energy(12) = 6.0d-2
+   projectile%energy(13) = 7.0d-2
+   projectile%energy(14) = 8.0d-2
+   projectile%energy(15) = 9.0d-2
+   projectile%energy(16) = 1.0d-1
+   do i = 17, 216
       projectile%energy(i) = projectile%energy(i-1) + 1.0d-1
    end do
    projectile%num_e = num
    projectile%e_min = projectile%energy(1)
-   projectile%e_max = projectile%energy(221)
+   projectile%e_max = projectile%energy(216)
    ex_set = .true.
    return
 end subroutine incident_energy_setup

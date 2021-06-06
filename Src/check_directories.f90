@@ -78,6 +78,14 @@ subroutine check_directories(ntar, target_label, ilib_dir, lib_dir)
    f_exist = .false.
    lib_dir(1:ntar) = target_label(1:ntar)
    ilib_dir = ntar
+   icmd = 6
+   unix_cmd(1:icmd) = 'rm -r '
+   icmd = icmd + 1
+   unix_cmd(icmd:icmd + ilib_dir) = lib_dir(1:ilib_dir)
+   icmd = icmd + ilib_dir
+   write(6,*)unix_cmd(1:icmd)
+   call system(unix_cmd(1:icmd))
+   
    inquire(file = lib_dir(1:ilib_dir), exist = f_exist)
    if(.not. f_exist)then
       icmd = 9

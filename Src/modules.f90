@@ -32,7 +32,7 @@ module options
 !
    use variable_kinds
    character(len=132) :: version
-   parameter (version = 'MC-3.53')
+   parameter (version = 'MC-3.55')
    integer(kind=int_64) :: iseed_64
    integer(kind=int_32) :: iseed_32
    integer(kind=4) :: PREEQ_Model
@@ -298,10 +298,10 @@ module Channel_info
       real(kind=8), allocatable, dimension(:,:) :: Channel_cs
       integer(kind=4), allocatable, dimension(:) :: StateLabel
       type(discrete_state), allocatable, dimension(:) :: state
-      real(kind=8), allocatable, dimension(:,:,:) :: part_mult
-      real(kind=8), allocatable, dimension(:,:,:,:,:) :: Ang_L
-      real(kind=8), allocatable, dimension(:,:,:,:) :: Max_L
-      type(E_A_Spectrum), allocatable, dimension(:,:,:) :: Spect
+      real(kind=8), allocatable, dimension(:,:) :: part_mult
+!      real(kind=8), allocatable, dimension(:,:,:,:,:) :: Ang_L
+!      real(kind=8), allocatable, dimension(:,:,:,:) :: Max_L
+      type(E_A_Spectrum), allocatable, dimension(:,:) :: Spect
       
    end type ExitChannel
 
@@ -335,6 +335,63 @@ module Channel_info
    type(OpticalData) :: OpticalCS
 
 end module Channel_info
+!
+!++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!
+module Scatter_info
+!
+!*******************************************************************************
+!
+!  Discussion:
+!
+!------  Modules containing information for the inleastic, elastic, and direct
+!------  scattering
+!
+!  Licensing:
+!
+!    SPDX-License-Identifier: MIT 
+!
+!  Date:
+!
+!    11 May 2021
+!
+!  Author:
+!
+!      Erich Ormand, LLNL
+!
+!*******************************************************************************
+!
+!-------    Inelastic state by state starts here
+!-------    First sum of compound and compound and direct
+   real(kind=8), allocatable :: Inelastic_cs(:,:)
+   integer(kind=4), allocatable :: Inelastic_count(:,:)
+   integer(kind=4), allocatable :: Inelastic_L_max(:,:)
+   real(kind=8), allocatable :: Inelastic_Ang_L(:,:,:)
+   real(kind=8), allocatable :: Inelastic_Ang_dist(:,:,:)
+   real(kind=8), allocatable :: Inelastic_Total(:)           !  Total inelastic cross section as a function of energy
+!-------   Direct Inelastic Scattering
+   real(kind=8), allocatable :: direct_cs(:)
+   real(kind=8), allocatable :: direct_Ang(:,:)
+   real(kind=8), allocatable :: direct_prob(:,:)
+   real(kind=8), allocatable :: direct_tot(:)
+   real(kind=8), allocatable :: direct_cc(:)
+   real(kind=8), allocatable :: direct_dwba(:)
+   real(kind=8), allocatable :: SE_prob(:)
+   real(kind=8), allocatable :: Elastic_cs(:)
+   real(kind=8), allocatable :: Elastic_Ang(:,:)
+!-------    Shape Elastic Scattering
+   real(kind=8), allocatable :: SE_cs(:)
+   real(kind=8), allocatable :: SE_Ang(:,:)
+!-------    Compound Elastic Scattering
+   real(kind=8), allocatable :: CE_cs(:)
+   real(kind=8), allocatable :: CE_Ang(:,:)
+!
+!--------     Quasi-elastic Scattering
+   real(kind=8), allocatable :: QE_cs(:)
+   real(kind=8), allocatable :: QE_Spectrum(:)
+   real(kind=8), allocatable :: QE_Ang(:,:)
+
+end module Scatter_info
 !
 !*******************************************************************************
 !

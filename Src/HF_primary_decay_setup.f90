@@ -513,6 +513,7 @@ subroutine HF_primary_decay_setup(e_in,iproj,itarget,icomp,istate,energy)
                                                       k,l,xj_f,-n_f,xI_f,                 &
                                                       ip_i,xI_i,energy,                   &
                                                       exp_gamma,HFden,F_trans,CHnorm2,WF)
+!    write(6,*)'1',WF
                                  end if
                                  num = num + 1
                                  if(ii == 2)then
@@ -568,6 +569,7 @@ subroutine HF_primary_decay_setup(e_in,iproj,itarget,icomp,istate,energy)
                                                    k,l,xj_f,n_f,xI_f,                           &
                                                    ip_i,xI_i,energy,                            &
                                                    exp_gamma,HFden,F_trans,CHnorm2,WF)
+!    write(6,*)'2',WF
                               end if
                               num = num + 1
                               if(ii == 2)then
@@ -597,6 +599,7 @@ subroutine HF_primary_decay_setup(e_in,iproj,itarget,icomp,istate,energy)
                                          0,l,xj_f,-n_f,xI_f_min,                          &
                                          ip_i,xI_i,energy,                                &
                                          exp_gamma,HFden,F_trans,CHnorm2,WF)
+!    write(6,*)'3',WF,exp_gamma
                      end if
                      do n_f = 1, nucleus(i_f)%nbin                                                   !  loop over final excitation energies
                         e_gamma = energy - nucleus(i_f)%e_grid(n_f)
@@ -768,6 +771,7 @@ subroutine HF_primary_decay_setup(e_in,iproj,itarget,icomp,istate,energy)
                                       0,l,xj_f,-n_f,xI_f_min,                             &
                                       ip_i,xI_i,energy,                                   &
                                       exp_gamma,HFden,F_trans,CHnorm2,WF)
+!    write(6,*)'4',WF
                   end if
                   prob = F_trans(4)/CHnorm2
                   if(prob > prob_cut)then

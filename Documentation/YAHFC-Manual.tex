@@ -98,10 +98,10 @@ Modeling the decay of any nucleus can be initiated in one of two ways with YAHFC
 
 The optical potential formalism is used to provide details the total cross section, absorption cross section, and elastic scattering. Direct excitations to rotational or vibrational states are accounted for within the standard coupled-channels framework and additional direct excitations to ancillary states can be accounted for with the distorted-wave Born approximation (DWBA). The optical potential provides the transmission coefficients for the incident particle, $T_{lj}(E_{\rm in})$, where $E_{\rm in}$ is chosen here to be the incident energy of the projectile in the center-of-mass frame, $l$ is the orbital angular momentum, and $j$ is the total angular momentum of the projectile particle, i.e., $\vec j = \vec l + \vec s$, with $s$ being the intrinsic spin of the projectile. The absorption cross section for the entrance channel defined by $l$ and $j$ coupled to a target state with angular momentum and parity $J_T^{\pi_T}$ to form a state with angular momentum and parity $J^\pi$ in the composite nucleus is
 \begin{equation}
-\sigma_{\rm abs}^{ljJ_TJ^\pi}(E_{\rm in}) = \frac{\pi}{\lambdabar^2} \frac{2J + 1}{(2j+1)(2J_T+1)}T_{lj}(E_{\rm in}),
+\sigma_{\rm abs}^{ljJ_TJ^\pi}(E_{\rm in}) = {\pi}{\lambdabar^2} \frac{2J + 1}{(2j+1)(2J_T+1)}T_{lj}(E_{\rm in}),
 \label{eq:abs_chan}
 \end{equation}
-where $\vec{J} = \vec{J}_T + \vec j \rightarrow |J_T-j| \le J \le J_T + j$, the parity is given by the product $\pi = \pi_T\pi_{proj}(-1)^l$, and $\lambdabar$ is the deBroglie wavelength of the incident projectile in the center of mass system. The total absorption cross section is then
+where $\vec{J} = \vec{J}_T + \vec j \rightarrow |J_T-j| \le J \le J_T + j$, the parity is given by the product $\pi = \pi_T\pi_{proj}(-1)^l$, and $\lambdabar=\hbar/p$ is the de Broglie wavelength of the incident projectile in the center of mass system. The total absorption cross section is then
 \begin{equation} 
 \sigma_{\rm abs} (E_{\rm in})= \sum_{ljJ^\pi} \sigma_{\rm abs}^{ljJ_TJ^\pi}(E_{\rm in}),
 \label{eq:abs}

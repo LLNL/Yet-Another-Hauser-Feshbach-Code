@@ -22,6 +22,7 @@ program YAHFC_MASTER
 !        log_factorial
 !        nuclei
 !        Channel_info
+!        Scatter_info
 !        particles_def
 !        directory_structure
 !        pre_equilibrium_no_1
@@ -143,6 +144,7 @@ program YAHFC_MASTER
       use log_factorial
       use nuclei
       use Channel_info
+      use Scatter_info
       use particles_def
       use directory_structure
       use pre_equilibrium_no_1
@@ -164,6 +166,7 @@ program YAHFC_MASTER
       character(len=40) file_name
       character(len=132) out_buff
       integer(kind=4) :: icharr, il1
+!      character(len=132) :: unix_command
 !-----------------------------------------------------------------------
       integer(kind=4) :: num_e
       real(kind=8) :: ee_max
@@ -348,40 +351,11 @@ program YAHFC_MASTER
       real(kind=8), allocatable :: xvalue(:)
 
 !--------   Total Inelastic Scattering
+      real(kind=8) :: tot_direct, sum_d
       logical direct, compound, preeq_decay,cc_decay, dwba_decay
       logical inelastic,compound_elastic, fission_decay
 !-------    Sum of all processes in these different channels
-      real(kind=8), allocatable :: Inelastic_Total(:)           !  Total inelastic cross section as a function of energy
 
-!-------    Inelastic state by state starts here
-!-------    First sum of compound and compound and direct
-      real(kind=8), allocatable :: Inelastic_cs(:,:)
-      integer(kind=4), allocatable :: Inelastic_count(:,:)
-      integer(kind=4), allocatable :: Inelastic_L_max(:,:)
-      real(kind=8), allocatable :: Inelastic_Ang_L(:,:,:)
-      real(kind=8), allocatable :: Inelastic_Ang_dist(:,:,:)
-!-------   Direct Inelastic Scattering
-      real(kind=8) :: tot_direct, sum_d
-      real(kind=8), allocatable :: direct_cs(:)
-      real(kind=8), allocatable :: direct_Ang(:,:)
-      real(kind=8), allocatable :: direct_prob(:,:)
-      real(kind=8), allocatable :: direct_tot(:)
-      real(kind=8), allocatable :: direct_cc(:)
-      real(kind=8), allocatable :: direct_dwba(:)
-      real(kind=8), allocatable :: SE_prob(:)
-      real(kind=8), allocatable :: Elastic_cs(:)
-      real(kind=8), allocatable :: Elastic_Ang(:,:)
-!-------    Shape Elastic Scattering
-      real(kind=8), allocatable :: SE_cs(:)
-      real(kind=8), allocatable :: SE_Ang(:,:)
-!-------    Compound Elastic Scattering
-      real(kind=8), allocatable :: CE_cs(:)
-      real(kind=8), allocatable :: CE_Ang(:,:)
-!
-!--------     Quasi-elastic Scattering
-      real(kind=8), allocatable :: QE_cs(:)
-      real(kind=8), allocatable :: QE_Spectrum(:)
-      real(kind=8), allocatable :: QE_Ang(:,:)
 !
 !--------     Primary Gamma-Spectrum
       real(kind=8), allocatable :: Primary_Gamma_Spectrum(:)
@@ -405,7 +379,6 @@ program YAHFC_MASTER
 !--------   yrast  ---------------------------------
       real(kind=8) :: yrast(0:100,0:1)
       real(kind=8) :: yrast_actual(0:100,0:1)
-      character(len=9) yrast_file
 
       real(kind=8) :: x, x1, theta
 
@@ -416,7 +389,6 @@ program YAHFC_MASTER
       real(kind=8) :: beta, gamma
 
       real(kind=8) :: theta_0, phi_0, T_1, phi, T_2, T_L, theta_L, phi_L
-      integer(kind=4) :: num_bad_e
 
       integer(kind=4) :: n_min
 
@@ -429,6 +401,8 @@ program YAHFC_MASTER
 
       integer(kind=4),allocatable :: command_rank(:)
       character(len=132), dimension(:), allocatable :: command_buffer
+
+      integer(kind=4) :: num_bad_samp_e, num_bad_spread_e
 
       integer :: cnt, cnt_r, cnt_m
 
@@ -535,6 +509,8 @@ program YAHFC_MASTER
       quote = "'"
       angle_dist(0:90) = 0.0d0
 
+      out_file(1:132) = ' '
+
 !----------  Default Options
       print_output = .true.
       print_spectra = .true.
@@ -560,6 +536,9 @@ program YAHFC_MASTER
       pop_calc_prob = .true.
       pop_calc = .false.
       file_energy_index = .false.
+
+      num_bad_samp_e = 0
+      num_bad_spread_e = 0
 
       output_mode = 1
       t12_isomer = 1.0
@@ -985,7 +964,17 @@ program YAHFC_MASTER
 !----------------------------------------------------------------------------------------+
 !------    Finished getting input commands                                               +
 !----------------------------------------------------------------------------------------+
-!
+!++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!---------    Check if we have sufficient data to proceed                       +
+!++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+      if(.not.target%specified)then
+         if(iproc == 0)write(6,*)'Target nucleus not specified, quitting'
+         call MPI_Abort(icomm,101,ierr)
+      end if
+      if(.not.projectile%specified)then
+         if(iproc == 0)write(6,*)'Projectile nucleus not specified, quitting'
+         call MPI_Abort(icomm,101,ierr)
+      end if
       mass_proj = particle(iproj)%mass
       mass_target = nucleus(itarget)%mass + nucleus(itarget)%state(target%istate)%energy
       rel_factor = mass_target/(mass_target + mass_proj)
@@ -1036,16 +1025,11 @@ program YAHFC_MASTER
          end do
       end do
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!---------    Check if we have sufficient data to proceed                       +
+!---------    Check if we have any bad data set up that would                   +
+!---------    mess things up.                                                   +
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-      if(.not.target%specified)then
-         if(iproc == 0)write(6,*)'Target nucleus not specified, quitting'
-         call MPI_Abort(icomm,101,ierr)
-      end if
-      if(.not.projectile%specified)then
-         if(iproc == 0)write(6,*)'Projectile nucleus not specified, quitting'
-         call MPI_Abort(icomm,101,ierr)
-      end if
+      call fail_safe_check
+
 !----------------------------------------------------------------------------------------+
 !------    Do clean up and finish setting up nuclei, level density, etc.                 +
 !----------------------------------------------------------------------------------------+
@@ -1181,13 +1165,14 @@ program YAHFC_MASTER
          nucleus(icomp)%j_max = max_J_allowed
       end do
 
-      ifile=index(out_file,' ') - 1
+      if(out_file(1:1) == ' ')out_file = 'YAHFC-Output'
+
+      ifile = index(out_file,' ') - 1
       if(print_output)then
          if(iproc == 0)open(unit=13,file=out_file(1:ifile)//'.out',status='unknown')
-         open(unit=400,file=out_file(1:ifile)//'.bad_energy',status='unknown')
-         open(unit=15,file=out_file(1:ifile)//'_e_avg.dat',status='unknown')
-         open(unit=16,file=out_file(1:ifile)//'_j_avg.dat',status='unknown')
       end if
+!      open(unit=28,file=out_file(1:ifile)//'.bad_samp_energy',status='unknown')
+!      open(unit=400,file=out_file(1:ifile)//'.bad_spread_energy',status='unknown')
 
       cum_fit=2
 
@@ -1374,38 +1359,38 @@ program YAHFC_MASTER
 !----------------------------------------------------------------------------------------+
 !------   Write yrast data to file in unit=99                                            +
 !----------------------------------------------------------------------------------------+
-         yrast_file(1:1)='Z'
-         if(nucleus(i)%z < 10)then
-            yrast_file(2:3)='00'
-            write(yrast_file(4:4),'(i1)')nucleus(i)%z
-         elseif(nucleus(i)%z < 100)then
-            yrast_file(2:2)='0'
-            write(yrast_file(3:4),'(i2)')nucleus(i)%z
-         else
-            write(yrast_file(2:4),'(i3)')nucleus(i)%z
-         end if
-         yrast_file(5:6)='-A'
-         if(nucleus(i)%A < 10)then
-            yrast_file(7:8)='00'
-            write(yrast_file(9:9),'(i1)')nucleus(i)%A
-         elseif(nucleus(i)%A < 100)then
-            yrast_file(7:7)='0'
-            write(yrast_file(8:9),'(i2)')nucleus(i)%A
-         else
-            write(yrast_file(7:9),'(i3)')nucleus(i)%A
-         end if
+!         yrast_file(1:1)='Z'
+!         if(nucleus(i)%z < 10)then
+!            yrast_file(2:3)='00'
+!            write(yrast_file(4:4),'(i1)')nucleus(i)%z
+!         elseif(nucleus(i)%z < 100)then
+!            yrast_file(2:2)='0'
+!            write(yrast_file(3:4),'(i2)')nucleus(i)%z
+!         else
+!            write(yrast_file(2:4),'(i3)')nucleus(i)%z
+!         end if
+!         yrast_file(5:6)='-A'
+!         if(nucleus(i)%A < 10)then
+!            yrast_file(7:8)='00'
+!            write(yrast_file(9:9),'(i1)')nucleus(i)%A
+!         elseif(nucleus(i)%A < 100)then
+!            yrast_file(7:7)='0'
+!            write(yrast_file(8:9),'(i2)')nucleus(i)%A
+!         else
+!            write(yrast_file(7:9),'(i3)')nucleus(i)%A
+!         end if
 
-         if(iproc == 0)open(unit=99,file=yrast_file//'.yrast.dat',status='unknown')
-         if(iproc == 0)then
-            write(99,'(''#               Negative Parity          Positive Parity'')')
-            write(99,'(''#  J           Yrast  Yrast-lev          Yrast  Yrast-lev'')')
-            do j = 0, max_J_allowed
-               xj = dfloat(j) + nucleus(i)%jshift
-               write(99,'(1x,f4.1,2(4x,2(1x,f10.4)))')xj,          &
-                  yrast_actual(j,0),yrast(j,0),yrast_actual(j,1),yrast(j,1)
-            end do
-            close(unit=99)
-         end if
+!         if(iproc == 0)open(unit=99,file=yrast_file//'.yrast.dat',status='unknown')
+!         if(iproc == 0)then
+!            write(99,'(''#               Negative Parity          Positive Parity'')')
+!            write(99,'(''#  J           Yrast  Yrast-lev          Yrast  Yrast-lev'')')
+!            do j = 0, max_J_allowed
+!               xj = dfloat(j) + nucleus(i)%jshift
+!               write(99,'(1x,f4.1,2(4x,2(1x,f10.4)))')xj,          &
+!                  yrast_actual(j,0),yrast(j,0),yrast_actual(j,1),yrast(j,1)
+!            end do
+!            close(unit=99)
+!         end if
       end do
 !----------------------------------------------------------------------------------------+
 !----  Fit to Gamma_gamma                                                                +
@@ -1460,22 +1445,6 @@ program YAHFC_MASTER
           call HF_denominator(i)
        end do
 
-!----------------------------------------------------------------------------------------+
-!-----     Print data to .out file                                                       +
-!----------------------------------------------------------------------------------------+
-      if(iproc == 0 .and. print_output)then
-         call start_IO
-         call output_trans_coef
-!----------------------------------------------------------------------------------------+
-!---------   Print out data used in the calculation for each                             +
-!---------   compound nucleus                                                            +
-!----------------------------------------------------------------------------------------+
-         call output_nucleus_data(j_max, itarget)
-      end if
-!----------------------------------------------------------------------------------------+
-!---------   Print out memory used in this calculation                                   +
-!----------------------------------------------------------------------------------------+
-      call memory_used
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !     Now set up array tracking particles in the decay chain               +
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -1540,50 +1509,39 @@ program YAHFC_MASTER
          end if
 
          if(.not.allocated(Exit_Channel(i)%part_mult))                                             &
-                 allocate(Exit_Channel(i)%part_mult(0:6,-1:num_s,1:num_energies))
-         Exit_Channel(i)%part_mult(0:6,-1:num_s,1:num_energies) = 0.0d0
-         if(.not.allocated(Exit_Channel(i)%Ang_L))                                                 &
-                 allocate(Exit_Channel(i)%Ang_L(0:Ang_L_max,0:num_e,                               &
-                        0:6,-1:num_s,1:num_energies))
-         Exit_Channel(i)%Ang_L(0:Ang_L_max,0:num_e,0:6,-1:num_s,1:num_energies) = 0.0d0
-         if(.not.allocated(Exit_Channel(i)%Max_L))                                                 &
-                 allocate(Exit_Channel(i)%Max_L(0:num_e,0:6,-1:num_s,1:num_energies))
-         Exit_Channel(i)%Max_L(0:num_e,0:6,-1:num_s,1:num_energies) = 0.0d0
+                 allocate(Exit_Channel(i)%part_mult(0:6,-1:num_s))
+!         if(.not.allocated(Exit_Channel(i)%Ang_L))                                                 &
+!                 allocate(Exit_Channel(i)%Ang_L(0:Ang_L_max,0:num_e,                               &
+!                        0:6,-1:num_s,1:num_energies))
+!         Exit_Channel(i)%Ang_L(0:Ang_L_max,0:num_e,0:6,-1:num_s,1:num_energies) = 0.0d0
+!         if(.not.allocated(Exit_Channel(i)%Max_L))                                                 &
+!                 allocate(Exit_Channel(i)%Max_L(0:num_e,0:6,-1:num_s,1:num_energies))
+!         Exit_Channel(i)%Max_L(0:num_e,0:6,-1:num_s,1:num_energies) = 0.0d0
 
          if(.not.allocated(Exit_Channel(i)%Spect))                                                 &
-                 allocate(Exit_Channel(i)%Spect(0:6,-1:num_s,1:num_energies))
-         do in = 1, num_energies
-            do j = -1, num_s
-               do k = 0, 6
-                  if(.not.allocated(Exit_Channel(i)%Spect(k,j,in)%E_spec))                         &
-                     allocate(Exit_Channel(i)%Spect(k,j,in)%E_spec(0:num_e))
-                  Exit_Channel(i)%Spect(k,j,in)%E_spec(0:num_e) = 0.0d0
+                 allocate(Exit_Channel(i)%Spect(0:6,-1:num_s))
+         do j = -1, num_s
+            do k = 0, 6
+               if(.not.allocated(Exit_Channel(i)%Spect(k,j)%E_spec))                         &
+                  allocate(Exit_Channel(i)%Spect(k,j)%E_spec(0:num_e))
 !----
-                  if(.not.allocated(Exit_Channel(i)%Spect(k,j,in)%E_count))                        &
-                     allocate(Exit_Channel(i)%Spect(k,j,in)%E_count(0:num_e))
-                  Exit_Channel(i)%Spect(k,j,in)%E_count(0:num_e) = 0
+               if(.not.allocated(Exit_Channel(i)%Spect(k,j)%E_count))                        &
+                  allocate(Exit_Channel(i)%Spect(k,j)%E_count(0:num_e))
 !----
-                  if(.not.allocated(Exit_Channel(i)%Spect(k,j,in)%Ang_Dist))                       &
-                     allocate(Exit_Channel(i)%Spect(k,j,in)%Ang_Dist(0:max_jx_10))
-                  Exit_Channel(i)%Spect(k,j,in)%Ang_Dist(0:max_jx_10) = 0.0d0
+               if(.not.allocated(Exit_Channel(i)%Spect(k,j)%Ang_Dist))                       &
+                  allocate(Exit_Channel(i)%Spect(k,j)%Ang_Dist(0:max_jx_10))
 !----
-                  if(.not.allocated(Exit_Channel(i)%Spect(k,j,in)%Ang_L))                          &
-                     allocate(Exit_Channel(i)%Spect(k,j,in)%Ang_L(0:Ang_L_max))
-                  Exit_Channel(i)%Spect(k,j,in)%Ang_L(0:Ang_L_max) = 0.0d0
-                  Exit_Channel(i)%Spect(k,j,in)%Ang_L_Max = 0
+               if(.not.allocated(Exit_Channel(i)%Spect(k,j)%Ang_L))                          &
+                  allocate(Exit_Channel(i)%Spect(k,j)%Ang_L(0:Ang_L_max))
 !----
-                  if(.not.allocated(Exit_Channel(i)%Spect(k,j,in)%E_Ang_Dist))                     &
-                      allocate(Exit_Channel(i)%Spect(k,j,in)%E_Ang_Dist(0:max_jx_10,0:num_e))
-                  Exit_Channel(i)%Spect(k,j,in)%E_Ang_Dist(0:max_jx_10,0:num_e) = 0.0d0
+               if(.not.allocated(Exit_Channel(i)%Spect(k,j)%E_Ang_Dist))                     &
+                   allocate(Exit_Channel(i)%Spect(k,j)%E_Ang_Dist(0:max_jx_10,0:num_e))
 !----
-                  if(.not.allocated(Exit_Channel(i)%Spect(k,j,in)%E_Ang_L))                        &
-                      allocate(Exit_Channel(i)%Spect(k,j,in)%E_Ang_L(0:Ang_L_max,0:num_e))
-                  Exit_Channel(i)%Spect(k,j,in)%E_Ang_L(0:Ang_L_max,0:num_e) = 0.0d0
+               if(.not.allocated(Exit_Channel(i)%Spect(k,j)%E_Ang_L))                        &
+                   allocate(Exit_Channel(i)%Spect(k,j)%E_Ang_L(0:Ang_L_max,0:num_e))
 !----
-                  if(.not.allocated(Exit_Channel(i)%Spect(k,j,in)%E_Ang_L_max))                    &
-                      allocate(Exit_Channel(i)%Spect(k,j,in)%E_Ang_L_max(0:num_e))
-                  Exit_Channel(i)%Spect(k,j,in)%E_Ang_L_Max(0:num_e) = 0
-               end do
+               if(.not.allocated(Exit_Channel(i)%Spect(k,j)%E_Ang_L_max))                    &
+                   allocate(Exit_Channel(i)%Spect(k,j)%E_Ang_L_max(0:num_e))
             end do
          end do
       end do
@@ -1696,8 +1654,6 @@ program YAHFC_MASTER
          if(.not.allocated(Inelastic_Ang_dist))allocate(Inelastic_Ang_dist(1,1,1))
          Inelastic_Ang_dist(1,1,1) = 0.0d0
 !-------------
-!         if(.not.allocated(preeq_Spectrum))allocate(preeq_Spectrum(1))
-!         preeq_Spectrum(1) = 0.0d0
          if(.not.allocated(direct_Spectrum))allocate(direct_Spectrum(1))
          direct_Spectrum(1) = 0.0d0
          if(.not.allocated(dwba_Spectrum))allocate(dwba_Spectrum(1))
@@ -1774,10 +1730,27 @@ program YAHFC_MASTER
          call MPI_BCAST(lib_dir, 132, MPI_CHARACTER, 0, icomm, ierr)
       end if
 
+!----------------------------------------------------------------------------------------+
+!-----     Print data to .out file                                                       +
+!----------------------------------------------------------------------------------------+
+      if(iproc == 0 .and. print_output)then
+         call start_IO
+         call output_trans_coef
+!----------------------------------------------------------------------------------------+
+!---------   Print out data used in the calculation for each                             +
+!---------   compound nucleus to the .out file                                           +
+!----------------------------------------------------------------------------------------+
+         call output_nucleus_data(j_max, itarget)
+      end if
+!----------------------------------------------------------------------------------------+
+!---------   Print out data related to decays for each nucleus                                                            +
+!----------------------------------------------------------------------------------------+
+     if(iproc == 0)call print_nuke_data(ilib_dir, lib_dir)
+!
 !**************************************************************************
 !------    Write particle properties to file                           ---*
 !**************************************************************************
-
+!
       if(iproc == 0)then
          open(unit= 100, file = lib_dir(1:ilib_dir)//'/Particle-properties.dat', status = 'unknown')
          do k = -1, 6
@@ -1814,13 +1787,16 @@ program YAHFC_MASTER
          Fiss_tally(1,1) = 0.0d0
       end if
 
+!----------------------------------------------------------------------------------------+
+!---------   Print out memory used in this calculation                                   +
+!----------------------------------------------------------------------------------------+
+      call memory_used
+
 !
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !-----    Start loop over initial Energies
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
-      num_bad_e = 0          ! number of events with bad energy conservation
-
       if(iproc == 0)write(6,*)'Starting energy loop with ',num_energies,' values'
 
       do in = 1, num_energies
@@ -1829,6 +1805,23 @@ program YAHFC_MASTER
          sum_ie = 0
 
          E_in = projectile%energy(in)
+
+         do i = 1, num_channels
+            num_s = 1
+            do j = -1, num_s
+               do k = 0, 6
+                  Exit_Channel(i)%part_mult(k,j) = 0.0d0
+                  Exit_Channel(i)%Spect(k,j)%E_spec(0:num_e) = 0.0d0
+                  Exit_Channel(i)%Spect(k,j)%E_count(0:num_e) = 0
+                  Exit_Channel(i)%Spect(k,j)%Ang_Dist(0:max_jx_10) = 0.0d0
+                  Exit_Channel(i)%Spect(k,j)%Ang_L(0:Ang_L_max) = 0.0d0
+                  Exit_Channel(i)%Spect(k,j)%Ang_L_Max = 0
+                  Exit_Channel(i)%Spect(k,j)%E_Ang_Dist(0:max_jx_10,0:num_e) = 0.0d0
+                  Exit_Channel(i)%Spect(k,j)%E_Ang_L(0:Ang_L_max,0:num_e) = 0.0d0
+                  Exit_Channel(i)%Spect(k,j)%E_Ang_L_Max(0:num_e) = 0
+               end do
+            end do
+         end do
 
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !-----    Reset primary populations
@@ -2855,20 +2848,35 @@ program YAHFC_MASTER
                if(e_diff > max_e_diff)max_e_diff = e_diff
                avg_e_diff = avg_e_diff + e_diff
                if(e_diff >= 1.0d-3)then
-                  num_bad_e = num_bad_e + 1
-                  write(28,*)'Processor #',iproc
-                  write(28,*)'Energy not conserved to within 1 keV'
-                  write(28,*)'E_in = ',E_in,' nsamp = ',nsamp,' iproc = ',iproc
-                  write(28,*)'Ex_tot = ',ex_tot,' Sum_e ',sum_e
-                  write(28,*)'Diff = ',e_diff
-                  write(28,*)'Check: pop_cal = ',pop_calc
-                  write(28,*)'Check: compound = ',compound
-                  write(28,*)'Check: preeq_decay = ', preeq_decay
-                  write(28,*)'Check: direct = ',direct
-                  write(28,*)'Check: dwba = ',dwba_decay
+                  num_bad_samp_e = num_bad_samp_e + 1
+                  write(6,*)'Processor #',iproc
+                  write(6,*)'Energy not conserved to within 1 keV'
+                  write(6,*)'E_in = ',E_in,' nsamp = ',nsamp,' iproc = ',iproc
+                  write(6,*)'Ex_tot = ',ex_tot,' Sum_e ',sum_e
+                  write(6,*)'Diff = ',e_diff
+                  write(6,*)'Check: pop_cal = ',pop_calc
+                  write(6,*)'Check: compound = ',compound
+                  write(6,*)'Check: preeq_decay = ', preeq_decay
+                  write(6,*)'Check: direct = ',direct
+                  write(6,*)'Check: dwba = ',dwba_decay
+                  write(6,*)'Info written to ',out_file(1:ifile)//'.bad_samp_energy'
                   do nn = 1, num_part
-                     write(28,'(1x,i5,21(2x,f12.5))')nn,(part_data(k,nn), k = 1, n_dat)
+                     write(6,'(1x,i5,21(2x,f12.5))')nn,(part_data(k,nn), k = 1, n_dat)
                   end do
+!                  write(28,*)'Processor #',iproc
+!                  write(28,*)'Energy not conserved to within 1 keV'
+!                  write(28,*)'E_in = ',E_in,' nsamp = ',nsamp,' iproc = ',iproc
+!                  write(28,*)'Ex_tot = ',ex_tot,' Sum_e ',sum_e
+!                  write(28,*)'Diff = ',e_diff
+!                  write(28,*)'Check: pop_cal = ',pop_calc
+!                  write(28,*)'Check: compound = ',compound
+!                  write(28,*)'Check: preeq_decay = ', preeq_decay
+!                  write(28,*)'Check: direct = ',direct
+!                  write(28,*)'Check: dwba = ',dwba_decay
+!                  write(28,*)'Info written to ',out_file(1:ifile)//'.bad_samp_energy'
+!                  do nn = 1, num_part
+!                     write(28,'(1x,i5,21(2x,f12.5))')nn,(part_data(k,nn), k = 1, n_dat)
+!                  end do
                   flush(28)
                end if
             end if
@@ -2973,12 +2981,13 @@ program YAHFC_MASTER
 !----   Count number of events and warn user at the end
 !
                if(.not. fission .and. abs(ex_tot-sum_e) > 1.0d-4 )then
-                   write(6,*)'Energy conservation issue detected with extra angles'
-                   write(6,*)'Check file fort.400 for details on decay'
+                   write(6,*)'Energy conservation issue detected with extra angles and smear in energy'
                    write(6,*)'iproc = ',iproc
-                   write(400,*)'Energy conservation issue',ex_tot,sum_e,abs(ex_tot-sum_e)
-                   write(400,*)'Processor # ',iproc
-                   write(400,*)'Incident energy = ', e_in, 'Sample # ',nsamp
+                   write(6,*)'Info written to ',out_file(1:ifile)//'.bad_spread_energy'
+!                   write(400,*)'Energy conservation issue',ex_tot,sum_e,abs(ex_tot-sum_e)
+!                   write(400,*)'Processor # ',iproc
+!                   write(400,*)'Incident energy = ', e_in, 'Sample # ',nsamp
+                   num_bad_spread_e = num_bad_spread_e + 1
                    do nn = 1, num_part
                       k = nint(part_data(2,nn))
                       e_rel = part_data(9,nn)
@@ -2989,7 +2998,8 @@ program YAHFC_MASTER
                       nbin_i = nint(part_data(24,nn))
                       icomp_f = nint(part_data(1,nn))
                       nbin_f = nint(part_data(5,nn))
-                      write(400,*)i,k, idb, e_rel, theta, phi, icomp_i, nbin_i,icomp_f,nbin_f
+!                      write(400,*)i,k, idb, e_rel, theta, phi, icomp_i, nbin_i,icomp_f,nbin_f
+                      write(6,*)i,k, idb, e_rel, theta, phi, icomp_i, nbin_i,icomp_f,nbin_f
                   end do
                end if
             end if
@@ -3135,25 +3145,25 @@ program YAHFC_MASTER
                         if(idb == 1)e_shift = (2.0d0*random_32(iseed_32) - 1.0d0)*de_spec*0.5d0
                         icc = int((part_data(12,nn) + e_shift)/de_spec) + 1
                         if(k >= 0 .and. icc >= 0 .and. icc <= num_e)then
-                           Exit_Channel(ichann)%part_mult(k,ictype,in) =                           &
-                                Exit_Channel(ichann)%part_mult(k,ictype,in) + tally_weight
+                           Exit_Channel(ichann)%part_mult(k,ictype) =                           &
+                                Exit_Channel(ichann)%part_mult(k,ictype) + tally_weight
                            if(.not. xs_only)then
-                              Exit_Channel(ichann)%Spect(k,ictype,in)%E_spec(icc) =                &
-                                  Exit_Channel(ichann)%Spect(k,ictype,in)%E_spec(icc) +            &
+                              Exit_Channel(ichann)%Spect(k,ictype)%E_spec(icc) =                &
+                                  Exit_Channel(ichann)%Spect(k,ictype)%E_spec(icc) +            &
                                   tally_weight/de_spec
-                              Exit_Channel(ichann)%Spect(k,ictype,in)%E_count(icc) =               &
-                                  Exit_Channel(ichann)%Spect(k,ictype,in)%E_count(icc) + 1
+                              Exit_Channel(ichann)%Spect(k,ictype)%E_count(icc) =               &
+                                  Exit_Channel(ichann)%Spect(k,ictype)%E_count(icc) + 1
                               do nang = 1, num_theta
                                  theta = extra_angle_data(num_theta+1,nn)
                                  x = cos(theta)
                                  jx = nint((x+1.0d0)/delta_jx_10)
                                  if(jx < 0)jx = 0
                                  if(jx > max_jx_10)jx = max_jx_10
-                                 Exit_Channel(ichann)%Spect(k,ictype,in)%E_Ang_Dist(jx,icc) =      &
-                                     Exit_Channel(ichann)%Spect(k,ictype,in)%E_Ang_Dist(jx,icc) +  &
+                                 Exit_Channel(ichann)%Spect(k,ictype)%E_Ang_Dist(jx,icc) =      &
+                                     Exit_Channel(ichann)%Spect(k,ictype)%E_Ang_Dist(jx,icc) +  &
                                      tally_weight/(delta_jx_10*de_spec)/real(num_theta,kind=8)
-                                 Exit_Channel(ichann)%Spect(k,ictype,in)%Ang_Dist(jx) =            &
-                                     Exit_Channel(ichann)%Spect(k,ictype,in)%Ang_Dist(jx) +        &
+                                 Exit_Channel(ichann)%Spect(k,ictype)%Ang_Dist(jx) =            &
+                                     Exit_Channel(ichann)%Spect(k,ictype)%Ang_Dist(jx) +        &
                                      tally_weight/delta_jx_10/real(num_theta,kind=8)
                               end do
                            end if
@@ -3171,25 +3181,25 @@ program YAHFC_MASTER
 !------    bin
                      icc = int(part_data(12,nn)/de_spec) + 1
                      if(k >= 0 .and. icc >= 0 .and. icc <= num_e)then
-                        Exit_Channel(ichann)%part_mult(k,ictype,in) =                              &
-                             Exit_Channel(ichann)%part_mult(k,ictype,in) + tally_weight
+                        Exit_Channel(ichann)%part_mult(k,ictype) =                              &
+                             Exit_Channel(ichann)%part_mult(k,ictype) + tally_weight
                         if(.not. xs_only)then
-                           Exit_Channel(ichann)%Spect(k,ictype,in)%E_spec(icc) =                   &
-                               Exit_Channel(ichann)%Spect(k,ictype,in)%E_spec(icc) +               &
+                           Exit_Channel(ichann)%Spect(k,ictype)%E_spec(icc) =                   &
+                               Exit_Channel(ichann)%Spect(k,ictype)%E_spec(icc) +               &
                                tally_weight/de_spec
-                           Exit_Channel(ichann)%Spect(k,ictype,in)%E_count(icc) =                  &
-                               Exit_Channel(ichann)%Spect(k,ictype,in)%E_count(icc) + 1
+                           Exit_Channel(ichann)%Spect(k,ictype)%E_count(icc) =                  &
+                               Exit_Channel(ichann)%Spect(k,ictype)%E_count(icc) + 1
                            do nang = 1, num_theta
                               theta = extra_angle_data(num_theta + 1,nn)
                               x = cos(theta)
                               jx = nint((x+1.0d0)/delta_jx_10)
                               if(jx < 0)jx = 0
                               if(jx > max_jx_10)jx = max_jx_10
-                              Exit_Channel(ichann)%Spect(k,ictype,in)%E_Ang_Dist(jx,icc) =         &
-                                  Exit_Channel(ichann)%Spect(k,ictype,in)%E_Ang_Dist(jx,icc) +     &
+                              Exit_Channel(ichann)%Spect(k,ictype)%E_Ang_Dist(jx,icc) =         &
+                                  Exit_Channel(ichann)%Spect(k,ictype)%E_Ang_Dist(jx,icc) +     &
                                   tally_weight/(delta_jx_10*de_spec)/real(num_theta,kind=8)
-                              Exit_Channel(ichann)%Spect(k,ictype,in)%Ang_Dist(jx) =               &
-                                  Exit_Channel(ichann)%Spect(k,ictype,in)%Ang_Dist(jx) +           &
+                              Exit_Channel(ichann)%Spect(k,ictype)%Ang_Dist(jx) =               &
+                                  Exit_Channel(ichann)%Spect(k,ictype)%Ang_Dist(jx) +           &
                                   tally_weight/delta_jx_10/real(num_theta,kind=8)
                            end do
                         end if
@@ -3342,22 +3352,22 @@ program YAHFC_MASTER
             call MPI_Allreduce(MPI_IN_PLACE,Exit_Channel(i)%Channel_cs(-2,in),                     &
                                num_data, MPI_REAL8, MPI_SUM, icomm, ierr)
             num_data = 7*(num_s+2)
-            call MPI_Allreduce(MPI_IN_PLACE,Exit_Channel(i)%part_mult(0,-1,in),                    &
+            call MPI_Allreduce(MPI_IN_PLACE,Exit_Channel(i)%part_mult(0,-1),                    &
                                num_data, MPI_REAL8, MPI_SUM, icomm, ierr)
             if(.not. xs_only)then
                do k = 0, 6
                   do ictype = -1, num_s
                      num_data = num_e + 1
-                     call MPI_Allreduce(MPI_IN_PLACE,Exit_Channel(i)%Spect(k,ictype,in)%E_spec,    &
+                     call MPI_Allreduce(MPI_IN_PLACE,Exit_Channel(i)%Spect(k,ictype)%E_spec,    &
                                   num_data, MPI_REAL8, MPI_SUM, icomm, ierr)
                      num_data = num_e + 1
-                     call MPI_Allreduce(MPI_IN_PLACE,Exit_Channel(i)%Spect(k,ictype,in)%E_count,   &
+                     call MPI_Allreduce(MPI_IN_PLACE,Exit_Channel(i)%Spect(k,ictype)%E_count,   &
                                   num_data, MPI_REAL8, MPI_SUM, icomm, ierr)
                      num_data = (max_jx_10+1)*(num_s+2)
-                     call MPI_Allreduce(MPI_IN_PLACE,Exit_Channel(i)%Spect(k,ictype,in)%E_Ang_Dist,&
+                     call MPI_Allreduce(MPI_IN_PLACE,Exit_Channel(i)%Spect(k,ictype)%E_Ang_Dist,&
                                   num_data, MPI_REAL8, MPI_SUM, icomm, ierr)
                      num_data = (max_jx_10+1)
-                     call MPI_Allreduce(MPI_IN_PLACE,Exit_Channel(i)%Spect(k,ictype,in)%Ang_Dist,  &
+                     call MPI_Allreduce(MPI_IN_PLACE,Exit_Channel(i)%Spect(k,ictype)%Ang_Dist,  &
                                   num_data, MPI_REAL8, MPI_SUM, icomm, ierr)
                   end do
                end do
@@ -3744,58 +3754,58 @@ program YAHFC_MASTER
                  do k = 0, 6                                  !   Loop over particle types
 !-----   New approach to Spectrum and Angular Distributions
                     do icc = 0, num_e
-                       if(Exit_Channel(i)%Spect(k,n,in)%E_count(icc) == 0)cycle
-                       Exit_Channel(i)%Spect(k,n,in)%E_Ang_Dist(0,icc) =                            &
-                          Exit_Channel(i)%Spect(k,n,in)%E_Ang_Dist(0,icc)*2.0d0
-                       Exit_Channel(i)%Spect(k,n,in)%E_Ang_Dist(max_jx_10,icc) =                    &
-                          Exit_Channel(i)%Spect(k,n,in)%E_Ang_Dist(max_jx_10,icc)*2.0d0
+                       if(Exit_Channel(i)%Spect(k,n)%E_count(icc) == 0)cycle
+                       Exit_Channel(i)%Spect(k,n)%E_Ang_Dist(0,icc) =                            &
+                          Exit_Channel(i)%Spect(k,n)%E_Ang_Dist(0,icc)*2.0d0
+                       Exit_Channel(i)%Spect(k,n)%E_Ang_Dist(max_jx_10,icc) =                    &
+                          Exit_Channel(i)%Spect(k,n)%E_Ang_Dist(max_jx_10,icc)*2.0d0
                        sum = 0.0d0
 !------    Normalize for each energy
                        do jx = 1, max_jx_10
-                          sum = sum + (Exit_Channel(i)%Spect(k,n,in)%E_Ang_Dist(jx,icc) +           &
-                                       Exit_Channel(i)%Spect(k,n,in)%E_Ang_Dist(jx-1,icc))*         &
+                          sum = sum + (Exit_Channel(i)%Spect(k,n)%E_Ang_Dist(jx,icc) +           &
+                                       Exit_Channel(i)%Spect(k,n)%E_Ang_Dist(jx-1,icc))*         &
                                       delta_jx_10*0.5d0
                        end do
                        if(sum > 1.0d-8)then
                           do jx = 0, max_jx_10
-                             Exit_Channel(i)%Spect(k,n,in)%E_Ang_Dist(jx,icc) =                     &
-                                  Exit_Channel(i)%Spect(k,n,in)%E_Ang_Dist(jx,icc)/sum
+                             Exit_Channel(i)%Spect(k,n)%E_Ang_Dist(jx,icc) =                     &
+                                  Exit_Channel(i)%Spect(k,n)%E_Ang_Dist(jx,icc)/sum
                           end do
                        end if
 
-                       sum = Exit_Channel(i)%Spect(k,n,in)%E_count(icc)
+                       sum = Exit_Channel(i)%Spect(k,n)%E_count(icc)
 !-----   Set max L based on number of counts in energy bin
-                       Exit_Channel(i)%Spect(k,n,in)%E_Ang_L_max(icc) = 8
-                       if(sum < 9000)Exit_Channel(i)%Spect(k,n,in)%E_Ang_L_max(icc) = 6
-                       if(sum < 6000)Exit_Channel(i)%Spect(k,n,in)%E_Ang_L_max(icc) = 4
-                       if(sum < 3000)Exit_Channel(i)%Spect(k,n,in)%E_Ang_L_max(icc) = 2
-                       if(sum < 1000)Exit_Channel(i)%Spect(k,n,in)%E_Ang_L_max(icc) = 0
+                       Exit_Channel(i)%Spect(k,n)%E_Ang_L_max(icc) = 8
+                       if(sum < 9000)Exit_Channel(i)%Spect(k,n)%E_Ang_L_max(icc) = 6
+                       if(sum < 6000)Exit_Channel(i)%Spect(k,n)%E_Ang_L_max(icc) = 4
+                       if(sum < 3000)Exit_Channel(i)%Spect(k,n)%E_Ang_L_max(icc) = 2
+                       if(sum < 1000)Exit_Channel(i)%Spect(k,n)%E_Ang_L_max(icc) = 0
 !-----   Calculate average, avgerage difference from average, and expected difference
 !-----   Check if data have enough statistics to warrant more Legendre coefficients
-                       if(Exit_Channel(i)%Spect(k,n,in)%E_Ang_L_max(icc) > 0)then
+                       if(Exit_Channel(i)%Spect(k,n)%E_Ang_L_max(icc) > 0)then
                           avg = 0.0d0
                           do jx = 0, max_jx_10
-                             avg = avg + Exit_Channel(i)%Spect(k,n,in)%E_Ang_Dist(jx,icc)
+                             avg = avg + Exit_Channel(i)%Spect(k,n)%E_Ang_Dist(jx,icc)
                           end do
                           avg = avg/real(max_jx_10 + 1,kind=8)
                           avg_diff = 0.0d0
                           do jx = 0, max_jx_10
-                             avg_diff = avg_diff + abs(Exit_Channel(i)%Spect(k,n,in)%E_Ang_Dist(jx,icc) - avg)
+                             avg_diff = avg_diff + abs(Exit_Channel(i)%Spect(k,n)%E_Ang_Dist(jx,icc) - avg)
                           end do
                           avg_diff = avg_diff/real(max_jx_10+1,kind=8)
                           avg_diff = avg_diff/avg
-                          expected_diff = real(Exit_Channel(i)%Spect(k,n,in)%E_count(icc),kind=8)/  &
+                          expected_diff = real(Exit_Channel(i)%Spect(k,n)%E_count(icc),kind=8)/  &
                                           real(max_jx_10 + 1,kind=8)
                           expected_diff = sqrt(expected_diff)/expected_diff/sqrt(real(num_theta,kind=8))
-                          if(avg_diff < 2.5d0*expected_diff)Exit_Channel(i)%Spect(k,n,in)%E_Ang_L_max(icc) = 4
-                          if(avg_diff < 1.75d0*expected_diff)Exit_Channel(i)%Spect(k,n,in)%E_Ang_L_max(icc) = 2
-                          if(avg_diff < expected_diff)Exit_Channel(i)%Spect(k,n,in)%E_Ang_L_max(icc) = 0
+                          if(avg_diff < 2.5d0*expected_diff)Exit_Channel(i)%Spect(k,n)%E_Ang_L_max(icc) = 4
+                          if(avg_diff < 1.75d0*expected_diff)Exit_Channel(i)%Spect(k,n)%E_Ang_L_max(icc) = 2
+                          if(avg_diff < expected_diff)Exit_Channel(i)%Spect(k,n)%E_Ang_L_max(icc) = 0
                        end if
 
                        call Legendre_expand(max_jx_10+1,xvalue(0),                                  &
-                                            Exit_Channel(i)%Spect(k,n,in)%E_Ang_Dist(0,icc),        &
-                                            Exit_Channel(i)%Spect(k,n,in)%E_Ang_L_max(icc),         &
-                                            Exit_Channel(i)%Spect(k,n,in)%E_Ang_L(0,icc))
+                                            Exit_Channel(i)%Spect(k,n)%E_Ang_Dist(0,icc),        &
+                                            Exit_Channel(i)%Spect(k,n)%E_Ang_L_max(icc),         &
+                                            Exit_Channel(i)%Spect(k,n)%E_Ang_L(0,icc))
 
 !----------------------------------------------------------------------------------------------------
                     end do                       !  End of Loop over icc (outgoing energies
@@ -3815,8 +3825,8 @@ program YAHFC_MASTER
               do n = n_min, Exit_Channel(i)%num_cs
                  do k = 0, 6                                  !   Loop over particle types
                     if(Exit_Channel(i)%Channel_cs(n,in) >= 1.0d-8)then
-                       Exit_Channel(i)%part_mult(k,n,in) =                                         &
-                          Exit_Channel(i)%part_mult(k,n,in)/Exit_Channel(i)%Channel_cs(n,in)
+                       Exit_Channel(i)%part_mult(k,n) =                                         &
+                          Exit_Channel(i)%part_mult(k,n)/Exit_Channel(i)%Channel_cs(n,in)
                     end if
                  end do
               end do
@@ -3917,28 +3927,78 @@ program YAHFC_MASTER
                decay_var(k,in) = sqrt(decay_var(k,in) - decay_mult(k,in)**2)
             end do
          end if
+
+         ilab = ntar
+         file_lab(1:ntar) = target_label(1:ntar)
+         ilab = ilab + 1
+         file_lab(ilab:ilab) = '('
+         ilab = ilab + 1
+         file_lab(ilab:ilab) = particle(iproj)%label
+         ilab = ilab + 1
+         file_lab(ilab:ilab) = ','
+
+         directory(1:ilib_dir) = lib_dir(1:ilib_dir)
+         idir = ilib_dir + 1
+         directory(idir:idir) = '/'
+
+!++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!---------    Channel cross section data      ------------------------+
+!++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+         write_error = .false.
+         if(iproc == 0)call print_channels(in, itarget, istate, ilab, file_lab,                 &
+                                           ilib_dir, lib_dir, ch_par,                           &
+                                           num_energies, num_e, max_jx_20, delta_jx_20,         &
+                                           de_spec, cs_threshold, reaction_cs, write_error)
+         if(nproc > 1)then
+            call MPI_Barrier(icomm, ierr)
+            call MPI_BCAST(write_error, 1, MPI_LOGICAL, 0, icomm, ierr)
+         end if
+         if(write_error)call MPI_Abort(icomm,51,ierr)
+
 !
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !---------    Finished incident Energy Loop     ----------------------+
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
       end do               !   End of incident energy loop
-
-      if(iproc == 0)write(6,*)'Finished energy loop'
-
 !
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !---------    Finished incident Energy Loop     ----------------------+
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
-!-------   Notify user about events that failed energy conservation limits
 
-     if(num_bad_e > 0)then
-        ifile=index(out_file,' ') - 1
-        if(print_me)write(6,*)'There were ',num_bad_e,' events that violated energy conservation by 0.1 keV or more'
-        if(print_me)write(6,*)'Events written to ',out_file(1:ifile)//'.bad_energy'
+      if(iproc == 0)write(6,*)'Finished energy loop'
+
+
+!-------   Notify user about events that failed energy conservation limits
+!     close(unit=28)     !   Close units where energy nonconservation is written
+!     close(unit=400)
+
+     if(num_bad_samp_e > 0 .or. num_bad_spread_e > 0)then
+        ifile = index(out_file,' ') - 1
+        if(num_bad_samp_e > 0)then
+           if(print_me)write(6,*)'There were ',num_bad_samp_e,' events violated energy conservation during primary sampling'
+!           if(print_me)write(6,*)'Events written to ',out_file(1:ifile)//'.bad_samp_energy'
+        end if
+        if(num_bad_spread_e > 0)then
+           if(print_me)write(6,*)'There were ',num_bad_samp_e,' events violated energy conservation applying extra angles'
+!           if(print_me)write(6,*)'Events written to ',out_file(1:ifile)//'.bad_spread_energy'
+        end if
      else
         if(print_me)write(6,*)'There were no events that violated energy conservation at 0.1 keV level'
+!----   Delete the bad-energy files as they are empty
+!        unix_command(1:132) = ' '
+!        unix_command(1:3) = ' rm '
+!        ilast = 3
+!        unix_command(ilast+1:ilast+ifile) = out_file(1:ifile)
+!        ilast = ilast + ifile
+!        unix_command(ilast+1:ilast+16) = '.bad_samp_energy'
+!        ilast = ilast + 16
+!        call system(unix_command(1:ilast)
+!        ilast = ifile + 3
+!        unix_command(ilast+1:ilast+18) = '.bad_spread_energy'
+!        ilast = ilast + 18
+!        call system(unix_command(1:ilast)
      end if
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !----   Deallocate arrays needed for pre-equilibrium model
@@ -3968,11 +4028,6 @@ program YAHFC_MASTER
 !--------  Output data to Library Files     -----------------------------------+
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!
-
-!---------------------------------------------------------------------+
-
-     if(iproc == 0)call print_nuke_data(ilib_dir, lib_dir)
 
       if(event_generator)then
          write(6,*)'****************************************************'
@@ -4121,19 +4176,6 @@ program YAHFC_MASTER
             if(write_error)call MPI_Abort(icomm,51,ierr)
          end if
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!---------    Channel cross section data      ------------------------+
-!++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-         write_error = .false.
-         if(iproc == 0)call print_channels(itarget, istate, ilab, file_lab,                     &
-                                           ilib_dir, lib_dir, ch_par,                           &
-                                           num_energies, num_e, max_jx_20, delta_jx_20,         &
-                                           de_spec, cs_threshold, reaction_cs, write_error)
-         if(nproc > 1)then
-            call MPI_Barrier(icomm, ierr)
-            call MPI_BCAST(write_error, 1, MPI_LOGICAL, 0, icomm, ierr)
-         end if
-         if(write_error)call MPI_Abort(icomm,51,ierr)
-!++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !---------    Fission cross section           ------------------------+
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
          write_error = .false.
@@ -4149,6 +4191,13 @@ program YAHFC_MASTER
             end if
          if(write_error)call MPI_Abort(icomm,51,ierr)
       end if
+!++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!---------    Discrete gammas                 ------------------------+
+!++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+     if(iproc == 0 .and. track_gammas)                                                             &
+           call print_channel_gammas_all_ein(itarget, istate, ilab, file_lab, ilib_dir, lib_dir,   &
+                                             ch_par, num_energies, reaction_cs)
+
 
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !------------    Finished Library output    -----------------------------------+
@@ -4754,134 +4803,6 @@ real(kind=8) function delta_e_value(Ex, ex_base, de)
    end if
    return
 end function delta_e_value
-!
-!*****************************************************************************80
-!
-subroutine memory_used
-!
-!*****************************************************************************80
-!
-!  Discussion:
-!
-!    This Subroutine calculates and prints out the amount of memory used
-!    in the calculation, nucleus arrays, etc.
-!
-!   Dependencies:
-!
-!        variable_kinds
-!        options
-!        constants
-!        nodeinfo
-!        nuclei
-!
-!        None
-!
-!     Subroutines:
-!
-!        None
-!
-!     External functions:
-!
-!        None
-!
-!     MPI routines:
-!
-!        None
-!
-!  Licensing:
-!
-!    SPDX-License-Identifier: MIT 
-!
-!  Date:
-!
-!    11 May 2021
-!
-!  Author:
-!
-!      Erich Ormand, LLNL
-!
-!*****************************************************************************80
-!
-   use variable_kinds
-   use options
-   use constants
-   use nodeinfo
-   use nuclei
-   implicit none
-!------------------------------------------------------------------------
-   integer(kind=4) :: icomp
-   integer(kind=4) :: j, ip, n, nn, nbin, k, lx
-   real(kind=8) :: mem, mem_tot, mem_icomp, mem_bins
-!
-!-------------------------------------------------------------------------+
-!---------                                                                +
-!---------      Cacluate memory being used for each compound nucleus      +
-!---------                                                                +
-!-------------------------------------------------------------------------+
-      mem_tot=0.0d0
-      do icomp = 1, num_comp
-         mem_icomp = 0.0d0
-         if(allocated(nucleus(icomp)%PREEQ_pop))then
-            mem = real(size(nucleus(icomp)%PREEQ_pop)*8,kind=8)
-            mem_icomp = mem_icomp + mem
-         end if
-         if(allocated(nucleus(icomp)%PREEQ_cs))then
-            mem = real(size(nucleus(icomp)%PREEQ_cs)*8,kind=8)
-            mem_icomp = mem_icomp + mem
-         end if
-         if(allocated(nucleus(icomp)%PREEQ_part_cs))then
-            mem = real(size(nucleus(icomp)%PREEQ_part_cs)*8,kind=8)
-            mem_icomp = mem_icomp + mem
-         end if
-!---   Electric strength function data 
-         if(allocated(nucleus(icomp)%EL_mode))then
-            do lx = 1, e_l_max
-               mem = mem + 8.0d0
-               do k = 1, max_num_gsf
-                  mem = mem + 32.0d0 + 8.0d0
-                  mem = mem + real(nucleus(icomp)%EL_mode(lx)%gsf(k)%num_data,kind=8)*16.0d0
-               end do
-            end do
-         end if
-!---   Magnetic strength function data 
-         if(allocated(nucleus(icomp)%ML_mode))then
-            do lx = 1, m_l_max
-               mem = mem + 8.0d0
-               do k = 1, max_num_gsf
-                  mem = mem + 32.0d0 + 8.0d0
-                  mem = mem + real(nucleus(icomp)%ML_mode(lx)%gsf(k)%num_data,kind=8)*16.0d0
-               end do
-            end do
-         end if
-
-!-------   Size of derived type bins
-
-         mem_bins = 0.0d0
-         if(allocated(nucleus(icomp)%bins))then
-            nbin = nucleus(icomp)%nbin
-            do n = 1, nbin
-               do ip = 0, 1
-                  do j = 0, nucleus(icomp)%j_max
-                     do nn = 1, nucleus(icomp)%num_decay + 1      !  HF_prob element
-                          mem_bins = mem_bins + 8.0d0
-                     end do
-                     do nn = 1, nucleus(icomp)%num_decay          !  nuke_decay element
-                        mem_bins = mem_bins +                         &
-                          real(nucleus(icomp)%bins(j,ip,n)%nuke_decay(nn)%num_decay,kind=8)*(8.0d0+4.0d0)
-                     end do
-                  end do
-               end do
-            end do
-         end if
-         mem_icomp = mem_icomp + mem_bins
-
-         mem_tot = mem_tot + mem_icomp
-         if(print_me)write(6,'(''Memory used for compound nucleus#'',i3,'' = '',f14.2,'' kbytes'')')icomp,mem_icomp/1.0d3
-      end do
-      if(print_me)write(6,'(''Memory used = '',f14.3,'' kbytes'')')mem_tot/1.0d3
-
-   return
-end subroutine memory_used
 !
 !*****************************************************************************80
 !
@@ -5670,3 +5591,58 @@ integer function count_words(input)
    count_words = numw
    return
 end function count_words
+!
+!*****************************************************************************80
+!
+!  Discussion:
+!
+!    This Subroutine positions an open file to the end-of-file so that
+!    subsequent writing will be appended
+!
+!   Dependencies:
+!
+!     Modules:
+!
+!        None
+!
+!     Subroutines:
+!
+!        none
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        None
+!
+!  Licensing:
+!
+!    SPDX-License-Identifier: MIT 
+!
+!  Date:
+!
+!    11 May 2021
+!
+!  Author:
+!
+!      Erich Ormand, LLNL
+!
+!*****************************************************************************80
+!
+subroutine get_to_eof(iunit)
+   implicit none
+!-------------------------------------------------------------------------
+   integer(kind=4), intent(in) :: iunit
+!-------------------------------------------------------------------------
+   integer(kind=4) :: read_error
+   read_error = 0
+   do while(read_error == 0)
+      read(iunit,*,iostat = read_error)
+   end do
+   backspace(iunit)
+   return
+end subroutine get_to_eof
+
+
