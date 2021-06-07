@@ -407,6 +407,7 @@ program YAHFC_MASTER
       integer :: cnt, cnt_r, cnt_m
 
       real(kind=8) :: ratio
+
 !-----------------------------------------------------
 !---------    Directory structure of Library outputs
       character(len=132) :: lib_dir
@@ -536,6 +537,7 @@ program YAHFC_MASTER
       pop_calc_prob = .true.
       pop_calc = .false.
       file_energy_index = .false.
+      refresh_library_directories = .true.
 
       num_bad_samp_e = 0
       num_bad_spread_e = 0
@@ -1807,8 +1809,7 @@ program YAHFC_MASTER
          E_in = projectile%energy(in)
 
          do i = 1, num_channels
-            num_s = 1
-            do j = -1, num_s
+            do j = -1, Exit_Channel(i)%num_cs
                do k = 0, 6
                   Exit_Channel(i)%part_mult(k,j) = 0.0d0
                   Exit_Channel(i)%Spect(k,j)%E_spec(0:num_e) = 0.0d0
@@ -2984,9 +2985,6 @@ program YAHFC_MASTER
                    write(6,*)'Energy conservation issue detected with extra angles and smear in energy'
                    write(6,*)'iproc = ',iproc
                    write(6,*)'Info written to ',out_file(1:ifile)//'.bad_spread_energy'
-!                   write(400,*)'Energy conservation issue',ex_tot,sum_e,abs(ex_tot-sum_e)
-!                   write(400,*)'Processor # ',iproc
-!                   write(400,*)'Incident energy = ', e_in, 'Sample # ',nsamp
                    num_bad_spread_e = num_bad_spread_e + 1
                    do nn = 1, num_part
                       k = nint(part_data(2,nn))
@@ -2998,7 +2996,6 @@ program YAHFC_MASTER
                       nbin_i = nint(part_data(24,nn))
                       icomp_f = nint(part_data(1,nn))
                       nbin_f = nint(part_data(5,nn))
-!                      write(400,*)i,k, idb, e_rel, theta, phi, icomp_i, nbin_i,icomp_f,nbin_f
                       write(6,*)i,k, idb, e_rel, theta, phi, icomp_i, nbin_i,icomp_f,nbin_f
                   end do
                end if
@@ -3136,15 +3133,14 @@ program YAHFC_MASTER
                      do nn = 1, num_part                           !  loop over particles and collect spectra
                         jstate = nint(part_data(5,nn))
                         idb = nint(part_data(6,nn))
-                        jproj = nint(part_data(2,nn))
-                        k = jproj
+                        k = nint(part_data(2,nn))
 !------    If it is a discrete state, add a bit of smear to avoid accidental collision with boundary of spectrum
 !------    bin
-                        e_shift = 0.0d0
-!                        if(idb == 1)e_shift = (2.0d0*random_64(iseed_64) - 1.0d0)*de_spec*0.5d0
-                        if(idb == 1)e_shift = (2.0d0*random_32(iseed_32) - 1.0d0)*de_spec*0.5d0
-                        icc = int((part_data(12,nn) + e_shift)/de_spec) + 1
-                        if(k >= 0 .and. icc >= 0 .and. icc <= num_e)then
+!                        e_shift = 0.0d0
+!                        if(idb == 1)e_shift = (2.0d0*random_32(iseed_32) - 1.0d0)*de_spec*0.5d0
+!                        icc = int((part_data(12,nn) + e_shift)/de_spec) + 1
+                        icc = int(part_data(12,nn)/de_spec) + 1
+                        if(k >= 0 .and. (icc >= 0 .and. icc <= num_e))then
                            Exit_Channel(ichann)%part_mult(k,ictype) =                           &
                                 Exit_Channel(ichann)%part_mult(k,ictype) + tally_weight
                            if(.not. xs_only)then
@@ -3180,7 +3176,7 @@ program YAHFC_MASTER
 !------    If it is a discrete state, add a bit of smear to avoid accidental collision with boundary of spectrum
 !------    bin
                      icc = int(part_data(12,nn)/de_spec) + 1
-                     if(k >= 0 .and. icc >= 0 .and. icc <= num_e)then
+                     if(k >= 0 .and. (icc >= 0 .and. icc <= num_e))then
                         Exit_Channel(ichann)%part_mult(k,ictype) =                              &
                              Exit_Channel(ichann)%part_mult(k,ictype) + tally_weight
                         if(.not. xs_only)then
@@ -3803,8 +3799,8 @@ program YAHFC_MASTER
                        end if
 
                        call Legendre_expand(max_jx_10+1,xvalue(0),                                  &
-                                            Exit_Channel(i)%Spect(k,n)%E_Ang_Dist(0,icc),        &
-                                            Exit_Channel(i)%Spect(k,n)%E_Ang_L_max(icc),         &
+                                            Exit_Channel(i)%Spect(k,n)%E_Ang_Dist(0,icc),           &
+                                            Exit_Channel(i)%Spect(k,n)%E_Ang_L_max(icc),            &
                                             Exit_Channel(i)%Spect(k,n)%E_Ang_L(0,icc))
 
 !----------------------------------------------------------------------------------------------------
@@ -3824,9 +3820,11 @@ program YAHFC_MASTER
               if(fission)n_min = 0
               do n = n_min, Exit_Channel(i)%num_cs
                  do k = 0, 6                                  !   Loop over particle types
-                    if(Exit_Channel(i)%Channel_cs(n,in) >= 1.0d-8)then
-                       Exit_Channel(i)%part_mult(k,n) =                                         &
+                    if(Exit_Channel(i)%Channel_cs(n,in) >= 1.0d-10)then
+                       Exit_Channel(i)%part_mult(k,n) =                                            &
                           Exit_Channel(i)%part_mult(k,n)/Exit_Channel(i)%Channel_cs(n,in)
+                    else
+                       Exit_Channel(i)%part_mult(k,n) = 0.0d0
                     end if
                  end do
               end do

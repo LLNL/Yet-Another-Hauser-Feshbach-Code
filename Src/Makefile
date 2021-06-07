@@ -16,7 +16,7 @@ DEPS = modules.o
 HAUSER_OBJECTS =                 \
 modules.o                        \
 YAHFC-Master.o                   \
-fail_safe_check.o               \
+fail_safe_check.o                \
 Setup_Energy_bins.o              \
 parse-command.o                  \
 get_binding_energy.o             \

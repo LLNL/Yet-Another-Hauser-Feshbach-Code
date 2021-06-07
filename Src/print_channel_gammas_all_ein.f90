@@ -101,8 +101,9 @@ subroutine print_channel_gammas_all_ein(itarget, istate, ilab, file_lab, ilib_di
       ilast = index(Exit_Channel(i)%Channel_Label,' ')-1
       directory(idir+1:idir+ilast) = Exit_Channel(i)%Channel_Label(1:ilast)
       idir = idir + ilast
-      idir = idir + 1
-      directory(idir:idir) = '/'
+      directory(idir+1:idir+8) = '/gammas/'
+      idir = idir + 8
+
       Q = Exit_Channel(i)%Q_value
       Q = -Q
       ifile = 8

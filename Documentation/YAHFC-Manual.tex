@@ -466,7 +466,7 @@ Optical model calculations including direct processes to rotational and/or vibra
 \hline
 \end{tabular}
 \end{center}
-The number $N_{\rm CC}$ in the third row defines the number of coupled channels states utilized (in this case, $N_{\rm CC} = 7$). For the discrete coupled-channels states, the index is the state number in the discrete state ${\texttt{RIPL-3}}$ file, but need not be as it is not used to match these states with discrete states used in the calculation. This is followed by the energy and $J^\pi$ value. These states are then matched to discrete states in the ${\texttt{RIPL-3}}$ files based on their $J^\pi$ values and a match in the excitation energy to within 1 keV. It is required that each of the coupled-channels states listed be included within the calculation and have a complete decay path to the ground state or a known isomer. This can be accomplished if all the coupled-channel states lie below $E_{cut}$ or by using the command ``${\texttt{all\_discrete\_states y}}$''.
+The deformation parameters for the target nucleus can be listed as shown, which will then be used throughout the calculation. If $\beta_2 = -1.0$ in this file, the default deformation parameters provided in the file ${\texttt{\$YAHFC\_DATA/mass-frdm95.txt}}$ are used instead. The number $N_{\rm CC}$ in the third row defines the number of coupled channels states utilized (in this case, $N_{\rm CC} = 7$). For the discrete coupled channels states, the index is the state number in the discrete state ${\texttt{RIPL-3}}$ file, but need not be as it is not used to match these states with discrete states used in the calculation. This is followed by the energy and $J^\pi$ value. These states are then matched to discrete states in the ${\texttt{RIPL-3}}$ files based on their $J^\pi$ values and a match in the excitation energy to within 1 keV. It is required that each of the coupled-channels states listed be included within the calculation and have a complete decay path to the ground state or a known isomer. This can be accomplished if all the coupled-channel states lie below $E_{cut}$ or by using the command ``${\texttt{all\_discrete\_states y}}$''.
 
 Similar to coupled-channels, it is also possible to compute direct processes via the distorted wave Born approximation (DWBA) to either known discrete states or to a state represented by the continuous energy bins. These states are also listed in the file ${\texttt{Coupled-Channels.txt}}$ and are controlled via the command ``${\texttt{do\_dwba y}}$''. In the example above for $^{238}$U, $N_{\rm DWBA} = 27$ ``states'' are listed to compute direct excitation via DWBA. They are listed with the format
 \begin{center}
@@ -690,7 +690,9 @@ ${\texttt{235U/n/np}}$\\
 ${\texttt{235U/n/pn}}$\\
 ${\texttt{235U/n/f}}$\\
 
-Useful data on the spectra following emission from pre-equilibirium emission and direct processes is printed for each incident energy in the directory ${\texttt{235U/n/Spectra}}$. In addition, with the option ``${\texttt{primary\_decay y}}$'', cross sections following primary decay are printed for each incident energy in the directory ${\texttt{235U/n/Primary-decay}}$
+Useful data on the spectra following emission from pre-equilibirium emission and direct processes is printed for each incident energy in the directory ${\texttt{235U/n/Spectra}}$. In addition, with the option ``${\texttt{primary\_decay y}}$'', cross sections following primary decay are printed for each incident energy in the directory ${\texttt{235U/n/Primary-decay}}$.
+
+By default, these directories are deleted at the beginning of each run in order to remove results from prior calculations, the system command ${\texttt{rm -r}}$ is performed. This is done to avoid confusion where files from a previous calculation might be present that weren't overwritten because the user changed options or minimum and maximum incident energies. This can be overridden with the command ${\texttt{clean\_library n}}$ (the default response is ${\texttt{y}}$). 
 
 A python script, ${\texttt{parseYahfc.py}}$ is also provided that translates these data files, which are convenient for plotting, etc., into a nuclear data library based on the generalized nuclear data structure (GNDS). This parser requires the installation of the FUDGE (v4.3) library system, which is expected to be released when the GNDS-2.0 standard is adopted. It will be available at  https://github.com/LLNL/fudge.
 
@@ -1182,15 +1184,19 @@ ${\texttt{explicit\_channels}}$ & ${\texttt{Answer}}$ & ${\texttt{Answer}}$ = ${
 & & ${\texttt{Answer}}$ = ${\texttt{n/f/0}}$: Channels are identified only by the number of particles emitted; nnp, npn, and pnn are treated as 2np.\\
 \hline
 ${\texttt{primary\_decay}}$ & ${\texttt{Answer}}$ & ${\texttt{Answer}}$ = ${\texttt{y/t/1}}$: Cross sections for the first step are printed in the ${\texttt{Primary-decay}}$ directory as a function of incident energy. \\
-  &  &  ${\texttt{Answer}}$ = ${\texttt{y/t/1}}$: Cross sections for the first step are {\bf not} printed in the ${\texttt{Primary-decay}}$ directory as a function of incident energy ({\bf Default}). \\
+  &  &  ${\texttt{Answer}}$ = ${\texttt{n/f/0}}$: Cross sections for the first step are {\bf not} printed in the ${\texttt{Primary-decay}}$ directory as a function of incident energy ({\bf Default}). \\
 \hline
 ${\texttt{event\_generator}}$ & ${\texttt{Answer}}_1$~~~${\texttt{Answer}}_2$ & ${\texttt{Answer}}_1$ = ${\texttt{y/t/1}}$: Prints events only, no library files. \\
    &    & ${\texttt{Answer}}_1$ = ${\texttt{n/f/0}}$: Normal run, prints libraries, and events if requested ({\bf Default}). \\
    &    & ${\texttt{Answer}}_2$ = ${\texttt{y/t/1}}$: Event files are labeled by the index of the energy in the calculation; 1-$N_e$. \\
-   &    & ${\texttt{Answer}}_2$(optional) = ${\texttt{n/f/0}}$: Event files are labeled by the energy in the calculation; incident projectile energy or population energy ({\bf Default}). \\\hline
+   &    & ${\texttt{Answer}}_2$(optional) = ${\texttt{n/f/0}}$: Event files are labeled by the energy in the calculation; incident projectile energy or population energy ({\bf Default}). \\
+\hline
 ${\texttt{cs\_units}}$ & ${\texttt{Answer}}$ & Specifies the units used for cross sections in the libraries.\\
 & & ${\texttt{Answer}}$ = ${\texttt{b}}$: Cross sections are listed in barns.\\
 & & ${\texttt{Answer}}$ = ${\texttt{mb}}$: Cross sections are listed in millibarns.\\
+\hline
+${\texttt{clean\_library}}$ & ${\texttt{Answer}}$ & ${\texttt{Answer}}$ = ${\texttt{y/t/1}}$: The library directories, i.e., deleted are refreshed with this run ({\bf Default}). \\
+  &  &  ${\texttt{Answer}}$ = ${\texttt{n/f/0}}$: library directories are not refreshed with this run . \\
 \hline
 ${\texttt{end}}$ & & Specifies the end of all input commands.\\
 \hline

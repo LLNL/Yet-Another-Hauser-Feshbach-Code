@@ -102,6 +102,7 @@ subroutine print_channels(in, itarget, istate, ilab, file_lab, ilib_dir, lib_dir
    integer(kind=4), allocatable, dimension (:) :: ilast_chann
    real(kind=8), allocatable, dimension (:) :: Channel_prob
    character(len=128) :: fstring, temp_string
+   real(kind=8) :: part_mult(0:6)
 
    real(kind=8), allocatable :: Temp_Ang_Dist(:,:,:)
    real(kind=8), allocatable :: Ang_Dis(:,:)
@@ -226,6 +227,7 @@ subroutine print_channels(in, itarget, istate, ilab, file_lab, ilib_dir, lib_dir
          open(unit=100, file = directory(1:idir)//outfile(1:ifile)//'.dat',status = 'unknown')
 
          if(in == 1)then
+!   write(100,*)i,n
             file_lab2(1:20) = ' '
             ilab2 = ilab
             file_lab2(1:ilab2) = file_lab(1:ilab)
@@ -920,9 +922,123 @@ subroutine print_channels(in, itarget, istate, ilab, file_lab, ilib_dir, lib_dir
 
          close(unit=100)
       end if
+
    end do
+
+   do i = 1, num_channels
+      inuc = Exit_Channel(i)%Final_nucleus
+      directory(1:ilib_dir) = lib_dir(1:ilib_dir)
+      idir = ilib_dir + 1
+      directory(idir:idir) = '/'
+      ilast = index(Exit_Channel(i)%Channel_Label,' ')-1
+      directory(idir+1:idir+ilast) = Exit_Channel(i)%Channel_Label(1:ilast)
+      idir = idir + ilast
+      idir = idir + 1
+      directory(idir:idir) = '/'
+
+!      j = Exit_Channel(i)%StateLabel(1)
+      Q = Exit_Channel(i)%Q_value - nucleus(inuc)%state(1)%energy +                             &
+          nucleus(itarget)%state(istate)%energy
+
+      ifile = 8
+      outfile(1:ifile) = 'Channel_'
+      outfile(ifile+1:ifile+ilast) = Exit_Channel(i)%Channel_Label(1:ilast)
+      ifile = ifile + ilast
+      outfile(ifile+1:ifile+7) = '_cs_Tot'
+      ifile = ifile + 7
+      open(unit=100, file = directory(1:idir)//outfile(1:ifile)//'.dat',status = 'unknown')
+
+      if(in == 1)then
+         file_lab2(1:20) = ' '
+         ilab2 = ilab
+         file_lab2(1:ilab2) = file_lab(1:ilab)
+         ilab2 = ilab2 + 1
+         ilast = index(Exit_Channel(i)%Channel_Label,' ') - 1
+         file_lab2(ilab2:ilab2+ilast) = Exit_Channel(i)%Channel_Label(1:ilast)
+         ilab2 = ilab2 + ilast
+         file_lab2(ilab2:ilab2) = ')'
+         write(100,'(''# '',a20)')file_lab2
+         ipi = nint((nucleus(itarget)%state(istate)%parity + 1)/2.0d0)
+         write(100,'(''# Target state = '',i3,3x,''J = '',f4.1,a1,3x,''Ex = '',1pe15.7,'' MeV'')') &
+            istate-1,nucleus(itarget)%state(istate)%spin, ch_par(ipi),                             &
+               nucleus(itarget)%state(istate)%energy
+         write(100,'(''# To level #'',i3)')l
+!-----------------------------------
+         write(100,'(''#'')')
+         write(100,'(''# Mass amu = '',1pe23.16,'' MeV'')')mass_u
+         write(100,'(''# Mass of target = '',1pe23.16,'' amu'')')nucleus(itarget)%mass/mass_u
+         if(iproj > 0 .and. iproj < 7)then
+            write(100,'(''# Mass of projectile = '',1pe23.16,'' amu'')')particle(iproj)%mass/mass_u
+         else
+            write(100,'(''# Population decay, no projectile'')')
+         end if
+         inuc = Exit_Channel(i)%Final_nucleus
+         write(100,'(''# Mass of residual = '',1pe23.16,'' amu'')')nucleus(inuc)%mass/mass_u
+         write(100,'(''# Total Xs in this channel '')')
+         write(100,'(''#'')')
+         if(Exit_channel(i)%num_particles > 0)then
+            if(explicit_channels)then
+               write(100,'(''# Mass of emitted particles '')')
+               do m = 1, Exit_channel(i)%num_particles
+                  k = Exit_channel(i)%decay_particles(m)
+                  write(100,'(''# Particle # '',i5,'' = '',a1)')m,particle(k)%label
+                  write(100,'(''# Mass particle # '',i5,'' = '',1pe23.16,'' amu'')')               &
+                     m, particle(k)%mass/mass_u
+               end do
+            else
+               write(100,'(''# Mass of emitted particles '')')
+               m = 0
+               do k = 1, 6
+                  do nn = 1, Exit_channel(i)%num_part(k)
+                     m = m + 1
+                     write(100,'(''# Particle # '',i5,'' = '',a1)')m,particle(k)%label
+                     write(100,'(''# Mass particle # '',i5,'' = '',1pe23.16,'' amu'')')            &
+                        m,particle(k)%mass/mass_u
+                  end do
+               end do
+            end if
+         end if
+         write(100,'(''#'')')
+         write(100,'(''# Q-value = '',f15.8,'' MeV'')')Q
+         write(100,'(''#'')')
+         write(100,'(''# Cross section data '')')
+         if(pop_calc .and. pop_calc_prob)then
+            write(100,2901)(particle(k)%label, k = 0, 6)
+            else
+               write(100,2902)cs_units,(particle(k)%label, k = 0, 6)
+         end if
+ 2901    format('#         E_in               Prob',5x,7(8x,'Mult(',a1,')',4x))
+ 2902    format('#         E_in              xs(',a2,')',5x,7(8x,'Mult(',a1,')',4x))
+         write(100,'(''#'',9(''   ----------------''))')
+      else
+         call get_to_eof(100)
+      end if
+
+      e_in = projectile%energy(in)
+      cs = 0.0d0
+      part_mult(0:6) = 0.0d0
+      do n = 1, Exit_Channel(i)%num_cs
+         cs = cs + Exit_Channel(i)%Channel_cs(n,in)
+         do k = 0, 6
+            part_mult(k) = part_mult(k) + Exit_Channel(i)%part_mult(k,n)*Exit_Channel(i)%Channel_cs(n,in)
+         end do
+      end do
+      if(cs > 1.0d-10)then
+         do k = 0,6
+            part_mult(k) = part_mult(k)/cs
+         end do
+      end if
+      cs = cs*reaction_cs(in)*cs_scale
+      write(100,'(1x,9(3x,1pe16.7))')e_in, cs, (part_mult(k),k=0,6)
+
+      close(unit=100)
+
+   end do
+
    if(allocated(Temp_Ang_Dist))deallocate(Temp_Ang_Dist)
    if(allocated(Ang_dis))deallocate(Ang_dis)
+
+
 
    return
 end subroutine print_channels

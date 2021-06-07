@@ -771,4 +771,20 @@ Version 3.55
     incident energy. The channel data is printed within the the incident
     energy do loop. This significantly reduces the memory footprint.
 
+Version 3.56
+1.  Added command to control whether the library directory is deleted when
+    the program sets up the library directory. Default is to delete and remove
+    previous library data so as to not potentially have results from a 
+    previous calculaiton linger in the directories and cause confusion.
+2.  Fixed a bug introduced in V3.55 that affected the particle multiplicities 
+    for channels where an isomer is present. Namely, the directory will
+    have multiple *_L00N.dat files. The multiplicity for the higher channels
+    was not being properly reset to 0 in the incident energy loop.
+3.  Added a "total" channel cross section file for each channel. This sums
+    the cross section to each "isomer".
+4.  Created a new directory for the gamma cross section files when using
+    "track_gammas y". This is to reduce some of the clutter in the channel
+    directories as there is a file for each incident energy.
+ 
+
 

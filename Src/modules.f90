@@ -32,7 +32,7 @@ module options
 !
    use variable_kinds
    character(len=132) :: version
-   parameter (version = 'MC-3.55')
+   parameter (version = 'MC-3.56')
    integer(kind=int_64) :: iseed_64
    integer(kind=int_32) :: iseed_32
    integer(kind=4) :: PREEQ_Model
@@ -57,6 +57,7 @@ module options
    logical :: energy_input
    logical :: pop_calc_prob
    logical :: file_energy_index
+   logical :: refresh_library_directories
 !-------------------------------------------
    integer(kind=4) :: num_comp
    integer(kind=4) :: output_mode
