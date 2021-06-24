@@ -152,7 +152,9 @@ program YAHFC_MASTER
 !---------------------------------------------------------------------
       implicit none
 !---------------------------------------------------------------------
+#if(USE_MPI==1)
       include 'mpif.h'
+#endif
 !---------------------------------------------------------------------
       character(len=1) quote
       character(len=80) bigblank        ! 80 blank character
@@ -170,14 +172,15 @@ program YAHFC_MASTER
 !-----------------------------------------------------------------------
       integer(kind=4) :: num_e
       real(kind=8) :: ee_max
-
+#if(USE_MPI==1)
       integer(kind=4) :: num_data
-
+      real(kind=8) :: e_shift
+#endif
 !-----------------------------------------------------------------------
 !----------   Temporary storage for state data if we need to remove discrete states
 
       real(kind=8) :: E_in, e_rel
-      real(kind=8) :: E_f, Ex_f, e_shift
+      real(kind=8) :: E_f, Ex_f
       real(kind=8) :: rel_factor
       integer(kind=4) :: iproj, itarget
       integer(kind=4) :: jproj
@@ -483,12 +486,19 @@ program YAHFC_MASTER
 !----------------------------------------------------------------------+
 !------   Setup MPI world                                              +
 !----------------------------------------------------------------------+
+#if(USE_MPI==1)
    call MPI_INIT(ierr)
 
    icomm = MPI_COMM_WORLD
    call MPI_COMM_RANK(icomm, iproc, ierr)
    call MPI_COMM_SIZE(icomm, nproc, ierr)
+#else 
+   icomm = 0
+   iproc = 0
+   ierr  = 0
+   nproc = 1
 
+#endif
    ilast = index(version,' ') - 1
    if(iproc == 0)then
       write(6,'(''****************************************************************'')')
@@ -740,7 +750,9 @@ program YAHFC_MASTER
             write(6,*)'Environment variable for data is not set correctly'
             write(6,*)'Program exiting'
          end if
+#if(USE_MPI==1)
          call MPI_Abort(icomm,101,ierr)
+#endif
       end if
       KE = 0.0d0
 
@@ -845,11 +857,13 @@ program YAHFC_MASTER
 !----   NEED TO MPI_BCAST num_command here
 !-----------------------------------------------------------------------------------------
 !
+#if(USE_MPI==1)
       if(nproc > 1)then
          call MPI_Barrier(icomm, ierr)
          call MPI_BCAST(num_command, 1, MPI_INTEGER, 0, icomm, ierr)
          call MPI_BCAST(energy_input, 1, MPI_LOGICAL, 0, icomm, ierr)
       end if
+#endif
 !
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !-------   Set up buffer for input commands
@@ -971,11 +985,15 @@ program YAHFC_MASTER
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
       if(.not.target%specified)then
          if(iproc == 0)write(6,*)'Target nucleus not specified, quitting'
+#if(USE_MPI==1)
          call MPI_Abort(icomm,101,ierr)
+#endif
       end if
       if(.not.projectile%specified)then
          if(iproc == 0)write(6,*)'Projectile nucleus not specified, quitting'
+#if(USE_MPI==1)
          call MPI_Abort(icomm,101,ierr)
+#endif
       end if
       mass_proj = particle(iproj)%mass
       mass_target = nucleus(itarget)%mass + nucleus(itarget)%state(target%istate)%energy
@@ -1102,7 +1120,9 @@ program YAHFC_MASTER
                      write(6,*)'Cannot continue with this calculation'
                      write(6,*)'**************************************************'
                   end if
+#if(USE_MPI==1)
                   call MPI_Abort(icomm,101,ierr)
+#endif
                end if
             end do
             call Fission_levels(icomp)
@@ -1726,12 +1746,12 @@ program YAHFC_MASTER
       core_file = ifile
 
       if(iproc == 0)call check_directories(ntar, target_label, ilib_dir, lib_dir)
-
+#if(USE_MPI==1)
       if(nproc > 1)then
          call MPI_BCAST(ilib_dir, 1, MPI_INTEGER, 0, icomm, ierr)
          call MPI_BCAST(lib_dir, 132, MPI_CHARACTER, 0, icomm, ierr)
       end if
-
+#endif
 !----------------------------------------------------------------------------------------+
 !-----     Print data to .out file                                                       +
 !----------------------------------------------------------------------------------------+
@@ -2266,6 +2286,7 @@ program YAHFC_MASTER
          directory(idir:idir) = '/'
 
 !-----   If using MPI, then we need a different file name for each MPI process
+#if(USE_MPI==1)
          if(nproc > 1)then
             node_name(1:8) = '_node000'
             if(iproc < 10)then
@@ -2279,7 +2300,7 @@ program YAHFC_MASTER
                call MPI_Abort(icomm, 101, ierr)
             end if
          end if
-
+#endif
          if(dump_events .and. binary_event_file)then
             if(nproc == 1)then
                open(unit=88,file=                                                                   &
@@ -2721,7 +2742,9 @@ program YAHFC_MASTER
                write(6,*)'nbin_i = ', nbin_i
                write(6,*)'idb = ', idb
                write(6,'(2(1x,i10),3(1x,f10.5))')nsamp, num_part
+#if(USE_MPI==1)
                call MPI_ABort(icomm,101,ierr)
+#endif
             end if
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !-------   Option for doing only the primary decay
@@ -2734,7 +2757,9 @@ program YAHFC_MASTER
                if(Ix_i > j_max)then
                   if(iproc == 0)write(6,*)'error Ix_i > j_max , Ix_i = ',Ix_i
                   flush(6)
+#if(USE_MPI==1)
                   call MPI_ABort(icomm,101,ierr)
+#endif
                end if
                call MC_decay_bin(icomp_i, Ix_i, ip_i, nbin_i,                   &
                                  icomp_f, Ix_f, ip_f, nbin_f, idb,              &
@@ -3032,7 +3057,9 @@ program YAHFC_MASTER
             if(biased_sampling .and. dabs(tally_weight - 1.0d0) > 1.0d-6)then
                write(6,*)'Error in sampling weight for unbiased sampling with processor #',iproc
                write(6,*)nsamp,tally_weight
+#if(USE_MPI==1)
                call MPI_Abort(icomm, 101, ierr)
+#endif
             end if
 
             if(fission_decay)then       !   Fission channel
@@ -3093,7 +3120,9 @@ program YAHFC_MASTER
                   write(6,*)'Check: cc_decay = ',cc_decay
                   write(6,*)'Check: dwba_decay = ',dwba_decay
                   write(6,*)'idb = ',idb
+#if(USE_MPI==1)
                   call MPI_Abort(icomm,101,ierr)
+#endif
                end if
 
                icomp_f = nint(part_data(1,num_part))
@@ -3266,6 +3295,7 @@ program YAHFC_MASTER
 !---------    Now, if using MPI, sum over the MPI processes    -------+
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
+#if(USE_MPI==1)
       if(nproc > 1)then
          call MPI_Barrier(icomm, ierr)
          num_data = 1
@@ -3370,6 +3400,7 @@ program YAHFC_MASTER
             end if
          end do
       end if
+#endif
 !
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !---------   Finished colelcting data from the MPI processes   -------+
@@ -3947,12 +3978,13 @@ program YAHFC_MASTER
                                            ilib_dir, lib_dir, ch_par,                           &
                                            num_energies, num_e, max_jx_20, delta_jx_20,         &
                                            de_spec, cs_threshold, reaction_cs, write_error)
+#if(USE_MPI==1)
          if(nproc > 1)then
             call MPI_Barrier(icomm, ierr)
             call MPI_BCAST(write_error, 1, MPI_LOGICAL, 0, icomm, ierr)
          end if
          if(write_error)call MPI_Abort(icomm,51,ierr)
-
+#endif
 !
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !---------    Finished incident Energy Loop     ----------------------+
@@ -4032,7 +4064,9 @@ program YAHFC_MASTER
          write(6,*)'----   Finished simulating and writing events.   ---'
          write(6,*)'----   All finished.                             ---'
          write(6,*)'****************************************************'
+#if(USE_MPI==1)
          call MPI_Abort(icomm,101,ierr)
+#endif
       end if
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !---------    Reaction Label       -----------------------------------+
@@ -4061,23 +4095,28 @@ program YAHFC_MASTER
                if(iproc == 0)call print_total_cs(itarget, istate, ilab, file_lab,                &
                                                  ilib_dir,lib_dir, ch_par, num_energies,         &
                                                  reaction_cs, SE_cs, write_error)
+#if(USE_MPI==1)
                if(nproc > 1)then
                   call MPI_Barrier(icomm, ierr)
                   call MPI_BCAST(write_error, 1, MPI_LOGICAL, 0, icomm, ierr)
                end if
+               if(write_error)call MPI_Abort(icomm,51,ierr)
+#endif
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !-----   Reaction cross section
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-               if(write_error)call MPI_Abort(icomm,51,ierr)
+
                write_error = .false.
                if(iproc == 0)call print_reaction_cs(itarget, istate, ilab, file_lab,               &
                                                    ilib_dir,lib_dir, ch_par, num_energies,         &
                                                    reaction_cs, write_error)
+#if(USE_MPI==1)
                if(nproc > 1)then
                   call MPI_Barrier(icomm, ierr)
                   call MPI_BCAST(write_error, 1, MPI_LOGICAL, 0, icomm, ierr)
                end if
                if(write_error)call MPI_Abort(icomm,51,ierr)
+#endif
             end if
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !-----   Absorption cross section
@@ -4086,10 +4125,12 @@ program YAHFC_MASTER
             if(iproc == 0)call print_absorption_cs(itarget, istate, ilab, file_lab,                &
                                                    ilib_dir,lib_dir, ch_par, num_energies,         &
                                                    absorption_cs, write_error)
+#if(USE_MPI==1)
             if(nproc > 1)then
                call MPI_Barrier(icomm, ierr)
                call MPI_BCAST(write_error, 1, MPI_LOGICAL, 0, icomm, ierr)
             end if
+#endif
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !---------   Preequilibrium cross section       ----------------------+
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -4099,11 +4140,13 @@ program YAHFC_MASTER
                                                    ilib_dir, lib_dir, ch_par,                   &
                                                    num_energies, reaction_cs, preeq_css,        &
                                                    write_error)
+#if(USE_MPI==1)
             if(nproc > 1)then
                call MPI_Barrier(icomm, ierr)
                call MPI_BCAST(write_error, 1, MPI_LOGICAL, 0, icomm, ierr)
             end if
             if(write_error)call MPI_Abort(icomm,51,ierr)
+#endif
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !---------    Direct cross sections           ------------------------+
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -4112,11 +4155,13 @@ program YAHFC_MASTER
                                                ilib_dir, lib_dir, ch_par,                       &
                                                num_energies, direct_cc, direct_dwba,            &
                                                direct_tot, write_error)
+#if(USE_MPI==1)
             if(nproc > 1)then
                call MPI_Barrier(icomm, ierr)
                call MPI_BCAST(write_error, 1, MPI_LOGICAL, 0, icomm, ierr)
             end if
             if(write_error)call MPI_Abort(icomm,51,ierr)
+#endif
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !---------  Elastic channels               ---------------------------+
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -4137,11 +4182,13 @@ program YAHFC_MASTER
                                             Inelastic_cs, Inelastic_Ang_L, Inelastic_L_max,    &
                                             write_error)
             end if
+#if(USE_MPI==1)
             if(nproc > 1)then
                call MPI_Barrier(icomm, ierr)
                call MPI_BCAST(write_error, 1, MPI_LOGICAL, 0, icomm, ierr)
             end if
             if(write_error)call MPI_Abort(icomm,51,ierr)
+#endif
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !---------  Inelastic channels                 -----------------------+
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -4152,11 +4199,13 @@ program YAHFC_MASTER
                                                cs_threshold, nucleus(itarget)%num_discrete,     &
                                                absorption_cs, Inelastic_cs,Inelastic_Ang_L,     &
                                                Inelastic_L_max, write_error)
+#if(USE_MPI==1)
             if(nproc > 1)then
                call MPI_Barrier(icomm, ierr)
                call MPI_BCAST(write_error, 1, MPI_LOGICAL, 0, icomm, ierr)
             end if
             if(write_error)call MPI_Abort(icomm,51,ierr)
+#endif
          end if
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !---------  Population calculation statistics      -------------------+
@@ -4167,11 +4216,13 @@ program YAHFC_MASTER
                                                    ilib_dir, lib_dir, ch_par,                      &
                                                    num_energies, decay_mult, decay_var,            &
                                                    write_error)
+#if(USE_MPI==1)
             if(nproc > 1)then
                call MPI_Barrier(icomm, ierr)
                call MPI_BCAST(write_error, 1, MPI_LOGICAL, 0, icomm, ierr)
             end if
             if(write_error)call MPI_Abort(icomm,51,ierr)
+#endif
          end if
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !---------    Fission cross section           ------------------------+
@@ -4182,12 +4233,13 @@ program YAHFC_MASTER
                                                            num_energies, reaction_cs, fission_cs,  &
                                                            num_comp,Fiss_J_avg, Fiss_J_var,        &
                                                            Fiss_tally, write_error)
-
+#if(USE_MPI==1)
             if(nproc > 1)then
                call MPI_Barrier(icomm, ierr)
                call MPI_BCAST(write_error, 1, MPI_LOGICAL, 0, icomm, ierr)
             end if
          if(write_error)call MPI_Abort(icomm,51,ierr)
+#endif
       end if
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !---------    Discrete gammas                 ------------------------+
@@ -4202,7 +4254,9 @@ program YAHFC_MASTER
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !---------------------------------------------------------------------+
      if(iproc == 0)write(6,*)'That'//quote//'s all Folks'
-
+#if(USE_MPI==1)
+     call MPI_Finalize(ierr)
+#endif
 end program YAHFC_MASTER
 !
 !*****************************************************************************80
@@ -4388,7 +4442,9 @@ real(kind=8) function interpolate_exp(itype, x_in, num, grid, vec)
   i0 = 0
   if(x_in < grid(1))then
      if(iproc == 0)write(6,*) 'E_in smaller than input grid'
+#if(USE_MPI==1)
      call MPI_Abort(icomm,101,ierr)
+#endif
   end if
   if(x_in > grid(num))then
      if(iproc == 0)then
@@ -4396,7 +4452,9 @@ real(kind=8) function interpolate_exp(itype, x_in, num, grid, vec)
         write(6,*)x_in,grid(num)
         write(6,*)'E_in larger than input grid'
      end if
+#if(USE_MPI==1)
      call MPI_Abort(icomm,101,ierr)
+#endif
   end if
   do i = 1, num - 1                                  !  start from the bottom of the grid
      if(abs(x_in - grid(i)) <= 1.0d-6)then                  !  it is exactly on a grid point
@@ -4989,7 +5047,9 @@ subroutine set_min_particle_energy
             write(6,'(''*  e_min >= '',1pe15.7,''                 *'')')particle(iproj)%min_e
             write(6,'(''*********************************************'')')
          end if
+#if(USE_MPI==1)
          call MPI_Abort(icomm,101,ierr)
+#endif
       end if
    else
       do k = 1, 6
@@ -5269,7 +5329,9 @@ subroutine read_level_density(inuc, yrast, yrast_actual)
          if(iproc == 0)write(6,*)'Error in subroutine read_level_density'
          if(iproc == 0)write(6,*)'Level density file does not exist. Looking for ',  &
              nucleus(inuc)%lev_den_file(ipar)(1:ilast)
+#if(USE_MPI==1)
          call MPI_Abort(icomm, 101, ierr)
+#endif
       end if
       open(unit=50, file = nucleus(inuc)%lev_den_file(ipar)(1:ilast), status= 'unknown')
 !----------------------------------------------------------------------------------------+
@@ -5289,7 +5351,9 @@ subroutine read_level_density(inuc, yrast, yrast_actual)
          if(iproc == 0)write(6,*)'Not enough j-values. Maximum J >= ',     &
             real(nucleus(inuc)%j_max,kind=8) + nucleus(inuc)%jshift
          if(iproc == 0)write(6,*)'Number of entries musy be >= ',nucleus(inuc)%j_max + 1
+#if(USE_MPI==1)
          call MPI_Abort(icomm,101,ierr)
+#endif
       end if
       if(.not. allocated(e_grid))allocate(e_grid(num_read))
       if(.not. allocated(rho_temp))allocate(rho_temp(num_read,0:j_max))
@@ -5319,13 +5383,17 @@ subroutine read_level_density(inuc, yrast, yrast_actual)
          if(iproc == 0)write(6,*)'Error in subroutine read_level_density'
          if(iproc == 0)write(6,*)'Min energy in read is greater than in energy in level-density grid'
          if(iproc == 0)write(6,*)'Minimum energy must be <= ',nucleus(inuc)%e_grid(1)
+#if(USE_MPI==1)
          call MPI_Abort(icomm,101,ierr)
+#endif      
       end if
       if(e_grid(num_read) < nucleus(inuc)%e_grid(nbin))then
          if(iproc == 0)write(6,*)'Error in subroutine read_level_density'
          if(iproc == 0)write(6,*)'Max energy in read is less than max energy in level-density grid'
          if(iproc == 0)write(6,*)'Maximum energy must be >= ',nucleus(inuc)%e_grid(nbin)
+#if(USE_MPI==1)
          call MPI_Abort(icomm,101,ierr)
+#endif
       end if
 !----------------------------------------------------------------------------------------+
 !----   Fill level density array nucleus(inuc)%bins(j,ipar,n)%rho                        +

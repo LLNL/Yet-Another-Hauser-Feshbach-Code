@@ -84,7 +84,9 @@ subroutine KD_potential(part_type, iA, iZ, energy, V_pot, R_pot, a_pot, RC, D3, 
 
    if(part_type > 2)then
       if(iproc == 0)write(6,*)'Error in KDParam, use only for protons and neutrons, not k = '
+#if(USE_MPI==1)
       call MPI_Abort(icomm,301,ierr)
+#endif
    end if
    v1 = 59.30d0 - 21.0d0*diff - 2.4d-2*xA
    v2 = 7.228d-3 - 1.48d-6*xA
@@ -334,7 +336,9 @@ subroutine soukhovitskii_potential(part_type, iA, iZ, OM_option,        &
 
    if(part_type > 2)then
       write(6,*)'Error in soukhovitskii_potential: part_type > 2'
+#if(USE_MPI==1)
       call MPI_Abort(icomm,301,ierr)
+#endif
    end if
    onethird = 1.0d0/3.0d0
    iN = iA - iZ
@@ -523,7 +527,9 @@ subroutine perey_d_potential(part_type, iA, iZ, E,                   &
          write(6,*)'Error in perey_d_potential. Attempting to call for '
          write(6,*)'an incident particle other than deutrons'
       end if
+#if(USE_MPI==1)
       call MPI_Abort(icomm,301,ierr)
+#endif
    end if
 
    iN = iA - iZ
@@ -628,7 +634,9 @@ subroutine becchetti_t_potential(part_type, iA, iZ, E,           &
          write(6,*)'Error in becchetti_t_potential. Attempting to call for '
          write(6,*)'an incident particle other than tritons'
       end if
+#if(USE_MPI==1)
       call MPI_Abort(icomm,301,ierr)
+#endif
    end if
 
    iN = iA - iZ
@@ -738,7 +746,9 @@ subroutine becchetti_h_potential(part_type, iA, iZ, E,           &
          write(6,*)'Error in becchetti_h_potential. Attempting to call for '
          write(6,*)'an incident particle other than He-3'
       end if
+#if(USE_MPI==1)
       call MPI_Abort(icomm,301,ierr)
+#endif
    end if
 
    iN = iA - iZ
@@ -847,7 +857,9 @@ subroutine avrigeanu_a_potential(part_type, iA, iZ, E,                  &
          write(6,*)'Error in avrigeanu_a_potential. Attempting to call for '
          write(6,*)'an incident particle other than alphas'
       end if
+#if(USE_MPI==1)
       call MPI_Abort(icomm,301,ierr)
+#endif
    end if
 
    iN = iA - iZ

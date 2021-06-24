@@ -337,7 +337,9 @@ subroutine fix_pop_energies
 
    if(num_energies == 0)then
      if(iproc == 0)write(6,*)'num_energies = 0! Calculation will be terminated'
+#if(USE_MPI==1)
      call MPI_Abort(icomm,101,ierr)
+#endif
    end if
 
    return

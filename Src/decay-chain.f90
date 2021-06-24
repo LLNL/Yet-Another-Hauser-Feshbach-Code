@@ -276,7 +276,9 @@ subroutine set_up_decay_chain(Z_p, A_p, Z_t, A_t)
       allocate(Exit_Channel(num_Channels))
    else
       if(print_me)write(6,*)'channels already allocated'
+#if(USE_MPI==1)
       call MPI_Abort(icomm, 101, ierr)
+#endif
    end if
 
 !--------------------------------------!

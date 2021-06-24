@@ -169,9 +169,9 @@ subroutine fail_safe_check
          end do
       end if     
    end do 
-
+#if(USE_MPI==1)
    if(terminate_execution)call MPI_Abort(icomm,1,ierr)
-
+#endif
    return
 
 end subroutine fail_safe_check
