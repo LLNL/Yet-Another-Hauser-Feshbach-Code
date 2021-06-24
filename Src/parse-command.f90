@@ -282,7 +282,9 @@ subroutine parse_command(icommand, command, finish)
       if(iZ == -1 .or. iA == -1)then
          if(numw /= 3)then
             if(iproc ==0)write(6,*)'Error specifying target - not enough data'
+#if(USE_MPI==1)
             call MPI_Abort(icomm,101,ierr)
+#endif
          end if
          read(command(startw(2):stopw(2)),*)target%Z
          read(command(startw(3):stopw(3)),*)target%A
@@ -316,7 +318,9 @@ subroutine parse_command(icommand, command, finish)
          i = particle_index(command(startw(2):stopw(2)))
          if(i < 0)then
             if(iproc ==0)write(6,*)'Particle misidentified in command "projectile"'
+#if(USE_MPI==1)
             call MPI_Abort(icomm,101,ierr)
+#endif
          end if
          projectile%particle_type = i
          projectile%Z = particle(i)%Z
@@ -378,7 +382,9 @@ subroutine parse_command(icommand, command, finish)
       if(projectile%Z == -1 .and. projectile%A == 0)then
          if(numw < 4)then
             if(iproc ==0)write(6,*)'Not enough input in command projectile for population calculation'
+#if(USE_MPI==1)
             call MPI_Abort(icomm,101,ierr)
+#endif
          end if
          projectile%particle_type = -2
          projectile%Z = 0
@@ -423,7 +429,9 @@ subroutine parse_command(icommand, command, finish)
                   if(numw < 2)then
                      if(iproc == 0)then
                         write(6,*)'Error in setting energy for population calculation, not enough data for entry #',n
+#if(USE_MPI==1)
                         call MPI_Abort(icomm, 101, ierr)
+#endif
                      end if
                   end if
 !----   Error for failure to enter a normalization for any subsequent entry if
@@ -431,7 +439,9 @@ subroutine parse_command(icommand, command, finish)
                   if(numw == 2 .and. .not. pop_calc_prob)then
                      if(iproc == 0)then
                         write(6,*)'Error: No input for population normalization for entry #',n
+#if(USE_MPI==1)
                         call MPI_Abort(icomm, 101, ierr)
+#endif
                      end if
                   end if
 !----   Increment population counter and fill arrays 
@@ -457,7 +467,9 @@ subroutine parse_command(icommand, command, finish)
                   end do
                   if(xnorm < 1.0d-6)then
                      if(iproc == 0)write(6,*)'Error!! The total population is too small < 1.0d-6'
+#if(USE_MPI==1)
                      call MPI_Abort(icomm,101,ierr)
+#endif
                   end if
                   do i = 1, Pop_data(k)%num_pop
                      Pop_data(k)%bin_pop(i) = Pop_data(k)%bin_pop(i)/xnorm
@@ -467,7 +479,9 @@ subroutine parse_command(icommand, command, finish)
             close(unit=8)
          else
             if(iproc ==0)write(6,*)'Something wrong with Population option, no populations are specified'
+#if(USE_MPI==1)
             call MPI_Abort(icomm,101,ierr)
+#endif
          end if
          ex_set = .true.
          pop_calc = .true.
@@ -486,7 +500,9 @@ subroutine parse_command(icommand, command, finish)
       if(projectile%Z == -1 .and. projectile%A == -1)then
          if(numw < 4)then
             if(iproc ==0)write(6,*)'Not enough input in command projectile for LD population calculation'
+#if(USE_MPI==1)
             call MPI_Abort(icomm,101,ierr)
+#endif
          end if
          projectile%particle_type = -2
          projectile%Z = 0
@@ -517,7 +533,9 @@ subroutine parse_command(icommand, command, finish)
          return
       end if
       if(iproc == 0)write(6,*)'Error in specifying projectile'
+#if(USE_MPI==1)
       call MPI_Abort(icomm,101,ierr)
+#endif
       return
    end if
 !
@@ -534,7 +552,9 @@ subroutine parse_command(icommand, command, finish)
       k = particle_index(command(startw(2):stopw(2)))
       if(k < 1)then
           if(iproc == 0)write(6,*)'Particle missidentified in command "max_particle"'
+#if(USE_MPI==1)
           call MPI_Abort(icomm,101,ierr)
+#endif
       end if
       read(command(startw(3):stopw(3)),*)i
 !---   set max_particle(k). Note if k == iproj, max_particle >=1
@@ -1241,7 +1261,9 @@ subroutine parse_command(icommand, command, finish)
 
       if(j > 2)then
          if(iproc == 0)write(6,*)'Bad input for "lev_option"'
+#if(USE_MPI==1)
          call MPI_Abort(icomm,101,ierr)
+#endif
       end if
 
       do i = 1, num_comp
@@ -1286,7 +1308,9 @@ subroutine parse_command(icommand, command, finish)
 
       if(j > 2)then
          if(iproc == 0)write(6,*)'Bad input for "lev_nuc_option"'
+#if(USE_MPI==1)
          call MPI_Abort(icomm,101,ierr)
+#endif
       end if
       if(iA <= 20 .and. j > 1)then
          if(iproc == 0)write(6,*)'Warning, A is too small and lev_option > 1 is dangerous'
@@ -1429,7 +1453,9 @@ subroutine parse_command(icommand, command, finish)
 
       if(j > max_num_gsf)then
          if(iproc ==0)write(6,*)'Bad input for e1_param, requesting more than max components =',max_num_gsf
+#if(USE_MPI==1)
          call MPI_Abort(icomm,101,ierr)
+#endif
       end if
       do i = 1, num_comp
          if(iZ == nucleus(i)%Z .and. iA == nucleus(i)%A)then
@@ -1464,11 +1490,15 @@ subroutine parse_command(icommand, command, finish)
 
       if(j > max_num_gsf)then
          if(iproc ==0)write(6,*)'Bad input for el_param, requesting more than max components =',max_num_gsf
+#if(USE_MPI==1)
          call MPI_Abort(icomm,101,ierr)
+#endif
       end if
       if(lx > e_l_max)then
          if(iproc ==0)write(6,*)'Bad input for el_param, requesting more than max components =',max_num_gsf
+#if(USE_MPI==1)
          call MPI_Abort(icomm,101,ierr)
+#endif
       end if
       do i = 1, num_comp
          if(iZ == nucleus(i)%Z .and. iA == nucleus(i)%A)then
@@ -1506,11 +1536,15 @@ subroutine parse_command(icommand, command, finish)
 
       if(j > max_num_gsf)then
          if(iproc ==0)write(6,*)'Bad input for ml_param, requesting more than max components =',max_num_gsf
+#if(USE_MPI==1)
          call MPI_Abort(icomm,101,ierr)
+#endif
       end if
       if(lx > m_l_max)then
          if(iproc ==0)write(6,*)'Bad input for el_param, requesting more than max components =',max_num_gsf
+#if(USE_MPI==1)
          call MPI_Abort(icomm,101,ierr)
+#endif
       end if
       do i = 1, num_comp
          if(iZ == nucleus(i)%Z .and. iA == nucleus(i)%A)then
@@ -1584,7 +1618,9 @@ subroutine parse_command(icommand, command, finish)
          if(iZ == nucleus(i)%Z .and. iA == nucleus(i)%A)then
             if(j > nucleus(i)%F_n_barr)then
                if(iproc == 0)write(6,*)'too many barriers for F_Barrier',' Z = ',iZ,' A = ',iA
+#if(USE_MPI==1)
                call MPI_Abort(icomm,101,ierr)
+#endif
             end if
             nucleus(i)%F_Barrier(j)%barrier = x(1)
             nucleus(i)%F_Barrier(j)%hbw = x(2)
@@ -1616,7 +1652,9 @@ subroutine parse_command(icommand, command, finish)
          if(iZ == nucleus(i)%Z .and. iA == nucleus(i)%A)then
             if(j > nucleus(i)%F_n_barr)then
                if(iproc ==0)write(6,*)'too many barriers for F_Barrier',' Z = ',iZ,' A = ',iA
+#if(USE_MPI==1)
                call MPI_Abort(icomm,101,ierr)
+#endif
             end if
             nucleus(i)%F_Barrier(j)%barrier_damp(2) = x(2)
             nucleus(i)%F_Barrier(j)%barrier_damp(3) = x(3)
@@ -1629,7 +1667,9 @@ subroutine parse_command(icommand, command, finish)
                   write(6,*)'*  Execution will terminate                     *'
                   write(6,*)'*************************************************'
                end if
+#if(USE_MPI==1)
                call MPI_Abort(icomm,191,ierr)     
+#endif
             end if
 !-------   Make damping factor = 1.0 at Ex = 0.0
             x(1) = exp((x(2)/x(3))**2)
@@ -1667,7 +1707,9 @@ subroutine parse_command(icommand, command, finish)
             if(j > nucleus(i)%F_n_barr)then
                if(iproc == 0)write(6,*)'Error: requesting too many barriers for F_Barrier for nucleus Z = ',&
                                        iZ,' A = ',iA
+#if(USE_MPI==1)
                call MPI_Abort(icomm,101,ierr)
+#endif
             end if
             if(command(startw(nw):stopw(nw)) == 's' .or. command(startw(nw):stopw(nw)) == '1')then
                nucleus(i)%F_Barrier(j)%symmetry = 1
@@ -1720,7 +1762,9 @@ subroutine parse_command(icommand, command, finish)
          if(iZ == nucleus(i)%Z .and. iA == nucleus(i)%A)then
             if(j > nucleus(i)%F_n_barr)then
                if(iproc == 0)write(6,*)'too many barriers for F_ecut',' Z = ',iZ,' A = ',iA
+#if(USE_MPI==1)
                call MPI_Abort(icomm,101,ierr)
+#endif
             end if
             nucleus(i)%F_Barrier(j)%ecut = x(1)
             return
@@ -1750,7 +1794,9 @@ subroutine parse_command(icommand, command, finish)
          if(iZ == nucleus(i)%Z .and. iA == nucleus(i)%A)then
             if(j > nucleus(i)%F_n_barr)then
                if(iproc == 0)write(6,*)'too many barriers for f_lev_aparam',' Z = ',iZ,' A = ',iA
+#if(USE_MPI==1)
                call MPI_Abort(icomm,101,ierr)
+#endif
             end if
             nucleus(i)%F_Barrier(j)%level_param(1) = x(1)
             return
@@ -1780,7 +1826,9 @@ subroutine parse_command(icommand, command, finish)
          if(iZ == nucleus(i)%Z .and. iA == nucleus(i)%A)then
             if(j > nucleus(i)%F_n_barr)then
                if(iproc == 0)write(6,*)'too many barriers for F_lev_spin',' Z = ',iZ,' A = ',iA
+#if(USE_MPI==1)
                call MPI_Abort(icomm,101,ierr)
+#endif
             end if
             nucleus(i)%F_Barrier(j)%level_param(2) = x(1)
             return
@@ -1810,7 +1858,9 @@ subroutine parse_command(icommand, command, finish)
          if(iZ == nucleus(i)%Z .and. iA == nucleus(i)%A)then
             if(j > nucleus(i)%F_n_barr)then
                if(iproc == 0)write(6,*)'too many barriers for F_lev_delta',' Z = ',iZ,' A = ',iA
+#if(USE_MPI==1)
                call MPI_Abort(icomm,101,ierr)
+#endif
             end if
             nucleus(i)%F_Barrier(j)%level_param(3) = x(1)
             nucleus(i)%F_Barrier(j)%level_param(6) = 2.5 + 150./real(iA,kind=8) + x(1)
@@ -1842,7 +1892,9 @@ subroutine parse_command(icommand, command, finish)
          if(iZ == nucleus(i)%Z .and. iA == nucleus(i)%A)then
             if(j > nucleus(i)%F_n_barr)then
                if(iproc == 0)write(6,*)'too many barriers for F_lev_shell',' Z = ',iZ,' A = ',iA
+#if(USE_MPI==1)
                call MPI_Abort(icomm,101,ierr)
+#endif
             end if
             nucleus(i)%F_Barrier(j)%level_param(4) = x(1)
             return
@@ -1873,7 +1925,9 @@ subroutine parse_command(icommand, command, finish)
          if(iZ == nucleus(i)%Z .and. iA == nucleus(i)%A)then
             if(j > nucleus(i)%F_n_barr)then
                if(iproc == 0)write(6,*)'too many barriers for F_lev_gamma'
+#if(USE_MPI==1)
                call MPI_Abort(icomm,101,ierr)
+#endif
             end if
             nucleus(i)%F_Barrier(j)%level_param(5) = x(1)
             return
@@ -1906,7 +1960,9 @@ subroutine parse_command(icommand, command, finish)
          if(iZ == nucleus(i)%Z .and. iA == nucleus(i)%A)then
             if(j > nucleus(i)%F_n_barr)then
                if(iproc == 0)write(6,*)'Error in F_lev_rot_enhance index > # of barriers'
+#if(USE_MPI==1)
                call MPI_Abort(icomm,101,ierr)
+#endif
             end if
             do k = 1,3
                if(x(k) >= 0.0d0)nucleus(i)%F_Barrier(j)%rot_enh(k) = x(k)
@@ -1941,7 +1997,9 @@ subroutine parse_command(icommand, command, finish)
          if(iZ == nucleus(i)%Z .and. iA == nucleus(i)%A)then
             if(j > nucleus(i)%F_n_barr)then
                if(iproc == 0)write(6,*)'Error in F_vib_vib_enhance index > # of barriers'
+#if(USE_MPI==1)
                call MPI_Abort(icomm,101,ierr)
+#endif
             end if
             do k = 1, 3
                if(x(k) >= 0.0d0)nucleus(i)%F_Barrier(j)%vib_enh(k) = x(k)
@@ -1974,7 +2032,9 @@ subroutine parse_command(icommand, command, finish)
          if(iZ == nucleus(i)%Z .and. iA == nucleus(i)%A)then
             if(j > nucleus(i)%F_n_barr)then
                if(iproc == 0)write(6,*)'too many barriers for F_lev_ematch'
+#if(USE_MPI==1)
                call MPI_Abort(icomm,101,ierr)
+#endif
             end if
             if(x(1) <= nucleus(i)%F_Barrier(j)%level_param(3) + 0.25)then
                if(iproc == 0)then
@@ -2019,7 +2079,9 @@ subroutine parse_command(icommand, command, finish)
          if(iZ == nucleus(i)%Z .and. iA == nucleus(i)%A)then
             if(j > nucleus(i)%F_n_barr)then
                if(iproc == 0)write(6,*) 'WARNING -- too many barriers for F_beta_2 in nucleus ',i
+#if(USE_MPI==1)
                call MPI_Abort(icomm,101,ierr)
+#endif
             end if
             beta_2 = x(1)
             nucleus(i)%F_Barrier(j)%beta_2 = beta_2
@@ -2608,7 +2670,9 @@ subroutine parse_command(icommand, command, finish)
       k = particle_index(command(startw(2):stopw(2)))
       if(k < 1)then
          if(iproc == 0)write(6,*)'Particle misidentified in command "optical_potential"'
+#if(USE_MPI==1)
          call MPI_Abort(icomm,101,ierr)
+#endif
       end if
 !----   optical potential type is in 3rd word
       istart = startw(3)
@@ -2882,7 +2946,9 @@ subroutine parse_command(icommand, command, finish)
                   write(6,*)'Error with command "lev_den_read"'
                   write(6,*)'Reading both parities has already specified'
                end if
+#if(USE_MPI==1)
                call MPI_Abort(icomm, 101, ierr)
+#endif
             end if              
             nucleus(i)%lev_den_read = .true.
             nucleus(i)%fit_D0 = .false.
@@ -3132,7 +3198,9 @@ subroutine parse_command(icommand, command, finish)
       end if
       if(numw /= 2)then
          if(iproc == 0)write(6,*)'Wrong input for command trans_avg_l'
+#if(USE_MPI==1)
          call MPI_Abort(icomm,101,ierr)
+#endif
       end if
       trans_avg_l = .false.
 
@@ -3320,7 +3388,9 @@ subroutine parse_command(icommand, command, finish)
       end if
       if(numw < nw + 3)then
          if(iproc == 0)write(6,*)'Error, not enough input in call to "read_e_l_gsf"'
+#if(USE_MPI==1)
          call MPI_Abort(icomm,101,ierr)
+#endif
       end if
       ix = 0
 !-----   Find the multipolarity 
@@ -3330,7 +3400,9 @@ subroutine parse_command(icommand, command, finish)
             write(6,*)'Error in multipolarity in "read_e_l_gsf" L = ',lx
             write(6,*)'Maximum L value allowed for Electric transition is ',e_l_max
          end if
+#if(USE_MPI==1)
          call MPI_Abort(icomm,101,ierr)
+#endif
       end if
       gsf_type = -1
 !-----   Find out if we are reading a strength function: f/0 
@@ -3346,7 +3418,9 @@ subroutine parse_command(icommand, command, finish)
       end if
       if(gsf_type == -1)then
          if(iproc == 0)write(6,*)'Error specifying if reading strength function or cross section'
+#if(USE_MPI==1)
          call MPI_Abort(icomm,101,ierr)
+#endif
       end if
 
 !-----   The file name
@@ -3373,7 +3447,9 @@ subroutine parse_command(icommand, command, finish)
             if(n_gsf > max_num_gsf)then
                if(iproc == 0)write(6,*)'Error, attempting to read in too many strength functions, max = ', &
                max_num_gsf
+#if(USE_MPI==1)
                call MPI_Abort(icomm,101,ierr)
+#endif
             end if
             open(unit=10,file = read_file(1:ilast), status = 'old')
 !------   Find out how much data we will be reading in
@@ -3422,7 +3498,9 @@ subroutine parse_command(icommand, command, finish)
 !-----   If io_error == 1, then something went wrong with the read
             if(io_error == 1)then
                if(iproc == 0)write(6,*)'Error reading in energy and strength function data'
+#if(USE_MPI==1)
                call MPI_Abort(icomm,101,ierr)
+#endif
             end if
 !-----   Now check if the grid energy is >= maximum excitation energy
             if(nucleus(i)%EL_mode(lx)%gsf(n_gsf)%e_gsf_r(num_data) <                  &
@@ -3430,7 +3508,9 @@ subroutine parse_command(icommand, command, finish)
                write(6,*)'Error in gamma strength function read in file ',read_file(1:ilast) 
                write(6,*)'Excitation energy is less than maximum excitation energy for this nucleus'
                write(6,*)'It must be greater than or equal to ', nucleus(i)%Ex_max
+#if(USE_MPI==1)
                call MPI_Abort(icomm,101,ierr)
+#endif
             end if
             nucleus(i)%EL_mode(lx)%gsf(n_gsf)%gsf_norm = xnorm
             return
@@ -3463,7 +3543,9 @@ subroutine parse_command(icommand, command, finish)
       end if
       if(numw < nw + 3)then
          if(iproc == 0)write(6,*)'Error, not enough input in call to "read_m_l_gsf"'
+#if(USE_MPI==1)
          call MPI_Abort(icomm,101,ierr)
+#endif
       end if
       ix = 0
 !-----   Find the multipolarity 
@@ -3473,7 +3555,9 @@ subroutine parse_command(icommand, command, finish)
             write(6,*)'Error in multipolarity in "read_m_l_gsf" L = ',lx
             write(6,*)'Maximum L value allowed for Electric transition is ',m_l_max
          end if
+#if(USE_MPI==1)
          call MPI_Abort(icomm,101,ierr)
+#endif
       end if
       gsf_type = -1
 !-----   Find out if we are reading a strength function: f/0 
@@ -3489,7 +3573,9 @@ subroutine parse_command(icommand, command, finish)
       end if
       if(gsf_type == -1)then
          if(iproc == 0)write(6,*)'Error specifying if reading strength function or cross section'
+#if(USE_MPI==1)
          call MPI_Abort(icomm,101,ierr)
+#endif
       end if
 
 !-----   The file name
@@ -3516,7 +3602,9 @@ subroutine parse_command(icommand, command, finish)
             if(n_gsf > max_num_gsf)then
                if(iproc == 0)write(6,*)'Error, attempting to read in too many strength functions, max = ', &
                max_num_gsf
+#if(USE_MPI==1)
                call MPI_Abort(icomm,101,ierr)
+#endif
             end if
             open(unit=10,file = read_file(1:ilast), status = 'old')
 !------   Find out how much data we will be reading in
@@ -3564,7 +3652,9 @@ subroutine parse_command(icommand, command, finish)
 !-----   If io_error == 1, then something went wrong with the read
             if(io_error == 1)then
                if(iproc == 0)write(6,*)'Error reading in energy and strength function data'
+#if(USE_MPI==1)
                call MPI_Abort(icomm,101,ierr)
+#endif
             end if
 !-----   Now check if the grid energy is >= maximum excitation energy
             if(nucleus(i)%ML_mode(lx)%gsf(n_gsf)%e_gsf_r(num_data) <                  &
@@ -3572,7 +3662,9 @@ subroutine parse_command(icommand, command, finish)
                write(6,*)'Error in gamma strength function read in file ',read_file(1:ilast) 
                write(6,*)'Excitation energy is less than maximum excitation energy for this nucleus'
                write(6,*)'It must be greater than or equal to ', nucleus(i)%Ex_max
+#if(USE_MPI==1)
                call MPI_Abort(icomm,101,ierr)
+#endif
             end if
             nucleus(i)%ML_mode(lx)%gsf(n_gsf)%gsf_norm = xnorm
             return

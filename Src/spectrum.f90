@@ -275,7 +275,9 @@ subroutine get_spectrum(data_path, len_path, overide, symb, iz, ia, inuc)
          if(spin < 0.0d0 .or. par == 0 .or. shift > 0.0d0)state_map(i) = -1
          if(ngr > 99)then
             if(iproc == 0)write(6,*)'Too many gammas, increase ngr in spectrum to at least ',ngr
+#if(USE_MPI==1)
             call MPI_Abort(icomm,101,ierr)
+#endif
          end if
          ng = 0
          m = 1
@@ -390,7 +392,9 @@ subroutine get_spectrum(data_path, len_path, overide, symb, iz, ia, inuc)
             write(6,*)'An error occured reading the evaluated file.'
             write(6,*)'Check that the number of levels and gamma transitions is correct'
          end if
+#if(USE_MPI==1)
          call MPI_Abort(icomm,101,ierr)
+#endif
       end if
       close(unit=51)
       par = nint(nucleus(inuc)%state(1)%parity)

@@ -72,7 +72,9 @@ subroutine Moldauer_WF(icomp,                                       &
    use constants 
    use Gauss_integration
    implicit none
+#if(USE_MPI==1)
    include 'mpif.h'
+#endif
    integer(kind=4), intent(in) :: icomp
    integer(kind=4), intent(in) :: k_a, l_a, istate_a
    real(kind=8), intent(in) :: xj_a, xI_a, trans_a
@@ -140,11 +142,12 @@ subroutine Moldauer_WF(icomp,                                       &
       xxxx = xxxx + xx(ix)**2
       yyxx = yyxx + yy(ix)*xx(ix)
    end do
+#if(USE_MPI==1)
    if(nproc > 1)then
       call MPI_Allreduce(MPI_IN_PLACE, xxxx, 1, MPI_REAL8, MPI_SUM, icomm, ierr)
       call MPI_Allreduce(MPI_IN_PLACE, yyxx, 1, MPI_REAL8, MPI_SUM, icomm, ierr)
    end if
-
+#endif
    afit = abs(yyxx/xxxx)
 
 !  write(6,*)'afit ',yyxx,xxxx,afit
@@ -162,7 +165,9 @@ subroutine Moldauer_WF(icomp,                                       &
       Product = Product_p*Product_g*factor
       WF = WF + Product/exp(-afit*x)*w_glag(ix)
    end do
+#if(USE_MPI==1)
    if(nproc > 1)call MPI_Allreduce(MPI_IN_PLACE, WF, 1, MPI_REAL8, MPI_SUM, icomm, ierr)
+#endif
    WF = WF/afit
 
    return

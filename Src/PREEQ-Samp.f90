@@ -229,7 +229,9 @@ subroutine PREEQ_sample(iproj, in, itarget, istate, e_in, ex_tot,      &
            if(abs(x_Ang) > 1.0d0)then
               write(6,*)'cos(theta) wrong in PREEQ_sample'
               write(6,*)'iproc = ',iproc
+#if(USE_MPI==1)
               call MPI_Abort(icomm,101,ierr)
+#endif
            end if
            extra_angle_data(nang,num_part) = acos(x_Ang)
         else               !   make photons isotropic for now

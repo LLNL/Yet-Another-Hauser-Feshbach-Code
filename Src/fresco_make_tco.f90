@@ -472,7 +472,9 @@ subroutine fresco_make_tco(data_path, len_path, tco_file, len_tco,           &
                  write(6,*)'2. Compare energy, J^pi between RIPL-3 file and Coupled-Channels.txt'
                  write(6,*)'3. Check coupled-channels state has valid decay path, update in evaluated RIPL-3 file'
               end if
+#if(USE_MPI==1)
               call MPI_Abort(icomm, 101, ierr)
+#endif
            end if
            if(cc_energy <= nucleus(itarget)%level_param(7) .or.                     &
               (cc_energy > nucleus(itarget)%level_param(7) .and. all_discrete_states))then
@@ -547,7 +549,9 @@ subroutine fresco_make_tco(data_path, len_path, tco_file, len_tco,           &
                     xJmin = xJmin - 1.0d0
                     if(par_band == -100)then
                        if(iproc == 0)write(6,*)'par_band not set correctly'
+#if(USE_MPI==1)
                        call MPI_Abort(icomm, 101, ierr)
+#endif
                     end if
                     par_state = par_band*(-1)**KK
                     do k = 1, num_K
@@ -825,7 +829,9 @@ subroutine fresco_make_tco(data_path, len_path, tco_file, len_tco,           &
         write(fresco_name(iend-3:iend),'(i4)')ie
      else
         write(6,*)'ie > 9999 cannot run fresco'
+#if(USE_MPI==1)
         call MPI_Abort(icomm, 101, ierr)
+#endif
      end if
 
      len_fresco = iend

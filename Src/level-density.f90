@@ -1155,7 +1155,9 @@ real(kind=8) function sig2_param(E,level_param,A)
          write(6,'(''sig2'',7(1x,f10.5))')sg2cut,sig2_em,deriv,    &
             e,ecut,ematch,sig2
          if(iproc == 0)write(6,*)'sig2 < 0'
+#if(USE_MPI==1)
          call MPI_Abort(icomm,401,ierr)
+#endif
       end if
    else
       apu = aparam_u(U,aparam,shell,gamma)

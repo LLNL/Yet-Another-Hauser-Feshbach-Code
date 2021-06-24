@@ -900,7 +900,9 @@ subroutine fission_command(command, numw, startw, stopw, icomp)
       if(iZ == nucleus(icomp)%Z .and. iA == nucleus(icomp)%A)then
          if(j > nucleus(icomp)%F_n_barr)then
             if(iproc == 0)write(6,*)'too many barriers for F_Barrier',' Z = ',iZ,' A = ',iA
+#if(USE_MPI==1)
             call MPI_Abort(icomm,101,ierr)
+#endif
          end if
          nucleus(icomp)%F_Barrier(j)%barrier = x(1)
          nucleus(icomp)%F_Barrier(j)%hbw = x(2)
@@ -930,7 +932,9 @@ subroutine fission_command(command, numw, startw, stopw, icomp)
       if(iZ == nucleus(icomp)%Z .and. iA == nucleus(icomp)%A)then
          if(j > nucleus(icomp)%F_n_barr)then
             if(iproc ==0)write(6,*)'too many barriers for F_Barrier',' Z = ',iZ,' A = ',iA
+#if(USE_MPI==1)
             call MPI_Abort(icomm,101,ierr)
+#endif
          end if
          nucleus(icomp)%F_Barrier(j)%barrier_damp(2) = x(2)
          nucleus(icomp)%F_Barrier(j)%barrier_damp(3) = x(3)
@@ -943,7 +947,9 @@ subroutine fission_command(command, numw, startw, stopw, icomp)
                write(6,*)'*  Execution will terminate                     *'
                write(6,*)'*************************************************'
             end if
+#if(USE_MPI==1)
             call MPI_Abort(icomm,191,ierr)     
+#endif
          end if
 !-------   Make damping factor = 1.0 at Ex = 0.0
          x(1) = exp((x(2)/x(3))**2)
@@ -978,7 +984,9 @@ subroutine fission_command(command, numw, startw, stopw, icomp)
          if(j > nucleus(icomp)%F_n_barr)then
             if(iproc == 0)write(6,*)'Error: requesting too many barriers for F_Barrier for nucleus Z = ',&
                                     iZ,' A = ',iA
+#if(USE_MPI==1)
             call MPI_Abort(icomm,101,ierr)
+#endif
          end if
          if(command(startw(nw):stopw(nw)) == 's' .or. command(startw(nw):stopw(nw)) == '1')then
             nucleus(icomp)%F_Barrier(j)%symmetry = 1
@@ -1028,7 +1036,9 @@ subroutine fission_command(command, numw, startw, stopw, icomp)
       if(iZ == nucleus(icomp)%Z .and. iA == nucleus(icomp)%A)then
          if(j > nucleus(icomp)%F_n_barr)then
             if(iproc == 0)write(6,*)'too many barriers for F_ecut',' Z = ',iZ,' A = ',iA
+#if(USE_MPI==1)
             call MPI_Abort(icomm,101,ierr)
+#endif         
          end if
          nucleus(icomp)%F_Barrier(j)%ecut = x(1)
          return
@@ -1055,7 +1065,9 @@ subroutine fission_command(command, numw, startw, stopw, icomp)
       if(iZ == nucleus(icomp)%Z .and. iA == nucleus(icomp)%A)then
          if(j > nucleus(icomp)%F_n_barr)then
             if(iproc == 0)write(6,*)'too many barriers for f_lev_aparam',' Z = ',iZ,' A = ',iA
+#if(USE_MPI==1)
             call MPI_Abort(icomm,101,ierr)
+#endif
          end if
          nucleus(icomp)%F_Barrier(j)%level_param(1) = x(1)
          return
@@ -1082,7 +1094,9 @@ subroutine fission_command(command, numw, startw, stopw, icomp)
       if(iZ == nucleus(icomp)%Z .and. iA == nucleus(icomp)%A)then
          if(j > nucleus(icomp)%F_n_barr)then
             if(iproc == 0)write(6,*)'too many barriers for F_lev_spin',' Z = ',iZ,' A = ',iA
+#if(USE_MPI==1)
             call MPI_Abort(icomm,101,ierr)
+#endif
          end if
          nucleus(icomp)%F_Barrier(j)%level_param(2) = x(1)
          return
@@ -1109,7 +1123,9 @@ subroutine fission_command(command, numw, startw, stopw, icomp)
       if(iZ == nucleus(icomp)%Z .and. iA == nucleus(icomp)%A)then
          if(j > nucleus(icomp)%F_n_barr)then
             if(iproc == 0)write(6,*)'too many barriers for F_lev_delta',' Z = ',iZ,' A = ',iA
+#if(USE_MPI==1)
             call MPI_Abort(icomm,101,ierr)
+#endif
          end if
          nucleus(icomp)%F_Barrier(j)%level_param(3) = x(1)
          nucleus(icomp)%F_Barrier(j)%level_param(6) = 2.5 + 150./real(iA,kind=8) + x(1)
@@ -1138,7 +1154,9 @@ subroutine fission_command(command, numw, startw, stopw, icomp)
       if(iZ == nucleus(icomp)%Z .and. iA == nucleus(icomp)%A)then
          if(j > nucleus(icomp)%F_n_barr)then
             if(iproc == 0)write(6,*)'too many barriers for F_lev_shell',' Z = ',iZ,' A = ',iA
+#if(USE_MPI==1)
             call MPI_Abort(icomm,101,ierr)
+#endif
          end if
          nucleus(icomp)%F_Barrier(j)%level_param(4) = x(1)
          return
@@ -1166,7 +1184,9 @@ subroutine fission_command(command, numw, startw, stopw, icomp)
       if(iZ == nucleus(icomp)%Z .and. iA == nucleus(icomp)%A)then
          if(j > nucleus(icomp)%F_n_barr)then
             if(iproc == 0)write(6,*)'too many barriers for F_lev_gamma'
+#if(USE_MPI==1)
             call MPI_Abort(icomm,101,ierr)
+#endif
          end if
          nucleus(icomp)%F_Barrier(j)%level_param(5) = x(1)
          return
@@ -1196,7 +1216,9 @@ subroutine fission_command(command, numw, startw, stopw, icomp)
       if(iZ == nucleus(icomp)%Z .and. iA == nucleus(icomp)%A)then
          if(j > nucleus(icomp)%F_n_barr)then
             if(iproc == 0)write(6,*)'Error in F_lev_rot_enhance index > # of barriers'
+#if(USE_MPI==1)
             call MPI_Abort(icomm,101,ierr)
+#endif
          end if
          do k = 1, 3
             if(x(k) >= 0.0d0)nucleus(icomp)%F_Barrier(j)%rot_enh(k) = x(k)
@@ -1228,7 +1250,9 @@ subroutine fission_command(command, numw, startw, stopw, icomp)
       if(iZ == nucleus(icomp)%Z .and. iA == nucleus(icomp)%A)then
          if(j > nucleus(icomp)%F_n_barr)then
             if(iproc == 0)write(6,*)'Error in F_vib_vib_enhance index > # of barriers'
+#if(USE_MPI==1)
             call MPI_Abort(icomm,101,ierr)
+#endif
          end if
          do k = 1, 3
             if(x(k) >= 0.0d0)nucleus(icomp)%F_Barrier(j)%vib_enh(k) = x(k)
@@ -1258,7 +1282,9 @@ subroutine fission_command(command, numw, startw, stopw, icomp)
       if(iZ == nucleus(icomp)%Z .and. iA == nucleus(icomp)%A)then
          if(j > nucleus(icomp)%F_n_barr)then
             if(iproc == 0)write(6,*)'too many barriers for F_lev_ematch'
+#if(USE_MPI==1)
             call MPI_Abort(icomm,101,ierr)
+#endif
          end if
          if(x(1) <= nucleus(icomp)%F_Barrier(j)%level_param(3) + 0.25)then
             if(iproc == 0)then
@@ -1300,7 +1326,9 @@ subroutine fission_command(command, numw, startw, stopw, icomp)
       if(iZ == nucleus(icomp)%Z .and. iA == nucleus(icomp)%A)then
          if(j > nucleus(icomp)%F_n_barr)then
             if(iproc == 0)write(6,*) 'WARNING -- too many barriers for F_beta_2 in nucleus ',icomp
+#if(USE_MPI==1)
             call MPI_Abort(icomm,101,ierr)
+#endif
          end if
          beta_2 = x(1)
          nucleus(icomp)%F_Barrier(j)%beta_2 = beta_2

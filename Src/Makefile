@@ -1,9 +1,10 @@
 
 #F90CFLAGS   = '-Wall -fallow-argument-mismatch -fbounds-check -fcheck-array-temporaries -fcheck=all -g'
-F90CFLAGS   = '-Wall -fallow-argument-mismatch -Ofast'
+# F90CFLAGS   = '-Wall -fallow-argument-mismatch -Ofast -cpp -DUSE_MPI=0'
+F90CFLAGS   = '-Wall -Ofast -cpp -DUSE_MPI=0'
 #F90CFLAGS   = '-Wall -Wintrinsic-shadow -Wsurprising -Wextra -Ofast'
 #F90CFLAGS   = '-Wall -g -fcheck=bounds -Ofast'
-MPIF90CFLAGS = '-Ofast'
+MPIF90CFLAGS = '-Ofast -cpp -DUSE_MPI=1'
 
 LFLAGS   = 
 DPLIBS   = 
@@ -75,7 +76,7 @@ spectrum.o                       \
 remove_states.o  
 
 # this is only made when building YAHFC, not YAHFC-MPI
-MPI_OBJECTS = dummy_MPI_libs.o
+# MPI_OBJECTS = dummy_MPI_libs.o
 
 modules.o : modules.f90
 	$(COMPILER) -c $(CFLAGS) $^ -o $@
@@ -95,17 +96,18 @@ modules.o : modules.f90
 # 	cp $@.x $(YAHFC_BIN_DIR)/.
 
 YAHFC:  
-	cp mpif.h.template mpif.h
+# 	cp mpif.h.template mpif.h
 	$(MAKE) $(HAUSER_OBJECTS) $(MPI_OBJECTS) COMPILER=$(F90COMPILER) CFLAGS=$(F90CFLAGS) 
-	$(F90COMPILER) -o $@.x $(HAUSER_OBJECTS) $(MPI_OBJECTS)
-	rm mpif.h
+	$(F90COMPILER) -o $@.x $(HAUSER_OBJECTS) 
+# 	rm mpif.h
 	cp $@.x $(YAHFC_BIN_DIR)/.
 
 YAHFC-MPI:  
-	$(MAKE) $(HAUSER_OBJECTS) COMPILER=$(MPIF90COMPILER) CFLAGS=$(MPIF90CFLAGS) 
+	echo $(MPIF90CFLAGS)
+	$(MAKE) $(HAUSER_OBJECTS) COMPILER=$(MPIF90COMPILER) CFLAGS=$(MPIF90CFLAGS)
 	$(MPIF90COMPILER) -o $@.x $(HAUSER_OBJECTS) 
 	cp $@.x $(YAHFC_BIN_DIR)/.
 
 clean :
-	rm -f *.o *.mod *.x mpif.h
+	rm -f *.o *.mod *.x # mpif.h
 

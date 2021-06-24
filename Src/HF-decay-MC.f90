@@ -230,7 +230,9 @@ subroutine MC_decay_bin(icomp_i, Ix_i, ip_i, nbin_i,                &
    if(icomp_f < 1)then
       write(6,*)'icomp_f < 1 after attempting to decay'
       write(6,*)'iproc = ',iproc
+#if(USE_MPI==1)
       call MPI_Abort(icomm,201,ierr)
+#endif
    end if
 
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -270,7 +272,9 @@ subroutine MC_decay_bin(icomp_i, Ix_i, ip_i, nbin_i,                &
       write(6,*)nucleus(icomp_i)%A, Ix_i, ip_i, nbin_i
       write(6,*)idb,l,k
       write(6,*)'iproc = ',iproc
+#if(USE_MPI==1)
       call MPI_Abort(icomm,201,ierr)
+#endif
    end if
 
 
@@ -296,7 +300,9 @@ subroutine MC_decay_bin(icomp_i, Ix_i, ip_i, nbin_i,                &
          write(6,*)'num_part = ', num_part
          write(6,*)'e_f < -de/2 in MC_decay_bin (1)'
          write(6,*)'iproc = ',iproc
+#if(USE_MPI==1)
          call MPI_Abort(icomm,201,ierr)
+#endif
       end if
    else  
       e_f = ex_i - nucleus(icomp_i)%sep_e(k) -         &
@@ -316,7 +322,9 @@ subroutine MC_decay_bin(icomp_i, Ix_i, ip_i, nbin_i,                &
          write(6,*)'num_part = ', num_part
          write(6,*)'e_f < 0.0 in MC_decay_bin (1)'
          write(6,*)'iproc = ',iproc
+#if(USE_MPI==1)
          call MPI_Abort(icomm,201,ierr)
+#endif
       end if
    end if
 
@@ -324,7 +332,9 @@ subroutine MC_decay_bin(icomp_i, Ix_i, ip_i, nbin_i,                &
    if(num_part > dim_part)then
       write(6,*)'num_part > dim_part'
       write(6,*)'iproc = ',iproc
+#if(USE_MPI==1)
       call MPI_Abort(icomm,201,ierr)
+#endif
    end if
 
    part_data(1,num_part) = real(icomp_f,kind=8)
@@ -349,7 +359,9 @@ subroutine MC_decay_bin(icomp_i, Ix_i, ip_i, nbin_i,                &
          costhp = 2.0d0*random_32(iseed_32) - 1.0d0
          if(abs(costhp) > 1.0d0)then
             write(6,*)'cos(theta) wrong in MC_decay_bin'
+#if(USE_MPI==1)
             call MPI_Abort(icomm, 101, ierr)
+#endif
          end if
          extra_angle_data(nang,num_part) = acos(costhp)
       end do
@@ -521,7 +533,9 @@ subroutine MC_decay_state(icomp_i, istate_i,                       &
       if(num_part > dim_part)then
          write(6,*)'num_part > dim_part'
          write(6,*)'iproc = ',iproc
+#if(USE_MPI==1)
          call MPI_Abort(icomm,201,ierr)
+#endif
       end if
 
       part_data(1,num_part) = real(icomp_i,kind=8)
@@ -541,7 +555,9 @@ subroutine MC_decay_state(icomp_i, istate_i,                       &
             costhp = 2.0d0*random_32(iseed_32) - 1.0d0
             if(abs(costhp) > 1.0d0)then
                write(6,*) 'cos(theta) wrong in MC_decay_state'
+#if(USE_MPI==1)
                call MPI_Abort(icomm, 101, ierr)
+#endif
             end if
             extra_angle_data(nang,num_part) = acos(costhp)
          end do
@@ -614,7 +630,9 @@ subroutine MC_decay_state(icomp_i, istate_i,                       &
    if(num_part > dim_part)then
       write(6,*)'num_part > dim_part'
       write(6,*)'iproc = ',iproc
+#if(USE_MPI==1)
       call MPI_Abort(icomm,201,ierr)
+#endif
    end if
 
    part_data(1,num_part) = real(icomp_i,kind=8)
@@ -631,7 +649,9 @@ subroutine MC_decay_state(icomp_i, istate_i,                       &
    if(abs(costhp) > 1.0d0)then
       write(6,*)'cos(theta) wrong in MC_decay_state #2'
       write(6,*)'iproc = ',iproc
+#if(USE_MPI==1)
       call MPI_Abort(icomm,201,ierr)
+#endif
    end if
 
    theta_0 = acos(costhp)
@@ -1091,7 +1111,9 @@ subroutine MC_primary_decay(iproj,spin_target,                          &
    if(num_part > dim_part)then
       write(6,*)'num_part > dim_part'
       write(6,*)'iproc = ',iproc
+#if(USE_MPI==1)
       call MPI_Abort(icomm,201,ierr)
+#endif
    end if
 
    mask6 = 2**6 - 1
@@ -1114,7 +1136,9 @@ subroutine MC_primary_decay(iproj,spin_target,                          &
       if(e_f < 0.0d0)then
          write(6,*)'problem with primary decay: e_f < 0 in MC_primary_decay'
          write(6,*)'iproc = ',iproc
+#if(USE_MPI==1)
          call MPI_Abort(icomm,201,ierr)
+#endif
       end if
    else  
       e_f = ex_i - nucleus(icomp_i)%sep_e(k) -                           &
@@ -1123,7 +1147,9 @@ subroutine MC_primary_decay(iproj,spin_target,                          &
       if(e_f < 0.0d0)then
          write(6,*)'A problem arose with a decay to a discrete state with e_f < 0.0d0 in MC_primary_decay'
          write(6,*)'iproc = ',iproc
+#if(USE_MPI==1)
          call MPI_Abort(icomm,201,ierr)
+#endif
       end if
    end if
 

@@ -1450,7 +1450,9 @@ real(kind=8) function interpolate_grid(x_in, num, x, y)
         write(6,*)x_in,x(num)
         write(6,*)'E_in larger than input grid'
      end if
+#if(USE_MPI==1)
      call MPI_Abort(icomm,101,ierr)
+#endif
   end if
 
   if(abs(x_in - x(1)) <= 1.0d-6)then                  !  it is exactly on a grid point

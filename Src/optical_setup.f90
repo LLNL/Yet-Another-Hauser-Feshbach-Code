@@ -312,7 +312,9 @@ subroutine optical_setup(data_path, len_path, iproj, itarget,                  &
                end do
             else
                if(iproc == 0)write(6,*)'Error, target in ,data file does not match target in calculation'
+#if(USE_MPI==1)
                call MPI_Abort(icomm, 101, ierr)
+#endif
             end if
          end if
 !----   Now OpticalCS%max_L is tied to Ang_L_max and should always be the same
@@ -361,13 +363,17 @@ subroutine optical_setup(data_path, len_path, iproj, itarget,                  &
                write(6,*)'ERROR!!!  -  do_dwba = .true. but Optical Model calculation was performed without DWBA states'
                write(6,*)'Edit command file and set do_dwba = .false. with the command "do_dwba n"'
             end if
+#if(USE_MPI==1)
             call MPI_Abort(icomm,101,ierr)
+#endif
          else if(.not. particle(iproj)%do_dwba .and. check_dwba)then
             if(iproc == 0)then
                write(6,*)'ERROR!!!  -  do_dwba = .false. but Optical Model calculation was performed with DWBA states'
                write(6,*)'Edit command file and set do_dwba = .true. with the command "do_dwba y"'
             end if
+#if(USE_MPI==1)
             call MPI_Abort(icomm,101,ierr)
+#endif
          end if
 
 
@@ -390,7 +396,9 @@ subroutine optical_setup(data_path, len_path, iproj, itarget,                  &
                            OpticalCS%state(i)%energy
                      write(6,'(''***********************************************************************'')')
                   end if
+#if(USE_MPI==1)
                   call MPI_Abort(icomm,101,ierr)
+#endif
                end if
             end if
 
@@ -455,7 +463,9 @@ subroutine optical_setup(data_path, len_path, iproj, itarget,                  &
                if(abs(nucleus(jtarget)%state(j)%energy - OpticalCS%state(in)%energy) > 1.0d-4)match = .false.
                if(.not. match)then
                   if(iproc ==0)write(6,*)'Error in coupled channels, state = ',in,' does not match with a state in target nucleus'
+#if(USE_MPI==1)
                   call MPI_Abort(icomm,101,ierr)
+#endif
                end if
              end if
          end do
