@@ -1,7 +1,7 @@
 !
 !*******************************************************************************
 !
-subroutine parse_command(icommand, command, finish)
+subroutine parse_command(command, finish)
 !
 !*******************************************************************************
 !
@@ -35,6 +35,7 @@ subroutine parse_command(icommand, command, finish)
 !        incident_energy_setup
 !        init_barrier_data
 !        get_lev_den
+!        exit_YAHFC
 !
 !     External functions:
 !
@@ -42,7 +43,7 @@ subroutine parse_command(icommand, command, finish)
 !
 !     MPI routines
 !
-!        MPI_Abort
+!        MPI_Abort   ----   via exit_YAHFC
 !
 !  Licensing:
 !
@@ -73,7 +74,6 @@ subroutine parse_command(icommand, command, finish)
 !---------------------------------------------------------------------
    implicit none
 !---------------------------------------------------------------------
-   integer(kind=4), intent(inout) :: icommand
    character(len=132), intent(inout) :: command
 !---------------------------------------------------------------------
    integer(kind=4) :: numw
@@ -160,7 +160,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'fission')then
-      icommand = icommand + 1
+
       if(numw < 2)then
 !         write(6,*)'Error in input for option "fission"'
          call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
@@ -184,7 +184,7 @@ subroutine parse_command(icommand, command, finish)
 !
 
    if(command(startw(1):stopw(1)) == 'event_generator')then
-      icommand = icommand + 1
+ 
       if(numw < 2)then
          call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
          return
@@ -231,7 +231,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'use_unequal_bins')then
-      icommand = icommand + 1
+ 
       if(numw /= 2)then
          call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
          return
@@ -253,7 +253,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'xs_only')then
-      icommand = icommand + 1
+ 
       if(numw /= 2)then
          call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
          return
@@ -275,16 +275,14 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'target')then
-      icommand = icommand + 1
+ 
 
       nchar = stopw(2) - startw(2) + 1
       call find_ZA(nchar,command(startw(2):stopw(2)),iZ,iA)
       if(iZ == -1 .or. iA == -1)then
          if(numw /= 3)then
             if(iproc ==0)write(6,*)'Error specifying target - not enough data'
-#if(USE_MPI==1)
-            call MPI_Abort(icomm,101,ierr)
-#endif
+            call exit_YAHFC(101)
          end if
          read(command(startw(2):stopw(2)),*)target%Z
          read(command(startw(3):stopw(3)),*)target%A
@@ -300,7 +298,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'target_state')then
-      icommand = icommand + 1
+ 
       if(numw < 2)then
          call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
          return
@@ -313,20 +311,19 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'projectile')then
-      icommand = icommand + 1
+ 
       if(numw == 2)then
          i = particle_index(command(startw(2):stopw(2)))
          if(i < 0)then
             if(iproc ==0)write(6,*)'Particle misidentified in command "projectile"'
-#if(USE_MPI==1)
-            call MPI_Abort(icomm,101,ierr)
-#endif
+            call exit_YAHFC(101)
          end if
          projectile%particle_type = i
          projectile%Z = particle(i)%Z
          projectile%A = particle(i)%A
          projectile%specified = .true.
-         particle(i)%do_dwba = .false.
+         particle(i)%do_dwba = do_dwba
+         if(i == 0)particle%do_dwba = .false.
 !-----    Set values for pree-equilibrium model for incident neutrons and protons
          if(i == 1)then
             Preeq_V = 38.0d0
@@ -356,7 +353,7 @@ subroutine parse_command(icommand, command, finish)
             projectile%A == particle(i)%A)then
               projectile%particle_type = i
               projectile%specified = .true.
-              particle(i)%do_dwba = .false.
+              particle(i)%do_dwba = do_dwba
 !-----    Set values for pree-equilibrium model for incident neutrons and protons
               if(i == 1)then
                  Preeq_V = 38.0d0
@@ -382,10 +379,9 @@ subroutine parse_command(icommand, command, finish)
       if(projectile%Z == -1 .and. projectile%A == 0)then
          if(numw < 4)then
             if(iproc ==0)write(6,*)'Not enough input in command projectile for population calculation'
-#if(USE_MPI==1)
-            call MPI_Abort(icomm,101,ierr)
-#endif
+            call exit_YAHFC(101)
          end if
+         do_dwba = .false.
          projectile%particle_type = -2
          projectile%Z = 0
          projectile%A = 0
@@ -429,9 +425,7 @@ subroutine parse_command(icommand, command, finish)
                   if(numw < 2)then
                      if(iproc == 0)then
                         write(6,*)'Error in setting energy for population calculation, not enough data for entry #',n
-#if(USE_MPI==1)
-                        call MPI_Abort(icomm, 101, ierr)
-#endif
+                        call exit_YAHFC(101)
                      end if
                   end if
 !----   Error for failure to enter a normalization for any subsequent entry if
@@ -439,9 +433,7 @@ subroutine parse_command(icommand, command, finish)
                   if(numw == 2 .and. .not. pop_calc_prob)then
                      if(iproc == 0)then
                         write(6,*)'Error: No input for population normalization for entry #',n
-#if(USE_MPI==1)
-                        call MPI_Abort(icomm, 101, ierr)
-#endif
+                        call exit_YAHFC(101)
                      end if
                   end if
 !----   Increment population counter and fill arrays 
@@ -467,9 +459,7 @@ subroutine parse_command(icommand, command, finish)
                   end do
                   if(xnorm < 1.0d-6)then
                      if(iproc == 0)write(6,*)'Error!! The total population is too small < 1.0d-6'
-#if(USE_MPI==1)
-                     call MPI_Abort(icomm,101,ierr)
-#endif
+                     call exit_YAHFC(101)
                   end if
                   do i = 1, Pop_data(k)%num_pop
                      Pop_data(k)%bin_pop(i) = Pop_data(k)%bin_pop(i)/xnorm
@@ -479,9 +469,7 @@ subroutine parse_command(icommand, command, finish)
             close(unit=8)
          else
             if(iproc ==0)write(6,*)'Something wrong with Population option, no populations are specified'
-#if(USE_MPI==1)
-            call MPI_Abort(icomm,101,ierr)
-#endif
+            call exit_YAHFC(101)
          end if
          ex_set = .true.
          pop_calc = .true.
@@ -500,9 +488,7 @@ subroutine parse_command(icommand, command, finish)
       if(projectile%Z == -1 .and. projectile%A == -1)then
          if(numw < 4)then
             if(iproc ==0)write(6,*)'Not enough input in command projectile for LD population calculation'
-#if(USE_MPI==1)
-            call MPI_Abort(icomm,101,ierr)
-#endif
+            call exit_YAHFC(101)
          end if
          projectile%particle_type = -2
          projectile%Z = 0
@@ -533,9 +519,7 @@ subroutine parse_command(icommand, command, finish)
          return
       end if
       if(iproc == 0)write(6,*)'Error in specifying projectile'
-#if(USE_MPI==1)
-      call MPI_Abort(icomm,101,ierr)
-#endif
+      call exit_YAHFC(101)
       return
    end if
 !
@@ -543,7 +527,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'max_particle')then
-      icommand = icommand + 1
+ 
       if(numw < 3)then
          call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
          return
@@ -552,9 +536,7 @@ subroutine parse_command(icommand, command, finish)
       k = particle_index(command(startw(2):stopw(2)))
       if(k < 1)then
           if(iproc == 0)write(6,*)'Particle missidentified in command "max_particle"'
-#if(USE_MPI==1)
-          call MPI_Abort(icomm,101,ierr)
-#endif
+          call exit_YAHFC(101)
       end if
       read(command(startw(3):stopw(3)),*)i
 !---   set max_particle(k). Note if k == iproj, max_particle >=1
@@ -590,7 +572,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'proj_e_file' .and. .not. ex_set)then
-      icommand=icommand+1
+
       if(projectile%particle_type == -1)then
          call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
          return
@@ -642,7 +624,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'proj_eminmax' .and. .not. ex_set)then
-      icommand = icommand + 1
+ 
       if(projectile%particle_type == -1)then
          call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
          return
@@ -672,7 +654,7 @@ subroutine parse_command(icommand, command, finish)
       allocate(projectile%energy(1:num))
       projectile%num_e = num
       do i = 1, num
-         projectile%energy(i)=projectile%e_min + dfloat(i-1)*projectile%e_step
+         projectile%energy(i)=projectile%e_min + real(i-1,kind=8)*projectile%e_step
       end do
       projectile%e_max = projectile%energy(num)
       ex_set = .true.
@@ -683,7 +665,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'cs_scale')then
-      icommand = icommand + 1
+ 
       if(iproc == 0)then
          write(6,*)'*******************************************************'
          write(6,*)'*  WARNING!! WARNING!! WARNING!! WARNING!! WARNING!!  *' 
@@ -700,7 +682,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'cs_units')then
-      icommand = icommand + 1
+ 
       if(numw < 2)then
          call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
          return
@@ -727,10 +709,10 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'lev_aparam')then
-      icommand = icommand + 1
+ 
 
       ndat = 1
-      call extract_ZA_data(command, numw, startw, stopw, ndat,         &
+      call extract_ZA_data(command, numw, startw, stopw, ndat,                    &
                            iZ, iA, X, nw, read_error)
       if(read_error)then
          call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
@@ -741,7 +723,8 @@ subroutine parse_command(icommand, command, finish)
          if(iZ == nucleus(i)%Z .and. iA == nucleus(i)%A)then
             nucleus(i)%level_param(1)=x(1)
             nucleus(i)%fit_aparam = .false.
-            if(nucleus(i)%fission .and..not. nucleus(i)%fission_read)then
+            if(nucleus(i)%fission .and. .not. nucleus(i)%reading_param .and.      &
+               .not. nucleus(i)%param_read)then
                do j = 1, nucleus(i)%F_n_barr
                   nucleus(i)%F_Barrier(j)%level_param(1) = nucleus(i)%level_param(1)
                end do
@@ -756,7 +739,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'lev_d0')then
-      icommand = icommand + 1
+ 
 
       ndat = 2
       call extract_ZA_data(command, numw, startw, stopw, ndat,         &
@@ -780,7 +763,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'lev_spin_cut')then
-      icommand = icommand + 1
+ 
 
       ndat = 1
       call extract_ZA_data(command, numw, startw, stopw, ndat,         &
@@ -793,7 +776,8 @@ subroutine parse_command(icommand, command, finish)
       do i = 1, num_comp
          if(iZ == nucleus(i)%Z .and. iA == nucleus(i)%A)then
             if(x(1) > 0.0)nucleus(i)%level_param(2) = x(1)
-            if(nucleus(i)%fission .and..not. nucleus(i)%fission_read)then
+            if(nucleus(i)%fission .and. .not. nucleus(i)%reading_param .and.      &
+               .not. nucleus(i)%param_read)then
                do j = 1, nucleus(i)%F_n_barr
                   nucleus(i)%F_Barrier(j)%level_param(2) = nucleus(i)%level_param(2)
                end do
@@ -808,7 +792,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'lev_sig_model')then
-      icommand = icommand + 1
+ 
 
 
       ndat = 1
@@ -822,7 +806,8 @@ subroutine parse_command(icommand, command, finish)
       do i = 1, num_comp
          if(iZ == nucleus(i)%Z .and. iA == nucleus(i)%A)then
             if(x(1) > 0.0)nucleus(i)%level_param(13)=x(1)
-            if(nucleus(i)%fission .and..not. nucleus(i)%fission_read)then
+            if(nucleus(i)%fission .and. .not. nucleus(i)%reading_param .and.      &
+               .not. nucleus(i)%param_read)then
                do j = 1, nucleus(i)%F_n_barr
                   nucleus(i)%F_Barrier(j)%level_param(13) = nucleus(i)%level_param(13)
                end do
@@ -837,7 +822,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'lev_delta')then
-      icommand = icommand + 1
+ 
 
 
       ndat = 1
@@ -862,7 +847,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'lev_ecut')then
-      icommand = icommand + 1
+ 
 
       ndat = 1
       call extract_ZA_data(command, numw, startw, stopw, ndat,         &
@@ -897,7 +882,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'lev_parity_fac')then
-      icommand = icommand + 1
+ 
 
       ndat = 3
       call extract_ZA_data(command, numw, startw, stopw, ndat,         &
@@ -913,7 +898,8 @@ subroutine parse_command(icommand, command, finish)
             if(nint(x(1)) == -1) nucleus(i)%level_param(16) = 2.0d0
             nucleus(i)%level_param(17) = x(2)
             nucleus(i)%level_param(18) = x(3)
-            if(nucleus(i)%fission .and..not. nucleus(i)%fission_read)then
+            if(nucleus(i)%fission .and. .not. nucleus(i)%reading_param .and.      &
+               .not. nucleus(i)%param_read)then
                do j = 1, nucleus(i)%F_n_barr
                   nucleus(i)%F_Barrier(j)%level_param(17) = nucleus(i)%level_param(17)
                   nucleus(i)%F_Barrier(j)%level_param(18) = nucleus(i)%level_param(18)
@@ -929,7 +915,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'lev_shell')then
-      icommand = icommand + 1
+ 
 
       ndat = 1
       call extract_ZA_data(command, numw, startw, stopw, ndat,         &
@@ -942,7 +928,8 @@ subroutine parse_command(icommand, command, finish)
       do i = 1, num_comp
          if(iZ == nucleus(i)%Z .and. iA == nucleus(i)%A)then
             nucleus(i)%level_param(4) = x(1)
-            if(nucleus(i)%fission .and. .not. nucleus(i)%fission_read)then
+            if(nucleus(i)%fission .and. .not. nucleus(i)%reading_param .and.      &
+               .not. nucleus(i)%param_read)then
                do j = 1, nucleus(i)%F_n_barr
                   nucleus(i)%F_Barrier(j)%level_param(4) = nucleus(i)%level_param(4)
                end do
@@ -957,7 +944,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'lev_gamma')then
-      icommand = icommand + 1
+ 
 
       ndat = 1
       call extract_ZA_data(command, numw, startw, stopw, ndat,         &
@@ -970,7 +957,8 @@ subroutine parse_command(icommand, command, finish)
       do i = 1, num_comp
          if(iZ == nucleus(i)%Z .and. iA == nucleus(i)%A)then
             nucleus(i)%level_param(5) = x(1)
-            if(nucleus(i)%fission .and. .not. nucleus(i)%fission_read)then
+            if(nucleus(i)%fission .and. .not. nucleus(i)%reading_param .and.      &
+               .not. nucleus(i)%param_read)then
                do j = 1, nucleus(i)%F_n_barr
                   nucleus(i)%F_Barrier(j)%level_param(5) = nucleus(i)%level_param(5)
                end do
@@ -985,7 +973,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'lev_ematch')then
-      icommand = icommand + 1
+ 
 
       ndat = 1
       call extract_ZA_data(command, numw, startw, stopw, ndat,         &
@@ -1009,7 +997,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'lev_fit_d0')then
-      icommand = icommand + 1
+ 
       if(numw /= 2)then
          call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
          return
@@ -1022,9 +1010,11 @@ subroutine parse_command(icommand, command, finish)
          return
       end if
 
+      lev_fit_d0 = logic_char
       do i = 1, num_comp
-         nucleus(i)%fit_D0 = logic_char
+         nucleus(i)%fit_d0 = lev_fit_d0
       end do
+
       return
    end if
 !
@@ -1032,7 +1022,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'lev_fit_aparam')then
-      icommand = icommand + 1
+ 
       if(numw /= 2)then
          call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
          return
@@ -1044,8 +1034,9 @@ subroutine parse_command(icommand, command, finish)
          return
       end if
 
+      fit_aparam = logic_char
       do i = 1, num_comp
-         nucleus(i)%fit_aparam = logic_char
+         nucleus(i)%fit_aparam = fit_aparam
       end do
 
       return
@@ -1055,7 +1046,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 't12_isomer')then
-      icommand = icommand + 1
+ 
       if(numw /= 2)then
          call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
          return
@@ -1069,7 +1060,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'fit_aparam')then
-      icommand = icommand + 1
+ 
       if(iproc ==0)then
          write(6,*)
          write(6,*)'---------------------------------------------'
@@ -1098,7 +1089,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'lev_fit_ematch')then
-      icommand = icommand + 1
+ 
       if(numw /= 2)then
          call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
          return
@@ -1122,7 +1113,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'lev_rot_enhance')then
-      icommand = icommand + 1
+ 
 
       ndat = 3
       call extract_ZA_data(command, numw, startw, stopw, ndat,         &
@@ -1148,7 +1139,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'lev_vib_enhance')then
-      icommand = icommand + 1
+ 
 
       ndat = 3
       call extract_ZA_data(command, numw, startw, stopw, ndat,         &
@@ -1175,7 +1166,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'lev_vib_enhance_mode')then
-      icommand = icommand + 1
+ 
       if(numw < 2)then
          call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
          return
@@ -1193,7 +1184,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'initial_ke')then
-      icommand = icommand+1
+
       if(.not. pop_calc)then
          if(iproc == 0)write(6,*)'This option is only compatible with a pupulation calculation'
          if(iproc == 0)write(6,*)'and is being ignored'
@@ -1214,7 +1205,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'quasi_elastic')then
-      icommand = icommand + 1
+ 
       if(numw < 2)then
          call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
          return
@@ -1227,7 +1218,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'beta_2')then
-      icommand = icommand + 1
+ 
 
       ndat = 1
       call extract_ZA_data(command, numw, startw, stopw, ndat,         &
@@ -1252,41 +1243,20 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'lev_option')then          !   global setting of this parameter
-      icommand = icommand + 1
+ 
       if(numw < 2)then
          call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
          return
       end if
       read(command(startw(2):stopw(2)),*)j
 
-      if(j > 2)then
+      if(j > 5)then
          if(iproc == 0)write(6,*)'Bad input for "lev_option"'
-#if(USE_MPI==1)
-         call MPI_Abort(icomm,101,ierr)
-#endif
+         call exit_YAHFC(101)
       end if
 
-      do i = 1, num_comp
-         iZ = nucleus(i)%Z
-         iA = nucleus(i)%A
-         if(iA > 20)then
-            nucleus(i)%lev_option = j
-            nucleus(i)%level_param(9) = real(j,kind=8)
-            if(j == 2) then
-               nucleus(i)%level_param(10) = 1.0d0
-               nucleus(i)%level_param(11) = 1.0d0
-            end if
-            call get_lev_den(data_path,len_path,                         &
-                             symb(iZ),iZ,iA,i)
-            if(nucleus(i)%fission .and. .not. nucleus(i)%fission_read)   &
-               call init_barrier_data(i)
-
-         elseif(j > 1 .and. iproc == 0)then
-            if(iproc == 0)write(6,*)'Warning, A is too small and lev_option > 1 is dangerous'
-            if(iproc == 0)write(6,*)'Keeping default option 0'
-         end if
-      end do
       return
+
    end if
 !
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -1294,7 +1264,7 @@ subroutine parse_command(icommand, command, finish)
 !
 
    if(command(startw(1):stopw(1)) == 'lev_nuc_option')then          !   setting of this parameter for nucleus iZ,iA
-      icommand = icommand + 1
+ 
 
       ndat = 1
       call extract_ZA_data(command, numw, startw, stopw, ndat,         &
@@ -1308,9 +1278,7 @@ subroutine parse_command(icommand, command, finish)
 
       if(j > 2)then
          if(iproc == 0)write(6,*)'Bad input for "lev_nuc_option"'
-#if(USE_MPI==1)
-         call MPI_Abort(icomm,101,ierr)
-#endif
+         call exit_YAHFC(101)
       end if
       if(iA <= 20 .and. j > 1)then
          if(iproc == 0)write(6,*)'Warning, A is too small and lev_option > 1 is dangerous'
@@ -1319,16 +1287,22 @@ subroutine parse_command(icommand, command, finish)
       end if
       do i = 1, num_comp
          if(iZ == nucleus(i)%Z .and. iA == nucleus(i)%A)then
+            if(nucleus(i)%param_read)then
+               if(iproc == 0)write(6,*)'Warning! "lev_nuc_option" will override parameters parameters from saved file' 
+            end if
             nucleus(i)%lev_option = j
             nucleus(i)%level_param(9) = X(1)
-            if(j == 2) then
+            nucleus(i)%level_param(19) = X(1)
+            if(j >= 2 .and. J <= 5) then
                nucleus(i)%level_param(10) = 1.0d0
-               nucleus(i)%level_param(11) = 1.0d0
+               nucleus(i)%level_param(11) = 2.0d0
             end if
-            call get_lev_den(data_path,len_path,                         &
+
+            call get_lev_den(data_path,len_path,                                  &
                              symb(iZ),iZ,iA,i)
-            if(nucleus(i)%fission .and. .not. nucleus(i)%fission_read)   &
-               call init_barrier_data(i)
+
+            if(nucleus(i)%fission .and. .not. nucleus(i)%reading_param .and.      &
+               .not. nucleus(i)%param_read)call init_barrier_data(i)
 
             return
          end if         
@@ -1340,7 +1314,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'lev_nuc_fit_D0')then
-      icommand = icommand + 1
+ 
 
       ndat = 0
       call extract_ZA_data(command, numw, startw, stopw, ndat,         &
@@ -1372,7 +1346,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'lev_nuc_fit_aparam')then
-      icommand = icommand + 1
+ 
 
 
       ndat = 0
@@ -1405,7 +1379,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'lev_nuc_fit_ematch')then
-      icommand = icommand + 1
+ 
 
       ndat = 0
       call extract_ZA_data(command, numw, startw, stopw, ndat,         &
@@ -1437,7 +1411,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'e1_param')then          !   global setting of this parameter
-      icommand = icommand + 1
+ 
 
       ndat = 4
       call extract_ZA_data(command, numw, startw, stopw, ndat,         &
@@ -1453,9 +1427,7 @@ subroutine parse_command(icommand, command, finish)
 
       if(j > max_num_gsf)then
          if(iproc ==0)write(6,*)'Bad input for e1_param, requesting more than max components =',max_num_gsf
-#if(USE_MPI==1)
-         call MPI_Abort(icomm,101,ierr)
-#endif
+         call exit_YAHFC(101)
       end if
       do i = 1, num_comp
          if(iZ == nucleus(i)%Z .and. iA == nucleus(i)%A)then
@@ -1473,7 +1445,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'el_param')then          !   global setting of this parameter
-      icommand = icommand + 1
+ 
 
       ndat = 5
       call extract_ZA_data(command, numw, startw, stopw, ndat,         &
@@ -1490,15 +1462,11 @@ subroutine parse_command(icommand, command, finish)
 
       if(j > max_num_gsf)then
          if(iproc ==0)write(6,*)'Bad input for el_param, requesting more than max components =',max_num_gsf
-#if(USE_MPI==1)
-         call MPI_Abort(icomm,101,ierr)
-#endif
+         call exit_YAHFC(101)
       end if
       if(lx > e_l_max)then
          if(iproc ==0)write(6,*)'Bad input for el_param, requesting more than max components =',max_num_gsf
-#if(USE_MPI==1)
-         call MPI_Abort(icomm,101,ierr)
-#endif
+         call exit_YAHFC(101)
       end if
       do i = 1, num_comp
          if(iZ == nucleus(i)%Z .and. iA == nucleus(i)%A)then
@@ -1519,7 +1487,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'ml_param')then          !   global setting of this parameter
-      icommand = icommand + 1
+ 
 
       ndat = 5
       call extract_ZA_data(command, numw, startw, stopw, ndat,         &
@@ -1536,15 +1504,11 @@ subroutine parse_command(icommand, command, finish)
 
       if(j > max_num_gsf)then
          if(iproc ==0)write(6,*)'Bad input for ml_param, requesting more than max components =',max_num_gsf
-#if(USE_MPI==1)
-         call MPI_Abort(icomm,101,ierr)
-#endif
+         call exit_YAHFC(101)
       end if
       if(lx > m_l_max)then
          if(iproc ==0)write(6,*)'Bad input for el_param, requesting more than max components =',max_num_gsf
-#if(USE_MPI==1)
-         call MPI_Abort(icomm,101,ierr)
-#endif
+         call exit_YAHFC(101)
       end if
       do i = 1, num_comp
          if(iZ == nucleus(i)%Z .and. iA == nucleus(i)%A)then
@@ -1562,7 +1526,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'f_num_barrier')then          !   global setting of this parameter
-      icommand = icommand + 1
+ 
 
       ndat = 1
       call extract_ZA_data(command, numw, startw, stopw, ndat,         &
@@ -1601,7 +1565,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'f_barrier')then          !   global setting of this parameter
-      icommand = icommand + 1
+ 
 
       ndat = 3
       call extract_ZA_data(command, numw, startw, stopw, ndat,         &
@@ -1618,9 +1582,7 @@ subroutine parse_command(icommand, command, finish)
          if(iZ == nucleus(i)%Z .and. iA == nucleus(i)%A)then
             if(j > nucleus(i)%F_n_barr)then
                if(iproc == 0)write(6,*)'too many barriers for F_Barrier',' Z = ',iZ,' A = ',iA
-#if(USE_MPI==1)
-               call MPI_Abort(icomm,101,ierr)
-#endif
+               call exit_YAHFC(101)
             end if
             nucleus(i)%F_Barrier(j)%barrier = x(1)
             nucleus(i)%F_Barrier(j)%hbw = x(2)
@@ -1637,7 +1599,7 @@ subroutine parse_command(icommand, command, finish)
 !    F_barrier = F_barrier*x(1)*exp(-((Ex-x(2))/x(3))**2)
 !   
    if(command(startw(1):stopw(1)) == 'f_barrier_damp')then          !   global setting of this parameter
-      icommand = icommand + 1
+ 
 
       ndat = 3
       call extract_ZA_data(command, numw, startw, stopw, ndat,         &
@@ -1652,11 +1614,13 @@ subroutine parse_command(icommand, command, finish)
          if(iZ == nucleus(i)%Z .and. iA == nucleus(i)%A)then
             if(j > nucleus(i)%F_n_barr)then
                if(iproc ==0)write(6,*)'too many barriers for F_Barrier',' Z = ',iZ,' A = ',iA
-#if(USE_MPI==1)
-               call MPI_Abort(icomm,101,ierr)
-#endif
+               call exit_YAHFC(101)
             end if
-            nucleus(i)%F_Barrier(j)%barrier_damp(2) = x(2)
+            if(x(2) > 0.0d0)then
+               nucleus(i)%F_Barrier(j)%barrier_damp(2) = x(2)
+            else
+               nucleus(i)%F_Barrier(j)%barrier_damp(2) = nucleus(i)%sep_e(1)
+            end if
             nucleus(i)%F_Barrier(j)%barrier_damp(3) = x(3)
             if(x(3) < 1.0d-6)then
                if(iproc == 0)then
@@ -1667,9 +1631,7 @@ subroutine parse_command(icommand, command, finish)
                   write(6,*)'*  Execution will terminate                     *'
                   write(6,*)'*************************************************'
                end if
-#if(USE_MPI==1)
-               call MPI_Abort(icomm,191,ierr)     
-#endif
+               call exit_YAHFC(191)     
             end if
 !-------   Make damping factor = 1.0 at Ex = 0.0
             x(1) = exp((x(2)/x(3))**2)
@@ -1686,7 +1648,7 @@ subroutine parse_command(icommand, command, finish)
 !    Set symmetry for barrier
 !   
    if(command(startw(1):stopw(1)) == 'f_barrier_symmetry')then          !   global setting of this parameter
-      icommand = icommand + 1
+ 
 
       ndat = 1
       call extract_ZA_data(command, numw, startw, stopw, ndat,         &
@@ -1707,9 +1669,7 @@ subroutine parse_command(icommand, command, finish)
             if(j > nucleus(i)%F_n_barr)then
                if(iproc == 0)write(6,*)'Error: requesting too many barriers for F_Barrier for nucleus Z = ',&
                                        iZ,' A = ',iA
-#if(USE_MPI==1)
-               call MPI_Abort(icomm,101,ierr)
-#endif
+               call exit_YAHFC(101)
             end if
             if(command(startw(nw):stopw(nw)) == 's' .or. command(startw(nw):stopw(nw)) == '1')then
                nucleus(i)%F_Barrier(j)%symmetry = 1
@@ -1746,7 +1706,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'f_ecut')then          !   global setting of this parameter
-      icommand = icommand + 1
+ 
 
       ndat = 2
       call extract_ZA_data(command, numw, startw, stopw, ndat,         &
@@ -1762,9 +1722,7 @@ subroutine parse_command(icommand, command, finish)
          if(iZ == nucleus(i)%Z .and. iA == nucleus(i)%A)then
             if(j > nucleus(i)%F_n_barr)then
                if(iproc == 0)write(6,*)'too many barriers for F_ecut',' Z = ',iZ,' A = ',iA
-#if(USE_MPI==1)
-               call MPI_Abort(icomm,101,ierr)
-#endif
+               call exit_YAHFC(101)
             end if
             nucleus(i)%F_Barrier(j)%ecut = x(1)
             return
@@ -1778,7 +1736,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'f_lev_aparam')then          !   global setting of this parameter
-      icommand = icommand + 1
+ 
 
       ndat = 2
       call extract_ZA_data(command, numw, startw, stopw, ndat,         &
@@ -1794,9 +1752,7 @@ subroutine parse_command(icommand, command, finish)
          if(iZ == nucleus(i)%Z .and. iA == nucleus(i)%A)then
             if(j > nucleus(i)%F_n_barr)then
                if(iproc == 0)write(6,*)'too many barriers for f_lev_aparam',' Z = ',iZ,' A = ',iA
-#if(USE_MPI==1)
-               call MPI_Abort(icomm,101,ierr)
-#endif
+               call exit_YAHFC(101)
             end if
             nucleus(i)%F_Barrier(j)%level_param(1) = x(1)
             return
@@ -1810,7 +1766,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'f_lev_spin')then          !   global setting of this parameter
-      icommand = icommand + 1
+ 
 
       ndat = 2
       call extract_ZA_data(command, numw, startw, stopw, ndat,         &
@@ -1826,11 +1782,14 @@ subroutine parse_command(icommand, command, finish)
          if(iZ == nucleus(i)%Z .and. iA == nucleus(i)%A)then
             if(j > nucleus(i)%F_n_barr)then
                if(iproc == 0)write(6,*)'too many barriers for F_lev_spin',' Z = ',iZ,' A = ',iA
-#if(USE_MPI==1)
-               call MPI_Abort(icomm,101,ierr)
-#endif
+               call exit_YAHFC(101)
             end if
             nucleus(i)%F_Barrier(j)%level_param(2) = x(1)
+            if(nucleus(i)%lev_option == 0)then
+               nucleus(i)%F_Barrier(j)%level_param(12) = x(1)*(real(iA,kind=8))**(2.d0/3.d0)
+            elseif(nucleus(i)%lev_option > 0)then
+               nucleus(i)%F_Barrier(j)%level_param(12) = x(1)*(real(iA,kind=8))**(5.d0/3.d0)
+            end if
             return
          end if
       end do
@@ -1841,7 +1800,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    if(command(startw(1):stopw(1)) == 'f_lev_delta')then          !   global setting of this parameter
-      icommand = icommand + 1
+ 
 
       ndat = 2
       call extract_ZA_data(command, numw, startw, stopw, ndat,         &
@@ -1858,9 +1817,7 @@ subroutine parse_command(icommand, command, finish)
          if(iZ == nucleus(i)%Z .and. iA == nucleus(i)%A)then
             if(j > nucleus(i)%F_n_barr)then
                if(iproc == 0)write(6,*)'too many barriers for F_lev_delta',' Z = ',iZ,' A = ',iA
-#if(USE_MPI==1)
-               call MPI_Abort(icomm,101,ierr)
-#endif
+               call exit_YAHFC(101)
             end if
             nucleus(i)%F_Barrier(j)%level_param(3) = x(1)
             nucleus(i)%F_Barrier(j)%level_param(6) = 2.5 + 150./real(iA,kind=8) + x(1)
@@ -1875,7 +1832,6 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'f_lev_shell')then
-      icommand = icommand+1
 
       ndat = 2
       call extract_ZA_data(command, numw, startw, stopw, ndat,         &
@@ -1892,9 +1848,7 @@ subroutine parse_command(icommand, command, finish)
          if(iZ == nucleus(i)%Z .and. iA == nucleus(i)%A)then
             if(j > nucleus(i)%F_n_barr)then
                if(iproc == 0)write(6,*)'too many barriers for F_lev_shell',' Z = ',iZ,' A = ',iA
-#if(USE_MPI==1)
-               call MPI_Abort(icomm,101,ierr)
-#endif
+               call exit_YAHFC(101)
             end if
             nucleus(i)%F_Barrier(j)%level_param(4) = x(1)
             return
@@ -1908,7 +1862,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'f_lev_gamma')then
-      icommand = icommand + 1
+ 
 
       ndat = 2
       call extract_ZA_data(command, numw, startw, stopw, ndat,         &
@@ -1925,9 +1879,7 @@ subroutine parse_command(icommand, command, finish)
          if(iZ == nucleus(i)%Z .and. iA == nucleus(i)%A)then
             if(j > nucleus(i)%F_n_barr)then
                if(iproc == 0)write(6,*)'too many barriers for F_lev_gamma'
-#if(USE_MPI==1)
-               call MPI_Abort(icomm,101,ierr)
-#endif
+               call exit_YAHFC(101)
             end if
             nucleus(i)%F_Barrier(j)%level_param(5) = x(1)
             return
@@ -1941,7 +1893,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'f_lev_rot_enhance')then
-      icommand = icommand + 1
+ 
 
       ndat = 4
       call extract_ZA_data(command, numw, startw, stopw, ndat,         &
@@ -1960,9 +1912,7 @@ subroutine parse_command(icommand, command, finish)
          if(iZ == nucleus(i)%Z .and. iA == nucleus(i)%A)then
             if(j > nucleus(i)%F_n_barr)then
                if(iproc == 0)write(6,*)'Error in F_lev_rot_enhance index > # of barriers'
-#if(USE_MPI==1)
-               call MPI_Abort(icomm,101,ierr)
-#endif
+               call exit_YAHFC(101)
             end if
             do k = 1,3
                if(x(k) >= 0.0d0)nucleus(i)%F_Barrier(j)%rot_enh(k) = x(k)
@@ -1978,7 +1928,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'f_lev_vib_enhance')then
-      icommand = icommand + 1
+ 
 
       ndat = 4
       call extract_ZA_data(command, numw, startw, stopw, ndat,         &
@@ -1997,9 +1947,7 @@ subroutine parse_command(icommand, command, finish)
          if(iZ == nucleus(i)%Z .and. iA == nucleus(i)%A)then
             if(j > nucleus(i)%F_n_barr)then
                if(iproc == 0)write(6,*)'Error in F_vib_vib_enhance index > # of barriers'
-#if(USE_MPI==1)
-               call MPI_Abort(icomm,101,ierr)
-#endif
+               call exit_YAHFC(101)
             end if
             do k = 1, 3
                if(x(k) >= 0.0d0)nucleus(i)%F_Barrier(j)%vib_enh(k) = x(k)
@@ -2015,7 +1963,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'f_lev_ematch')then
-      icommand = icommand + 1
+ 
 
       ndat = 2
       call extract_ZA_data(command, numw, startw, stopw, ndat,         &
@@ -2032,9 +1980,7 @@ subroutine parse_command(icommand, command, finish)
          if(iZ == nucleus(i)%Z .and. iA == nucleus(i)%A)then
             if(j > nucleus(i)%F_n_barr)then
                if(iproc == 0)write(6,*)'too many barriers for F_lev_ematch'
-#if(USE_MPI==1)
-               call MPI_Abort(icomm,101,ierr)
-#endif
+               call exit_YAHFC(101)
             end if
             if(x(1) <= nucleus(i)%F_Barrier(j)%level_param(3) + 0.25)then
                if(iproc == 0)then
@@ -2062,7 +2008,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'f_beta2')then          !   global setting of this parameter
-      icommand = icommand + 1
+ 
 
       ndat = 2
       call extract_ZA_data(command, numw, startw, stopw, ndat,         &
@@ -2079,9 +2025,7 @@ subroutine parse_command(icommand, command, finish)
          if(iZ == nucleus(i)%Z .and. iA == nucleus(i)%A)then
             if(j > nucleus(i)%F_n_barr)then
                if(iproc == 0)write(6,*) 'WARNING -- too many barriers for F_beta_2 in nucleus ',i
-#if(USE_MPI==1)
-               call MPI_Abort(icomm,101,ierr)
-#endif
+               call exit_YAHFC(101)
             end if
             beta_2 = x(1)
             nucleus(i)%F_Barrier(j)%beta_2 = beta_2
@@ -2100,7 +2044,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'f_barr_levels')then
-      icommand = icommand + 1
+ 
 
       ndat = 1
       call extract_ZA_data(command, numw, startw, stopw, ndat,         &
@@ -2161,7 +2105,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'ran_seed')then
-      icommand = icommand + 1
+ 
       if(numw < 2)then
          call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
          return
@@ -2171,9 +2115,13 @@ subroutine parse_command(icommand, command, finish)
       iseed_64 = int(iseed,kind=int_64)
       one_int_64 = 1_int_64
       if(iand(iseed_64,one_int_64) /= one_int_64)iseed_64 = iseed_64 + one_int_64
-      if(iseed_64 > 0)iseed_64 = -iseed_64
       if(iand(iseed_32,1) /= 1)iseed_32 = iseed_32 + 1
+      if(nproc >0)then
+         iseed_32 = iseed_32 + iproc*31415_int_32
+         iseed_64 = iseed_64 + iproc*31415_int_64
+      end if
       if(iseed_32 > 0)iseed_32 = -iseed_32      
+      if(iseed_64 > 0)iseed_64 = -iseed_64
       return
    end if
 !
@@ -2181,7 +2129,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'num_mc_samp')then
-      icommand = icommand + 1
+ 
       if(numw < 2)then
          call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
          return
@@ -2198,7 +2146,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'preeq_model')then
-      icommand = icommand + 1
+ 
       if(numw < 2)then
          call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
          return
@@ -2216,7 +2164,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'preeq_m2_c1')then
-      icommand = icommand + 1
+ 
       if(numw < 2)then
          call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
          return
@@ -2230,7 +2178,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'preeq_m2_c2')then
-      icommand = icommand + 1
+ 
       if(numw < 2)then
          call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
          return
@@ -2244,7 +2192,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'preeq_m2_c3')then
-      icommand = icommand + 1
+ 
       if(numw < 2)then
          call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
          return
@@ -2258,7 +2206,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'preeq_m2_rpp')then
-      icommand = icommand + 1
+ 
       if(numw < 2)then
          call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
          return
@@ -2272,7 +2220,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'preeq_m2_rnn')then
-      icommand = icommand + 1
+ 
       if(numw < 2)then
          call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
          return
@@ -2286,7 +2234,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'preeq_m2_rpn')then
-      icommand = icommand + 1
+ 
       if(numw < 2)then
          call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
          return
@@ -2300,7 +2248,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'preeq_m2_rnp')then
-      icommand = icommand + 1
+ 
       if(numw < 2)then
          call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
          return
@@ -2314,7 +2262,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'preeq_well_v')then
-      icommand = icommand + 1
+ 
       if(numw < 2)then
          call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
          return
@@ -2328,7 +2276,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'preeq_gam_fact')then
-      icommand = icommand + 1
+ 
       if(numw < 2)then
          call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
          return
@@ -2342,7 +2290,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'preeq_well_v1')then
-      icommand = icommand + 1
+ 
       if(numw < 2)then
          call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
          return
@@ -2360,7 +2308,7 @@ subroutine parse_command(icommand, command, finish)
 !----   it depends on the projectile, and not emitted particle
 !----   Before didn't have correct values for both protons or neutrons
    if(command(startw(1):stopw(1)) == 'preeq_well_k')then
-      icommand = icommand + 1
+ 
       if(numw < 2)then
          call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
          return
@@ -2374,7 +2322,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'preeq_g_div')then
-      icommand = icommand + 1
+ 
       if(numw < 2)then
          call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
          return
@@ -2388,7 +2336,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'preeq_g_a')then
-      icommand = icommand+1
+ 
       if(numw < 2)then
          call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
          return
@@ -2406,7 +2354,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'preeq_pair_model')then
-      icommand = icommand+1
+ 
       if(numw < 3)then
          call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
          return
@@ -2423,7 +2371,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'preeq_fwell')then
-      icommand = icommand + 1
+ 
       if(numw < 2)then
          call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
          return
@@ -2437,7 +2385,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'preeq_analytic')then
-      icommand = icommand + 1
+ 
       if(numw < 2)then
          call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
          return
@@ -2459,7 +2407,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'wf_model')then
-      icommand = icommand + 1
+ 
       if(numw < 2)then
          call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
          return
@@ -2473,7 +2421,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'delta_e')then
-      icommand = icommand + 1
+ 
       if(numw < 2)then
          call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
          return
@@ -2486,48 +2434,43 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'e1_model')then
-      icommand = icommand + 1
+ 
       if(numw < 2)then
          call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
          return
       end if
+
       read(command(startw(2):stopw(2)),*)E1_model
-      do i = 1, num_comp
-         nucleus(i)%e1_model = E1_model
-      end do
+
       return
+
    end if
 !
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'pair_model')then
-      icommand = icommand + 1
+ 
       if(numw < 2)then
          call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
          return
       end if
       read(command(startw(2):stopw(2)),*)j
       pair_model = j
-      if(j <= 2)then
-         do i = 1, num_comp
-            iZ = nucleus(i)%Z
-            iA = nucleus(i)%A
-            nucleus(i)%pair_model = j
-            call get_lev_den(data_path,len_path,               &
-                             symb(iZ),iZ,iA,i)
-         end do
-      else
+
+      if(J > 2)then
          if(iproc == 0)write(6,*)'Invalid input for option: pair_model'
       end if
+
       return
+
    end if
 !
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'output_mode')then
-      icommand = icommand + 1
+ 
       if(iproc == 0)then
           write(6,*)'Warning - Ignoring "output_mode" as it is longer a valid input command'
       end if
@@ -2537,7 +2480,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'max_j_allowed')then
-      icommand = icommand + 1
+ 
       if(numw < 2)then
          call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
          return
@@ -2555,7 +2498,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'out_gammas_vs_e')then
-      icommand = icommand + 1
+ 
       if(iproc == 0)then
           write(6,*)'Warning - "out_gammas_vs_e" is longer a valid input command'
           write(6,*)'Use "track_gammas y" instead. Continuing as if "track_gammas" was called'
@@ -2580,7 +2523,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'track_gammas')then
-      icommand = icommand + 1
+ 
       if(numw < 2)then
          call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
          return
@@ -2602,7 +2545,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'prob_cut')then
-      icommand = icommand + 1
+ 
       if(numw < 2)then
          call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
          return
@@ -2616,7 +2559,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'trans_p_cut')then
-      icommand = icommand + 1
+ 
       if(numw < 2)then
          call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
          return
@@ -2630,7 +2573,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'trans_e_cut')then
-      icommand = icommand + 1
+ 
       if(numw < 2)then
          call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
          return
@@ -2644,7 +2587,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'rho_cut')then
-      icommand=icommand+1
+ 
       if(numw < 2)then
          call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
          return
@@ -2658,7 +2601,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'optical_potential')then
-      icommand = icommand + 1
+ 
       if(numw < 3)then
          if(iproc == 0)write(6,*)'Error in input for option "optical_potential"'
          if(iproc == 0)write(6,*)'Not enough input to set optical potential'
@@ -2670,9 +2613,7 @@ subroutine parse_command(icommand, command, finish)
       k = particle_index(command(startw(2):stopw(2)))
       if(k < 1)then
          if(iproc == 0)write(6,*)'Particle misidentified in command "optical_potential"'
-#if(USE_MPI==1)
-         call MPI_Abort(icomm,101,ierr)
-#endif
+         call exit_YAHFC(101)
       end if
 !----   optical potential type is in 3rd word
       istart = startw(3)
@@ -2694,7 +2635,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'om_option')then
-      icommand = icommand + 1
+ 
       if(numw < 3)then
          if(iproc == 0)write(6,*)'Error in input for option "om_option"'
          if(iproc == 0)write(6,*)'Not enough input to set optical potential'
@@ -2718,7 +2659,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'explicit_channels')then
-      icommand = icommand + 1
+ 
       if(numw < 2)then
          call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
          return
@@ -2741,7 +2682,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'dump_events')then
-      icommand = icommand + 1
+ 
       if(numw < 2)then
          call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
          return
@@ -2790,7 +2731,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'e_l_max')then
-      icommand = icommand + 1
+ 
       if(numw < 2)then
          call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
          return
@@ -2804,7 +2745,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'm_l_max')then
-      icommand=icommand+1
+ 
       if(numw < 2)then
          call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
          return
@@ -2818,7 +2759,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'fit_gamma_gamma')then
-      icommand=icommand+1
+ 
       if(numw < 2)then
          call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
          return
@@ -2832,9 +2773,6 @@ subroutine parse_command(icommand, command, finish)
       end if
 
       fit_gamma_gamma = logic_char
-      do i = 1, num_comp
-         nucleus(i)%fit_gamma_gamma = fit_gamma_gamma
-      end do   
 
       return
    end if
@@ -2843,7 +2781,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'nuc_fit_gamma_gamma')then
-      icommand=icommand+1
+ 
 
       ndat = 0
       call extract_ZA_data(command, numw, startw, stopw, ndat,         &
@@ -2876,7 +2814,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'do_dwba')then
-      icommand=icommand+1
+ 
       if(numw < 2)then
          call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
          return
@@ -2889,18 +2827,17 @@ subroutine parse_command(icommand, command, finish)
          return
       end if
 
-      k = projectile%particle_type
-
-      particle(k)%do_dwba = logic_char
+      do_dwba = logic_char
 
       return
+
    end if
 !
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'set_gamma_gamma')then
-      icommand=icommand+1
+ 
 
       ndat = 1
       call extract_ZA_data(command, numw, startw, stopw, ndat,         &
@@ -2924,7 +2861,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'lev_den_read')then
-      icommand=icommand+1
+ 
 
       ndat = 0
       call extract_ZA_data(command, numw, startw, stopw, ndat,                 &
@@ -2946,9 +2883,7 @@ subroutine parse_command(icommand, command, finish)
                   write(6,*)'Error with command "lev_den_read"'
                   write(6,*)'Reading both parities has already specified'
                end if
-#if(USE_MPI==1)
-               call MPI_Abort(icomm, 101, ierr)
-#endif
+               call exit_YAHFC(101)
             end if              
             nucleus(i)%lev_den_read = .true.
             nucleus(i)%fit_D0 = .false.
@@ -2979,7 +2914,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'max_j_allowed')then
-      icommand=icommand+1
+ 
       read(command(startw(2):stopw(2)),*)Max_J_allowed
       if(Max_J_allowed < 20)then
          Max_J_allowed = 20
@@ -2992,7 +2927,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'all_gammas')then
-      icommand=icommand+1
+ 
       if(numw < 2)then
          call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
          return
@@ -3029,7 +2964,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'all_discrete_states')then
-      icommand=icommand+1
+ 
       if(numw < 2)then
          call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
          return
@@ -3051,8 +2986,31 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
+   if(command(startw(1):stopw(1)) == 'read_saved_parameters')then
+ 
+      if(numw < 2)then
+         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
+         return
+      end if
+      read_saved_params = .true.
+
+      call char_logical(command(startw(2):stopw(2)),logic_char,read_error)
+
+      if(read_error)then
+         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
+         return
+      end if
+
+      read_saved_params = logic_char
+
+      return
+   end if
+!
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!
    if(command(startw(1):stopw(1)) == 'primary_decay')then
-      icommand=icommand+1
+ 
       if(numw < 2)then
          call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
          return
@@ -3075,7 +3033,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'optical_code')then
-      icommand = icommand + 1
+ 
       if(iproc == 0)then
          write(6,*)'*******************************************************'
          write(6,*)'*  WARNING!! WARNING!! WARNING!! WARNING!! WARNING!!  *' 
@@ -3091,7 +3049,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'cc_file')then
-      icommand = icommand + 1
+ 
       if(numw < 2)then
          call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
          return
@@ -3103,7 +3061,7 @@ subroutine parse_command(icommand, command, finish)
       if(.not. exist_cc_file)then
          if(iproc == 0)write(6,*)'Input file with coupled-channels input data does not exist'
          if(iproc == 0)write(6,*)'Input different name than',local_cc_file(1:istop-istart+1)
-         stop
+         call exit_YAHFC(101)
       end if
       return
    end if
@@ -3112,7 +3070,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'cc_scale')then
-      icommand = icommand + 1
+ 
       if(numw < 2)then
          call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
          return
@@ -3125,7 +3083,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'scale_elastic')then
-      icommand = icommand + 1
+ 
       if(projectile%particle_type /= 1)then
          scale_elastic = .false.
          if(iproc == 0)then
@@ -3151,7 +3109,7 @@ subroutine parse_command(icommand, command, finish)
       if(numw < 4)then
          if(iproc == 0)write(6,*)'Wrong input for command scale_elastic'
          if(iproc == 0)write(6,*)'command: scale_elastic  elastic_scale, elastic_shift, elastic_damp'
-         stop
+         call exit_YAHFC(101)
       end if 
       scale_elastic = .true.   
       istart = startw(2)
@@ -3170,7 +3128,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'fiss_max_j')then
-      icommand = icommand + 1
+ 
       if(numw < 2)then
          call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
          return
@@ -3191,16 +3149,14 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'trans_avg_l')then
-      icommand = icommand + 1
+ 
       if(numw < 2)then
          call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
          return
       end if
       if(numw /= 2)then
          if(iproc == 0)write(6,*)'Wrong input for command trans_avg_l'
-#if(USE_MPI==1)
-         call MPI_Abort(icomm,101,ierr)
-#endif
+         call exit_YAHFC(101)
       end if
       trans_avg_l = .false.
 
@@ -3220,7 +3176,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'num_theta_angles' )then
-      icommand = icommand + 1
+ 
       if(numw < 2)then
          call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
          return
@@ -3234,7 +3190,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'trans_norm' )then
-      icommand = icommand + 1
+ 
       if(numw < 2)then
          call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
          return
@@ -3248,7 +3204,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'max_num_gsf' )then
-      icommand = icommand + 1
+ 
       if(numw < 2)then
          call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
          return
@@ -3262,7 +3218,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'fresco_shape')then
-      icommand = icommand + 1
+ 
       if(numw < 2)then
          call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
          return
@@ -3275,7 +3231,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'biased_sampling')then
-      icommand = icommand + 1
+ 
       if(numw < 2)then
          call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
          return
@@ -3298,7 +3254,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'clean_library')then
-      icommand = icommand + 1
+ 
       if(numw < 2)then
          call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
          return
@@ -3321,7 +3277,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'start')then
-      icommand = icommand + 1
+ 
       if(iproc == 0)write(6,*)'Command copied from from Fission Barrier file, ignoring'
       return
    end if
@@ -3330,7 +3286,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'verbose_output')then
-      icommand = icommand + 1
+ 
       if(numw < 2)then
 !         write(6,*)'Error in input for option "fission"'
          call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
@@ -3346,6 +3302,8 @@ subroutine parse_command(icommand, command, finish)
 
       verbose = logic_char
 
+      print_me = verbose
+
       return      !   if it gets here a proper input wasn't given so keep default
    end if
 !
@@ -3353,7 +3311,7 @@ subroutine parse_command(icommand, command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'write_outfile')then
-      icommand = icommand + 1
+ 
       if(numw < 2)then
 !         write(6,*)'Error in input for option "fission"'
          call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
@@ -3377,7 +3335,7 @@ subroutine parse_command(icommand, command, finish)
 !
 ! read_el_gsf  Z  A  L  f/s  file  norm
    if(command(startw(1):stopw(1)) == 'read_el_gsf')then
-      icommand = icommand + 1
+ 
 
       ndat = 0
       call extract_ZA_data(command, numw, startw, stopw, ndat,         &
@@ -3388,9 +3346,7 @@ subroutine parse_command(icommand, command, finish)
       end if
       if(numw < nw + 3)then
          if(iproc == 0)write(6,*)'Error, not enough input in call to "read_e_l_gsf"'
-#if(USE_MPI==1)
-         call MPI_Abort(icomm,101,ierr)
-#endif
+         call exit_YAHFC(101)
       end if
       ix = 0
 !-----   Find the multipolarity 
@@ -3400,9 +3356,7 @@ subroutine parse_command(icommand, command, finish)
             write(6,*)'Error in multipolarity in "read_e_l_gsf" L = ',lx
             write(6,*)'Maximum L value allowed for Electric transition is ',e_l_max
          end if
-#if(USE_MPI==1)
-         call MPI_Abort(icomm,101,ierr)
-#endif
+         call exit_YAHFC(101)
       end if
       gsf_type = -1
 !-----   Find out if we are reading a strength function: f/0 
@@ -3418,9 +3372,7 @@ subroutine parse_command(icommand, command, finish)
       end if
       if(gsf_type == -1)then
          if(iproc == 0)write(6,*)'Error specifying if reading strength function or cross section'
-#if(USE_MPI==1)
-         call MPI_Abort(icomm,101,ierr)
-#endif
+         call exit_YAHFC(101)
       end if
 
 !-----   The file name
@@ -3447,9 +3399,7 @@ subroutine parse_command(icommand, command, finish)
             if(n_gsf > max_num_gsf)then
                if(iproc == 0)write(6,*)'Error, attempting to read in too many strength functions, max = ', &
                max_num_gsf
-#if(USE_MPI==1)
-               call MPI_Abort(icomm,101,ierr)
-#endif
+               call exit_YAHFC(101)
             end if
             open(unit=10,file = read_file(1:ilast), status = 'old')
 !------   Find out how much data we will be reading in
@@ -3498,9 +3448,7 @@ subroutine parse_command(icommand, command, finish)
 !-----   If io_error == 1, then something went wrong with the read
             if(io_error == 1)then
                if(iproc == 0)write(6,*)'Error reading in energy and strength function data'
-#if(USE_MPI==1)
-               call MPI_Abort(icomm,101,ierr)
-#endif
+               call exit_YAHFC(101)
             end if
 !-----   Now check if the grid energy is >= maximum excitation energy
             if(nucleus(i)%EL_mode(lx)%gsf(n_gsf)%e_gsf_r(num_data) <                  &
@@ -3508,9 +3456,7 @@ subroutine parse_command(icommand, command, finish)
                write(6,*)'Error in gamma strength function read in file ',read_file(1:ilast) 
                write(6,*)'Excitation energy is less than maximum excitation energy for this nucleus'
                write(6,*)'It must be greater than or equal to ', nucleus(i)%Ex_max
-#if(USE_MPI==1)
-               call MPI_Abort(icomm,101,ierr)
-#endif
+               call exit_YAHFC(101)
             end if
             nucleus(i)%EL_mode(lx)%gsf(n_gsf)%gsf_norm = xnorm
             return
@@ -3532,7 +3478,7 @@ subroutine parse_command(icommand, command, finish)
 !
 ! read_ml_gsf  Z  A  L  f/s  file  norm
    if(command(startw(1):stopw(1)) == 'read_ml_gsf')then
-      icommand = icommand + 1
+ 
 
       ndat = 0
       call extract_ZA_data(command, numw, startw, stopw, ndat,         &
@@ -3543,9 +3489,7 @@ subroutine parse_command(icommand, command, finish)
       end if
       if(numw < nw + 3)then
          if(iproc == 0)write(6,*)'Error, not enough input in call to "read_m_l_gsf"'
-#if(USE_MPI==1)
-         call MPI_Abort(icomm,101,ierr)
-#endif
+         call exit_YAHFC(101)
       end if
       ix = 0
 !-----   Find the multipolarity 
@@ -3555,9 +3499,7 @@ subroutine parse_command(icommand, command, finish)
             write(6,*)'Error in multipolarity in "read_m_l_gsf" L = ',lx
             write(6,*)'Maximum L value allowed for Electric transition is ',m_l_max
          end if
-#if(USE_MPI==1)
-         call MPI_Abort(icomm,101,ierr)
-#endif
+         call exit_YAHFC(101)
       end if
       gsf_type = -1
 !-----   Find out if we are reading a strength function: f/0 
@@ -3573,9 +3515,7 @@ subroutine parse_command(icommand, command, finish)
       end if
       if(gsf_type == -1)then
          if(iproc == 0)write(6,*)'Error specifying if reading strength function or cross section'
-#if(USE_MPI==1)
-         call MPI_Abort(icomm,101,ierr)
-#endif
+         call exit_YAHFC(101)
       end if
 
 !-----   The file name
@@ -3602,9 +3542,7 @@ subroutine parse_command(icommand, command, finish)
             if(n_gsf > max_num_gsf)then
                if(iproc == 0)write(6,*)'Error, attempting to read in too many strength functions, max = ', &
                max_num_gsf
-#if(USE_MPI==1)
-               call MPI_Abort(icomm,101,ierr)
-#endif
+               call exit_YAHFC(101)
             end if
             open(unit=10,file = read_file(1:ilast), status = 'old')
 !------   Find out how much data we will be reading in
@@ -3652,9 +3590,7 @@ subroutine parse_command(icommand, command, finish)
 !-----   If io_error == 1, then something went wrong with the read
             if(io_error == 1)then
                if(iproc == 0)write(6,*)'Error reading in energy and strength function data'
-#if(USE_MPI==1)
-               call MPI_Abort(icomm,101,ierr)
-#endif
+               call exit_YAHFC(101)
             end if
 !-----   Now check if the grid energy is >= maximum excitation energy
             if(nucleus(i)%ML_mode(lx)%gsf(n_gsf)%e_gsf_r(num_data) <                  &
@@ -3662,9 +3598,7 @@ subroutine parse_command(icommand, command, finish)
                write(6,*)'Error in gamma strength function read in file ',read_file(1:ilast) 
                write(6,*)'Excitation energy is less than maximum excitation energy for this nucleus'
                write(6,*)'It must be greater than or equal to ', nucleus(i)%Ex_max
-#if(USE_MPI==1)
-               call MPI_Abort(icomm,101,ierr)
-#endif
+               call exit_YAHFC(101)
             end if
             nucleus(i)%ML_mode(lx)%gsf(n_gsf)%gsf_norm = xnorm
             return
@@ -4046,6 +3980,13 @@ integer(kind=4) function rank_commands(command)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
+   if(command(startw(1):stopw(1)) == 'verbose_output')then
+      rank_commands = 0 
+      return
+   end if
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!
    if(command(startw(1):stopw(1)) == 'all_gammas')then
       rank_commands = 0 
       return
@@ -4055,6 +3996,14 @@ integer(kind=4) function rank_commands(command)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'all_discrete_states')then
+      rank_commands = 0 
+      return
+   end if
+!
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!
+   if(command(startw(1):stopw(1)) == 'read_saved_parameters')then
       rank_commands = 0 
       return
    end if
@@ -4110,7 +4059,71 @@ integer(kind=4) function rank_commands(command)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
-   if(command(startw(1):stopw(1)) == 'projectile')then
+   if(command(startw(1):stopw(1)) == 'lev_option')then
+      rank_commands = 0 
+      return
+   end if
+!
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!
+   if(command(startw(1):stopw(1)) == 'pair_model')then
+      rank_commands = 0 
+      return
+   end if
+!
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!
+   if(command(startw(1):stopw(1)) == 'fit_gamma_gamma')then
+      rank_commands = 0
+      return
+   end if
+!
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!
+   if(command(startw(1):stopw(1)) == 'e1_model')then
+      rank_commands = 0
+      return
+   end if
+!
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!
+   if(command(startw(1):stopw(1)) == 'preeq_model')then
+      rank_commands = 1 
+      return
+   end if
+!
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!
+   if(command(startw(1):stopw(1)) == 'wf_model')then
+      rank_commands = 1 
+      return
+   end if
+!
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!
+   if(command(startw(1):stopw(1)) == 'do_dwba')then
+      rank_commands = 1 
+      return
+   end if
+!
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!
+   if(command(startw(1):stopw(1)) == 'xs_only')then
+      rank_commands = 1 
+      return
+   end if
+!
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!
+   if(command(startw(1):stopw(1)) == 'file')then
       rank_commands = 1
       return
    end if
@@ -4118,7 +4131,15 @@ integer(kind=4) function rank_commands(command)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
-   if(command(startw(1):stopw(1)) == 'max_particle')then
+   if(command(startw(1):stopw(1)) == 'num_mc_samp')then
+      rank_commands = 1
+      return
+   end if
+!
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!
+   if(command(startw(1):stopw(1)) == 'projectile')then
       rank_commands = 2
       return
    end if
@@ -4126,8 +4147,16 @@ integer(kind=4) function rank_commands(command)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
-   if(command(startw(1):stopw(1)) == 'target')then
+   if(command(startw(1):stopw(1)) == 'max_particle')then
       rank_commands = 3
+      return
+   end if
+!
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!
+   if(command(startw(1):stopw(1)) == 'target')then
+      rank_commands = 4
       return
    end if
 !
@@ -4150,7 +4179,7 @@ integer(kind=4) function rank_commands(command)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
-   if(command(startw(1):stopw(1)) == 'max_j_allowed')then
+   if(command(startw(1):stopw(1)) == 'scale_elastic')then
       rank_commands = 5
       return
    end if
@@ -4158,8 +4187,16 @@ integer(kind=4) function rank_commands(command)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
-   if(command(startw(1):stopw(1)) == 'file')then
-      rank_commands = 6
+   if(command(startw(1):stopw(1)) == 'track_gammas')then
+      rank_commands = 5
+      return
+   end if
+!
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!
+   if(command(startw(1):stopw(1)) == 'max_j_allowed')then
+      rank_commands = 5
       return
    end if
 !
@@ -4182,23 +4219,7 @@ integer(kind=4) function rank_commands(command)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
-   if(command(startw(1):stopw(1)) == 'lev_option')then
-      rank_commands = 7 
-      return
-   end if
-!
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!
    if(command(startw(1):stopw(1)) == 'lev_aparam')then
-      rank_commands = 7
-      return
-   end if
-!
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!
-   if(command(startw(1):stopw(1)) == 'fit_gamma_gamma')then
       rank_commands = 7
       return
    end if
@@ -4216,14 +4237,6 @@ integer(kind=4) function rank_commands(command)
 !
    if(command(startw(1):stopw(1)) == 'lev_fit_aparam')then
       rank_commands = 8
-      return
-   end if
-!
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!
-   if(command(startw(1):stopw(1)) == 'pair_model')then
-      rank_commands = 8 
       return
    end if
 !
@@ -4360,30 +4373,6 @@ integer(kind=4) function rank_commands(command)
 !
    if(command(startw(1):startw(1)+3) == 'optical_potential')then
       rank_commands = 13
-      return
-   end if
-!
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!
-   if(command(startw(1):stopw(1)) == 'preeq_model')then
-      rank_commands = 13 
-      return
-   end if
-!
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!
-   if(command(startw(1):stopw(1)) == 'wf_model')then
-      rank_commands = 13 
-      return
-   end if
-!
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!
-   if(command(startw(1):stopw(1)) == 'do_dwba')then
-      rank_commands = 13 
       return
    end if
 !

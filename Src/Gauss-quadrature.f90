@@ -267,6 +267,8 @@ real(kind=8) function poly_b(n, kind, alpha, beta)
     elseif(kind == 3)then                   !   Hermite
        poly_b = 0.0d0
     elseif(kind == 4)then                   !   Jacobi
+       poly_b = 0.0d0
+       if(n == 0 .and. abs(beta**2 - alpha**2) < 1.0d-10)return
        xLn = two_xn + alpha + beta
        poly_b = (beta**2 - alpha**2)/(xLn*(xLn+2.0d0))
     elseif(kind == 5)then                   !   Chebyshev (Type I)

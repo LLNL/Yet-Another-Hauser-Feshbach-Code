@@ -32,7 +32,7 @@ module options
 !
    use variable_kinds
    character(len=132) :: version
-   parameter (version = 'MC-3.56')
+   parameter (version = 'MC-3.58')
    integer(kind=int_64) :: iseed_64
    integer(kind=int_32) :: iseed_32
    integer(kind=4) :: PREEQ_Model
@@ -45,7 +45,9 @@ module options
    logical :: track_primary_gammas
    logical :: pop_calc
    logical :: j_pop_calc
-   logical :: fit_Gamma_gamma
+   logical :: fit_gamma_gamma
+   logical :: fit_aparam
+   logical :: lev_fit_d0
    logical :: all_discrete_states
    logical :: explicit_channels
    logical :: Preeq_g_a
@@ -58,6 +60,8 @@ module options
    logical :: pop_calc_prob
    logical :: file_energy_index
    logical :: refresh_library_directories
+   logical :: read_saved_params
+   logical :: do_dwba
 !-------------------------------------------
    integer(kind=4) :: num_comp
    integer(kind=4) :: output_mode
@@ -260,7 +264,7 @@ module Channel_info
       integer(kind=4), allocatable, dimension (:) :: decay_to
       integer(kind=4), allocatable, dimension (:) :: decay_particle
       real(kind=8), allocatable, dimension (:) :: Channel_prob
-      real(kind=8), allocatable, dimension (:) :: Channel_trans
+!-rem      real(kind=8), allocatable, dimension (:) :: Channel_trans
       type(first_decay), allocatable, dimension (:) :: Channel_decay
    end type channel_data
       
@@ -629,10 +633,11 @@ module nuclei
       real(kind=8) :: level_param(20)                                 !  array for level density parameters: (1-8)= aparam,spin_cut,del,shell,gamma,ematch,ecut,sg2cut
       real(kind=8) :: a_Sn
       real(kind=8) :: sig2_Sn
-      logical fit_D0
-      logical fit_aparam
-      logical fit_ematch
-      logical fission_read
+      logical :: fit_D0
+      logical :: fit_aparam
+      logical :: fit_ematch
+      logical :: reading_param
+      logical :: param_read
    end type define_nuclei
 !
 !----------  Array for each nucleus in the calculation
@@ -826,6 +831,7 @@ module Gauss_integration
    real(kind=8), allocatable :: x_glag(:), w_glag(:) 
    integer(kind=4) :: n_gleg
    real(kind=8), allocatable :: x_gleg(:), w_gleg(:) 
+   real(kind=8), allocatable :: Gauss_leg(:,:)
 end module Gauss_integration
 !
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

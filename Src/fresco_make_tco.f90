@@ -35,6 +35,7 @@ subroutine fresco_make_tco(data_path, len_path, tco_file, len_tco,           &
 !        becchetti_t_potential
 !        avrigeanu_a_potential
 !        run_fresco
+!        exit_YAHFC
 !
 !     External functions:
 !
@@ -44,7 +45,7 @@ subroutine fresco_make_tco(data_path, len_path, tco_file, len_tco,           &
 !
 !     MPI routines:
 !
-!        MPI_Abort
+!        MPI_Abort    -----   via exit_YAHFC
 !
 !  Licensing:
 !
@@ -317,11 +318,33 @@ subroutine fresco_make_tco(data_path, len_path, tco_file, len_tco,           &
   nccba = 0
   ncc = 0
 
-  if(iproc == 0)write(6,*)'Check ',particle(pindex)%do_dwba
+!  if(iproc == 0)write(6,*)'Check ',particle(pindex)%do_dwba
 
+!--------------------------------------------------------------------------+
+!----   Put default, dummy allocation here to remove "spurious"            +
+!----   gfortran warnings that stride may not be initialized.              +
+!----   For dynamic arrays, if allocated in separate if blocks, gfortran   +
+!----   doesn't recognize it as being allocated. In addition, if the       +
+!----   array is never used do to an if condition, gfortran can't tell     +
+!----   and issues the warning. Since the warning is useful to have for    +
+!----   other variables, a dummy allocation of length 1 is made.           +
+!----   If a coupled channels calculaiton is performed, these arrays are   +
+!----   deallocated, and then properly allocated.                          +
+!--------------------------------------------------------------------------+
+  if(.not.allocated(cc_index))allocate(cc_index(1))
+  if(.not.allocated(cc_state_j))allocate(cc_state_j(1))
+  if(.not.allocated(cc_state_e))allocate(cc_state_e(1))
+  if(.not.allocated(cc_state_par))allocate(cc_state_par(1))
+  if(.not.allocated(cc_state_type))allocate(cc_state_type(1))
+  if(.not.allocated(cc_state_k))allocate(cc_state_k(1))
+  if(.not.allocated(cc_state_kpp))allocate(cc_state_kpp(1))
+  if(.not.allocated(cc_state_str))allocate(cc_state_str(1))
 
   cc_found = .false.
-!----   check for coupled channels ONLY in protons and neutrons
+!--------------------------------------------------------------------------+
+!----   check for coupled channels calculation, but ONLY for               +
+!----   protons and neutrons                                               +
+!--------------------------------------------------------------------------+
   if(pindex <= 2)then
      if(exist_cc_file)then
         ilen_cc_file = index(local_cc_file,' ')-1
@@ -338,199 +361,219 @@ subroutine fresco_make_tco(data_path, len_path, tco_file, len_tco,           &
      num_states = nucleus(itarget)%ncut
      if(all_discrete_states)num_states = nucleus(itarget)%num_discrete
 
-  do while(.not. cc_found)      !   - loop is on iz and ia nuclei not on lines in file
-     read(21,'(a)')line
-     if(line(1:3) == 'END' .or. line(1:3) == 'End' .or. line(1:3) =='end')exit
-     read(21,*)iztemp,iatemp
-     if(iztemp == iztarget .and. iatemp == iatarget)then
-        deformed = .true.
-        cc_found = .true.
-        read(21,*)beta(2), beta(4), beta(6)
-        if(nint(beta(2)) == -1)then
-           beta(2) = beta_def(2)
-           beta(4) = beta_def(4)
-           beta(6) = 1.0d-5
-        else
-           beta_def(2) = beta(2)
-           beta_def(4) = beta(4)
-           beta_def(6) = beta(6)
-        end if
-        if(abs(beta(6)) < 1.0d-5)beta(6) = 1.0d-5
-        def_l(2) = radius*beta(2)
-        def_l(4) = radius*beta(4)
-        def_l(6) = radius*beta(6)
-        read(21,*)num_cc_read, num_dwba
+     do while(.not. cc_found)      !   - loop is on iz and ia nuclei not on lines in file
+        read(21,'(a)')line
+        if(line(1:3) == 'END' .or. line(1:3) == 'End' .or. line(1:3) =='end')exit
+        read(21,*)iztemp,iatemp
+        if(iztemp == iztarget .and. iatemp == iatarget)then
+           deformed = .true.
+           cc_found = .true.
+           read(21,*)beta(2), beta(4), beta(6)
+           if(nint(beta(2)) == -1)then
+              beta(2) = beta_def(2)
+              beta(4) = beta_def(4)
+              beta(6) = 1.0d-5
+           else
+              beta_def(2) = beta(2)
+              beta_def(4) = beta(4)
+              beta_def(6) = beta(6)
+           end if
+           if(abs(beta(6)) < 1.0d-5)beta(6) = 1.0d-5
+           def_l(2) = radius*beta(2)
+           def_l(4) = radius*beta(4)
+           def_l(6) = radius*beta(6)
+           read(21,*)num_cc_read, num_dwba
 !----   Read in and compute total DWBA states if num_read > num_cc
 !------    Don't do DWBA for particles different from projectile
-        if(pindex /= iproj)then
-           num_read = num_cc_read
-           num_tot = num_cc_read
-        end if
+           if(pindex /= iproj)then
+              num_read = num_cc_read
+              num_tot = num_cc_read
+           end if
 !------    Don't do DWBA if do_dwba = .false.
-        if(.not. particle(pindex)%do_dwba)then
-           num_read = num_cc_read
-           num_tot = num_cc_read
-        end if
-        K_band = 200.0d0
-        J_gs = real(nucleus(itarget)%state(istate)%spin,kind=8)
+           if(.not. particle(pindex)%do_dwba)then
+              num_read = num_cc_read
+              num_tot = num_cc_read
+           end if
+           K_band = 200.0d0
+           J_gs = real(nucleus(itarget)%state(istate)%spin,kind=8)
 !----   First, get value for K for the ground-state, coupled-channels band
 !----   It is the lowest spin in the band, not necessarily the bandhead
-        num_tot = 0
-        num_cc = 0
-        do i = 1, num_cc_read
-           read(21,'(a)')line
-           call parse_string(line, numw, startw, stopw)
-           read(line(startw(2):stopw(2)),*)cc_energy
-           read(line(startw(3):stopw(3)-1),*)cc_spin
-           if(line(stopw(3):stopw(3)) == '+')cc_par = 1.0d0
-           if(line(stopw(3):stopw(3)) == '-')cc_par = -1.0d0
-           jndex = state_index(itarget,cc_spin,cc_par,cc_energy)
-           if(jndex >= 1)then
-              if((cc_energy <= nucleus(itarget)%level_param(7) .or.                     &
-                 (cc_energy > nucleus(itarget)%level_param(7) .and. all_discrete_states)) .and.  &
-                 cc_spin < K_band)then
-                    K_band = cc_spin
-                    par_band = nint(cc_par)
-               end if
-               num_cc = num_cc + 1
-               num_tot = num_tot + 1
-           end if
-        end do 
+           num_tot = 0
+           num_cc = 0
+           do i = 1, num_cc_read
+              read(21,'(a)')line
+              call parse_string(line, numw, startw, stopw)
+              read(line(startw(2):stopw(2)),*)cc_energy
+              read(line(startw(3):stopw(3)-1),*)cc_spin
+              if(line(stopw(3):stopw(3)) == '+')cc_par = 1.0d0
+              if(line(stopw(3):stopw(3)) == '-')cc_par = -1.0d0
+              jndex = state_index(itarget,cc_spin,cc_par,cc_energy)
+              if(jndex >= 1)then
+                 if((cc_energy <= nucleus(itarget)%level_param(7) .or.                     &
+                    (cc_energy > nucleus(itarget)%level_param(7) .and. all_discrete_states)) .and.  &
+                    cc_spin < K_band)then
+                       K_band = cc_spin
+                       par_band = nint(cc_par)
+                  end if
+                  num_cc = num_cc + 1
+                  num_tot = num_tot + 1
+              end if
+           end do 
 !----  Now we have K, read in DWBA states and work out couplings to get total
 !----  number of states that will be in full FRESCO calculation
-        do i = 1, num_dwba
-           read(21,'(a)')line
-           call parse_string(line, numw, startw, stopw)
-           read(line(startw(1):stopw(1)),*)jndex
-           read(line(startw(2):stopw(2)),*)ener
-           read(line(startw(3):stopw(3)-1),*)xJ
-           if(jndex > 0)then
-              do n = 1, num_states
-                 jjndex = nucleus(itarget)%state(n)%ensdf_index
-                 if(jndex == jjndex)then
-                    if(nucleus(itarget)%state(n)%energy > nucleus(itarget)%level_param(7) &
-                       .and. .not. all_discrete_states)exit
-                    num_tot = num_tot + 1
-                    exit
-                 end if
-              end do
-           else
+           do i = 1, num_dwba
+              read(21,'(a)')line
+              call parse_string(line, numw, startw, stopw)
+              read(line(startw(1):stopw(1)),*)jndex
+              read(line(startw(2):stopw(2)),*)ener
+              read(line(startw(3):stopw(3)-1),*)xJ
+              if(jndex > 0)then
+                 do n = 1, num_states
+                    jjndex = nucleus(itarget)%state(n)%ensdf_index
+                    if(jndex == jjndex)then
+                       if(nucleus(itarget)%state(n)%energy > nucleus(itarget)%level_param(7) &
+                          .and. .not. all_discrete_states)exit
+                       num_tot = num_tot + 1
+                       exit
+                    end if
+                 end do
+              else
 !-------    Make sure that energy of DWBA state is above lowest continuous
 !-------    energy bin
-              if(ener >= ebin_min)then
-                 if(xJ >= 0.0d0)then
-                    num_tot = num_tot + 1
-                 else
-                    read(line(startw(4):stopw(4)),*)KK
-                    xKK = real(KK,kind=8)
-                    xJmin = max(abs(xKK - K_band),K_band)
-                    xJmax = xKK + K_band
-                    num_K = nint(xJmax - xJmin) + 1
-                    num_tot = num_tot + num_K
+                 if(ener >= ebin_min)then
+                    if(xJ >= 0.0d0)then
+                       num_tot = num_tot + 1
+                    else
+                       read(line(startw(4):stopw(4)),*)KK
+                       xKK = real(KK,kind=8)
+                       xJmin = max(abs(xKK - K_band),K_band)
+                       xJmax = xKK + K_band
+                       num_K = nint(xJmax - xJmin) + 1
+                       num_tot = num_tot + num_K
+                    end if
                  end if
               end if
-           end if
-        end do
-!------    Allocate important arrays
-        if(.not.allocated(cc_index))allocate(cc_index(num_tot))
-        if(.not.allocated(cc_state_j))allocate(cc_state_j(num_tot))
-        if(.not.allocated(cc_state_e))allocate(cc_state_e(num_tot))
-        if(.not.allocated(cc_state_par))allocate(cc_state_par(num_tot))
-        if(.not.allocated(cc_state_type))allocate(cc_state_type(num_tot))
-        if(.not.allocated(cc_state_k))allocate(cc_state_k(num_tot))
-        if(.not.allocated(cc_state_kpp))allocate(cc_state_kpp(num_tot))
-        if(.not.allocated(cc_state_str))allocate(cc_state_str(num_tot))
-        cc_state_j(1) = nucleus(itarget)%state(1)%spin
-        cc_state_e(1) = nucleus(itarget)%state(1)%energy
-        cc_state_par(1) = nint(nucleus(itarget)%state(1)%parity)
-        cc_state_type(1) = 1
+           end do
+!--------------------------------------------------------------------------+
+!------    Allocate important arrays                                       +
+!--------------------------------------------------------------------------+
+!------    But first deallocate the dummy allocation                       +
+!--------------------------------------------------------------------------+
+           if(allocated(cc_index))deallocate(cc_index)
+           if(allocated(cc_state_j))deallocate(cc_state_j)
+           if(allocated(cc_state_e))deallocate(cc_state_e)
+           if(allocated(cc_state_par))deallocate(cc_state_par)
+           if(allocated(cc_state_type))deallocate(cc_state_type)
+           if(allocated(cc_state_k))deallocate(cc_state_k)
+           if(allocated(cc_state_kpp))deallocate(cc_state_kpp)
+           if(allocated(cc_state_str))deallocate(cc_state_str)
+!--------------------------------------------------------------------------+
+!------    Now, allocate to proper size                                    +
+!--------------------------------------------------------------------------+
+           if(.not.allocated(cc_index))allocate(cc_index(num_tot))
+           if(.not.allocated(cc_state_j))allocate(cc_state_j(num_tot))
+           if(.not.allocated(cc_state_e))allocate(cc_state_e(num_tot))
+           if(.not.allocated(cc_state_par))allocate(cc_state_par(num_tot))
+           if(.not.allocated(cc_state_type))allocate(cc_state_type(num_tot))
+           if(.not.allocated(cc_state_k))allocate(cc_state_k(num_tot))
+           if(.not.allocated(cc_state_kpp))allocate(cc_state_kpp(num_tot))
+           if(.not.allocated(cc_state_str))allocate(cc_state_str(num_tot))
+           cc_state_j(1) = nucleus(itarget)%state(1)%spin
+           cc_state_e(1) = nucleus(itarget)%state(1)%energy
+           cc_state_par(1) = nint(nucleus(itarget)%state(1)%parity)
+           cc_state_type(1) = 1
+!--------------------------------------------------------------------------+
 !-------   Read in coupled-channels information
 !-------   First rewind file and get back to the point for reading in data
-
-        do i = 1, num_cc_read + num_dwba
-           backspace(21)
-        end do
-        ncount = 0
-        do i = 1, num_cc_read
-           read(21,'(a)')line
-           call parse_string(line, numw, startw, stopw)
-           read(line(startw(2):stopw(2)),*)cc_energy
-           read(line(startw(3):stopw(3)-1),*)cc_spin
-           if(line(stopw(3):stopw(3)) == '+')cc_par = 1.0d0
-           if(line(stopw(3):stopw(3)) == '-')cc_par = -1.0d0
+!--------------------------------------------------------------------------+
+           do i = 1, num_cc_read + num_dwba
+              backspace(21)
+           end do
+           ncount = 0
+           do i = 1, num_cc_read
+              read(21,'(a)')line
+              call parse_string(line, numw, startw, stopw)
+              read(line(startw(2):stopw(2)),*)cc_energy
+              read(line(startw(3):stopw(3)-1),*)cc_spin
+              if(line(stopw(3):stopw(3)) == '+')cc_par = 1.0d0
+              if(line(stopw(3):stopw(3)) == '-')cc_par = -1.0d0
+!--------------------------------------------------------------------------+
 !-----  See if state in cc list is in calculation
 !-----  Check against all discrete states for target - jndex is index in ensdf evaluated file
 !-----  This is stored in %state(n)%ensdf_index
 !-----  The loop n is over all descrete states
-           jndex = state_index(itarget,cc_spin,cc_par,cc_energy)
-           if(jndex <= 0)then
-              if(iproc == 0)then
-                 write(6,*)'Error in coupled channels, this state has an improper cc_index'
-                 write(6,'(a)')line(1:stopw(numw))
-                 write(6,*)'Possible fixes:'
-                 write(6,*)'1. Use option "all_discrete_states"'
-                 write(6,*)'2. Compare energy, J^pi between RIPL-3 file and Coupled-Channels.txt'
-                 write(6,*)'3. Check coupled-channels state has valid decay path, update in evaluated RIPL-3 file'
-              end if
-#if(USE_MPI==1)
-              call MPI_Abort(icomm, 101, ierr)
-#endif
-           end if
-           if(cc_energy <= nucleus(itarget)%level_param(7) .or.                     &
-              (cc_energy > nucleus(itarget)%level_param(7) .and. all_discrete_states))then
-              cc_index(i) = jndex
-              ii = cc_index(i)
-              if(ii == istate)then
-                 if_state = i
-              end if
-              cc_state_j(i) = nucleus(itarget)%state(ii)%spin
-              cc_state_e(i) = nucleus(itarget)%state(ii)%energy
-              cc_state_par(i) = nint(nucleus(itarget)%state(ii)%parity)
-              cc_state_type(i) = 1
-              cc_state_kpp(i) = 1
-              cc_state_k(i) = 0
-              cc_state_str(i) = 0.0d0
-              ncount = ncount + 1
-           end if
-        end do
-!------    read in information for DWBA states
-        do i = 1, num_dwba
-           read(21,'(a)')line
-           call parse_string(line, numw, startw, stopw)
-           read(line(startw(1):stopw(1)),*)jndex
-           if(numw < 5 .and. iproc == 0)then
-              write(6,*)'Error reading in coupled channels'
-              write(6,*)'Not enough entries for DWBA state'
-              write(6,*)'This is entry #',i,' in list'
-              write(6,'(a)')line(1:stopw(numw))
-           end if
-           if(jndex > 0)then
-              do n = 1, num_states
-                 if(jndex == nucleus(itarget)%state(n)%ensdf_index)then
-                    if(nucleus(itarget)%state(n)%energy > nucleus(itarget)%level_param(7) &
-                       .and. .not. all_discrete_states)exit
-                    ncount = ncount + 1
-                    cc_index(ncount) = n
-                    ii = cc_index(ncount)
-                    cc_state_j(ncount) = nucleus(itarget)%state(ii)%spin
-                    cc_state_e(ncount) = nucleus(itarget)%state(ii)%energy
-                    cc_state_par(ncount) = nint(nucleus(itarget)%state(ii)%parity)
-                    cc_state_type(ncount) = 1
-                    cc_state_kpp(ncount) = 2
-                    read(line(startw(4):stopw(4)),*)cc_state_k(ncount)
-                    read(line(startw(5):stopw(5)),*)cc_state_str(ncount)
-                    exit
+!--------------------------------------------------------------------------+
+              jndex = state_index(itarget,cc_spin,cc_par,cc_energy)
+              if(jndex <= 0)then
+                 if(iproc == 0)then
+                    write(6,*)'Error in coupled channels, this state has an improper cc_index'
+                    write(6,'(a)')line(1:stopw(numw))
+                    write(6,*)'Possible fixes:'
+                    write(6,*)'1. Use option "all_discrete_states"'
+                    write(6,*)'2. Compare energy, J^pi between RIPL-3 file and Coupled-Channels.txt'
+                    write(6,*)'3. Check coupled-channels state has valid decay path, update in evaluated RIPL-3 file'
                  end if
-              end do
-           elseif(jndex == 0)then
-              read(line(startw(2):stopw(2)),*)ener
-              read(line(startw(3):stopw(3)-1),*)xJ
-              read(line(startw(4):stopw(4)),*)KK
-              read(line(startw(5):stopw(5)),*)STR
+                 call exit_YAHFC(101)
+              end if
+              if(cc_energy <= nucleus(itarget)%level_param(7) .or.                     &
+                 (cc_energy > nucleus(itarget)%level_param(7) .and. all_discrete_states))then
+                 cc_index(i) = jndex
+                 ii = cc_index(i)
+                 if(ii == istate)then
+                    if_state = i
+                 end if
+                 cc_state_j(i) = nucleus(itarget)%state(ii)%spin
+                 cc_state_e(i) = nucleus(itarget)%state(ii)%energy
+                 cc_state_par(i) = nint(nucleus(itarget)%state(ii)%parity)
+                 cc_state_type(i) = 1
+                 cc_state_kpp(i) = 1
+                 cc_state_k(i) = 0
+                 cc_state_str(i) = 0.0d0
+                 ncount = ncount + 1
+              end if
+           end do
+!--------------------------------------------------------------------------+
+!------    read in information for DWBA states
+!--------------------------------------------------------------------------+
+           do i = 1, num_dwba
+              read(21,'(a)')line
+              call parse_string(line, numw, startw, stopw)
+              read(line(startw(1):stopw(1)),*)jndex
+              if(numw < 5 .and. iproc == 0)then
+                 write(6,*)'Error reading in coupled channels'
+                 write(6,*)'Not enough entries for DWBA state'
+                 write(6,*)'This is entry #',i,' in list'
+                 write(6,'(a)')line(1:stopw(numw))
+              end if
+              if(jndex > 0)then
+                 do n = 1, num_states
+                    if(jndex == nucleus(itarget)%state(n)%ensdf_index)then
+                       if(nucleus(itarget)%state(n)%energy > nucleus(itarget)%level_param(7) &
+                          .and. .not. all_discrete_states)exit
+                       ncount = ncount + 1
+                       cc_index(ncount) = n
+                       ii = cc_index(ncount)
+                       cc_state_j(ncount) = nucleus(itarget)%state(ii)%spin
+                       cc_state_e(ncount) = nucleus(itarget)%state(ii)%energy
+                       cc_state_par(ncount) = nint(nucleus(itarget)%state(ii)%parity)
+                       cc_state_type(ncount) = 1
+                       cc_state_kpp(ncount) = 2
+                       read(line(startw(4):stopw(4)),*)cc_state_k(ncount)
+                       read(line(startw(5):stopw(5)),*)cc_state_str(ncount)
+                       exit
+                    end if
+                 end do
+              elseif(jndex == 0)then
+                 read(line(startw(2):stopw(2)),*)ener
+                 read(line(startw(3):stopw(3)-1),*)xJ
+                 read(line(startw(4):stopw(4)),*)KK
+                 read(line(startw(5):stopw(5)),*)STR
+!--------------------------------------------------------------------------+
 !-------    Make sure that energy of DWBA state is above lowest continuous
 !-------    energy bin
-              if(ener >= ebin_min)then
-                 if(xJ >= 0.0d0)then
+!--------------------------------------------------------------------------+
+                 if(ener >= ebin_min)then
+                    if(xJ >= 0.0d0)then
                     ncount = ncount + 1
                     cc_index(ncount) = jndex
                     cc_state_e(ncount) = ener
@@ -549,9 +592,7 @@ subroutine fresco_make_tco(data_path, len_path, tco_file, len_tco,           &
                     xJmin = xJmin - 1.0d0
                     if(par_band == -100)then
                        if(iproc == 0)write(6,*)'par_band not set correctly'
-#if(USE_MPI==1)
-                       call MPI_Abort(icomm, 101, ierr)
-#endif
+                       call exit_YAHFC(101)
                     end if
                     par_state = par_band*(-1)**KK
                     do k = 1, num_K
@@ -566,58 +607,56 @@ subroutine fresco_make_tco(data_path, len_path, tco_file, len_tco,           &
                        cc_state_str(ncount) = STR
                        cc_state_kpp(ncount) = 2
                     end do
-                  end if
+                 end if
               end if
-           elseif(jndex == -1)then
-              read(line(startw(2):stopw(2)),*)ener
-              read(line(startw(3):stopw(3)-1),*)xJ
-              read(line(startw(4):stopw(4)),*)KK
-              read(line(startw(5):stopw(5)),*)STR
+              elseif(jndex == -1)then
+                 read(line(startw(2):stopw(2)),*)ener
+                 read(line(startw(3):stopw(3)-1),*)xJ
+                 read(line(startw(4):stopw(4)),*)KK
+                 read(line(startw(5):stopw(5)),*)STR
+!--------------------------------------------------------------------------+
 !-------    Make sure that energy of DWBA state is above lowest continuous
 !-------    energy bin
-              if(ener >= ebin_min)then
-                 ncount = ncount + 1
-                 cc_index(ncount) = jndex
-                 cc_state_e(ncount) = ener
-                 cc_state_j(ncount) = XJ
-                 cc_state_par(ncount) = 1
-                 if(line(stopw(3):stopw(3)) == '-')cc_state_par(ncount) = -1
-                 cc_state_type(ncount) = -1
-                 cc_state_k(ncount) = kk
-                 cc_state_str(ncount) = STR
-                 cc_state_kpp(ncount) = 2
+!--------------------------------------------------------------------------+
+                 if(ener >= ebin_min)then
+                    ncount = ncount + 1
+                    cc_index(ncount) = jndex
+                    cc_state_e(ncount) = ener
+                    cc_state_j(ncount) = XJ
+                    cc_state_par(ncount) = 1
+                    if(line(stopw(3):stopw(3)) == '-')cc_state_par(ncount) = -1
+                    cc_state_type(ncount) = -1
+                    cc_state_k(ncount) = kk
+                    cc_state_str(ncount) = STR
+                    cc_state_kpp(ncount) = 2
+                 end if
               end if
-           end if
-        end do
-        ncc = num_cc
-        nex = num_tot
-     else
+           end do
+           ncc = num_cc
+           nex = num_tot
+        else
+!--------------------------------------------------------------------------+
 !-------    Nucleus not found yet, so keep reading
-        read(21,*)
-        read(21,*)num_cc,num_temp
-        do i = 1, num_cc + num_temp
+!--------------------------------------------------------------------------+
            read(21,*)
-        end do
-     end if
+           read(21,*)num_cc,num_temp
+           do i = 1, num_cc + num_temp
+              read(21,*)
+           end do
+        end if
      end do
-     close(unit=21)
+  close(unit=21)
   end if
+!--------------------------------------------------------------------------+
 !------     Nucleus not found in coupled channels file, so perform spherical optical model
 !------     set do_dwba = .false.
+!--------------------------------------------------------------------------+
   if(.not. cc_found)then
      particle(pindex)%do_dwba = .false.
      num_cc = 1
      num_tot = num_cc
      nex = num_tot
      ncc = num_cc
-     if(.not.allocated(cc_index))allocate(cc_index(num_tot))
-     if(.not.allocated(cc_state_j))allocate(cc_state_j(num_tot))
-     if(.not.allocated(cc_state_e))allocate(cc_state_e(num_tot))
-     if(.not.allocated(cc_state_par))allocate(cc_state_par(num_tot))
-     if(.not.allocated(cc_state_type))allocate(cc_state_type(num_tot))
-     if(.not.allocated(cc_state_k))allocate(cc_state_k(num_tot))
-     if(.not.allocated(cc_state_kpp))allocate(cc_state_kpp(num_tot))
-     if(.not.allocated(cc_state_str))allocate(cc_state_str(num_tot))
      cc_index(1) = istate
      cc_state_j(1) = nucleus(itarget)%state(istate)%spin
      cc_state_e(1) = nucleus(itarget)%state(istate)%energy
@@ -630,9 +669,10 @@ subroutine fresco_make_tco(data_path, len_path, tco_file, len_tco,           &
      J_gs = 0.0d0
   end if
 
-
+!--------------------------------------------------------------------------+
 !---------    Sort through coupled channels states, remove if above e_cut and not 
 !---------    tracking all discretes. Also, remove if CCBA states are degenerate
+!--------------------------------------------------------------------------+
 
   e_cut = nucleus(itarget)%level_param(7)
   n = 2
@@ -640,7 +680,7 @@ subroutine fresco_make_tco(data_path, len_path, tco_file, len_tco,           &
      remove = .false.
      if(cc_state_type(n) == 1)then
         if(cc_state_e(n) > e_cut .and. .not. all_discrete_states)then    ! remove from the list, push others down
-           do i = n + 1,nex
+           do i = n + 1, nex
               cc_index(i-1) = cc_index(i)
               cc_state_e(i-1) = cc_state_e(i)
               cc_state_j(i-1) = cc_state_j(i)
@@ -829,9 +869,7 @@ subroutine fresco_make_tco(data_path, len_path, tco_file, len_tco,           &
         write(fresco_name(iend-3:iend),'(i4)')ie
      else
         write(6,*)'ie > 9999 cannot run fresco'
-#if(USE_MPI==1)
-        call MPI_Abort(icomm, 101, ierr)
-#endif
+        call exit_YAHFC(101)
      end if
 
      len_fresco = iend

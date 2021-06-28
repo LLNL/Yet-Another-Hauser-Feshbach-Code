@@ -169,16 +169,16 @@ subroutine pre_equilibrium_1(icomp, istate, in, E_inc,    &
    iproj = projectile%particle_type
    Z = nucleus(icomp)%Z
    A = nucleus(icomp)%A
-   xA = dfloat(A)
+   xA = real(A,kind=8)
    Ap = projectile%A
-   xAp = dfloat(Ap)
+   xAp = real(Ap,kind=8)
    N = A - Z
    if(Preeq_g_a)then
       g = nucleus(icomp)%a_Sn*pi**2/6.0d0
       Preeq_g_div = xA/g
    end if
-   gnn = dfloat(N)/Preeq_g_div
-   gpp = dfloat(Z)/Preeq_g_div
+   gnn = real(N,kind=8)/Preeq_g_div
+   gpp = real(Z,kind=8)/Preeq_g_div
    gg = gpp + gnn
 
 
@@ -243,7 +243,7 @@ subroutine pre_equilibrium_1(icomp, istate, in, E_inc,    &
          omdenom = omega2(pn,hn,pp,hp,Z,A,gp,gn,Ex_tot,Delta,H_max,Vwell)
 
          if(omdenom <= 1.0d-10)cycle
-         xn = dfloat(n_tot)
+         xn = real(n_tot,kind=8)
          Msq = (M2_C1*xAp/xA**3)*(7.48d0*M2_C2+4.62d5/(Ex_tot/(xn*xAp)+10.7*M2_C3)**3)
          if(analytic_preeq)Msq=1.2*Msq
          Msq_pp = M2_Rpp*Msq
@@ -274,24 +274,24 @@ subroutine pre_equilibrium_1(icomp, istate, in, E_inc,    &
 
 
 
-            L_p_p_an=2.0d0*pi*gp**2/(2.0d0*xn*(xn+1.0d0))*((Ex_tot-Pauli(pn,hn,pp+1,hp+1,gp,gn))**(n_tot+1)/           & 
-                                                           (Ex_tot-Pauli(pn,hn,pp,hp,gp,gn))**(n_tot-1))*              &
-                                                           (dfloat(pp+hp)*gp*Msq_pp+2.0d0*dfloat(pn+hn)*gn*Msq_pn)*    &
+            L_p_p_an=2.0d0*pi*gp**2/(2.0d0*xn*(xn+1.0d0))*((Ex_tot-Pauli(pn,hn,pp+1,hp+1,gp,gn))**(n_tot+1)/                     & 
+                                                           (Ex_tot-Pauli(pn,hn,pp,hp,gp,gn))**(n_tot-1))*                        &
+                                                           (real(pp+hp,kind=8)*gp*Msq_pp+2.0d0*real(pn+hn,kind=8)*gn*Msq_pn)*    &
                                                            finite_well(p_tot+1,h_tot+1,Ex_tot,h_max,Vwell)
-            L_p_n_an=2.0d0*pi*gn**2/(2.0d0*xn*(xn+1.0d0))*((Ex_tot-Pauli(pn+1,hn+1,pp,hp,gp,gn))**(n_tot+1)/           &
-                                                           (Ex_tot-Pauli(pn,hn,pp,hp,gp,gn))**(n_tot-1))*              &
-                                                           (dfloat(pn+hn)*gn*Msq_nn+2.0d0*dfloat(pp+hp)*gp*Msq_np)*    &
+            L_p_n_an=2.0d0*pi*gn**2/(2.0d0*xn*(xn+1.0d0))*((Ex_tot-Pauli(pn+1,hn+1,pp,hp,gp,gn))**(n_tot+1)/                     &
+                                                           (Ex_tot-Pauli(pn,hn,pp,hp,gp,gn))**(n_tot-1))*                        &
+                                                           (real(pn+hn,kind=8)*gn*Msq_nn+2.0d0*real(pp+hp,kind=8)*gp*Msq_np)*    &
                                                            finite_well(p_tot+1,h_tot+1,Ex_tot,h_max,Vwell)
             A_Pauli = Pauli(pn,hn,pp,hp,gp,gn)
             B_Pauli = max(Pauli(pn,hn,pp,hp,gp,gn),Pauli(pn+1,hn+1,pp-1,hp-1,gp,gn))
-            L_0_pn_an = 2.0d0*pi*Msq_pn*(dfloat(pp)*dfloat(hp)/xn)*gn**2*                                              &
+            L_0_pn_an = 2.0d0*pi*Msq_pn*(real(pp*hp,kind=8)/xn)*gn**2*                                         &
                         finite_well(p_tot,h_tot,Ex_tot,h_max,Vwell)*                                           &
-                        (2.0d0*(Ex_tot-B_Pauli)+xn*dabs(A_Pauli-Pauli(pn+1,hn+1,pp-1,hp-1,gp,gn)))*                    &
+                        (2.0d0*(Ex_tot-B_Pauli)+xn*dabs(A_Pauli-Pauli(pn+1,hn+1,pp-1,hp-1,gp,gn)))*            &
                          ((Ex_tot-B_Pauli)/(Ex_tot-A_Pauli))**(n_tot-1)
             B_Pauli = max(Pauli(pn,hn,pp,hp,gp,gn),Pauli(pn-1,hn-1,pp+1,hp+1,gp,gn))
-            L_0_np_an = 2.0d0*pi*Msq_np*(dfloat(pn)*dfloat(hn)/xn)*gp**2*                                              &
+            L_0_np_an = 2.0d0*pi*Msq_np*(real(pn*hn,kind=8)/xn)*gp**2*                                         &
                         finite_well(p_tot,h_tot,Ex_tot,h_max,Vwell)*                                           &
-                        (2.0d0*(Ex_tot-B_Pauli)+xn*dabs(A_Pauli-Pauli(pn-1,hn-1,pp+1,hp+1,gp,gn)))*                    &
+                        (2.0d0*(Ex_tot-B_Pauli)+xn*dabs(A_Pauli-Pauli(pn-1,hn-1,pp+1,hp+1,gp,gn)))*            &
                         ((Ex_tot-B_Pauli)/(Ex_tot-A_Pauli))**(n_tot-1)
 
 
@@ -318,8 +318,8 @@ subroutine pre_equilibrium_1(icomp, istate, in, E_inc,    &
             Zf = nucleus(ifinal)%Z
             Af = nucleus(ifinal)%A
             Nf = Af - Zf
-            gnnf = dfloat(Nf)/Preeq_g_div
-            gppf = dfloat(Zf)/Preeq_g_div
+            gnnf = real(Nf,kind=8)/Preeq_g_div
+            gppf = real(Zf,kind=8)/Preeq_g_div
             ggf = gnnf + gppf
             if(k == iproj)then
                spin_target = nucleus(ifinal)%state(istate)%spin
@@ -342,7 +342,7 @@ subroutine pre_equilibrium_1(icomp, istate, in, E_inc,    &
             factor1 = barn_eq_fmsq/((pi*hbar_c)**2*hbar)
 
             do m = 1, nbin_end                        !  loop over output energies
-               energy = dfloat(m)*de
+               energy = real(m,kind=8)*de
                if(energy - Coulomb_Barrier(k) <= 1.0d-6)cycle
                Ex_final = Ex_tot - energy - Sep
                Delta = Delta_pre(pn_res,hn,pp_res,hp,Zf,Af,gpf,gnf,Ex_final)
@@ -479,7 +479,7 @@ subroutine pre_equilibrium_1(icomp, istate, in, E_inc,    &
       e_bin = e_max
       nbin_end = min(int(e_bin/de),nucleus(icomp)%nbin_part)
       do m = 0, nbin_end                           !  loop over output energies
-         energy = dfloat(m)*de
+         energy = real(m,kind=8)*de
          if(energy - Coulomb_Barrier(k) <= 1.0d-6)cycle
          nucleus(icomp)%PREEQ_part_spectrum(kk,m)=0.0d0
          ex_final = ex_tot - energy - nucleus(icomp)%sep_e(k)
@@ -570,7 +570,7 @@ real(kind=8) function Well(h,A,energy,V1,V3,K)
 !----------  Internal Data     ---------------------------------------
    real(kind=8) xA,V2
 !----------  Start Calculation
-   xA=dfloat(A)**(1.0d0/3.0d0)
+   xA = real(A,kind=8)**(1.0d0/3.0d0)
    V2 = V3 - V1
    if(h <= 1)then
       Well = V1 + V2*energy**4/(energy**4 + (K/xA)**4)
@@ -654,8 +654,8 @@ real(kind=8) function omega2(pn,hn,pp,hp,Z,A,gp,gn,Ex,Delta,h_max,Vwell)
    p_tot = pn + pp
    h_tot = hn + hp
    n_tot = pn + hn + pp + hp
-   fp = dfloat(pp*2+hp**2 + pp + hp)/(4.0d0*gp)
-   fn = dfloat(pn*2+hn**2 + pn + hn)/(4.0d0*gn)
+   fp = real(pp*2+hp**2 + pp + hp,kind=8)/(4.0d0*gp)
+   fn = real(pn*2+hn**2 + pn + hn,kind=8)/(4.0d0*gn)
    APauli = Pauli(pn,hn,pp,hp,gp,gn)
    if(APauli >= Ux)return
    Uxx = Ux - APauli                         !  Ux-pauli defines omega - it shouldn't be negative
@@ -733,7 +733,7 @@ real(kind=8) function Delta_pre(pn,hn,pp,hp,Z,A,gp,gn,Ex)
    g = gp + gn
    n_tot = pn + pp + hn + hp
    Delta = 0.0d0
-   xA = dfloat(A)
+   xA = real(A,kind=8)
    N = A - Z
    if(iand(Z,1) == 1 .and. iand(N,1) == 1)then
       Delta = 0.0d0
@@ -750,7 +750,7 @@ real(kind=8) function Delta_pre(pn,hn,pp,hp,Z,A,gp,gn,Ex)
    if(preeq_pair_model == 0)return      
    T_crit = 2.0d0*dsqrt(Delta/(0.25d0*g))/3.5d0
    n_crit = 2.0d0*g*T_crit*log(2.0)
-   xn = dfloat(n_tot)/n_crit
+   xn = real(n_tot,kind=8)/n_crit
    ratio = 0.716d0+2.44d0*xn**2.17d0
    xdelta = (0.996-1.76*xn**1.6/(Ex/Delta)**0.68)**2
    Delta_ex = 0.0d0
@@ -807,9 +807,9 @@ real(kind=8) function Pauli(pn,hn,pp,hp,gp,gn)
    integer(kind=4), intent(in) :: pn,hn,pp,hp
    real(kind=8), intent(in) :: gp,gn
 !--------   Start Calculation    -------------------------------------
-   Pauli = dfloat(max(pp,hp))**2/gp + dfloat(max(pn,hn))**2/gn -      &
-           dfloat(pp**2 + hp**2 + pp + hp)/(4.0d0*gp) -               &
-           dfloat(pn**2 + hn**2 + pn + hn)/(4.0d0*gn)
+   Pauli = real(max(pp,hp),kind=8)**2/gp + real(max(pn,hn),kind=8)**2/gn -      &
+           real(pp**2 + hp**2 + pp + hp,kind=8)/(4.0d0*gp) -               &
+           real(pn**2 + hn**2 + pn + hn,kind=8)/(4.0d0*gn)
    return
 end function Pauli
 !
@@ -1103,95 +1103,95 @@ subroutine int_trans_rate(pn,hn,pp,hp,Z,A,gp,gn,Ex,Delta,h_max,Vwell,          &
 !------------------------------------------------ Limits for Lambda^+_p
    Lp_pp_1 = max(Pauli(pn,hn,pp+1,hp+1,gp,gn) - Pauli(pn,hn,pp-1,hp,gp,gn),0.0d0)
    Lp_pp_2 = max(Ex - Pauli(pn,hn,pp-1,hp,gp,gn),Lp_pp_1)
-   if(Lp_pp_2 > Lp_pp_1)de_p_pp = (Lp_pp_2-Lp_pp_1)/dfloat(npoints+1)
+   if(Lp_pp_2 > Lp_pp_1)de_p_pp = (Lp_pp_2-Lp_pp_1)/real(npoints+1,kind=8)
 
    Lh_pp_1 = max(Pauli(pn,hn,pp+1,hp+1,gp,gn) - Pauli(pn,hn,pp,hp-1,gp,gn),0.0d0)
    Lh_pp_2 = max(Ex - Pauli(pn,hn,pp,hp-1,gp,gn),Lh_pp_1)
-   if(Lh_pp_2 > Lh_pp_1)de_h_pp = (Lh_pp_2-Lh_pp_1)/dfloat(npoints+1)
+   if(Lh_pp_2 > Lh_pp_1)de_h_pp = (Lh_pp_2-Lh_pp_1)/real(npoints+1,kind=8)
 
    Lp_np_1 = max(Pauli(pn+1,hn+1,pp,hp,gp,gn) - Pauli(pn-1,hn,pp,hp,gp,gn),0.0d0)
    Lp_np_2 = max(Ex - Pauli(pn-1,hn,pp,hp,gp,gn),Lp_np_1)
-   if(Lp_np_2 > Lp_np_1)de_p_np = (Lp_np_2-Lp_np_1)/dfloat(npoints+1)
+   if(Lp_np_2 > Lp_np_1)de_p_np = (Lp_np_2-Lp_np_1)/real(npoints+1,kind=8)
 
    Lh_np_1 = max(Pauli(pn,hn,pp+1,hp+1,gp,gn) - Pauli(pn,hn-1,pp,hp,gp,gn),0.0d0)
    Lh_np_2 = max(Ex - Pauli(pn,hn-1,pp,hp,gp,gn),Lh_np_1)
-   if(Lh_np_2 > Lh_np_1)de_h_np = (Lh_np_2-Lh_np_1)/dfloat(npoints+1)
+   if(Lh_np_2 > Lh_np_1)de_h_np = (Lh_np_2-Lh_np_1)/real(npoints+1,kind=8)
 !------------------------------------------------ Limits for Lambda^+_p
    Lp_nn_1 = max(Pauli(pn+1,hn+1,pp,hp,gp,gn) - Pauli(pn-1,hn,pp,hp,gp,gn),0.0d0)
    Lp_nn_2 = max(Ex - Pauli(pn-1,hn,pp,hp,gp,gn),Lp_nn_1)
-   if(Lp_nn_2 > Lp_nn_1)de_p_nn = (Lp_nn_2-Lp_nn_1)/dfloat(npoints+1)
+   if(Lp_nn_2 > Lp_nn_1)de_p_nn = (Lp_nn_2-Lp_nn_1)/real(npoints+1,kind=8)
 
    Lh_nn_1 = max(Pauli(pn+1,hn+1,pp,hp,gp,gn) - Pauli(pn,hn-1,pp,hp,gp,gn),0.0d0)
    Lh_nn_2 = max(Ex - Pauli(pn,hn-1,pp,hp,gp,gn),lh_pp_1)
-   if(Lh_nn_2 > Lh_nn_1)de_h_nn = (Lh_nn_2-Lh_nn_1)/dfloat(npoints+1)
+   if(Lh_nn_2 > Lh_nn_1)de_h_nn = (Lh_nn_2-Lh_nn_1)/real(npoints+1,kind=8)
 
    Lp_pn_1 = max(Pauli(pn,hn,pp+1,hp+1,gp,gn) - Pauli(pn,hn,pp-1,hp,gp,gn),0.0d0)
    Lp_pn_2 = max(Ex - Pauli(pn,hn,pp-1,hp,gp,gn),Lp_pn_1)
-   if(Lp_pn_2 > Lp_pn_1)de_p_pn = (Lp_pn_2-Lp_pn_1)/dfloat(npoints+1)
+   if(Lp_pn_2 > Lp_pn_1)de_p_pn = (Lp_pn_2-Lp_pn_1)/real(npoints+1,kind=8)
 
    Lh_pn_1 = max(Pauli(pn+1,hn+1,pp,hp,gp,gn) - Pauli(pn,hn,pp,hp-1,gp,gn),0.0d0)
    Lh_pn_2 = max(Ex - Pauli(pn,hn,pp,hp-1,gp,gn),Lh_pn_1)
-   if(Lh_pn_2 > Lh_pn_1)de_h_pn = (Lh_pn_2-Lh_pn_1)/dfloat(npoints+1)
+   if(Lh_pn_2 > Lh_pn_1)de_h_pn = (Lh_pn_2-Lh_pn_1)/real(npoints+1,kind=8)
 !------------------------------------------------ Limits for Lambda^0_pn
    L0_pn_1 = max(Pauli(pn,hn,pp,hp,gp,gn) - Pauli(pn,hn,pp-1,hp-1,gp,gn),0.0d0)
    L0_pn_2 = max(ex - Pauli(pn,hn,pp-1,hp-1,gp,gn),L0_pn_1)
-   if(L0_pn_2 > L0_pn_1)de_0_pn = (L0_pn_2-L0_pn_1)/dfloat(npoints+1)
+   if(L0_pn_2 > L0_pn_1)de_0_pn = (L0_pn_2-L0_pn_1)/real(npoints+1,kind=8)
 !------------------------------------------------ Limits for Lambda^0_np
    L0_np_1 = max(Pauli(pn,hn,pp,hp,gp,gn) - Pauli(pn-1,hn-1,pp,hp,gp,gn),0.0d0)
    L0_np_2 = max(Ex - Pauli(pn-1,hn-1,pp,hp,gp,gn),L0_np_1)
-   if(L0_np_2 > L0_np_1)de_0_np = (L0_np_2-L0_np_1)/dfloat(npoints+1)
+   if(L0_np_2 > L0_np_1)de_0_np = (L0_np_2-L0_np_1)/real(npoints+1,kind=8)
 !------------------------------------------------  Initialize integration terms
    do i = 1, npoints
 !------------------------------------------------Lambda^+_p
-      u_p_pp = dfloat(i-1)*de_p_pp + Lp_pp_1
+      u_p_pp = real(i-1,kind=8)*de_p_pp + Lp_pp_1
       xl_1p_pp = 2.0d0*pi*Msq_pp*omega2(0,0,2,1,Z,A,gp,gn,u_p_pp,Delta,h_max,Vwell)/hbar
       lamb_p_pp = lamb_p_pp + omega2(pn,hn,pp-1,hp,Z,A,gp,gn,Ex-u_p_pp,Delta,h_max,Vwell)*     &
                               omega2(0,0,1,0,Z,A,gp,gn,u_p_pp,Delta,h_max,Vwell)*              &
                               xl_1p_pp*de_p_pp
-      u_h_pp = dfloat(i-1)*de_h_pp + Lh_pp_1
+      u_h_pp = real(i-1,kind=8)*de_h_pp + Lh_pp_1
       xl_1h_pp = 2.0d0*pi*Msq_pp*omega2(0,0,1,2,Z,A,gp,gn,u_h_pp,Delta,h_max,Vwell)/hbar
       lamb_h_pp = lamb_h_pp + omega2(pn,hn,pp,hp-1,Z,A,gp,gn,Ex-u_h_pp,Delta,h_max,Vwell)*     &
                               omega2(0,0,0,1,Z,A,gp,gn,u_h_pp,Delta,h_max,Vwell)*              &
                               xl_1h_pp*de_h_pp
-      u_p_np = dfloat(i-1)*de_p_np + Lp_np_1
+      u_p_np = real(i-1,kind=8)*de_p_np + Lp_np_1
       xl_1p_np = 2.0d0*pi*Msq_np*omega2(1,0,1,1,Z,A,gp,gn,u_p_np,Delta,h_max,Vwell)/hbar
       lamb_p_np = lamb_p_np + omega2(pn-1,hn,pp,hp,Z,A,gp,gn,Ex-u_p_np,Delta,h_max,Vwell)*     &
                               omega2(1,0,0,0,Z,A,gp,gn,u_p_np,Delta,h_max,Vwell)*              &
                               xl_1p_np*de_p_np
-      u_h_np = dfloat(i-1)*de_h_np + Lh_np_1
+      u_h_np = real(i-1,kind=8)*de_h_np + Lh_np_1
       xl_1h_np = 2.0d0*pi*Msq_np*omega2(0,1,1,1,Z,A,gp,gn,u_h_np,Delta,h_max,Vwell)/hbar
       lamb_h_np = lamb_h_np + omega2(pn,hn-1,pp,hp,Z,A,gp,gn,Ex-u_h_np,Delta,h_max,Vwell)*     &
                               omega2(0,1,0,0,Z,A,gp,gn,u_h_np,Delta,h_max,Vwell)*              &
                               xl_1h_np*de_h_np
 !------------------------------------------------Lambda^+_n
-      u_p_nn = dfloat(i-1)*de_p_nn + Lp_nn_1
+      u_p_nn = real(i-1,kind=8)*de_p_nn + Lp_nn_1
       xl_1p_nn = 2.0d0*pi*Msq_nn*omega2(2,1,0,0,Z,A,gp,gn,u_p_nn,Delta,h_max,Vwell)/hbar
       lamb_p_nn = lamb_p_nn + omega2(pn-1,hn,pp,hp,Z,A,gp,gn,Ex-u_p_nn,Delta,h_max,Vwell)*     &
                               omega2(1,0,0,0,Z,A,gp,gn,u_p_nn,Delta,h_max,Vwell)*              &
                               xl_1p_nn*de_p_nn
-      u_h_nn = dfloat(i-1)*de_h_nn + Lh_nn_1
+      u_h_nn = real(i-1,kind=8)*de_h_nn + Lh_nn_1
       xl_1h_nn = 2.0d0*pi*Msq_nn*omega2(1,2,0,0,Z,A,gp,gn,u_h_nn,Delta,h_max,Vwell)/hbar
       lamb_h_nn = lamb_h_nn + omega2(pn,hn-1,pp,hp,Z,A,gp,gn,Ex-u_h_nn,Delta,h_max,Vwell)*     &
                               omega2(0,1,0,0,Z,A,gp,gn,u_h_nn,Delta,h_max,Vwell)*              &
                               xl_1h_nn*de_h_nn
-      u_p_pn = dfloat(i-1)*de_p_pn + Lp_pn_1
+      u_p_pn = real(i-1,kind=8)*de_p_pn + Lp_pn_1
       xl_1p_pn = 2.0d0*pi*Msq_pn*omega2(1,1,1,0,Z,A,gp,gn,u_p_pn,Delta,h_max,Vwell)/hbar
       lamb_p_pn = lamb_p_pn + omega2(pn,hn,pp-1,hp,Z,A,gp,gn,Ex-u_p_pn,Delta,h_max,Vwell)*     &
                               omega2(0,0,1,0,Z,A,gp,gn,u_p_pn,Delta,h_max,Vwell)*              &
                               xl_1p_pn*de_p_pn
-      u_h_pn = dfloat(i-1)*de_h_pn + Lh_pn_1
+      u_h_pn = real(i-1,kind=8)*de_h_pn + Lh_pn_1
       xl_1h_pn = 2.0d0*pi*Msq_pn*omega2(1,1,0,1,Z,A,gp,gn,u_h_pn,Delta,h_max,Vwell)/hbar
       lamb_h_pn = lamb_h_pn + omega2(pn,hn,pp,hp-1,Z,A,gp,gn,Ex-u_h_pn,Delta,h_max,Vwell)*     &
                               omega2(0,0,0,1,Z,A,gp,gn,u_h_pn,Delta,h_max,Vwell)*              &
                               gp*xl_1h_pn*de_h_pn
 !-------------------------------------------------Lambda^0_pn
-      u_0_pn = dfloat(i-1)*de_0_pn + L0_pn_1
+      u_0_pn = real(i-1,kind=8)*de_0_pn + L0_pn_1
       xl_1p1h_pn = 2.0d0*pi*Msq_pn*omega2(1,1,0,0,Z,A,gp,gn,u_0_pn,Delta,h_max,Vwell)/hbar
       l_0_pn = l_0_pn + omega2(pn,hn,pp-1,hp-1,Z,A,gp,gn,Ex-u_0_pn,Delta,h_max,Vwell)*         &
                         omega2(0,0,1,1,Z,A,gp,gn,u_0_pn,Delta,h_max,Vwell)*                    &
                         xl_1p1h_pn*de_0_pn
 !-------------------------------------------------Lambda^0_np
-      u_0_np = dfloat(i-1)*de_0_np + L0_np_1
+      u_0_np = real(i-1,kind=8)*de_0_np + L0_np_1
       xl_1p1h_np = 2.0d0*pi*Msq_np*omega2(0,0,1,1,Z,A,gp,gn,u_0_np,Delta,h_max,Vwell)/hbar
       l_0_np = l_0_np + omega2(pn-1,hn-1,pp,hp,Z,A,gp,gn,Ex-u_0_np,Delta,h_max,Vwell)*         &
                         omega2(1,1,0,0,Z,A,gp,gn,u_0_np,Delta,h_max,Vwell)*                    &

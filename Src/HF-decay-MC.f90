@@ -32,6 +32,7 @@ subroutine MC_decay_bin(icomp_i, Ix_i, ip_i, nbin_i,                &
 !
 !        find_prob
 !        unpack_data
+!        exit_YAHFC
 !
 !     External functions:
 !
@@ -40,7 +41,7 @@ subroutine MC_decay_bin(icomp_i, Ix_i, ip_i, nbin_i,                &
 !
 !    MPI routines:
 !
-!        MPI_Abort
+!        MPI_Abort   ----    via exit_YAHFC
 !
 !  Licensing:
 !
@@ -230,9 +231,7 @@ subroutine MC_decay_bin(icomp_i, Ix_i, ip_i, nbin_i,                &
    if(icomp_f < 1)then
       write(6,*)'icomp_f < 1 after attempting to decay'
       write(6,*)'iproc = ',iproc
-#if(USE_MPI==1)
-      call MPI_Abort(icomm,201,ierr)
-#endif
+      call exit_YAHFC(201)
    end if
 
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -272,14 +271,12 @@ subroutine MC_decay_bin(icomp_i, Ix_i, ip_i, nbin_i,                &
       write(6,*)nucleus(icomp_i)%A, Ix_i, ip_i, nbin_i
       write(6,*)idb,l,k
       write(6,*)'iproc = ',iproc
-#if(USE_MPI==1)
-      call MPI_Abort(icomm,201,ierr)
-#endif
+      call exit_YAHFC(201)
    end if
 
 
    xI_f = real(Ix_f) + nucleus(icomp_f)%jshift
-   xj_f_min = abs(dfloat(l) - particle(k)%spin) 
+   xj_f_min = abs(real(l,kind=8) - particle(k)%spin) 
    xj_f = real(iss) + xj_f_min
    xip_f = 2.0d0*real(ip_f,kind=8) - 1
 
@@ -300,9 +297,7 @@ subroutine MC_decay_bin(icomp_i, Ix_i, ip_i, nbin_i,                &
          write(6,*)'num_part = ', num_part
          write(6,*)'e_f < -de/2 in MC_decay_bin (1)'
          write(6,*)'iproc = ',iproc
-#if(USE_MPI==1)
-         call MPI_Abort(icomm,201,ierr)
-#endif
+         call exit_YAHFC(201)
       end if
    else  
       e_f = ex_i - nucleus(icomp_i)%sep_e(k) -         &
@@ -322,9 +317,7 @@ subroutine MC_decay_bin(icomp_i, Ix_i, ip_i, nbin_i,                &
          write(6,*)'num_part = ', num_part
          write(6,*)'e_f < 0.0 in MC_decay_bin (1)'
          write(6,*)'iproc = ',iproc
-#if(USE_MPI==1)
-         call MPI_Abort(icomm,201,ierr)
-#endif
+         call exit_YAHFC(201)
       end if
    end if
 
@@ -332,9 +325,7 @@ subroutine MC_decay_bin(icomp_i, Ix_i, ip_i, nbin_i,                &
    if(num_part > dim_part)then
       write(6,*)'num_part > dim_part'
       write(6,*)'iproc = ',iproc
-#if(USE_MPI==1)
-      call MPI_Abort(icomm,201,ierr)
-#endif
+      call exit_YAHFC(201)
    end if
 
    part_data(1,num_part) = real(icomp_f,kind=8)
@@ -359,9 +350,7 @@ subroutine MC_decay_bin(icomp_i, Ix_i, ip_i, nbin_i,                &
          costhp = 2.0d0*random_32(iseed_32) - 1.0d0
          if(abs(costhp) > 1.0d0)then
             write(6,*)'cos(theta) wrong in MC_decay_bin'
-#if(USE_MPI==1)
-            call MPI_Abort(icomm, 101, ierr)
-#endif
+            call exit_YAHFC(101)
          end if
          extra_angle_data(nang,num_part) = acos(costhp)
       end do
@@ -373,6 +362,11 @@ subroutine MC_decay_bin(icomp_i, Ix_i, ip_i, nbin_i,                &
    part_data(9,num_part)  = e_f
    part_data(10,num_part) = theta_0
    part_data(11,num_part) = phi_0
+!++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!----    This data is not set up here, no longer running boost_frame in sample.
+!----    It is being run in main after energy is checked, small jitter
+!----    is added, and is done for all extra num_theta values
+!++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !   part_data(12,num_part) = T_1
 !   part_data(13,num_part) = theta
 !   part_data(14,num_part) = phi
@@ -428,7 +422,7 @@ subroutine MC_decay_state(icomp_i, istate_i,                       &
 !
 !    MPI routines:
 !
-!        MPI_Abort
+!        MPI_Abort   ----    via exit_YAHFC
 !
 !  Licensing:
 !
@@ -533,9 +527,7 @@ subroutine MC_decay_state(icomp_i, istate_i,                       &
       if(num_part > dim_part)then
          write(6,*)'num_part > dim_part'
          write(6,*)'iproc = ',iproc
-#if(USE_MPI==1)
-         call MPI_Abort(icomm,201,ierr)
-#endif
+         call exit_YAHFC(201)
       end if
 
       part_data(1,num_part) = real(icomp_i,kind=8)
@@ -555,9 +547,7 @@ subroutine MC_decay_state(icomp_i, istate_i,                       &
             costhp = 2.0d0*random_32(iseed_32) - 1.0d0
             if(abs(costhp) > 1.0d0)then
                write(6,*) 'cos(theta) wrong in MC_decay_state'
-#if(USE_MPI==1)
-               call MPI_Abort(icomm, 101, ierr)
-#endif
+               call exit_YAHFC(101)
             end if
             extra_angle_data(nang,num_part) = acos(costhp)
          end do
@@ -568,6 +558,11 @@ subroutine MC_decay_state(icomp_i, istate_i,                       &
       part_data(9,num_part) = e_gamma
       part_data(10,num_part) = theta_0
       part_data(11,num_part) = phi_0
+!++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!----    This data is not set up here, no longer running boost_frame in sample.
+!----    It is being run in main after energy is checked, small jitter
+!----    is added, and is done for all extra num_theta values
+!++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !      part_data(12,num_part) = T_1
 !      part_data(13,num_part) = theta
 !      part_data(14,num_part) = phi
@@ -630,9 +625,7 @@ subroutine MC_decay_state(icomp_i, istate_i,                       &
    if(num_part > dim_part)then
       write(6,*)'num_part > dim_part'
       write(6,*)'iproc = ',iproc
-#if(USE_MPI==1)
-      call MPI_Abort(icomm,201,ierr)
-#endif
+      call exit_YAHFC(201)
    end if
 
    part_data(1,num_part) = real(icomp_i,kind=8)
@@ -649,9 +642,7 @@ subroutine MC_decay_state(icomp_i, istate_i,                       &
    if(abs(costhp) > 1.0d0)then
       write(6,*)'cos(theta) wrong in MC_decay_state #2'
       write(6,*)'iproc = ',iproc
-#if(USE_MPI==1)
-      call MPI_Abort(icomm,201,ierr)
-#endif
+      call exit_YAHFC(201)
    end if
 
    theta_0 = acos(costhp)
@@ -662,6 +653,11 @@ subroutine MC_decay_state(icomp_i, istate_i,                       &
    part_data(9,num_part) = e_gamma
    part_data(10,num_part) = theta_0
    part_data(11,num_part) = phi_0
+!++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!----    This data is not set up here, no longer running boost_frame in sample.
+!----    It is being run in main after energy is checked, small jitter
+!----    is added, and is done for all extra num_theta values
+!++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !   part_data(12,num_part) = T_1
 !   part_data(13,num_part) = theta
 !   part_data(14,num_part) = phi
@@ -930,6 +926,7 @@ subroutine MC_primary_decay(iproj,spin_target,                          &
 !
 !        find_prob
 !        unpack_data
+!        exit_YAHFC
 !
 !     External functions:
 !
@@ -939,7 +936,7 @@ subroutine MC_primary_decay(iproj,spin_target,                          &
 !
 !    MPI routines:
 !
-!       MPI_Abort
+!        MPI_Abort   ----    via exit_YAHFC
 !
 !  Licensing:
 !
@@ -1097,7 +1094,7 @@ subroutine MC_primary_decay(iproj,spin_target,                          &
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
    if(Channel(l_i,is_i,Ix_i)%Channel_decay(if1)%num_decay < 1)then
-      write(6,*)'Primary Decay'
+      write(6,*)'Primary Decay num_decay < 1'
       write(6,*)l_i, is_i, Ix_i, if1
    end if
 
@@ -1111,9 +1108,7 @@ subroutine MC_primary_decay(iproj,spin_target,                          &
    if(num_part > dim_part)then
       write(6,*)'num_part > dim_part'
       write(6,*)'iproc = ',iproc
-#if(USE_MPI==1)
-      call MPI_Abort(icomm,201,ierr)
-#endif
+      call exit_YAHFC(201)
    end if
 
    mask6 = 2**6 - 1
@@ -1136,9 +1131,7 @@ subroutine MC_primary_decay(iproj,spin_target,                          &
       if(e_f < 0.0d0)then
          write(6,*)'problem with primary decay: e_f < 0 in MC_primary_decay'
          write(6,*)'iproc = ',iproc
-#if(USE_MPI==1)
-         call MPI_Abort(icomm,201,ierr)
-#endif
+         call exit_YAHFC(201)
       end if
    else  
       e_f = ex_i - nucleus(icomp_i)%sep_e(k) -                           &
@@ -1147,9 +1140,7 @@ subroutine MC_primary_decay(iproj,spin_target,                          &
       if(e_f < 0.0d0)then
          write(6,*)'A problem arose with a decay to a discrete state with e_f < 0.0d0 in MC_primary_decay'
          write(6,*)'iproc = ',iproc
-#if(USE_MPI==1)
-         call MPI_Abort(icomm,201,ierr)
-#endif
+         call exit_YAHFC(201)
       end if
    end if
 
@@ -1166,7 +1157,7 @@ subroutine MC_primary_decay(iproj,spin_target,                          &
       part_data(8,num_part) = xj_f
    end if
 
-   part_Ang_data(0:0:Ang_L_max,num_part) = 0.0d0
+   part_Ang_data(0:Ang_L_max,num_part) = 0.0d0
 
    part_Ang_data(0,num_part) = 0.5d0
 
@@ -1231,6 +1222,11 @@ subroutine MC_primary_decay(iproj,spin_target,                          &
    part_data(11,num_part) = phi_0
 
 
+!++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!----    This data is not set up here, no longer running boost_frame in sample.
+!----    It is being run in main after energy is checked, small jitter
+!----    is added, and is done for all extra num_theta values
+!++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !   part_data(12,num_part) = T_1
 !   part_data(13,num_part) = theta
 !   part_data(14,num_part) = phi
@@ -1395,6 +1391,11 @@ subroutine force_decay(icomp_i, nbin_i,                              &
    part_data(9,num_part) = e_f
    part_data(10,num_part) = theta_0
    part_data(11,num_part) = phi_0
+!++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!----    This data is not set up here, no longer running boost_frame in sample.
+!----    It is being run in main after energy is checked, small jitter
+!----    is added, and is done for all extra num_theta values
+!++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !   part_data(12,num_part) = T_1
 !   part_data(13,num_part) = theta
 !   part_data(14,num_part) = phi
@@ -1410,7 +1411,7 @@ subroutine force_decay(icomp_i, nbin_i,                              &
    part_data(24,num_part) = real(nbin_i,kind=8)
 !   nucleus(icomp_f)%Kinetic_Energy = T_2
 
-   if(.not.pop_calc)part_Ang_data(0,num_part) = 0.5e0
+   if(.not.pop_calc)part_Ang_data(0,num_part) = 0.5d0
 
 end subroutine force_decay
 !

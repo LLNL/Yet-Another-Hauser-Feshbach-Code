@@ -786,5 +786,69 @@ Version 3.56
     "track_gammas y". This is to reduce some of the clutter in the channel
     directories as there is a file for each incident energy.
  
+Version 3.57
+1.  Fixed formatting error printing for the factor introducing a dependence
+    in the fission barriers on the excitation energy. 
+2.  Added direct printing of the cumulative level densities to help facilitate
+    the adjustment of the level density parameters. Exp is a staircase
+    function in the file named XXXEL-CLD-exp.dat. The modeled densities are
+    pointwise in the file XXXEL-CLD-modeled.dat.
+3.  Fixed improper initialization of the shell-correction damping factor gamma
+    for fission level densities
+4.  Modified low energy treatment of fission level densities. Improved the
+    spin cutoff parameter to follow the behavior of the discrete states.
+    Previously, it was the analytic formula. This leads to a much larger spin
+    cutoff at the lower end of the spectrum. Would be different with discrete
+    transition states. Also, fixed a mistake with the starting point in
+    computing the cumulative density depending on E0 > or < 0, low end of level
+    density is exp((E-E0)/T).
+5.  Changed level density calls to a subrotuine that included J and parity
+    rho_J_par_e instead of rho_e. No longer have separate calculation for the
+    spin and partity factors - removes possibility of an error binf introduced.
+6.  Added MPI_finalize to finish execution when complete (also added it to
+    terminate a run with the option "event_generator y")
+7.  Fixed error normalizing angular distributions in the compound-elastic
+    library file.
+8.  Fixed error computing the total elastic angular distributions. Error was 
+    made assuming that SE_Ang still carriend units of cross section. The
+    sum shape + compound was improperly normalized.
+9.  Added sum of all inelastic channels and print in file Inelastic_cs_Total.dat.
+10. Fixed "bug" in Jacobi polynomials for N=0 and alpha=beta=0.0 (not used in
+    YAHFC). Decreased convergence thresholds in tridiagonal eigensolver. 
+    Gives higher accuracy for Gauss-integration nodes - from 6-8 digits to 
+    10-12.
+11. Fixed bug accessing extra angles for computing angular distributions. Only
+    one angle was being used despite sampling num_theta extra theta angles.
+12. Removed unused array Channel()%Channel_trans
+13. Added pre-compiler variable to provide MPI condition to provide
+    a more coherent compilation between serial and MPI versions and remove
+    the dummy MPI routines. The pre-compiler variable USE_MPI is set to 0 or
+    1 in the make file and MPI routines are controled via a #if(USE_MPI ==Y)
+    command. In addition, introduced the subroutine exit_YAHFC to control
+    exit from YAHFC for both serial and MPI versions. Calls "exit" or 
+    "MPI_Abort".
+14. Removed all the "stop" calls and replaced with call exit_YAHFC.
+15. Replaced "dfloat" usage with "real(x,kind=8)".
+16. Removed MPI implementation in Moldauer_WF.f90. Probably better to use OpenMP
+    for these loops.
+17. Restructured ranks for global commands to ensure they are set first. Can
+    have subtle effects with nondefault parameters, e.g., e1_model will affect
+    the strength of the ML resonances, as the default is dependent on the
+    strength of the E1 strength at a given energy.
+18. Added capability to store saved parameters from previous runs as 
+    "default" parameters for later runs. These are stored in 
+    $YAHFC_DATA/Saved-Parameters.txt. These are read after the compound
+    nuclei are set up and default parameters are set. They are read in
+    prior to user options, which can override the saved "default" parameters.
+    This can be turned off with the new option "read_saved_parameters n". The 
+    default is "y". Subsequent inputs will override the parameters that are
+    read in.
 
+Version 3.58
+1.  Converted the inelastic angular distributions in the COM frame to use
+    Legendre expansion. Analytic from primary decay, and decomposed expansions
+    for direct (from frescox) and pre-equilibrium. Not done for inelastic 
+    decays to continuous bins, which is bit more complicated as it is in the
+    Channels array and must be done for all particles and for each emission
+    angle.
 
