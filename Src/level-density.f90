@@ -162,6 +162,7 @@ subroutine get_lev_den(data_path,len_path,symb,iz,ia,icomp)
             5.05d0, 5.04d0, 5.03d0, 4.99d0, 4.98d0,            &
             5.11d0, 5.27d0, 5.39d0, 5.37d0, 5.30d0/
 !-----   Start calculation
+
 !------------   Number of neutrons
    in = ia - iz
 !------   set experimental D0 values to zero - remain zero if no exp.
@@ -339,21 +340,18 @@ subroutine get_lev_den(data_path,len_path,symb,iz,ia,icomp)
    beta4 = nucleus(icomp)%beta(4)
    beta6 = nucleus(icomp)%beta(6)
 
-!-------   Deformation factors for spin-cutoff parameter for rotational enhancement
-   nucleus(icomp)%sig2_perp = (1.0d0+beta2/3.0d0)
-   nucleus(icomp)%sig2_ax = sqrt(pi/2.0d0)*(1.0d0-2.0d0*beta2/3.0d0)
 
 !      write(6,*)(nucleus(icomp)%coll_enh(i), i = 1, 3)
 !-------    Deformation parameter in Gilbert & Cameron
-   xZ = dfloat(iz)
-   xN = dfloat(in)
-   xA = dfloat(ia)
+   xZ = real(iz,kind=8)
+   xN = real(in,kind=8)
+   xA = real(ia,kind=8)
    if(nucleus(icomp)%lev_option == 0)then
       nucleus(icomp)%level_model = 'G & C     '
       afac = 0.142
       if(beta2 > 0.2)afac = 0.120
 !-------  Set up Gilbert & cameron parameters
-      aparam = (0.00917d0*(sp(iz)+sn(in))+afac)*dfloat(ia)
+      aparam = (0.00917d0*(sp(iz)+sn(in))+afac)*real(ia,kind=8)
       spin_cut = 0.0888d0
       delta = 0.0d0
       if(nucleus(icomp)%pair_model == 0)then
@@ -395,6 +393,9 @@ subroutine get_lev_den(data_path,len_path,symb,iz,ia,icomp)
       if(sg2cut < 1.0d-4)sg2cut = (0.83d0*real(nucleus(icomp)%A,kind=8)**0.26d0)**2
       if(ecut >= nucleus(icomp)%sep_e(1))nucleus(icomp)%fit_D0 = .false.
 
+!-------   Deformation factors for spin-cutoff parameter for rotational enhancement
+      nucleus(icomp)%sig2_perp = 0.0d0
+      nucleus(icomp)%sig2_ax = 0.0d0
 !----------------------------------------------------------------
       nucleus(icomp)%level_param(1) = aparam
       nucleus(icomp)%level_param(2) = spin_cut
@@ -404,7 +405,7 @@ subroutine get_lev_den(data_path,len_path,symb,iz,ia,icomp)
       nucleus(icomp)%level_param(6) = ematch
       nucleus(icomp)%level_param(7) = ecut
       nucleus(icomp)%level_param(8) = sg2cut
-      nucleus(icomp)%level_param(9) = 0.0d0
+      nucleus(icomp)%level_param(9) = 1.0d0
       nucleus(icomp)%level_param(10) = 0.0d0
       nucleus(icomp)%level_param(11) = 0.0d0
       nucleus(icomp)%level_param(12) = spin_cut*xA**(2.d0/3.d0)
@@ -412,6 +413,7 @@ subroutine get_lev_den(data_path,len_path,symb,iz,ia,icomp)
       nucleus(icomp)%level_param(16) = 0.0d0
       nucleus(icomp)%level_param(17) = 0.0d0
       nucleus(icomp)%level_param(18) = 0.0d0
+      nucleus(icomp)%level_param(19) = real(nucleus(icomp)%lev_option,kind=8)   !  option is needed for later use
 
       nucleus(icomp)%vib_enh(1) = 0.0d0
       nucleus(icomp)%vib_enh(2) = 30.0d0
@@ -426,20 +428,20 @@ subroutine get_lev_den(data_path,len_path,symb,iz,ia,icomp)
 !------------------------------------------------------------------------
    if(nucleus(icomp)%lev_option == 1)then
       nucleus(icomp)%level_model = 'Talys-Def '
-      aparam = 0.0692559*xA+0.282769*xA**(2.0/3.0)
-      spin_cut = 0.01389
+      aparam = 0.0692559d0*xA+0.282769d0*xA**(2.0d0/3.0d0)
+      spin_cut = 0.01389d0
 !  ----  first use of delta is for pairing in the LDM
-      delta = 0.0
+      delta = 0.0d0
       if(iand(iz,1) == 0 .and. iand(in,1) == 0)delta = -11.0d0/sqrt(xA)
       if(iand(iz,1) == 1 .and. iand(in,1) == 1)delta = 11.0d0/sqrt(xA)
-      gamma = 0.433090/dfloat(ia)**(1.0/3.0)
-      shell = 0.0
+      gamma = 0.433090d0/real(ia,kind=8)**(1.0d0/3.0d0)
+      shell = 0.0d0
 ! ------   Use difference between experimental Mass and Liquid-drop mass for shell
-      Mass_LDM = -15.677d0*(1.0d0-1.79d0*((xN-xZ)/xA)**2)*xA +             &
-                  18.56d0*(1.0d0-1.79d0*((xN-xZ)/xA)**2)*xA**(2.0/3.0) +   &
-                   0.717d0*xZ**2/xA**(1.0/3.0) -                           &
-                   1.21129*xZ**2/xA +                                      &
-                   delta +                                                 &
+      Mass_LDM = -15.677d0*(1.0d0-1.79d0*((xN-xZ)/xA)**2)*xA +                 &
+                  18.56d0*(1.0d0-1.79d0*((xN-xZ)/xA)**2)*xA**(2.0d0/3.0d0) +   &
+                   0.717d0*xZ**2/xA**(1.0d0/3.0d0) -                           &
+                   1.21129d0*xZ**2/xA +                                        &
+                   delta +                                                     &
                    xZ*particle(2)%ME + xN*particle(1)%ME
       Mass_exp = nucleus(icomp)%ME
       shell = Mass_exp - Mass_LDM
@@ -463,17 +465,22 @@ subroutine get_lev_den(data_path,len_path,symb,iz,ia,icomp)
       maxlev = nucleus(icomp)%ncut
       ecut = nucleus(icomp)%level_ecut
 
+!-------   Deformation factors for spin-cutoff parameter for rotational enhancement
+      nucleus(icomp)%sig2_perp = 0.0d0
+      nucleus(icomp)%sig2_ax = 0.0d0
+
+
       if(maxlev > 0)then
          sg2cut = 0.
          sum = 0.0
          do i = 1, maxlev
             spin = nucleus(icomp)%state(i)%spin
             sg2cut = sg2cut + spin*(spin + 1.0)*(2.0*spin+1.0)
-            sum = sum + (2.0*spin+1.0)
+            sum = sum + (2.0d0*spin+1.0d0)
          end do
          sg2cut = sg2cut/(3.0d0*sum)
       else
-         sg2cut = (0.83*real(nucleus(icomp)%A,kind=8)**0.26)**2
+         sg2cut = (0.83d0*real(nucleus(icomp)%A,kind=8)**0.26d0)**2
       end if
       if(sg2cut < 1.0d-4)sg2cut =                                 &
          (0.83d0*real(nucleus(icomp)%A**(5.0d0/3.d0),kind=8)**0.26d0)**2
@@ -495,6 +502,7 @@ subroutine get_lev_den(data_path,len_path,symb,iz,ia,icomp)
       nucleus(icomp)%level_param(16) = 0.0d0
       nucleus(icomp)%level_param(17) = 0.0d0
       nucleus(icomp)%level_param(18) = 0.0d0
+      nucleus(icomp)%level_param(19) = real(nucleus(icomp)%lev_option,kind=8)   !  option is needed for later use
 
       nucleus(icomp)%vib_enh(1) = 0.0d0
       nucleus(icomp)%vib_enh(2) = 30.0d0
@@ -502,13 +510,15 @@ subroutine get_lev_den(data_path,len_path,symb,iz,ia,icomp)
       nucleus(icomp)%rot_enh(1) = 0.0d0
       nucleus(icomp)%rot_enh(2) = 30.0d0
       nucleus(icomp)%rot_enh(3) = 5.0d0
+      nucleus(icomp)%rot_enh(4) = nucleus(icomp)%sig2_perp
+      nucleus(icomp)%rot_enh(5) = nucleus(icomp)%sig2_ax
       call Find_T_E0(ia,nucleus(icomp)%level_param,                     &
                      nucleus(icomp)%vib_enh,                            &
                      nucleus(icomp)%rot_enh)
    end if
 
 
-   if(nucleus(icomp)%lev_option == 2)then
+   if(nucleus(icomp)%lev_option >= 2 .and. nucleus(icomp)%lev_option <= 5)then
       nucleus(icomp)%level_model = 'Collective'
       aparam = 0.0207305d0*xA + 0.229537d0*xA**(2.0d0/3.0d0)
       spin_cut = 0.01389d0
@@ -516,13 +526,13 @@ subroutine get_lev_den(data_path,len_path,symb,iz,ia,icomp)
       delta = 0.0d0
       if(iand(iz,1) == 0 .and. iand(in,1) == 0)delta = -11.0d0/sqrt(xA)
       if(iand(iz,1) == 1 .and. iand(in,1) == 1)delta = 11.0d0/sqrt(xA)
-      gamma = 0.473625/dfloat(ia)**(1.0/3.0)
+      gamma = 0.473625d0/real(ia,kind=8)**(1.0d0/3.0d0)
       shell = 0.0d0
 ! ------   Use difference between experimental Mass and Liquid-drop mass for shell
       Mass_LDM = -15.677d0*(1.0d0-1.79d0*((xN-xZ)/xA)**2)*xA +               &
-                  18.56d0*(1.0d0-1.79d0*((xN-xZ)/xA)**2)*xA**(2.0/3.0) +     &
-                  0.717d0*xZ**2/xA**(1.0/3.0) -                              &
-                  1.21129*xZ**2/xA +                                         &
+                  18.56d0*(1.0d0-1.79d0*((xN-xZ)/xA)**2)*xA**(2.0d0/3.0d0) + &
+                  0.717d0*xZ**2/xA**(1.0d0/3.0d0) -                          &
+                  1.21129d0*xZ**2/xA +                                       &
                   delta +                                                    &
                   xZ*particle(2)%ME + xN*particle(1)%ME
       Mass_exp = nucleus(icomp)%ME
@@ -547,6 +557,15 @@ subroutine get_lev_den(data_path,len_path,symb,iz,ia,icomp)
       maxlev = nucleus(icomp)%ncut
       ecut = nucleus(icomp)%level_ecut
 
+!-------   Deformation factors for spin-cutoff parameter for rotational enhancement
+      if(nucleus(icomp)%lev_option == 2 .or. nucleus(icomp)%lev_option == 3)then
+         nucleus(icomp)%sig2_perp = (1.0d0+beta2/3.0d0)
+         nucleus(icomp)%sig2_ax = (1.0d0-2.0d0*beta2/3.0d0)
+      elseif(nucleus(icomp)%lev_option == 4 .or. nucleus(icomp)%lev_option == 5)then 
+         nucleus(icomp)%sig2_perp = (1.0d0+sqrt(5.0d0/(4.0d0*pi))*beta2)
+         nucleus(icomp)%sig2_ax = (1.0d0-0.5d0*sqrt(5.0d0/(4.0d0*pi))*beta2)
+      end if
+
       if(maxlev > 0)then
          sg2cut = 0.0d0
          sum = 0.0d0
@@ -557,7 +576,7 @@ subroutine get_lev_den(data_path,len_path,symb,iz,ia,icomp)
          end do
          sg2cut = sg2cut/(3.0d0*sum)
       else
-        sg2cut = (0.83*real(nucleus(icomp)%A,kind=8)**0.26)**2
+        sg2cut = (0.83d0*real(nucleus(icomp)%A,kind=8)**0.26d0)**2
       end if
       if(sg2cut < 1.0d-4)sg2cut = (0.83*real(nucleus(icomp)%A,kind=8)**0.26)**2
       if(ecut >= nucleus(icomp)%sep_e(1))nucleus(icomp)%fit_D0 = .false.
@@ -577,6 +596,8 @@ subroutine get_lev_den(data_path,len_path,symb,iz,ia,icomp)
       nucleus(icomp)%level_param(16) = 0.0d0
       nucleus(icomp)%level_param(17) = 0.0d0
       nucleus(icomp)%level_param(18) = 0.0d0
+
+      nucleus(icomp)%level_param(19) = real(nucleus(icomp)%lev_option,kind=8)   !  option is needed for later use
 
       nucleus(icomp)%vib_enh(1) = 1.0d0
       nucleus(icomp)%vib_enh(2) = 30.0d0
@@ -671,11 +692,20 @@ subroutine finish_lev_den(icomp)
 !------   Calcuate D0 with these level density parameters              +
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-   nucleus(icomp)%sig2_perp = (1.0d0+nucleus(icomp)%beta(2)/3.0d0)
-   nucleus(icomp)%sig2_ax = sqrt(pi/2.0d0)*                         &
-                       (1.0d0-2.0d0*nucleus(icomp)%beta(2)/3.0d0)
+   nucleus(icomp)%sig2_perp = 0.0d0
+   nucleus(icomp)%sig2_ax = 0.0d0
+
+   if(nucleus(icomp)%lev_option == 2 .or. nucleus(icomp)%lev_option == 3)then
+      nucleus(icomp)%sig2_perp = (1.0d0+nucleus(icomp)%beta(2)/3.0d0)
+      nucleus(icomp)%sig2_ax = (1.0d0-2.0d0*nucleus(icomp)%beta(2)/3.0d0)
+   elseif(nucleus(icomp)%lev_option == 4 .or. nucleus(icomp)%lev_option == 5)then
+      nucleus(icomp)%sig2_perp = (1.0d0+sqrt(5.0d0/(4.0d0*pi))*nucleus(icomp)%beta(2))
+      nucleus(icomp)%sig2_perp = (1.0d0-0.5d0*sqrt(5.0d0/(4.0d0*pi))*nucleus(icomp)%beta(2))
+   end if
+
    nucleus(icomp)%rot_enh(4) = nucleus(icomp)%sig2_perp
    nucleus(icomp)%rot_enh(5) = nucleus(icomp)%sig2_ax
+
 !---------------------------------------------------------------------
    e = nucleus(icomp)%sep_e(1)          !   neutron separation energy
    s1 = nucleus(icomp)%s1
@@ -689,6 +719,16 @@ subroutine finish_lev_den(icomp)
    ia = int(xA)
    xI = nucleus(icomp)%target_spin
    ipar = nucleus(icomp)%target_ipar
+
+!-----   Make sure that the spin cutoff parameter gets updated
+   if(nucleus(icomp)%lev_option == 0)then
+      nucleus(icomp)%level_param(12) = nucleus(icomp)%level_param(2)*xA**(2.d0/3.d0)
+   elseif(nucleus(icomp)%lev_option == 1)then
+      nucleus(icomp)%level_param(12) = nucleus(icomp)%level_param(2)*xA**(5.d0/3.d0)
+   elseif(nucleus(icomp)%lev_option == 2)then
+      nucleus(icomp)%level_param(12) = nucleus(icomp)%level_param(2)*xA**(5.d0/3.d0)
+   end if
+
 
 
    if(nucleus(icomp)%level_param(7) < nucleus(icomp)%sep_e(1))then
@@ -834,7 +874,7 @@ subroutine fit_lev_den(icomp)
    if(.not.allocated(cum_fit))allocate(cum_fit(nfit))     !  allocate cumulative density array
    do i = 1,nfit                                    !  Make cumulative rho array
       elv(i) = nucleus(icomp)%state(i)%energy
-      cum_rho(i) = dfloat(i)
+      cum_rho(i) = real(i,kind=8)
       dcum_rho(i) = 1.0d0/dsqrt(cum_rho(i))           !  assume error 1/sqrt
    end do
    D0old = nucleus(icomp)%D0                         !  original D0
@@ -897,7 +937,7 @@ subroutine fit_lev_den(icomp)
 !                                                                       *
 !************************************************************************
    do k = 1, numf
-      nucleus(icomp)%level_param(6) = emin + dfloat(k-1)*0.01d0
+      nucleus(icomp)%level_param(6) = emin + real(k-1,kind=8)*0.01d0
       call Find_T_E0(ia,nucleus(icomp)%level_param,             &
                      nucleus(icomp)%vib_enh,                    &
                      nucleus(icomp)%rot_enh)
@@ -925,7 +965,7 @@ subroutine fit_lev_den(icomp)
 
    nucleus(icomp)%cum_rho_ratio = ratio
 
-   if(ratio > 1.25 .or. ratio < 0.75)nucleus(icomp)%ematch_warn = .true.
+   if(ratio > 1.25d0 .or. ratio < 0.75d0)nucleus(icomp)%ematch_warn = .true.
 
 
  119  if(allocated(elv))deallocate(elv)
@@ -937,8 +977,160 @@ end subroutine fit_lev_den
 !
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
-subroutine rhoe(E,level_param,vib_enhance,rot_enhance,ia,rho,     &
-                apu,sig2,K_vib,K_rot)
+subroutine rho_J_par_e(E, xJ, ipar, level_param, vib_enhance, rot_enhance, ia, &
+                       rho, apu, sig2, K_vib, K_rot)
+!
+!*******************************************************************************
+!
+!  Discussion:
+!
+!    This subroutine returns level density rho(E)
+!    and spin-cutoff parameter,sig at excitation energy E
+!
+!   Dependencies:
+!
+!     Modules:
+!
+!        None
+!
+!     Subroutines:
+!
+!        rho_FT
+!        rho_BFM
+!
+!     External functions:
+!
+!        real(kind=8) :: aparam_u
+!        real(kind=8) :: sig2_param
+!        real(kind=8) :: enhance_rot
+!        real(kind=8) :: enhance_vib
+!
+!     MPI routines:
+!
+!        None
+!
+!  Licensing:
+!
+!    SPDX-License-Identifier: MIT 
+!
+!  Date:
+!
+!    11 May 2021
+!
+!  Author:
+!
+!      Erich Ormand, LLNL
+!
+!*******************************************************************************
+!
+   implicit none
+   real(kind=8), intent(in) :: e
+   real(kind=8), intent(in) :: xJ
+   integer(kind=4), intent(in) :: ipar
+   real(kind=8), intent(in) :: level_param(20)
+   real(kind=8), intent(in) :: vib_enhance(3), rot_enhance(5)
+   integer(kind=4), intent(in) :: ia
+!-----
+   real(kind=8), intent(out) :: rho
+   real(kind=8), intent(out) :: apu
+   real(kind=8), intent(out) :: sig2
+   real(kind=8), intent(out) :: K_vib, K_rot 
+!-----
+   real(kind=8) :: sig2_perp
+   real(kind=8) :: aparam, spin_cut, delta, shell, gamma
+   real(kind=8) :: ematch, ecut, sg2cut
+   real(kind=8) :: A
+   real(kind=8) :: Em, U, E0
+   real(kind=8) :: T
+   real(kind=8) :: de
+   real(kind=8) :: low_e_mod
+   real(kind=8) :: enhance
+   integer(kind=4) :: vib_mode, rot_mode
+   real(kind=8) :: pmode, pe1, pbb
+   real(kind=8) :: jfac, pfac
+!-----    External Functions-----------------------------------------------------
+   real(kind=8) :: aparam_u
+   real(kind=8) :: sig2_param
+   real(kind=8) :: enhance_rot
+   real(kind=8) :: enhance_vib
+   real(kind=8) :: spin_fac
+   real(kind=8) :: parity_fac  
+!--------------------------------------------------------------------------------
+!-----------   Atomic mass -> real value
+   A = real(ia,kind=8)
+!-----------   level-density parameters --------------------
+
+   aparam = level_param(1)
+   spin_cut = level_param(2)
+   delta = level_param(3)
+   shell = level_param(4)
+   gamma = level_param(5)
+   ematch = level_param(6)
+   ecut = level_param(7)
+   sg2cut = level_param(8)
+   low_e_mod = level_param(9)
+
+   pmode = level_param(16)
+   pe1 = level_param(17)
+   pbb = level_param(18)
+
+   rot_mode = nint(level_param(10))
+   vib_mode = nint(level_param(11))
+
+!------------    start of calculation   --------------------
+   de = 0.01d0
+   Em = ematch
+   if(E < ematch)then                     !  finite temperature
+      T = level_param(14)
+      E0 = level_param(15)              !  constant temperature
+
+      sig2 = sig2_param(E,level_param,A)
+
+      if(nint(level_param(19)) == 3 .or. nint(level_param(19)) == 5)then
+         sig2 = sig2*rot_enhance(4)
+      end if
+ 
+      U = E - delta
+      apu = aparam_u(U,aparam,shell,gamma)
+      K_rot = 1.0d0
+      K_vib = 1.0d0
+
+      call rho_FT(E, E0, T, rho)
+
+      enhance = K_rot*K_vib
+      rho = rho*enhance
+   else                                   !  fermi Gas
+      U = E - delta
+      sig2 = sig2_param(E,level_param,A)
+      sig2_perp = rot_enhance(4)*sig2
+      apu = aparam_u(U,aparam,shell,gamma)
+
+      K_rot = enhance_rot(rot_mode, sig2, sig2_perp, rot_enhance, E)
+      K_vib = enhance_vib(vib_mode, A, U, E, apu, Shell, vib_enhance)
+
+      if(nint(level_param(19)) == 3 .or. nint(level_param(19)) == 5)then
+         sig2 = sig2*rot_enhance(4)
+      end if
+
+      call rho_BFM(U, apu, sig2, rho)
+
+      enhance = K_rot*K_vib
+      rho = rho*enhance
+   end if
+
+   jfac = spin_fac(xJ, sig2)
+   pfac = parity_fac(E, xJ, ipar, pmode, pe1, pbb)
+
+   rho = rho*jfac*pfac
+   
+
+   return
+end subroutine rho_J_par_E
+!
+!++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!
+subroutine rhoe(E, level_param, vib_enhance, rot_enhance, ia, rho,     &
+                apu, sig2, K_vib, K_rot)
 !
 !*******************************************************************************
 !
@@ -994,8 +1186,9 @@ subroutine rhoe(E,level_param,vib_enhance,rot_enhance,ia,rho,     &
    real(kind=8), intent(out) :: sig2
    real(kind=8), intent(out) :: K_vib, K_rot 
 !-----
-   real(kind=8) :: aparam,spin_cut,delta,shell,gamma
-   real(kind=8) :: ematch,ecut,sg2cut
+   real(kind=8) :: sig2_perp
+   real(kind=8) :: aparam, spin_cut, delta, shell, gamma
+   real(kind=8) :: ematch, ecut, sg2cut
    real(kind=8) :: A
    real(kind=8) :: Em, U, E0
    real(kind=8) :: T
@@ -1010,7 +1203,7 @@ subroutine rhoe(E,level_param,vib_enhance,rot_enhance,ia,rho,     &
    real(kind=8) :: enhance_vib
 !--------------------------------------------------------------------------------
 !-----------   Atomic mass -> real value
-      A=dfloat(ia)
+   A = real(ia,kind=8)
 !-----------   level-density parameters --------------------
    aparam = level_param(1)
    spin_cut = level_param(2)
@@ -1039,6 +1232,10 @@ subroutine rhoe(E,level_param,vib_enhance,rot_enhance,ia,rho,     &
       K_rot = 1.0d0
       K_vib = 1.0d0
 
+      if(nint(level_param(19)) == 3 .or. nint(level_param(19)) == 5)then
+         sig2 = sig2*rot_enhance(4)
+      end if
+
       call rho_FT(E, E0, T, rho)
 
       enhance = K_rot*K_vib
@@ -1047,12 +1244,18 @@ subroutine rhoe(E,level_param,vib_enhance,rot_enhance,ia,rho,     &
    else                                   !  fermi Gas
       U = E - delta
       sig2 = sig2_param(E,level_param,A)
+      sig2_perp = rot_enhance(4)*sig2
       apu = aparam_u(U,aparam,shell,gamma)
-      call rho_BFM(U,apu,low_e_mod,sig2,rho)
 
-      K_rot = enhance_rot(rot_mode, sig2, rot_enhance, E)
-      K_vib = enhance_vib(vib_mode, A, U, E, apu, Shell,      &
-                          vib_enhance)
+      K_rot = enhance_rot(rot_mode, sig2, sig2_perp, rot_enhance, E)
+      K_vib = enhance_vib(vib_mode, A, U, E, apu, Shell, vib_enhance)
+
+      if(nint(level_param(19)) == 3 .or. nint(level_param(19)) == 5)then
+         sig2 = sig2*rot_enhance(4)
+      end if
+
+      call rho_BFM(U, apu, sig2, rho)
+
       enhance = K_rot*K_vib
       rho = rho*enhance
 
@@ -1080,7 +1283,7 @@ real(kind=8) function sig2_param(E,level_param,A)
 !
 !     Subroutines:
 !
-!        None
+!        exit_YAHFC
 !
 !     External functions:
 !
@@ -1088,7 +1291,7 @@ real(kind=8) function sig2_param(E,level_param,A)
 !
 !     MPI routines:
 !
-!        MPI_Abort
+!        MPI_Abort   ----    via exit_YAHFC
 !
 !  Licensing:
 !
@@ -1113,7 +1316,7 @@ real(kind=8) function sig2_param(E,level_param,A)
 !------  Internal
    real(kind=8) :: aparam,apu,delta,shell,gamma,spin_cut,sg2cut
    real(kind=8) :: ecut,ematch,low_e_mod
-   real(kind=8) :: U,Um,sig2,sig2_em,deriv, sig
+   real(kind=8) :: U, Um, sig2, sig2_em, deriv, sig, sig2_min
    integer(kind=4) :: i, sig_model
 !------  External functions  ---------------------------------------------------
    real(kind=8) :: aparam_u
@@ -1131,20 +1334,22 @@ real(kind=8) function sig2_param(E,level_param,A)
    Um = Ematch - delta
    sig = level_param(12)
    sig_model = nint(level_param(13))
+   sig2_min = min((0.83d0*A**0.26d0)**2.0d0,sg2cut)
 
-   if( E < ecut)then
-      sig2_param = sg2cut
-      return
-   end if
+!   if( E < ecut)then
+!      sig2_param = sg2cut
+!      return
+!   end if
 
    if(E < ematch )then
       apu = aparam_u(Um,aparam,shell,gamma)
       sig2_em = sig*sqrt(max(0.2d0,Um*apu))/aparam
       if(sig_model == 0)sig2_em = sig*sqrt(max(0.2d0,Um*apu))/aparam
       if(sig_model == 1)sig2_em = sig*sqrt(max(0.2d0,Um)/apu)
-      sig2_em = max(sig2_em,(0.83*A**0.26)**2)
+      sig2_em = max(sig2_em,sig2_min)
       deriv = (sig2_em - sg2cut)/(ematch - ecut)
       sig2 = sig2_em - deriv*(ematch - e)
+      if(sig2 < sig2_min) sig2 = sig2_min
       if(sig2 < 0.0)then
          write(6,*)'A =',A, E
          do i = 1, 9
@@ -1155,7 +1360,7 @@ real(kind=8) function sig2_param(E,level_param,A)
          write(6,'(''sig2'',7(1x,f10.5))')sg2cut,sig2_em,deriv,    &
             e,ecut,ematch,sig2
          if(iproc == 0)write(6,*)'sig2 < 0'
-         call MPI_Abort(icomm,401,ierr)
+         call exit_YAHFC(401)
       end if
    else
       apu = aparam_u(U,aparam,shell,gamma)
@@ -1227,7 +1432,7 @@ end subroutine rho_FT
 !
 !--------------------------------------------------------------------
 !
-subroutine rho_BFM(U,apu,low_e_mod,sig2,rho)
+subroutine rho_BFM(U, apu, sig2, rho)
 !
 !*******************************************************************************
 !
@@ -1271,32 +1476,34 @@ subroutine rho_BFM(U,apu,low_e_mod,sig2,rho)
    use constants
    implicit none
    real(kind=8), intent(in) :: U
-   real(kind=8), intent(in) :: apu, low_e_mod
+   real(kind=8), intent(in) :: apu
    real(kind=8), intent(in) :: sig2
    real(kind=8), intent(out) :: rho
 !-------------------------------------------------------------------
-   real(kind=8) :: rho_F
+   real(kind=8) :: rho_F, rho_0
    real(kind=8) :: T,an,ap
    real(kind=8) :: U1,exponent1,exponent2
 !-------------------------------------------------------------------
    exponent1 = 2.0d0*sqrt(apu*U)
    U1 = U
-   if(U <= 0.0d0)U1 = 1.0d-6
+!   if(U <= 0.0d0)U1 = 1.0d-6
+   if(U <= 0.0d-6)U1 = 1.0d-6
    rho_F = exp(exponent1)/                                            &
          (sqrt(2.0d0*sig2)*12.0d0*apu**(0.25)*U1**(1.25))
    T = sqrt(U/apu)
    an = apu/2.0d0
    ap = apu/2.0d0
    exponent2 = 4.0d0*ap*an*T**2
-   if(nint(low_e_mod) == 0)then
-      rho = rho_F
-   elseif(nint(low_e_mod) == 1)then
-      if(U < 10.0d0)then
-         rho = rho_F
-      else
-         rho = rho_F
-      end if
-   end if
+   rho_0 = exp(exponent1+1.0d0)*(an+ap)**2/(24.0d0*sqrt(sig2)*sqrt(an*ap))
+   rho = rho_F*rho_0/(rho_F+rho_0)
+
+!   write(40,*)U,rho_f,rho_0,1.0d0/(rho_f+
+
+!   if(nint(low_e_mod) == 0)then
+!      rho = rho_F
+!   elseif(nint(low_e_mod) == 1)then
+!      rho = 1.0d0/(rho_F + rho_0)
+!   end if
    return
 end subroutine rho_BFM
 !
@@ -1563,9 +1770,9 @@ real(kind=8) function aparam_u(u,aparam,shell,gamma)
    real(kind=8), intent(in) :: u,aparam,shell,gamma
 !------------------------------------------------------------------
    if(u >= 1.0d-6)then
-      aparam_u = aparam*(1.+shell*(1.-exp(-gamma*u))/u)
+      aparam_u = aparam*(1.0d0 + shell*(1.0d0 - exp(-gamma*u))/u)
    else
-      aparam_u = aparam*(1.+shell*gamma)
+      aparam_u = aparam*(1.0d0 + shell*gamma)
    end if
    return
 end function aparam_u
@@ -1695,7 +1902,7 @@ subroutine cumm_rho(nfit,elv,ia,level_param,vib_enh,rot_enh,cumrho)
       cumr(0) = 1.0d0
    end if
    do i = 1, nmax
-      e = float(i)*de
+      e = real(i,kind=8)*de
       call rhoe(e, level_param, vib_enh, rot_enh, ia, rrho,     &
                 apu, sg2, K_vib, K_rot)
       cumr(i) = cumr(i-1) + rrho*de
@@ -1876,6 +2083,9 @@ subroutine fit_D0(D0exp,sep_e,xj,ipar,lev_param,fit_aparam,vib_enh,rot_enh,iA)
    end if
    return
 end subroutine fit_D0
+!
+!*******************************************************************************
+!
 real(kind=8) function enhance_vib(mode, A, U, E, apu, Shell, enh)
 !
 !*******************************************************************************
@@ -1972,7 +2182,7 @@ end function enhance_vib
 !
 !*******************************************************************************
 !
-real(kind=8) function enhance_rot(mode, sig2, enh, Ex)
+real(kind=8) function enhance_rot(mode, sig2, sig2_perp, enh, Ex)
 !
 !*******************************************************************************
 !
@@ -1982,7 +2192,7 @@ real(kind=8) function enhance_rot(mode, sig2, enh, Ex)
 !
 !     Modules:
 !
-!        None
+!        constants
 !
 !     Subroutines:
 !
@@ -2010,21 +2220,26 @@ real(kind=8) function enhance_rot(mode, sig2, enh, Ex)
 !
 !*******************************************************************************
 !
+   use constants
    integer(kind=4), intent(in) :: mode
-   real(kind=8), intent(in) :: sig2, enh(5), Ex
+   real(kind=8), intent(in) :: sig2
+   real(kind=8), intent(in) :: sig2_perp
+   real(kind=8), intent(in) :: enh(5)
+   real(kind=8), intent(in) :: Ex
    real(kind=8) :: K_r
    real(kind=8) :: damp
 !----------------------------------------------------------------------------------
    K_r = 0.0d0
-   if(mode > 0)K_r = enh(4)*sig2
+!   if(mode > 0)K_r = enh(4)*sig2
+   if(mode > 0)K_r = sig2_perp
    if(mode == 2 )then
       K_r = 2.0d0*K_r
    end if
    if(mode == 3)then
-      K_r = K_r*enh(5)*sqrt(sig2)
+      K_r = K_r*sqrt(pi/2.0d0)*enh(5)*sqrt(sig2)
    end if
    if(mode == 4)then
-      K_r = 2.0d0*K_r*enh(5)*sqrt(sig2)
+      K_r = 2.0d0*K_r*sqrt(pi/2.0d0)*enh(5)*sqrt(sig2)
    end if
    K_r = max(K_r,1.0d0)
    K_r = 1.0d0 + (K_r - 1.0d0)*damp(Ex, enh(2), enh(3))*enh(1)
@@ -2138,6 +2353,7 @@ subroutine Find_T_E0(ia, level_param, vib_enhance, rot_enhance)
    real(kind=8) :: A
    real(kind=8) :: aparam, spin_cut, delta, shell, gamma
    real(kind=8) :: ematch, ecut, sg2cut, low_e_mod
+   real(kind=8) :: sig2_perp
    integer(kind=4) :: rot_mode, vib_mode
    real(kind=8) :: enhance, K_rot, K_vib
       
@@ -2185,28 +2401,32 @@ subroutine Find_T_E0(ia, level_param, vib_enhance, rot_enhance)
 
    apu = aparam_u(U,aparam,shell,gamma)
    sig2 = sig2_param(E,level_param,A)
+   sig2_perp = rot_enhance(4)*sig2
 
-   call rho_BFM(U,apu,low_e_mod,sig2,rho_F0)
-
-   K_rot = enhance_rot(rot_mode, sig2, rot_enhance, E)
-
-
+   K_rot = enhance_rot(rot_mode, sig2, sig2_perp, rot_enhance, E)
    K_vib = enhance_vib(vib_mode, A, U, E, apu, Shell, vib_enhance)
+
+   if(nint(level_param(19)) == 3 .or. nint(level_param(19)) == 5) sig2 = sig2_perp
+
+   call rho_BFM(U, apu, sig2, rho_F0)
+
    enhance = K_rot*K_vib
    rho_F0 = rho_F0*enhance
-
-
 
    E = ematch - de
    U = E - delta
 
    apu = aparam_u(U,aparam,shell,gamma)
    sig2 = sig2_param(E,level_param,A)
+   sig2_perp = rot_enhance(4)*sig2
 
-   call rho_BFM(U,apu,low_e_mod,sig2,rho_Fm)
-
-   K_rot = enhance_rot(rot_mode, sig2, rot_enhance, E)
+   K_rot = enhance_rot(rot_mode, sig2, sig2_perp, rot_enhance, E)
    K_vib = enhance_vib(vib_mode, A, U, E, apu, Shell, vib_enhance)
+
+   if(nint(level_param(19)) == 3 .or. nint(level_param(19)) == 5) sig2 = sig2_perp
+
+   call rho_BFM(U, apu, sig2, rho_Fm)
+
    enhance = K_rot*K_vib
    rho_Fm = rho_Fm*enhance
 
@@ -2216,11 +2436,14 @@ subroutine Find_T_E0(ia, level_param, vib_enhance, rot_enhance)
 
    apu = aparam_u(U,aparam,shell,gamma)
    sig2 = sig2_param(E,level_param,A)
+   sig2_perp = rot_enhance(4)*sig2
 
-   call rho_BFM(U,apu,low_e_mod,sig2,rho_Fp)
-
-   K_rot = enhance_rot(rot_mode, sig2, rot_enhance, E)
+   K_rot = enhance_rot(rot_mode, sig2, sig2_perp, rot_enhance, E)
    K_vib = enhance_vib(vib_mode, A, U, E, apu, Shell, vib_enhance)
+
+   if(nint(level_param(19)) == 3 .or. nint(level_param(19)) == 5) sig2 = sig2_perp
+
+   call rho_BFM(U, apu, sig2, rho_Fp)
 
    enhance = K_rot*K_vib
    rho_Fp = rho_Fp*enhance

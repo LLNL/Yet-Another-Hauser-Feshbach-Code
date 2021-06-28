@@ -129,12 +129,12 @@ subroutine Gamma_gamma(icomp, l, Gamma_g, g_error)
                trans = EL_trans(icomp, lem, e_f, energy)
 
                ip_f = iand((ip+lem),1)                       !  parity of final state
-               xj_f_min = abs(xj-dfloat(lem))                !  min final spin
-               xj_f_max = xj + dfloat(lem)                     !  max final spin
+               xj_f_min = abs(xj-real(lem,kind=8))                !  min final spin
+               xj_f_max = xj + real(lem,kind=8)                     !  max final spin
                j_f_min = nint(xj_f_min - nucleus(icomp)%jshift)      !  min j-index
                j_f_max = min(nint(xj_f_max-nucleus(icomp)%jshift),nucleus(icomp)%j_max)      !  max j-index
                do j_f = j_f_min, j_f_max                    !  loop over final j
-                  xj_f = dfloat(j_f) + nucleus(icomp)%jshift
+                  xj_f = real(j_f,kind=8) + nucleus(icomp)%jshift
                   if(xj < 1.0d-5 .and. xj_f <= 1.0d-5)cycle        !  O -> 0 not allowed
                   Gamma_g = Gamma_g + trans*nucleus(icomp)%bins(j_f,ip_f,n_f)%rho*delta_e
                end do
@@ -145,12 +145,12 @@ subroutine Gamma_gamma(icomp, l, Gamma_g, g_error)
                 trans = ML_trans(icomp, lem, e_f)
 
                 ip_f = iand(ip + lem + 1,1)                   !  parity of final state
-                xj_f_min = abs(xj-dfloat(lem))                !  min final spin
-                xj_f_max = xj+dfloat(lem)                     !  max final spin
+                xj_f_min = abs(xj-real(lem,kind=8))                !  min final spin
+                xj_f_max = xj + real(lem,kind=8)                     !  max final spin
                 j_f_min = nint(xj_f_min - nucleus(icomp)%jshift)      !  min j-index
                 j_f_max = min(nint(xj_f_max-nucleus(icomp)%jshift),nucleus(icomp)%j_max)      !  max j-index
                 do j_f = j_f_min,j_f_max                    !  loop over final j
-                   xj_f = dfloat(j_f)+nucleus(icomp)%jshift
+                   xj_f = real(j_f,kind=8) + nucleus(icomp)%jshift
                    if(xj < 1.0d-5.and.xj_f <= 1.0d-5)cycle        !  O -> 0 not allowed
                    Gamma_g = Gamma_g+trans*nucleus(icomp)%bins(j_f,ip_f,n_f)%rho*delta_e
                end do

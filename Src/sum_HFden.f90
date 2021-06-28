@@ -120,7 +120,7 @@ subroutine sum_HFden(icomp, xI_i, par, energy, HFden, exp_gamma)
       i_f = nucleus(icomp)%decay_to(if1)
       k = nucleus(icomp)%decay_particle(if1)
       if(energy < nucleus(icomp)%sep_e(k))cycle                                  !   not eneough energy to decay - cycle out
-      xI_f_max1 = dfloat(nucleus(i_f)%j_max) + nucleus(i_f)%jshift
+      xI_f_max1 = real(nucleus(i_f)%j_max,kind=8) + nucleus(i_f)%jshift
       if(k > 0)then                                                              ! k > 0 - particle n,p,d,t,h,a decay
 !--------------------------   particle decay to continuous level bins
          p_spin = particle(k)%spin
@@ -145,7 +145,7 @@ subroutine sum_HFden(icomp, xI_i, par, energy, HFden, exp_gamma)
 !------   Now Loop over possible exit particle angular momenta j       +
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
                do is_f = 0, isp_f
-                  xj_f = xj_f + dfloat(is_f)
+                  xj_f = xj_f + real(is_f,kind=8)
                   if(xj_f < 0.0d0)cycle
                   trans = tco_interpolate(e_f,particle(k)%nume,                 &
                                           particle(k)%e_grid,                   &
@@ -159,7 +159,7 @@ subroutine sum_HFden(icomp, xI_i, par, energy, HFden, exp_gamma)
 !-----    Loop over angular momenta in the residual nucleus            +
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
                   do Ix_f = Ix_f_min, Ix_f_max                                               !  loop over final j
-                     xI_f = dfloat(Ix_f) + xI_f_min
+                     xI_f = real(Ix_f,kind=8) + xI_f_min
                      N_eff = nucleus(i_f)%bins(Ix_f,ip_f,n_f)%rho*          &
                              nucleus(i_f)%delta_e(n_f)
                      trans_eff = trans*N_eff
@@ -182,7 +182,7 @@ subroutine sum_HFden(icomp, xI_i, par, energy, HFden, exp_gamma)
             xj_f_max = xI_f + xI_i
             num_j = nint(xj_f_max - xj_f_min)
             do j = 0, num_j
-               xj_f = dfloat(j) + xj_f_min
+               xj_f = real(j,kind=8) + xj_f_min
                lmin = nint(abs(xj_f - p_spin))
                lmax = min(particle(k)%lmax, nint(xj_f + p_spin))
                cpar2 = particle(k)%par*nucleus(i_f)%state(n_f)%parity
@@ -195,7 +195,7 @@ subroutine sum_HFden(icomp, xI_i, par, energy, HFden, exp_gamma)
                   if(iand(lmax,1) == 0)lmax=lmax-1                  !   even lmax, subtract 1 to make it even
                end if
                do l = lmin,lmax,2
-                  xj_f_min1 = (dfloat(l) - p_spin)
+                  xj_f_min1 = (real(l,kind=8) - p_spin)
                   is_f = nint(xj_f - xj_f_min1)
                   if(is_f < 0 .or. is_f > nint(2*p_spin))cycle
                   trans = tco_interpolate(e_f,particle(k)%nume,             &
@@ -218,12 +218,12 @@ subroutine sum_HFden(icomp, xI_i, par, energy, HFden, exp_gamma)
                trans = EL_trans(i_f, l, e_gamma, energy)
 
                ip_f = iand((ip_i+l),1)                                                    !  parity of final state
-               xI_f_min = abs(xI_i-dfloat(l))                                             !  min final spin
-               xI_f_max = min(xI_f_max1,xI_i + dfloat(l))                                 !  max final spin
+               xI_f_min = abs(xI_i-real(l,kind=8))                                             !  min final spin
+               xI_f_max = min(xI_f_max1,xI_i + real(l,kind=8))                                 !  max final spin
                Ix_f_min = max(nint(xI_f_min-nucleus(i_f)%jshift),0)                       !  min j-index
                Ix_f_max = min(nint(xI_f_max-nucleus(i_f)%jshift),nucleus(i_f)%j_max)      !  max j-index                           
                do Ix_f = Ix_f_min,Ix_f_max                                                !  loop over final j
-                  xI_f = dfloat(Ix_f)+nucleus(i_f)%jshift
+                  xI_f = real(Ix_f,kind=8)+nucleus(i_f)%jshift
                   if(xI_i < 1.0d-5.and. xI_f <= 1.0d-5)cycle                              !  O -> 0 not allowed
                   trans_eff = trans*nucleus(i_f)%bins(Ix_f,ip_f,n_f)%rho*           &
                                     nucleus(i_f)%delta_e(n_f)
@@ -235,12 +235,12 @@ subroutine sum_HFden(icomp, xI_i, par, energy, HFden, exp_gamma)
             do l = 1,nucleus(i_f)%lmax_M                                                 !  loop over ML decays
                trans = ML_trans(i_f, l, e_gamma)
                ip_f = iand((ip_i + l - 1),1)                                             !  parity of final state
-               xI_f_min = abs(xI_i - dfloat(l))                                          !  min final spin
-               xI_f_max = min(xI_f_max1, xI_i + dfloat(l))                               !  max final spin
+               xI_f_min = abs(xI_i - real(l,kind=8))                                          !  min final spin
+               xI_f_max = min(xI_f_max1, xI_i + real(l,kind=8))                               !  max final spin
                Ix_f_min = max(nint(xI_f_min-nucleus(i_f)%jshift),0)                      !  min j-index
                Ix_f_max = min(nint(xI_f_max-nucleus(i_f)%jshift),nucleus(i_f)%j_max)     !  max j-index                           
                do Ix_f = Ix_f_min, Ix_f_max                                              !  loop over final j
-                  xI_f = dfloat(Ix_f) + nucleus(i_f)%jshift
+                  xI_f = real(Ix_f,kind=8) + nucleus(i_f)%jshift
                   if(xI_i < 1.0d-5.and. xI_f <= 1.0d-5)cycle                             !  O -> 0 not allowed
                   trans_eff = trans*nucleus(i_f)%bins(Ix_f,ip_f,n_f)%rho*         &
                                     nucleus(i_f)%delta_e(n_f)

@@ -40,7 +40,7 @@ subroutine Moldauer_WF(icomp,                                       &
 !
 !     MPI routines:
 !
-!        MPI_Allreduce
+!        None
 !
 !  Licensing:
 !
@@ -64,7 +64,6 @@ subroutine Moldauer_WF(icomp,                                       &
 !
 !*******************************************************************************
 !
-   use nodeinfo
    use variable_kinds
    use options
    use nuclei
@@ -72,7 +71,6 @@ subroutine Moldauer_WF(icomp,                                       &
    use constants 
    use Gauss_integration
    implicit none
-   include 'mpif.h'
    integer(kind=4), intent(in) :: icomp
    integer(kind=4), intent(in) :: k_a, l_a, istate_a
    real(kind=8), intent(in) :: xj_a, xI_a, trans_a
@@ -126,8 +124,7 @@ subroutine Moldauer_WF(icomp,                                       &
 
    xxxx = 0.0d0
    yyxx = 0.0d0
-!   do ix = 1, ndata
-   do ix = iproc + 1, ndata, nproc
+   do ix = 1, ndata
       x = xx(ix)
       call Moldauer_product(icomp,                                       &
                             k_a,l_a,xj_a,istate_a,                       &
@@ -140,18 +137,13 @@ subroutine Moldauer_WF(icomp,                                       &
       xxxx = xxxx + xx(ix)**2
       yyxx = yyxx + yy(ix)*xx(ix)
    end do
-   if(nproc > 1)then
-      call MPI_Allreduce(MPI_IN_PLACE, xxxx, 1, MPI_REAL8, MPI_SUM, icomm, ierr)
-      call MPI_Allreduce(MPI_IN_PLACE, yyxx, 1, MPI_REAL8, MPI_SUM, icomm, ierr)
-   end if
 
    afit = abs(yyxx/xxxx)
 
 !  write(6,*)'afit ',yyxx,xxxx,afit
 
    WF = 0.0d0
-!   do ix = 1, n_glag
-   do ix = iproc + 1, n_glag, nproc
+   do ix = 1, n_glag
       x = x_glag(ix)/afit
       call Moldauer_product(icomp,                                       &
                             k_a,l_a,xj_a,istate_a,                       &
@@ -162,7 +154,6 @@ subroutine Moldauer_WF(icomp,                                       &
       Product = Product_p*Product_g*factor
       WF = WF + Product/exp(-afit*x)*w_glag(ix)
    end do
-   if(nproc > 1)call MPI_Allreduce(MPI_IN_PLACE, WF, 1, MPI_REAL8, MPI_SUM, icomm, ierr)
    WF = WF/afit
 
    return
@@ -263,15 +254,13 @@ subroutine Moldauer_product(icomp,                               &
 !
 !     Subroutines:
 !
-!        None
+!        rho_J_par_e
 !
 !     External functions:
 !
 !       real(kind=8) :: tco_interpolate
 !       real(kind=8) :: xnu
 !       real(kind=8) :: exp_1,exp_2
-!       real(kind=8) :: spin_fac
-!       real(kind=8) :: parity_fac
 !       real(kind=8) :: HW_trans
 !       logical :: real8_equal
 !
@@ -348,24 +337,21 @@ subroutine Moldauer_product(icomp,                               &
    real(kind=8) :: de
    logical converged
    real(kind=8) :: K_vib, K_rot
-   real(kind=8) :: jfac, pfac, rho, tt, T_f, Ef
+   real(kind=8) :: rho, tt, T_f, Ef
    integer(kind=4) :: ib
-   real(kind=8) :: rho_Fm, apu, sig2
+   real(kind=8) :: apu, sig2
    real(kind=8) :: aa, bb, cc
    real(kind=8) :: F_Barrier, F_Barrier_hbw
    real(kind=8) :: Max_J
-   real(kind=8) :: e1, b, bbb, mode
-   real(kind=8) :: E0, T, E11,ecut
+   real(kind=8) :: b
+   real(kind=8) :: E0, T, E11, ecut, emin
    real(kind=8) :: xZ_i, xA_i, xZ_part, xA_part
    real(kind=8) :: Coulomb_Barrier(6)
-!   integer(kind=4) :: itest
 !-------------------------------------------------------------------------+
 !------   External  Functions
    real(kind=8) :: tco_interpolate
    real(kind=8) :: xnu
    real(kind=8) :: exp_1,exp_2
-   real(kind=8) :: spin_fac
-   real(kind=8) :: parity_fac
    real(kind=8) :: HW_trans
    logical :: real8_equal
 !-------------------------------------------------------------------------+
@@ -495,16 +481,26 @@ subroutine Moldauer_product(icomp,                               &
 !-------------------------------------------------------------------*
 !---------    Now fission, new approach                             *
 !-------------------------------------------------------------------*
-!------   Talys approach is a bit odd for double-humped fission barriers
-!------   as the total transmission coefficient is T = T_1*T_2/(T_1+T_2)
+!------   The Moldauer width fluctuation is a bit complicated for fission, especially 
+!------   for multiple barriers.
+!------   As for two barriers, the total transmission coefficient is T = T_1*T_2/(T_1+T_2)
 !------   where each T_i is integrated over the fission level density
-!------   So, a single prescription as they describe is hard to do except 
-!------   for a single barrier
-!------   Thus, I convert to an effective single barrier for the first barrier
-!------   Define P_F= T_2/(T_1+T_2)  then
-!------   T = integral tt(E)*P_F*rho(E)dE with integral over transition states 
-!------   above barrier 1. This becomes more like particle decay to the continuum
-!------   We treat this integral as separate channels in the Moldauer expression.
+!------   So, a single prescription is hard to do except for a single barrier.
+!------   In general, one of the T_i is the larger, define T_L the larger, and T_s
+!------   the smaller. Note that if T_L >> T_s, then T ~ T_s. One way to 
+!------   proceed, which is similar to Hilaire, except they pick an arbitrary
+!------   break up of T with Sum_k T_k. Here, each transmission coefficient T_i is
+!------   summed over the transition states m, T_i = Sum_m T_i(m). Thus, one can break
+!------   up the fission transmission coefficient as
+!------   T = Sum_m T_s(m)*P_f, with
+!------   P_f = T_L/(T_L+T_s). 
+!------   One can treat each sum over transition states in an analagous manner
+!------   in the Moldauer expression for each channel. This is similar to what Hilaire et al.
+!------   does, but makes use of each term that gets summed in the transmission coefficient.
+!------   Frankly, it isn't obvious what the best treatment for two or more barriers is. For 
+!------   a single barrier, treating each transition state is analagous to the various channels
+!------   for the other decays. For the most part, each transition state is a "channel" to fission.
+
    if(nucleus(icomp)%fission) then
       if(F_trans(4)/CHnorm > prob_cut)then
          P_f = 1.0d0
@@ -528,7 +524,7 @@ subroutine Moldauer_product(icomp,                               &
          bb = nucleus(icomp)%F_Barrier(ib)%barrier_damp(2)
          cc = nucleus(icomp)%F_Barrier(ib)%barrier_damp(3)
 !-----  Sum over discrete transition states
-         do j = 1, nucleus(icomp)%F_Barrier(1)%num_discrete
+         do j = 1, nucleus(icomp)%F_Barrier(ib)%num_discrete
             par = -1.0d0
             if(ip == 1) par = 1.0d0
             if(real8_equal(nucleus(icomp)%F_barrier(ib)%state_j(j),xI) .and.                        &
@@ -567,23 +563,24 @@ subroutine Moldauer_product(icomp,                               &
          else
             E11 = -5.0d0
          end if
+         E11 = 0.0d0
 
          T_f = 0.0d0
+
+         emin = E11
+         if(nucleus(icomp)%F_Barrier(ib)%num_discrete > 0)  &
+            emin = nucleus(icomp)%F_Barrier(ib)%ecut
+
          j = 0
          converged = .false.
          do while (.not. converged)
-            Ef = real(j,kind=8)*de + nucleus(icomp)%F_Barrier(ib)%ecut  
-            call rhoe(Ef,nucleus(icomp)%F_barrier(ib)%level_param,                        &
-                      nucleus(icomp)%F_barrier(ib)%vib_enh,                               &
-                      nucleus(icomp)%F_barrier(ib)%rot_enh,                               &
-                      nucleus(icomp)%A,rho_Fm,apu,sig2,K_vib,K_rot)
-!
-            mode = nucleus(icomp)%F_barrier(ib)%level_param(16)
-            e1 = nucleus(icomp)%F_barrier(ib)%level_param(17)
-            bbb = nucleus(icomp)%F_barrier(ib)%level_param(18)
-            jfac = spin_fac(xI,sig2)
-            pfac = parity_fac(Ef,xI,ip,mode,e1,bbb)
-            rho = rho_FM*jfac*pfac
+            Ef = real(j,kind=8)*de + emin 
+
+            call rho_J_par_e(Ef,xI, ip, nucleus(icomp)%F_barrier(ib)%level_param,         &
+                             nucleus(icomp)%F_barrier(ib)%vib_enh,                        &
+                             nucleus(icomp)%F_barrier(ib)%rot_enh,                        &
+                             nucleus(icomp)%A, rho , apu, sig2, K_vib, K_rot)
+
             F_Barrier = nucleus(icomp)%F_Barrier(ib)%barrier
             F_Barrier = F_Barrier*aa*exp(-((energy-bb)/cc)**2)
             if(Max_J > 0.0d0)then
@@ -605,7 +602,7 @@ subroutine Moldauer_product(icomp,                               &
                       log(1.0d0 + 2.0d0*trans*x/(xnu_c*HF_den))*exponent
             tt = tt*rho*de
             if(T_f > 0.0 .and. tt/T_f < 1.0d-6)converged = .true.
-            if(tt < 1.0d-7)converged = .true.
+            if(Ef > energy .and. tt < 1.0d-7)converged = .true.
             T_f = T_f + tt
             j = j + 1
          end do

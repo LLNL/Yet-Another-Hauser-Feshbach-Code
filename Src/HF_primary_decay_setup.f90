@@ -128,8 +128,8 @@ subroutine HF_primary_decay_setup(e_in,iproj,itarget,icomp,istate,energy)
    nume = particle(iproj)%nume
    j_max = nucleus(icomp)%j_max
    nbin = nucleus(icomp)%nbin
-   e_rel = e_in*dfloat(nucleus(itarget)%A)/                                     &
-           dfloat(nucleus(itarget)%A+projectile%A)
+   e_rel = e_in*real(nucleus(itarget)%A,kind=8)/                           &
+           real(nucleus(itarget)%A+projectile%A,kind=8)
    spin_target = nucleus(itarget)%state(istate)%spin
    spin_proj = particle(iproj)%spin
    isp_max = nint(2.0d0*spin_proj)
@@ -206,20 +206,20 @@ subroutine HF_primary_decay_setup(e_in,iproj,itarget,icomp,istate,energy)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
          do Ix_i = Ix_i_min, Ix_i_max
 
-            xI_i = dfloat(Ix_i) + nucleus(icomp)%jshift
+            xI_i = real(Ix_i,kind=8) + nucleus(icomp)%jshift
 
             if(.not.allocated(Channel(l_proj,is_i,Ix_i)%Channel_decay))                         &
                allocate(Channel(l_proj,is_i,Ix_i)%Channel_decay(nucleus(icomp)%num_decay+1))
             if(.not.allocated(Channel(l_proj,is_i,Ix_i)%Channel_prob))                          &
                allocate(Channel(l_proj,is_i,Ix_i)%Channel_prob(1:nucleus(icomp)%num_decay+1))
             Channel(l_proj,is_i,Ix_i)%Channel_prob(1:nucleus(icomp)%num_decay+1) = 0.0d0
-            if(.not.allocated(Channel(l_proj,is_i,Ix_i)%Channel_trans))                         &
-               allocate(Channel(l_proj,is_i,Ix_i)%Channel_trans(1:nucleus(icomp)%num_decay+1))
+!-rem            if(.not.allocated(Channel(l_proj,is_i,Ix_i)%Channel_trans))                         &
+!-rem               allocate(Channel(l_proj,is_i,Ix_i)%Channel_trans(1:nucleus(icomp)%num_decay+1))
             if(.not.allocated(Channel(l_proj,is_i,Ix_i)%decay_to))                              &
                allocate(Channel(l_proj,is_i,Ix_i)%decay_to(1:nucleus(icomp)%num_decay+1))
             if(.not.allocated(Channel(l_proj,is_i,Ix_i)%decay_particle))                        &
                allocate(Channel(l_proj,is_i,Ix_i)%decay_particle(1:nucleus(icomp)%num_decay+1))
-            Channel(l_proj,is_i,Ix_i)%Channel_trans(1:nucleus(icomp)%num_decay+1) = 0.0d0
+!-rem            Channel(l_proj,is_i,Ix_i)%Channel_trans(1:nucleus(icomp)%num_decay+1) = 0.0d0
             Channel(l_proj,is_i,Ix_i)%Channel_decay(1:nucleus(icomp)%num_decay+1)%num_decay = 0 
             Channel(l_proj,is_i,Ix_i)%num_decay = 0
             Channel(l_proj,is_i,Ix_i)%decay_to(1:nucleus(icomp)%num_decay+1) = 0
@@ -295,7 +295,7 @@ subroutine HF_primary_decay_setup(e_in,iproj,itarget,icomp,istate,energy)
 !-----    Loop over angular momenta in the residual nucleus            +
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
                            do Ix_f = Ix_f_min, Ix_f_max                                            !  loop over final j
-                              xI_f = dfloat(Ix_f) + xI_f_min
+                              xI_f = real(Ix_f,kind=8) + xI_f_min
                               N_eff = nucleus(i_f)%bins(Ix_f,ip_f,n_f)%rho*          &
                                       nucleus(i_f)%delta_e(n_f)
                               trans_eff = trans*N_eff
@@ -369,12 +369,12 @@ subroutine HF_primary_decay_setup(e_in,iproj,itarget,icomp,istate,energy)
                         trans = ML_trans(i_f, l, e_gamma)
                         if(trans < trans_e_cut)cycle
                         ip_f = iand((ip_i + l - 1),1)                                          !  parity of final state
-                        xI_f_min = abs(xI_i - dfloat(l))                                       !  min final spin
-                        xI_f_max = min(xI_f_max1, xI_i + dfloat(l))                            !  max final spin
+                        xI_f_min = abs(xI_i - real(l,kind=8))                                       !  min final spin
+                        xI_f_max = min(xI_f_max1, xI_i + real(l,kind=8))                            !  max final spin
                         Ix_f_min = max(nint(xI_f_min-nucleus(i_f)%jshift),0)                   !  min j-index
                         Ix_f_max = min(nint(xI_f_max-nucleus(i_f)%jshift),nucleus(i_f)%j_max)  !  max j-index                           
                         do Ix_f = Ix_f_min, Ix_f_max                                           !  loop over final j
-                           xI_f = dfloat(Ix_f) + nucleus(i_f)%jshift
+                           xI_f = real(Ix_f,kind=8) + nucleus(i_f)%jshift
                            if(xI_i < 1.0d-5.and. xI_f <= 1.0d-5)cycle                          !  O -> 0 not allowed
                            trans_eff = trans*nucleus(i_f)%bins(Ix_f,ip_f,n_f)%rho*         &
                                              nucleus(i_f)%delta_e(n_f)
@@ -459,7 +459,7 @@ subroutine HF_primary_decay_setup(e_in,iproj,itarget,icomp,istate,energy)
                   i_f = nucleus(icomp)%decay_to(if1)
                   k = nucleus(icomp)%decay_particle(if1)
                   if(energy < nucleus(icomp)%sep_e(k))cycle                        !   not eneough energy to decay - cycle out
-                  xI_f_max1 = dfloat(nucleus(i_f)%j_max) + nucleus(i_f)%jshift
+                  xI_f_max1 = real(nucleus(i_f)%j_max,kind=8) + nucleus(i_f)%jshift
                   if(k > 0)then                                                    ! k > 0 - particle n,p,d,t,h,a decay
                      EM_k = 0
 !--------------------------   pChannel_nn_cs_L1.datarticle decay to continuous level bins
@@ -541,7 +541,7 @@ subroutine HF_primary_decay_setup(e_in,iproj,itarget,icomp,istate,energy)
                         xj_f_max = xI_f + xI_i
                         num_j = nint(xj_f_max - xj_f_min)
                         do j = 0, num_j
-                           xj_f = dfloat(j) + xj_f_min
+                           xj_f = real(j,kind=8) + xj_f_min
                            lmin = nint(abs(xj_f - p_spin))
                            lmax = min(particle(k)%lmax, nint(xj_f + p_spin))
                            cpar2 = nint(particle(k)%par*nucleus(i_f)%state(n_f)%parity)
@@ -554,7 +554,7 @@ subroutine HF_primary_decay_setup(e_in,iproj,itarget,icomp,istate,energy)
                               if(iand(lmax,1) == 0)lmax = lmax - 1                            !   even lmax, subtract 1 to make it even
                            end if
                            do l = lmin, lmax, 2
-                              xj_f_min1 = dfloat(l) - p_spin
+                              xj_f_min1 = real(l,kind=8) - p_spin
                               is_f = nint(xj_f - xj_f_min1)
                               if(is_f < 0 .or. is_f > nint(2*p_spin))cycle
                               trans=tco_interpolate(e_f,particle(k)%nume,                 &
@@ -609,12 +609,12 @@ subroutine HF_primary_decay_setup(e_in,iproj,itarget,icomp,istate,energy)
                            trans = EL_trans(i_f, l, e_gamma, energy)
                            if(trans < trans_e_cut)cycle
                            ip_f = iand((ip_i + l),1)                                                !  parity of final state
-                           xI_f_min = abs(xI_i-dfloat(l))                                           !  min final spin
-                           xI_f_max = min(xI_f_max1,xI_i + dfloat(l))                               !  max final spin
+                           xI_f_min = abs(xI_i-real(l,kind=8))                                           !  min final spin
+                           xI_f_max = min(xI_f_max1,xI_i + real(l,kind=8))                               !  max final spin
                            Ix_f_min = max(nint(xI_f_min-nucleus(i_f)%jshift),0)                     !  min j-index
                            Ix_f_max = min(nint(xI_f_max-nucleus(i_f)%jshift),nucleus(i_f)%j_max)    !  max j-index                           
                            do Ix_f = Ix_f_min,Ix_f_max                                              !  loop over final j
-                              xI_f = dfloat(Ix_f)+nucleus(i_f)%jshift
+                              xI_f = real(Ix_f,kind=8)+nucleus(i_f)%jshift
                               if(xI_i < 1.0d-5.and. xI_f <= 1.0d-5)cycle                            !  O -> 0 not allowed
                               trans_eff = trans*nucleus(i_f)%bins(Ix_f,ip_f,n_f)%rho*         &
                                                 nucleus(i_f)%delta_e(n_f)
@@ -638,12 +638,12 @@ subroutine HF_primary_decay_setup(e_in,iproj,itarget,icomp,istate,energy)
                            trans = ML_trans(i_f, l, e_gamma)
                            if(trans < trans_e_cut)cycle
                            ip_f = iand((ip_i + l - 1),1)                                            !  parity of final state
-                           xI_f_min = abs(xI_i - dfloat(l))                                         !  min final spin
-                           xI_f_max = min(xI_f_max1, xI_i + dfloat(l))                              !  max final spin
+                           xI_f_min = abs(xI_i - real(l,kind=8))                                         !  min final spin
+                           xI_f_max = min(xI_f_max1, xI_i + real(l,kind=8))                              !  max final spin
                            Ix_f_min = max(nint(xI_f_min-nucleus(i_f)%jshift),0)                     !  min j-index
                            Ix_f_max = min(nint(xI_f_max-nucleus(i_f)%jshift),nucleus(i_f)%j_max)    !  max j-index                           
                            do Ix_f = Ix_f_min, Ix_f_max                                             !  loop over final j
-                              xI_f = dfloat(Ix_f) + nucleus(i_f)%jshift
+                              xI_f = real(Ix_f,kind=8) + nucleus(i_f)%jshift
                               if(xI_i < 1.0d-5.and. xI_f <= 1.0d-5)cycle                            !  O -> 0 not allowed
                               trans_eff = trans*nucleus(i_f)%bins(Ix_f,ip_f,n_f)%rho*         &
                                                 nucleus(i_f)%delta_e(n_f)
@@ -726,7 +726,7 @@ subroutine HF_primary_decay_setup(e_in,iproj,itarget,icomp,istate,energy)
                      end do
                   end if
                   Channel(l_proj,is_i,Ix_i)%Channel_prob(ifi) = prob_sum
-                  Channel(l_proj,is_i,Ix_i)%Channel_trans(ifi) = prob_sum
+!-rem                  Channel(l_proj,is_i,Ix_i)%Channel_trans(ifi) = prob_sum
 
                   if(num > 0)then
                      if(ii == 1)then
@@ -782,7 +782,7 @@ subroutine HF_primary_decay_setup(e_in,iproj,itarget,icomp,istate,energy)
                      else
                         nnn = Channel(l_proj,is_i,Ix_i)%num_decay
                         Channel(l_proj,is_i,Ix_i)%Channel_prob(nnn) = F_trans(4)*WF
-                        Channel(l_proj,is_i,Ix_i)%Channel_trans(nnn) = F_trans(4)*WF
+!-rem                        Channel(l_proj,is_i,Ix_i)%Channel_trans(nnn) = F_trans(4)*WF
                         Channel(l_proj,is_i,Ix_i)%decay_to(nnn) = -1
                         Channel(l_proj,is_i,Ix_i)%decay_particle(nnn) = 7
                         Channel(l_proj,is_i,Ix_i)%Channel_decay(nnn)%num_decay = -1

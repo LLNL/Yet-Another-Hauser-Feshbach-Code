@@ -45,6 +45,7 @@ logical function real8_equal(x,y)
    real(kind=8), intent(in) :: x, y
 !-------------------------------------------------------------------------------
    real8_equal = .true.
-   if(abs(x-y) > 1.0d-7)real8_equal = .false.
+!   if(x == y)real8_equal = .false.
+   if(abs(x-y) > 1.0d-30)real8_equal = .false.
    return
 end function real8_equal

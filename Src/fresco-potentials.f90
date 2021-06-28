@@ -25,7 +25,7 @@ subroutine KD_potential(part_type, iA, iZ, energy, V_pot, R_pot, a_pot, RC, D3, 
 !
 !     Subroutines:
 !
-!        None
+!        exit_YAHFC
 !
 !     External functions:
 !
@@ -33,7 +33,7 @@ subroutine KD_potential(part_type, iA, iZ, energy, V_pot, R_pot, a_pot, RC, D3, 
 !
 !     MPI routines:
 !
-!        MPI_Abort
+!        MPI_Abort    ----   via exit_YAHFC
 !
 !  Licensing:
 !
@@ -84,7 +84,7 @@ subroutine KD_potential(part_type, iA, iZ, energy, V_pot, R_pot, a_pot, RC, D3, 
 
    if(part_type > 2)then
       if(iproc == 0)write(6,*)'Error in KDParam, use only for protons and neutrons, not k = '
-      call MPI_Abort(icomm,301,ierr)
+      call exit_YAHFC(301)
    end if
    v1 = 59.30d0 - 21.0d0*diff - 2.4d-2*xA
    v2 = 7.228d-3 - 1.48d-6*xA
@@ -175,7 +175,7 @@ subroutine maslov_03_potential(E, V_pot, R_pot, a_pot, RC, iradius)
 !
 !     Subroutines:
 !
-!        None
+!        exit_YAHFC
 !
 !     External functions:
 !
@@ -274,7 +274,7 @@ subroutine soukhovitskii_potential(part_type, iA, iZ, OM_option,        &
 !
 !     Subroutines:
 !
-!        None
+!        exit_YAHFC
 !
 !     External functions:
 !
@@ -282,7 +282,7 @@ subroutine soukhovitskii_potential(part_type, iA, iZ, OM_option,        &
 !
 !     MPI routines:
 !
-!        MPI_Abort
+!        MPI_Abort    ----   via exit_YAHFC
 !
 !  Licensing:
 !
@@ -334,7 +334,7 @@ subroutine soukhovitskii_potential(part_type, iA, iZ, OM_option,        &
 
    if(part_type > 2)then
       write(6,*)'Error in soukhovitskii_potential: part_type > 2'
-      call MPI_Abort(icomm,301,ierr)
+      call exit_YAHFC(301)
    end if
    onethird = 1.0d0/3.0d0
    iN = iA - iZ
@@ -476,7 +476,7 @@ subroutine perey_d_potential(part_type, iA, iZ, E,                   &
 !
 !     Subroutines:
 !
-!        None
+!        exit_YAHFC
 !
 !     External functions:
 !
@@ -484,7 +484,7 @@ subroutine perey_d_potential(part_type, iA, iZ, E,                   &
 !
 !     MPI routines:
 !
-!        MPI_Abort
+!        MPI_Abort   ----  via exit_YAHFC
 !
 !  Licensing:
 !
@@ -523,7 +523,7 @@ subroutine perey_d_potential(part_type, iA, iZ, E,                   &
          write(6,*)'Error in perey_d_potential. Attempting to call for '
          write(6,*)'an incident particle other than deutrons'
       end if
-      call MPI_Abort(icomm,301,ierr)
+      call exit_YAHFC(301)
    end if
 
    iN = iA - iZ
@@ -581,7 +581,7 @@ subroutine becchetti_t_potential(part_type, iA, iZ, E,           &
 !
 !     Subroutines:
 !
-!        None
+!        exit_YAHFC
 !
 !     External functions:
 !
@@ -589,7 +589,7 @@ subroutine becchetti_t_potential(part_type, iA, iZ, E,           &
 !
 !     MPI routines:
 !
-!        MPI_Abort
+!        MPI_Abort   ----  via exit_YAHFC
 !
 !  Licensing:
 !
@@ -628,7 +628,7 @@ subroutine becchetti_t_potential(part_type, iA, iZ, E,           &
          write(6,*)'Error in becchetti_t_potential. Attempting to call for '
          write(6,*)'an incident particle other than tritons'
       end if
-      call MPI_Abort(icomm,301,ierr)
+      call exit_YAHFC(301)
    end if
 
    iN = iA - iZ
@@ -691,7 +691,7 @@ subroutine becchetti_h_potential(part_type, iA, iZ, E,           &
 !
 !     Subroutines:
 !
-!        None
+!        exit_YAHFC
 !
 !     External functions:
 !
@@ -699,7 +699,7 @@ subroutine becchetti_h_potential(part_type, iA, iZ, E,           &
 !
 !     MPI routines:
 !
-!        MPI_Abort
+!        MPI_Abort   ----  via exit_YAHFC
 !
 !  Licensing:
 !
@@ -738,7 +738,7 @@ subroutine becchetti_h_potential(part_type, iA, iZ, E,           &
          write(6,*)'Error in becchetti_h_potential. Attempting to call for '
          write(6,*)'an incident particle other than He-3'
       end if
-      call MPI_Abort(icomm,301,ierr)
+      call exit_YAHFC(301)
    end if
 
    iN = iA - iZ
@@ -800,7 +800,7 @@ subroutine avrigeanu_a_potential(part_type, iA, iZ, E,                  &
 !
 !     Subroutines:
 !
-!        None
+!        exit_YAHFC
 !
 !     External functions:
 !
@@ -808,7 +808,7 @@ subroutine avrigeanu_a_potential(part_type, iA, iZ, E,                  &
 !
 !     MPI routines:
 !
-!        MPI_Abort
+!        MPI_Abort   ----  via exit_YAHFC
 !
 !  Licensing:
 !
@@ -847,7 +847,7 @@ subroutine avrigeanu_a_potential(part_type, iA, iZ, E,                  &
          write(6,*)'Error in avrigeanu_a_potential. Attempting to call for '
          write(6,*)'an incident particle other than alphas'
       end if
-      call MPI_Abort(icomm,301,ierr)
+      call exit_YAHFC(301)
    end if
 
    iN = iA - iZ

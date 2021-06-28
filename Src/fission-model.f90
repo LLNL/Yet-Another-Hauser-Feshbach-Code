@@ -22,8 +22,6 @@ subroutine Fission_data(data_path,len_path,icomp)
 !     Subroutines:
 !
 !       init_barrier_data
-!       parse_string
-!       lower_case_word
 !
 !     External functions:
 !
@@ -58,18 +56,12 @@ subroutine Fission_data(data_path,len_path,icomp)
    integer(kind=4), intent(in) :: icomp
 !-----------------------------------------------------------
    integer(kind=4) :: ia
-   real(kind=8) :: Ea, Eb, Delf
+   real(kind=8) :: Ea, hbwa, Eb, hbwb, Delf
 
    character(len=2) :: symb, symma, symmb
    integer(kind=4) :: izz, iaa
    integer(kind=4) :: i
 
-   logical :: finished, reading
-   character(len=132) :: command
-   integer(kind=4) :: numw
-   integer(kind=4) :: startw(66), stopw(66)
-   integer(kind=4) :: read_err
-   integer(kind=4) :: nchar
 !-------------------------------------------------------------------
 
    ia = nucleus(icomp)%A
@@ -80,12 +72,15 @@ subroutine Fission_data(data_path,len_path,icomp)
 !----    Then check for data in 'Fission-Parameters.txt', which contains
 !----    user specified parameters, likely due to previous fitting
 !----
-   open(unit=53,file=data_path(1:len_path)//'Fission-barrier.dat',status='old')
-   do i=1,4
+!   open(unit=53,file=data_path(1:len_path)//'Fission-barrier.dat',status='old')
+   open(unit=53,file=data_path(1:len_path)//'empirical-barriers.dat',status='old')
+   do i = 1, 4
       read(53,*)
    end do
- 1 read(53,'(2(1x,i3),1x,a2,2(f8.3,2x,a2),f8.3)',end=2)    &
-              izz,iaa,symb,Ea,symma,Eb,symmb,Delf
+! 1 read(53,'(2(1x,i3),1x,a2,2(f8.3,2x,a2),f8.3)',end=2)    &
+!              izz,iaa,symb,Ea,symma,Eb,symmb,Delf
+ 1 read(53,'(2(1x,i3),1x,a2,1x,2(3x,a2,2(1x,f7.2)),1x,f8.3)',end=2)    &
+              izz, iaa, symb, symma, Ea, hbwa, symmb, Eb, hbwb, Delf
 
    if(izz == nucleus(icomp)%Z .and. iaa == nucleus(icomp)%A)then
 
@@ -96,8 +91,7 @@ subroutine Fission_data(data_path,len_path,icomp)
          nucleus(icomp)%F_n_barr = 1
          if(.not.allocated(nucleus(icomp)%F_Barrier))allocate(nucleus(icomp)%F_Barrier(1))
          nucleus(icomp)%F_barrier(1)%barrier = Eb
-
-
+         nucleus(icomp)%F_Barrier(1)%hbw = hbwa
 
          if(symmb == 'S ')then
              nucleus(icomp)%F_barrier(1)%symmetry = 1
@@ -107,9 +101,9 @@ subroutine Fission_data(data_path,len_path,icomp)
              nucleus(icomp)%F_barrier(1)%symmetry = 3
          end if
 
+!----   Use a default for the width, file does not contain hbw for single barriers
          if(iand(iaa,1) == 0)then
             if(iand(izz,1) == 0)then
-               nucleus(icomp)%F_Barrier(1)%hbw = 0.9d0
             else
                nucleus(icomp)%F_Barrier(1)%hbw = 0.6d0
             end if
@@ -122,6 +116,13 @@ subroutine Fission_data(data_path,len_path,icomp)
          if(.not.allocated(nucleus(icomp)%F_Barrier))allocate(nucleus(icomp)%F_Barrier(2))
          nucleus(icomp)%F_Barrier(1)%barrier = Ea
          nucleus(icomp)%F_Barrier(2)%barrier = Eb
+         nucleus(icomp)%F_Barrier(1)%hbw = hbwa
+         nucleus(icomp)%F_Barrier(2)%hbw = hbwb
+         nucleus(icomp)%F_Barrier(1)%level_param(3) = Delf
+         nucleus(icomp)%F_Barrier(1)%level_param(6) = 2.5 + 150./real(iA,kind=8) + Delf
+         nucleus(icomp)%F_Barrier(2)%level_param(3) = Delf
+         nucleus(icomp)%F_Barrier(2)%level_param(6) = 2.5 + 150./real(iA,kind=8) + Delf
+
          if(symma == 'S ')then
              nucleus(icomp)%F_barrier(1)%symmetry = 1
          elseif(symma == 'GA')then
@@ -136,18 +137,6 @@ subroutine Fission_data(data_path,len_path,icomp)
          elseif(symmb == 'MA')then
              nucleus(icomp)%F_barrier(2)%symmetry = 2
          end if
-         if(iand(iaa,1) == 0)then
-            if(iand(izz,1) == 0)then
-               nucleus(icomp)%F_Barrier(1)%hbw = 0.9d0
-               nucleus(icomp)%F_Barrier(2)%hbw = 0.6d0
-            else
-               nucleus(icomp)%F_Barrier(1)%hbw = 0.6d0
-               nucleus(icomp)%F_Barrier(2)%hbw = 0.4d0
-            end if
-         else
-            nucleus(icomp)%F_Barrier(1)%hbw = 0.8d0
-            nucleus(icomp)%F_Barrier(2)%hbw = 0.5d0
-         end if
       end if
 
       call init_barrier_data(icomp)
@@ -157,32 +146,6 @@ subroutine Fission_data(data_path,len_path,icomp)
  2 continue
    close(unit=53)
 
-!------   Now check the file 'Fission-Parameters.txt'
-   open(unit=53,file=data_path(1:len_path)//'Fission-Parameters.txt',status='old')
-   finished = .false.
-   reading = .false.
-   do while(.not. finished)
-      read(53,'(a)', iostat = read_err)command
-      if(read_err /= 0)finished = .true.                                     !  Hit end of file
-      if(command(1:1) == '!' .or. command(1:1) == '#')cycle                  !  it is a comment line
-      call parse_string(command,numw,startw,stopw)
-      nchar = stopw(numw)
-
-      call lower_case_word(nchar,command(1:stopw(numw)))                     !  convert to lower case
-      if(command(startw(1):stopw(1)) == 'end')finished = .true.
-      if(.not. reading)then
-         if(command(startw(1):stopw(1)) == 'start')then
-            read(command(startw(2):stopw(2)),*)izz
-            read(command(startw(3):stopw(3)),*)iaa
-            if(izz == nucleus(icomp)%Z .and. iaa == nucleus(icomp)%A)reading = .true.
-         end if
-      else
-         if(command(startw(1):stopw(1)) == 'start')exit                      !  hit the next nucleus, so we are done
-         call fission_command(command, numw, startw, stopw, icomp)           !  parse data and put in proper place
-         nucleus(icomp)%fission_read = .true.
-      end if  
-   end do
-   close(unit=53)
    return
 end subroutine Fission_data
 !
@@ -213,7 +176,7 @@ subroutine Fission_levels(icomp)
 !
 !     External functions:
 !
-!        None
+!       real(kind=8) :: sig_2_param
 !
 !     MPI routines:
 !
@@ -243,15 +206,19 @@ subroutine Fission_levels(icomp)
    real(kind=8) :: spin, sg2cut, sum
    real(kind=8) :: chisq, chi_min
    real(kind=8) :: ematch
+   real(kind=8) :: A
    integer(kind=4) :: nfit
+   real(kind=8) :: ratio, sig2, sig2F
    real(kind=8), allocatable :: elv(:)
    real(kind=8), allocatable :: cum_rho(:),dcum_rho(:)
    real(kind=8), allocatable :: cum_fit(:)
 
    integer(kind=4) i,j, num
-
+!++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+   real(kind=8) :: sig2_param
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    ia = nucleus(icomp)%A
+   A = real(ia,kind=8)
 
 
 !-------------------------------------------------------------------
@@ -265,92 +232,138 @@ subroutine Fission_levels(icomp)
 
 !-----   Spin cut off parameter at Ecut
 !-----   Taken from Reffo based on maximum liklihood arguments
-      sg2cut = (0.83*real(nucleus(icomp)%A,kind=8)**0.26)**2
+
+      sg2cut = (0.83d0*A**0.26d0)**2
       num = nucleus(icomp)%F_Barrier(i)%num_discrete
 
-
       if(num > 0)then
-         sg2cut=0.
-         sum = 0.0
+         sg2cut=0.0d0
+         sum = 0.0d0
          do j = 1, num
             spin = nucleus(icomp)%F_Barrier(i)%state_j(j)
-            sg2cut = sg2cut + spin*(spin + 1.0)*(2.0*spin+1.0)
-            sum = sum + (2.0*spin+1.0)
+            sg2cut = sg2cut + spin*(spin + 1.0d0)*(2.0d0*spin+1.0d0)
+            sum = sum + (2.0d0*spin+1.0d0)
          end do
          sg2cut = sg2cut/(3.0d0*sum)
+
+         nucleus(icomp)%F_Barrier(i)%level_param(9) = nucleus(icomp)%level_param(9)
+
+         nucleus(icomp)%F_Barrier(i)%ecut = nucleus(icomp)%F_Barrier(i)%state_e(j) + 0.0001
+
+         nucleus(icomp)%F_Barrier(i)%level_param(8) = sg2cut
+         nucleus(icomp)%F_Barrier(i)%ecut = nucleus(icomp)%F_Barrier(i)%state_e(num) + 0.001
+         nucleus(icomp)%F_Barrier(i)%level_param(7) = nucleus(icomp)%F_Barrier(i)%ecut
+         nfit = nucleus(icomp)%F_Barrier(i)%num_discrete
+
+         if(nucleus(icomp)%F_Barrier(i)%level_param(19) == 0)then
+             nucleus(icomp)%F_Barrier(i)%level_param(12) =                        &
+                  nucleus(icomp)%F_Barrier(i)%level_param(2)*A**(2.d0/3.d0)
+         else
+             nucleus(icomp)%F_Barrier(i)%level_param(12) =                        &
+                  nucleus(icomp)%F_Barrier(i)%level_param(2)*A**(5.d0/3.d0)
+         end if
+
+         nfit = nucleus(icomp)%F_Barrier(i)%num_discrete
+
+         if(nfit > 5)then                                             !  There are so few discrete states, 
+                                                                      !  no point in fitting to the cumulative 
+                                                                      !  level density
+            if(.not.allocated(elv))allocate(elv(nfit))                   !  allocate cumulative density array
+            if(.not.allocated(cum_rho))allocate(cum_rho(nfit))           !  allocate cumulative density array
+            if(.not.allocated(dcum_rho))allocate(dcum_rho(nfit))
+            if(.not.allocated(cum_fit))allocate(cum_fit(nfit))           !  allocate cumulative density array
+            do j = 1, nfit                                               !  Make cumulative rho array
+               elv(j) = nucleus(icomp)%F_Barrier(i)%state_e(j)
+               cum_rho(j)=real(j,kind=8)
+               dcum_rho(j)=1.0d0/sqrt(cum_rho(j))                        !  assume error 1/sqrt
+            end do
+
+
+            ematch = 8.0
+            nucleus(icomp)%F_Barrier(i)%level_param(6) = ematch
+            call Find_T_E0(ia,nucleus(icomp)%F_Barrier(i)%level_param,            &
+                           nucleus(icomp)%F_Barrier(i)%vib_enh,                   &
+                           nucleus(icomp)%F_Barrier(i)%rot_enh)
+
+            call cumm_rho(nfit,elv,nucleus(icomp)%A,nucleus(icomp)%level_param,   &
+                          nucleus(icomp)%vib_enh,                                 &
+                          nucleus(icomp)%rot_enh,cum_fit)
+            chisq = 0.0d0
+
+            do j = 1, nfit
+               chisq = chisq + (cum_rho(j)-cum_fit(j))**2/dcum_rho(j)**2
+            end do
+            ematch = nucleus(icomp)%F_Barrier(i)%level_param(6)
+            chi_min = 1.0d10
+
+ 10         nucleus(icomp)%F_Barrier(i)%level_param(6) =                          &
+                    nucleus(icomp)%F_Barrier(i)%level_param(6) - 0.05
+            call Find_T_E0(ia,nucleus(icomp)%F_Barrier(i)%level_param,            &
+                           nucleus(icomp)%F_Barrier(i)%vib_enh,                   &
+                           nucleus(icomp)%F_Barrier(i)%rot_enh)
+            if(nucleus(icomp)%F_Barrier(i)%level_param(6) < 3.0)goto 11
+            call cumm_rho(nfit,elv,nucleus(icomp)%A,nucleus(icomp)%level_param,   &
+                          nucleus(icomp)%vib_enh,                                 &
+                          nucleus(icomp)%rot_enh,cum_fit)
+            chisq=0.0d0
+            do j=1,nfit
+               chisq = chisq + (cum_rho(j)-cum_fit(j))**2/dcum_rho(i)**2
+            end do
+
+            if(chisq < chi_min)then
+               ematch = nucleus(icomp)%F_Barrier(i)%level_param(6)
+               chi_min = chisq
+            else
+               goto 11
+            end if
+            goto 10
+ 11         nucleus(icomp)%F_Barrier(i)%level_param(6) = ematch
+            call Find_T_E0(ia,nucleus(icomp)%F_Barrier(i)%level_param,           &
+                           nucleus(icomp)%F_Barrier(i)%vib_enh,                  &
+                           nucleus(icomp)%F_Barrier(i)%rot_enh)
+            if(allocated(elv))deallocate(elv)
+            if(allocated(cum_rho))deallocate(cum_rho)
+            if(allocated(dcum_rho))deallocate(dcum_rho)
+            if(allocated(cum_fit))deallocate(cum_fit)
+         else
+!--------------------------------------------------------------------------------
+!------   Fail safe, shouldn't get here, but need to do something to proceed
+!------   too few levels to fit ematch, and ematch has not been specified
+!------   punt and set to ematch of the compound nucleus
+!--------------------------------------------------------------------------------
+            ematch = nucleus(icomp)%F_Barrier(i)%level_param(6)
+            if(ematch < 1.0d-6)then
+               nucleus(icomp)%F_Barrier(i)%level_param(6) = nucleus(icomp)%level_param(6)
+               ematch = nucleus(icomp)%F_Barrier(i)%level_param(6)
+            end if
+            call Find_T_E0(ia,nucleus(icomp)%F_Barrier(i)%level_param,            &
+                           nucleus(icomp)%F_Barrier(i)%vib_enh,                   &
+                           nucleus(icomp)%F_Barrier(i)%rot_enh)
+         end if
       else
-       sg2cut = (0.83*real(nucleus(icomp)%A,kind=8)**0.26)**2
+!--------------------------------------------------------------------------------
+!------   No discrete states above the barrier, just continuous level density
+!------   need to set spin cut off parameter so that it is not too different from
+!------   the compound nucleus (CN). Previously, it was just the analytic formula
+!------   But, this led to a big difference in the spin distributions at low energy 
+!------   between the compound nucleus discrete spectrum and the barriers
+!------   Plan is to have a spin cut off at an effective ecut, as if there are 
+!------   discrete states. Scale the CN value by ratio of spin cutoff at Ematch,
+!------   should be specified by user, with that at the barrier. Scale the CN spin 
+!------   cut off by this amount.
+!--------------------------------------------------------------------------------
+         Ematch = nucleus(icomp)%F_Barrier(i)%level_param(6)
+         sig2 = sig2_param(Ematch,nucleus(icomp)%level_param,A)
+         sig2F = sig2_param(Ematch,nucleus(icomp)%F_Barrier(i)%level_param,A)
+         ratio = sig2F/sig2
+         sg2cut = nucleus(icomp)%level_param(8)*ratio
+         nucleus(icomp)%F_Barrier(i)%level_param(8) = sg2cut
+         nucleus(icomp)%F_Barrier(i)%ecut = nucleus(icomp)%level_param(7)
+         nucleus(icomp)%F_Barrier(i)%level_param(7) = nucleus(icomp)%F_Barrier(i)%ecut
+         call Find_T_E0(ia,nucleus(icomp)%F_Barrier(i)%level_param,            &
+                        nucleus(icomp)%F_Barrier(i)%vib_enh,                   &
+                        nucleus(icomp)%F_Barrier(i)%rot_enh)
       end if
-      if(sg2cut < 1.0d-4)sg2cut =                                          &
-           (0.83*real(nucleus(icomp)%A,kind=8)**0.26)**2
-
-      nucleus(icomp)%F_Barrier(i)%level_param(9) = nucleus(icomp)%level_param(9)
-      nucleus(icomp)%F_Barrier(i)%ecut = 0.0001
-      nucleus(icomp)%F_Barrier(i)%level_param(8) = sg2cut
-      if(num > 0)nucleus(icomp)%F_Barrier(i)%ecut = nucleus(icomp)%F_Barrier(i)%state_e(num) + 0.001
-      nucleus(icomp)%F_Barrier(i)%level_param(7) = nucleus(icomp)%F_Barrier(i)%ecut
-      nfit = nucleus(icomp)%F_Barrier(i)%num_discrete
-      if(nfit <= 5)cycle                                           !  There are so few discrete states, 
-                                                                   !  no point in fitting to the cumulative 
-                                                                   !  level density
-      if(.not.allocated(elv))allocate(elv(nfit))                   !  allocate cumulative density array
-      if(.not.allocated(cum_rho))allocate(cum_rho(nfit))           !  allocate cumulative density array
-      if(.not.allocated(dcum_rho))allocate(dcum_rho(nfit))
-      if(.not.allocated(cum_fit))allocate(cum_fit(nfit))           !  allocate cumulative density array
-      do j = 1, nfit                                               !  Make cumulative rho array
-         elv(j) = nucleus(icomp)%F_Barrier(i)%state_e(j)
-         cum_rho(j)=real(j,kind=8)
-         dcum_rho(j)=1.0d0/sqrt(cum_rho(j))                        !  assume error 1/sqrt
-      end do
-
-      ematch = 8.0
-      nucleus(icomp)%F_Barrier(i)%level_param(6) = ematch
-      call Find_T_E0(ia,nucleus(icomp)%F_Barrier(i)%level_param,            &
-                     nucleus(icomp)%F_Barrier(i)%vib_enh,                   &
-                     nucleus(icomp)%F_Barrier(i)%rot_enh)
-
-      call cumm_rho(nfit,elv,nucleus(icomp)%A,nucleus(icomp)%level_param,   &
-                    nucleus(icomp)%vib_enh,                                 &
-                    nucleus(icomp)%rot_enh,cum_fit)
-  
-      chisq=0.0d0
-
-      do j = 1, nfit
-         chisq = chisq + (cum_rho(j)-cum_fit(j))**2/dcum_rho(j)**2
-      end do
-      ematch = nucleus(icomp)%F_Barrier(i)%level_param(6)
-      chi_min = 1.0d10
-
- 10   nucleus(icomp)%F_Barrier(i)%level_param(6) =                          &
-              nucleus(icomp)%F_Barrier(i)%level_param(6) - 0.05
-      call Find_T_E0(ia,nucleus(icomp)%F_Barrier(i)%level_param,            &
-                     nucleus(icomp)%F_Barrier(i)%vib_enh,                   &
-                     nucleus(icomp)%F_Barrier(i)%rot_enh)
-      if(nucleus(icomp)%F_Barrier(i)%level_param(6) < 3.0)goto 11
-      call cumm_rho(nfit,elv,nucleus(icomp)%A,nucleus(icomp)%level_param,   &
-                    nucleus(icomp)%vib_enh,                                 &
-                    nucleus(icomp)%rot_enh,cum_fit)
-      chisq=0.0d0
-      do j=1,nfit
-         chisq = chisq + (cum_rho(j)-cum_fit(j))**2/dcum_rho(i)**2
-      end do
-
-
-      if(chisq < chi_min)then
-         ematch = nucleus(icomp)%F_Barrier(i)%level_param(6)
-         chi_min = chisq
-      else
-         goto 11
-      end if
-      goto 10
- 11   nucleus(icomp)%F_Barrier(i)%level_param(6) = ematch
-      call Find_T_E0(ia,nucleus(icomp)%F_Barrier(i)%level_param,           &
-                     nucleus(icomp)%F_Barrier(i)%vib_enh,                  &
-                     nucleus(icomp)%F_Barrier(i)%rot_enh)
-      if(allocated(elv))deallocate(elv)
-      if(allocated(cum_rho))deallocate(cum_rho)
-      if(allocated(dcum_rho))deallocate(dcum_rho)
-      if(allocated(cum_fit))deallocate(cum_fit)
    end do
 
    return
@@ -381,13 +394,11 @@ subroutine Fission_transmission(icomp,Ex,xji,ipar,F_trans)
 !
 !     Subroutines:
 !
-!        None
+!        rho_J_par_e
 !
 !     External functions:
 !
 !      real(kind=8) :: HW_trans
-!      real(kind=8) :: spin_fac
-!      real(kind=8) :: parity_fac
 !      logical :: real8_equal
 !
 !     MPI routines:
@@ -424,11 +435,17 @@ subroutine Fission_transmission(icomp,Ex,xji,ipar,F_trans)
    real(kind=8) :: T_f
    integer(kind=4) :: i, j, j_min
    real(kind=8) :: Ef
-   real(kind=8) :: apar,spin_cut,delta,ecut,sg2cut,sig_mod,ematch
+   real(kind=8) :: apar
+   real(kind=8) :: spin_cut
+   real(kind=8) :: delta
+   real(kind=8) :: ecut
+   real(kind=8) :: sg2cut
+   real(kind=8) :: sig_mod
+   real(kind=8) :: ematch
+   real(kind=8) :: emin
    real(kind=8) :: par
-   real(kind=8) :: rho,rho_FM,sig2,apu
+   real(kind=8) :: rho, sig2, apu
    real(kind=8) :: tt
-   real(kind=8) :: jfac,pfac
    real(kind=8) :: K_vib, K_rot
    integer(kind=4) :: ia
    real(kind=8) :: e_old
@@ -441,8 +458,6 @@ subroutine Fission_transmission(icomp,Ex,xji,ipar,F_trans)
    real(kind=8) :: aa, bb, cc
 !--------   External Functions  ----------------------
    real(kind=8) :: HW_trans
-   real(kind=8) :: spin_fac
-   real(kind=8) :: parity_fac
    logical :: real8_equal
 !-----------------------------------------------------
 
@@ -461,11 +476,12 @@ subroutine Fission_transmission(icomp,Ex,xji,ipar,F_trans)
       ematch = nucleus(icomp)%F_barrier(i)%level_param(6)
       E0 = nucleus(icomp)%F_barrier(i)%level_param(15)
       T = nucleus(icomp)%F_barrier(i)%level_param(14)
-      if(E0 < 0.0d0)then
-         E1 = T*log(1.0d0-exp(E0/T))
-      else
-         E1 = -5.0d0
-      end if
+!      if(E0 < 0.0d0)then
+!         E1 = T*log(1.0d0-exp(E0/T))
+!      else
+!         E1 = -5.0d0
+!      end if
+      E1 = 0.0d0
       j_min = nint(E1/de)
 
       aa = nucleus(icomp)%F_Barrier(i)%barrier_damp(1)
@@ -503,28 +519,26 @@ subroutine Fission_transmission(icomp,Ex,xji,ipar,F_trans)
       pe1 = nucleus(icomp)%F_barrier(i)%level_param(17)
       pbb = nucleus(icomp)%F_barrier(i)%level_param(18)
 
+      emin = E1
+      if(nucleus(icomp)%F_Barrier(i)%num_discrete > 0)emin = ecut
 
       T_f = 0.0d0
-      if(ecut > 0.0d0)then
-         j = 0
-      else
-         j = j_min
-      end if
+      j = 0
+
       converged = .false.
+
       do while (.not. converged)
-         Ef = real(j,kind=8)*de + ecut  
-         call rhoe(Ef,nucleus(icomp)%F_barrier(i)%level_param,                 &
-                   nucleus(icomp)%F_barrier(i)%vib_enh,                        &
-                   nucleus(icomp)%F_barrier(i)%rot_enh,                        &
-                   ia,rho_Fm,apu,sig2,K_vib,K_rot)
-!
-         jfac = spin_fac(xji,sig2)
-         pfac = parity_fac(Ef,xji,ipar,pmode,pe1,pbb)
-         rho = rho_FM*jfac*pfac
+         Ef = real(j,kind=8)*de + emin 
+
+         call rho_J_par_e(Ef, xji, ipar,                              &
+                          nucleus(icomp)%F_barrier(i)%level_param,    &
+                          nucleus(icomp)%F_barrier(i)%vib_enh,        &
+                          nucleus(icomp)%F_barrier(i)%rot_enh,        &
+                          ia, rho, apu, sig2, K_vib, K_rot)
          tt = HW_trans(Ex,Ef,F_Barrier,F_barrier_hbw)
          tt = tt*rho*de
          if(T_f > 0.0 .and. tt/T_f < 1.0d-6)converged = .true.
-         if(tt < 1.0d-7)converged = .true.
+         if(Ef > Ex .and. tt < 1.0d-7)converged = .true.
          T_f = T_f + tt
          j = j + 1
       end do
@@ -700,21 +714,33 @@ subroutine init_barrier_data(i)
          end if
       end if
 
-      beta_2 = 2.5d0*nucleus(i)%beta(2)
+      beta_2 = 2.0d0*nucleus(i)%beta(2)
       if(j == 2)then
-         beta_2 = 4.5d0*nucleus(i)%beta(2)
+         beta_2 = 3.7d0*nucleus(i)%beta(2)
       end if
+
+      nucleus(i)%F_Barrier(j)%level_param(19) = nucleus(i)%level_param(19)
+
       nucleus(i)%F_Barrier(j)%beta_2 = beta_2
 
-      sig2_perp = (1.0d0 + beta_2/3.0d0)
-      sig2_ax = sqrt(pi/2.0d0)*(1.0d0 - 2.0d0*beta_2/3.0d0)
+      sig2_perp = 0.0d0
+      sig2_ax = 0.0d0
+      if(nint(nucleus(i)%F_Barrier(j)%level_param(19)) == 2 .or.            &
+         nint(nucleus(i)%F_Barrier(j)%level_param(19)) == 3)then
+         sig2_perp = (1.0d0 + beta_2/3.0d0)
+         sig2_ax = (1.0d0 - 2.0d0*beta_2/3.0d0)
+      elseif(nint(nucleus(i)%F_Barrier(j)%level_param(19)) == 4 .or.            &
+         nint(nucleus(i)%F_Barrier(j)%level_param(19)) == 5)then
+         sig2_perp = (1.0d0 + sqrt(5.0d0/(4.0d0*pi))*beta_2)
+         sig2_ax = (1.0d0 - 0.5d0*sqrt(5.0d0/(4.0d0*pi))*beta_2)
+      end if
 
       nucleus(i)%F_Barrier(j)%level_param(1) = nucleus(i)%level_param(1)
       nucleus(i)%F_Barrier(j)%level_param(2) = nucleus(i)%level_param(2)
       nucleus(i)%F_Barrier(j)%level_param(3) = nucleus(i)%level_param(3)
       if(j == 1)nucleus(i)%F_Barrier(j)%level_param(4) = 1.5d0
       if(j == 2)nucleus(i)%F_Barrier(j)%level_param(4) = 0.6d0
-      nucleus(i)%F_Barrier(j)%level_param(5) = 0.0d0
+      nucleus(i)%F_Barrier(j)%level_param(5) = nucleus(i)%level_param(5)
       nucleus(i)%F_Barrier(j)%level_param(6) = nucleus(i)%level_param(6)
       nucleus(i)%F_Barrier(j)%level_param(7) = nucleus(i)%F_Barrier(j)%ecut
       nucleus(i)%F_Barrier(j)%level_param(8) = (0.83*real(nucleus(i)%A,kind=8)**0.26)**2
@@ -734,7 +760,7 @@ subroutine init_barrier_data(i)
       nucleus(i)%F_barrier(j)%barrier_damp(2) = 0.0d0
       nucleus(i)%F_barrier(j)%barrier_damp(3) = 1.0d6
 
-      if(nucleus(i)%lev_option == 2)then
+      if(nucleus(i)%lev_option >= 2)then
          nucleus(i)%F_Barrier(j)%level_param(10) = real(nucleus(i)%F_Barrier(j)%symmetry,kind=8)
 
          nucleus(i)%F_Barrier(j)%level_param(11) = nucleus(i)%level_param(11)
@@ -762,615 +788,4 @@ subroutine init_barrier_data(i)
 
    return
 end subroutine init_barrier_data
-!
-!*******************************************************************************
-!
-subroutine fission_command(command, numw, startw, stopw, icomp)
-!
-!*******************************************************************************
-!
-!  Discussion:
-!
-!    This subroutine parses the input command, interprets it, and puts
-!    fission parameter data into the proper data slot.
-!
-!   Dependencies:
-!
-!     Modules:
-!
-!        variable_kinds
-!        nodeinfo
-!        options
-!        print_control
-!        useful_data
-!        nuclei
-!        particles_def
-!        directory_structure
-!        constants
-!        pre_equilibrium_no_1
-!
-!     Subroutines:
-!
-!        None
-!
-!     External functions:
-!
-!        None
-!
-!     MPI routines:
-!
-!        MPI_Abort
-!
-!  Licensing:
-!
-!    SPDX-License-Identifier: MIT 
-!
-!  Date:
-!
-!    11 May 2021
-!
-!  Author:
-!
-!      Erich Ormand, LLNL
-!
-!*******************************************************************************
-!
-   use variable_kinds
-   use nodeinfo
-   use options
-   use print_control
-   use useful_data
-   use nuclei
-   use particles_def
-   use directory_structure
-   use constants
-   use pre_equilibrium_no_1
-   implicit none
-!-------------------------------------------------------------------
-   character(len=132), intent(in) :: command
-   integer(kind=4), intent(in) :: numw
-   integer(kind=4), intent(in) :: startw(66), stopw(66)
-   integer(kind=4), intent(in) :: icomp
-!-------------------------------------------------------------------
-   integer(kind=4) :: iZ, iA
-   integer(kind=4) :: j, k
-   real(kind=8) :: x(66)
-   integer(kind=4) :: ilast
-   real(kind=8) :: beta_2
-   real(kind=8) :: sig2_ax, sig2_perp
-   integer(kind=4) :: ndat
-
-   integer(kind=4) :: num
-   integer(kind=4) :: nw
-   character(len=50) :: read_file
-   logical :: read_error
-!
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!
-   if(command(startw(1):stopw(1)) == 'f_num_barrier')then          !   global setting of this parameter
-
-      ndat = 1
-      call extract_ZA_data(command, numw, startw, stopw, ndat,         &
-                           iZ, iA, X, nw, read_error)
-      if(read_error)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
-      end if
-      j = nint(X(1),kind=4)
-
-      if(iZ == nucleus(icomp)%Z .and. iA == nucleus(icomp)%A)then
-         if(iproc ==0)then
-            write(6,*)'Default Fission Barriers are overridden for ', nucleus(icomp)%Label
-            write(6,*)'New defaults established.'
-            write(6,*)'Barrier heights = 6.0 MeV, hbw = 0.6 MeV, symmetric level densities'
-            write(6,*)'Use input commands to specify all Fission parameters!!!'
-         end if
-         nucleus(icomp)%fission = .true.
-         nucleus(icomp)%F_n_barr = j
-         if(allocated(nucleus(icomp)%F_Barrier))deallocate(nucleus(icomp)%F_Barrier)
-         allocate(nucleus(icomp)%F_Barrier(nucleus(icomp)%F_n_barr))
-!-----    Reset barrier data. Barrier symmetries are unknown and will be reset in 
-!-----    sybroutine init_barrier_data. However, the user should manually reset 
-         nucleus(icomp)%F_Barrier(1:nucleus(icomp)%F_n_barr)%symmetry = 0
-         call init_barrier_data(icomp)
-!-----
-         return
-      end if
-      if(iproc ==0)write(6,*)'Nucleus not found: f_Num_Barrier',' Z = ',iZ,' A = ',iA
-      return
-   end if
-!
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!
-   if(command(startw(1):stopw(1)) == 'f_barrier')then          !   global setting of this parameter
-
-      ndat = 3
-      call extract_ZA_data(command, numw, startw, stopw, ndat,         &
-                           iZ, iA, X, nw, read_error)
-      if(read_error)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
-      end if
-      j = nint(X(1),kind=4)
-      X(1) = X(2)
-      X(2) = X(3)
-
-      if(iZ == nucleus(icomp)%Z .and. iA == nucleus(icomp)%A)then
-         if(j > nucleus(icomp)%F_n_barr)then
-            if(iproc == 0)write(6,*)'too many barriers for F_Barrier',' Z = ',iZ,' A = ',iA
-            call MPI_Abort(icomm,101,ierr)
-         end if
-         nucleus(icomp)%F_Barrier(j)%barrier = x(1)
-         nucleus(icomp)%F_Barrier(j)%hbw = x(2)
-         return
-      end if
-      if(iproc == 0)write(6,*)'Nucleus not found: f_Barrier',' Z = ',iZ,' A = ',iA
-      return
-   end if
-!
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!    damping factor for fission barriers
-!    F_barrier = F_barrier*x(1)*exp(-x(3)**2*(Ex-x())**2)
-!   
-   if(command(startw(1):stopw(1)) == 'f_barrier_damp')then          !   global setting of this parameter
-
-      ndat = 3
-      call extract_ZA_data(command, numw, startw, stopw, ndat,         &
-                           iZ, iA, X, nw, read_error)
-      if(read_error)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
-      end if
-
-      j = nint(X(1),kind=4)
-
-      if(iZ == nucleus(icomp)%Z .and. iA == nucleus(icomp)%A)then
-         if(j > nucleus(icomp)%F_n_barr)then
-            if(iproc ==0)write(6,*)'too many barriers for F_Barrier',' Z = ',iZ,' A = ',iA
-            call MPI_Abort(icomm,101,ierr)
-         end if
-         nucleus(icomp)%F_Barrier(j)%barrier_damp(2) = x(2)
-         nucleus(icomp)%F_Barrier(j)%barrier_damp(3) = x(3)
-         if(x(3) < 1.0d-6)then
-            if(iproc == 0)then
-               write(6,*)'*************************************************'
-               write(6,*)'*  Error damping width C is too small!          *'
-               write(6,*)'*  Note functional form is exp(-((Ex-B)/C)**2)  *'
-               write(6,*)'*  Input form is f_barrier_damp  Z  A  n  B  C  *'
-               write(6,*)'*  Execution will terminate                     *'
-               write(6,*)'*************************************************'
-            end if
-            call MPI_Abort(icomm,191,ierr)     
-         end if
-!-------   Make damping factor = 1.0 at Ex = 0.0
-         x(1) = exp((x(2)/x(3))**2)
-         nucleus(icomp)%F_Barrier(j)%barrier_damp(1) = x(1)
-         return
-      end if
-      if(iproc ==0)write(6,*)'Nucleus not found: F_Barrier_damp',' Z = ',iZ,' A = ',iA
-      return
-   end if
-!
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!    Set symmetry for barrier
-!   
-   if(command(startw(1):stopw(1)) == 'f_barrier_symmetry')then          !   global setting of this parameter
-
-      ndat = 1
-      call extract_ZA_data(command, numw, startw, stopw, ndat,         &
-                           iZ, iA, X, nw, read_error)
-      if(read_error)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
-      end if
-      j = nint(X(1),kind=4)
-      nw = nw + 1
-      if(numw < nw)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
-      end if
-
-      if(iZ == nucleus(icomp)%Z .and. iA == nucleus(icomp)%A)then
-         if(j > nucleus(icomp)%F_n_barr)then
-            if(iproc == 0)write(6,*)'Error: requesting too many barriers for F_Barrier for nucleus Z = ',&
-                                    iZ,' A = ',iA
-            call MPI_Abort(icomm,101,ierr)
-         end if
-         if(command(startw(nw):stopw(nw)) == 's' .or. command(startw(nw):stopw(nw)) == '1')then
-            nucleus(icomp)%F_Barrier(j)%symmetry = 1
-            nucleus(icomp)%F_Barrier(j)%level_param(10) = real(nucleus(icomp)%F_Barrier(j)%symmetry,kind=8)
-            return
-         end if
-         if(command(startw(nw):stopw(nw)) == 'lr-a' .or. command(startw(nw):stopw(nw)) == '2')then
-            nucleus(icomp)%F_Barrier(j)%symmetry = 2
-            nucleus(icomp)%F_Barrier(j)%level_param(10) = real(nucleus(icomp)%F_Barrier(j)%symmetry,kind=8)
-            if(j == 1 .and. iproc == 0)write(6,*)'WARNING!!!! ----  Setting first barrier to left-right asymmetric'
-            return
-         end if
-         if(command(startw(nw):stopw(nw)) == 'ta-lr' .or. command(startw(nw):stopw(nw)) == '3')then
-            nucleus(icomp)%F_Barrier(j)%symmetry = 3
-            nucleus(icomp)%F_Barrier(j)%level_param(10) = real(nucleus(icomp)%F_Barrier(j)%symmetry,kind=8)
-            return
-         end if
-         if(command(startw(nw):stopw(nw)) == 'ta-nlr' .or. command(startw(nw):stopw(nw)) == '4')then
-            nucleus(icomp)%F_Barrier(j)%symmetry = 4
-            nucleus(icomp)%F_Barrier(j)%level_param(10) = real(nucleus(icomp)%F_Barrier(j)%symmetry,kind=8)
-            if(j == 1 .and. iproc == 0)write(6,*)'WARNING!!!! ----  Setting first barrier to triaxial no left-right asymmetry'
-            return
-         end if
-      end if
-      if(iproc ==0)then
-         write(6,*)'Nucleus not found: f_barrier_symmetry',' Z = ',iZ,' A = ',iA
-         write(6,*)'Keeping the default value for this nucleus and barrier'
-      end if
-      return
-   end if
-!
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!
-   if(command(startw(1):stopw(1)) == 'f_ecut')then          !   global setting of this parameter
-
-      ndat = 2
-      call extract_ZA_data(command, numw, startw, stopw, ndat,         &
-                           iZ, iA, X, nw, read_error)
-      if(read_error)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
-      end if
-      j = nint(X(1),kind=4)
-      X(1) = X(2)
-
-      if(iZ == nucleus(icomp)%Z .and. iA == nucleus(icomp)%A)then
-         if(j > nucleus(icomp)%F_n_barr)then
-            if(iproc == 0)write(6,*)'too many barriers for F_ecut',' Z = ',iZ,' A = ',iA
-            call MPI_Abort(icomm,101,ierr)
-         end if
-         nucleus(icomp)%F_Barrier(j)%ecut = x(1)
-         return
-      end if
-      if(iproc == 0)write(6,*)'Nucleus not found: F_ecut',' Z = ',iZ,' A = ',iA
-      return
-   end if
-!
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!
-   if(command(startw(1):stopw(1)) == 'f_lev_aparam')then          !   global setting of this parameter
-
-      ndat = 2
-      call extract_ZA_data(command, numw, startw, stopw, ndat,         &
-                           iZ, iA, X, nw, read_error)
-      if(read_error)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
-      end if
-      j = nint(X(1),kind=4)
-      X(1) = X(2)
-
-      if(iZ == nucleus(icomp)%Z .and. iA == nucleus(icomp)%A)then
-         if(j > nucleus(icomp)%F_n_barr)then
-            if(iproc == 0)write(6,*)'too many barriers for f_lev_aparam',' Z = ',iZ,' A = ',iA
-            call MPI_Abort(icomm,101,ierr)
-         end if
-         nucleus(icomp)%F_Barrier(j)%level_param(1) = x(1)
-         return
-      end if
-      if(iproc == 0)write(6,*)'Nucleus not found: f_lev_aparam',' Z = ',iZ,' A = ',iA
-      return
-   end if
-!
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!
-   if(command(startw(1):stopw(1)) == 'f_lev_spin')then          !   global setting of this parameter
-
-      ndat = 2
-      call extract_ZA_data(command, numw, startw, stopw, ndat,         &
-                           iZ, iA, X, nw, read_error)
-      if(read_error)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
-      end if
-      j = nint(X(1),kind=4)
-      X(1) = X(2)
-
-      if(iZ == nucleus(icomp)%Z .and. iA == nucleus(icomp)%A)then
-         if(j > nucleus(icomp)%F_n_barr)then
-            if(iproc == 0)write(6,*)'too many barriers for F_lev_spin',' Z = ',iZ,' A = ',iA
-            call MPI_Abort(icomm,101,ierr)
-         end if
-         nucleus(icomp)%F_Barrier(j)%level_param(2) = x(1)
-         return
-      end if
-      if(iproc == 0)write(6,*)'Nucleus not found: F_lev_spin',' Z = ',iZ,' A = ',iA
-      return
-   end if
-!
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   if(command(startw(1):stopw(1)) == 'f_lev_delta')then          !   global setting of this parameter
-
-      ndat = 2
-      call extract_ZA_data(command, numw, startw, stopw, ndat,         &
-                           iZ, iA, X, nw, read_error)
-      if(read_error)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
-      end if
-
-      j = nint(X(1),kind=4)
-      X(1) = X(2)
-
-      if(iZ == nucleus(icomp)%Z .and. iA == nucleus(icomp)%A)then
-         if(j > nucleus(icomp)%F_n_barr)then
-            if(iproc == 0)write(6,*)'too many barriers for F_lev_delta',' Z = ',iZ,' A = ',iA
-            call MPI_Abort(icomm,101,ierr)
-         end if
-         nucleus(icomp)%F_Barrier(j)%level_param(3) = x(1)
-         nucleus(icomp)%F_Barrier(j)%level_param(6) = 2.5 + 150./real(iA,kind=8) + x(1)
-         return
-      end if
-      if(iproc == 0)write(6,*)'Nucleus not found: F_lev_delta',' Z = ',iZ,' A = ',iA
-      return
-   end if
-!
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!
-   if(command(startw(1):stopw(1)) == 'f_lev_shell')then
-
-      ndat = 2
-      call extract_ZA_data(command, numw, startw, stopw, ndat,         &
-                           iZ, iA, X, nw, read_error)
-      if(read_error)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
-      end if
-
-      j = nint(X(1),kind=4)
-      X(1) = X(2)
-
-      if(iZ == nucleus(icomp)%Z .and. iA == nucleus(icomp)%A)then
-         if(j > nucleus(icomp)%F_n_barr)then
-            if(iproc == 0)write(6,*)'too many barriers for F_lev_shell',' Z = ',iZ,' A = ',iA
-            call MPI_Abort(icomm,101,ierr)
-         end if
-         nucleus(icomp)%F_Barrier(j)%level_param(4) = x(1)
-         return
-      end if
-      if(iproc == 0)write(6,*)'Nucleus not found: F_lev_shell',' Z = ',iZ,' A = ',iA
-      return
-   end if
-!
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!
-   if(command(startw(1):stopw(1)) == 'f_lev_gamma')then
-
-      ndat = 2
-      call extract_ZA_data(command, numw, startw, stopw, ndat,         &
-                           iZ, iA, X, nw, read_error)
-      if(read_error)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
-      end if
-
-      j = nint(X(1),kind=4)
-      X(1) = X(2)
-
-      if(iZ == nucleus(icomp)%Z .and. iA == nucleus(icomp)%A)then
-         if(j > nucleus(icomp)%F_n_barr)then
-            if(iproc == 0)write(6,*)'too many barriers for F_lev_gamma'
-            call MPI_Abort(icomm,101,ierr)
-         end if
-         nucleus(icomp)%F_Barrier(j)%level_param(5) = x(1)
-         return
-      end if
-      if(iproc == 0)write(6,*)'Nucleus not found: F_lev_gamma',' Z = ',iZ,' A = ',iA
-      return
-   end if
-!
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!
-   if(command(startw(1):stopw(1)) == 'f_lev_rot_enhance')then
-
-      ndat = 4
-      call extract_ZA_data(command, numw, startw, stopw, ndat,         &
-                           iZ, iA, X, nw, read_error)
-      if(read_error)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
-      end if
-
-      j = nint(X(1),kind=4)
-      X(1) = X(2)
-      X(2) = X(3)
-      X(3) = X(4)
-
-      if(iZ == nucleus(icomp)%Z .and. iA == nucleus(icomp)%A)then
-         if(j > nucleus(icomp)%F_n_barr)then
-            if(iproc == 0)write(6,*)'Error in F_lev_rot_enhance index > # of barriers'
-            call MPI_Abort(icomm,101,ierr)
-         end if
-         do k = 1, 3
-            if(x(k) >= 0.0d0)nucleus(icomp)%F_Barrier(j)%rot_enh(k) = x(k)
-         end do
-         return
-      end if
-      if(iproc == 0)write(6,*)'Nucleus not found: F_lev_rot_enhance',' Z = ',iZ,' A = ',iA
-      return
-   end if
-!
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!
-   if(command(startw(1):stopw(1)) == 'f_lev_vib_enhance')then
-
-      ndat = 4
-      call extract_ZA_data(command, numw, startw, stopw, ndat,         &
-                           iZ, iA, X, nw, read_error)
-      if(read_error)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
-      end if
-
-      j = nint(X(1),kind=4)
-      X(1) = X(2)
-      X(2) = X(3)
-      X(3) = X(4)
-
-      if(iZ == nucleus(icomp)%Z .and. iA == nucleus(icomp)%A)then
-         if(j > nucleus(icomp)%F_n_barr)then
-            if(iproc == 0)write(6,*)'Error in F_vib_vib_enhance index > # of barriers'
-            call MPI_Abort(icomm,101,ierr)
-         end if
-         do k = 1, 3
-            if(x(k) >= 0.0d0)nucleus(icomp)%F_Barrier(j)%vib_enh(k) = x(k)
-         end do
-         return
-      end if
-      if(iproc == 0)write(6,*)'Nucleus not found: F_lev_vib_enhance',' Z = ',iZ,' A = ',iA
-      return
-   end if
-!
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!
-   if(command(startw(1):stopw(1)) == 'f_lev_ematch')then
-
-      ndat = 2
-      call extract_ZA_data(command, numw, startw, stopw, ndat,         &
-                           iZ, iA, X, nw, read_error)
-      if(read_error)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
-      end if
-
-      j = nint(X(1),kind=4)
-      X(1) = X(2)
-
-      if(iZ == nucleus(icomp)%Z .and. iA == nucleus(icomp)%A)then
-         if(j > nucleus(icomp)%F_n_barr)then
-            if(iproc == 0)write(6,*)'too many barriers for F_lev_ematch'
-            call MPI_Abort(icomm,101,ierr)
-         end if
-         if(x(1) <= nucleus(icomp)%F_Barrier(j)%level_param(3) + 0.25)then
-            if(iproc == 0)then
-               write(6,*)'****************************************************'
-               write(6,*)'*           WARNING!!!                             *'
-               write(6,*)'*  Attempting to set ematch less than delta + 0.25 *'
-               write(6,*)'*  in nucleus = ',icomp,' barrier # ',j
-               write(6,*)'*  A value this small can lead to numerical issues *'
-               write(6,*)'*  Resetting to delta + 0.25 MeV                   *'
-               write(6,*)'****************************************************'
-            end if
-            nucleus(icomp)%F_Barrier(j)%level_param(6) =        &
-               nucleus(icomp)%F_Barrier(j)%level_param(6)  + 0.25d0
-         else
-            nucleus(icomp)%F_Barrier(j)%level_param(6) = x(1)
-         end if
-         return
-      end if
-      if(iproc == 0)write(6,*)'Nucleus not found: F_lev_ematch',' Z = ',iZ,' A = ',iA
-      return
-   end if
-!
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!
-   if(command(startw(1):stopw(1)) == 'f_beta2')then          !   global setting of this parameter
-
-      ndat = 2
-      call extract_ZA_data(command, numw, startw, stopw, ndat,         &
-                           iZ, iA, X, nw, read_error)
-      if(read_error)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
-      end if
-
-      j = nint(X(1),kind=4)
-      X(1) = X(2)
-
-      if(iZ == nucleus(icomp)%Z .and. iA == nucleus(icomp)%A)then
-         if(j > nucleus(icomp)%F_n_barr)then
-            if(iproc == 0)write(6,*) 'WARNING -- too many barriers for F_beta_2 in nucleus ',icomp
-            call MPI_Abort(icomm,101,ierr)
-         end if
-         beta_2 = x(1)
-         nucleus(icomp)%F_Barrier(j)%beta_2 = beta_2
-         sig2_perp = (1.0d0 + beta_2/3.0d0)
-         sig2_ax = sqrt(pi/2.0d0)*(1.0d0 - 2.0d0*beta_2/3.0d0)
-         nucleus(icomp)%F_Barrier(j)%rot_enh(4) = sig2_perp
-         nucleus(icomp)%F_Barrier(j)%rot_enh(5) = sig2_ax
-         return
-      end if
-      if(iproc == 0)write(6,*)'Nucleus not found: f_beta2',' Z = ',iZ,' A = ',iA
-      return
-   end if
-!
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!
-   if(command(startw(1):stopw(1)) == 'f_barr_levels')then
-
-      ndat = 1
-      call extract_ZA_data(command, numw, startw, stopw, ndat,         &
-                           iZ, iA, X, nw, read_error)
-      if(read_error)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
-      end if
-      j = nint(X(1),kind=4)
-      nw = nw + 1
-
-      read_file(1:50) = ' '
-      ilast = stopw(nw) - startw(nw) + 1
-
-      read_file(1:ilast) = command(startw(nw):stopw(nw))
-
-      if(nucleus(icomp)%Z == iZ .and. nucleus(icomp)%A == iA)then
-         open(unit=8, file = read_file(1:ilast), status='old')
-         num = 0
- 9       read(8,*,end=10)
-         num = num + 1
-         goto 9
- 10      rewind(8)
-         nucleus(icomp)%F_Barrier(j)%num_discrete = num
-         if(.not.allocated(nucleus(icomp)%F_barrier(j)%state_e))then
-            allocate(nucleus(icomp)%F_barrier(j)%state_e(num))
-         else
-            deallocate(nucleus(icomp)%F_barrier(j)%state_e)
-            allocate(nucleus(icomp)%F_barrier(j)%state_e(num))
-         end if
-         if(.not.allocated(nucleus(icomp)%F_barrier(j)%state_j))then
-            allocate(nucleus(icomp)%F_barrier(j)%state_j(num))
-         else
-            deallocate(nucleus(icomp)%F_barrier(j)%state_j)
-            allocate(nucleus(icomp)%F_barrier(j)%state_j(num))
-         end if
-         if(.not.allocated(nucleus(icomp)%F_barrier(j)%state_pi))then
-            allocate(nucleus(icomp)%F_barrier(j)%state_pi(num))
-         else
-            deallocate(nucleus(icomp)%F_barrier(j)%state_pi)
-            allocate(nucleus(icomp)%F_barrier(j)%state_pi(num))
-         end if
-         do k = 1, num
-            read(8,*)nucleus(icomp)%F_Barrier(j)%state_e(k),             &
-                      nucleus(icomp)%F_Barrier(j)%state_j(k),            &
-                      nucleus(icomp)%F_Barrier(j)%state_pi(k)
-         end do
-         close(unit=8)
-      end if
-
-      if(iproc == 0)write(6,*)'Nucleus not found: F_Barr_levels',' Z = ',iZ,' A = ',iA
-   end if
-      return
-end subroutine fission_command
-
 

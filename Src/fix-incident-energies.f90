@@ -198,7 +198,7 @@ subroutine fix_pop_energies
 !
 !     Subroutines:
 !
-!        None
+!        exit_YAHFC
 !
 !     External functions:
 !
@@ -206,7 +206,7 @@ subroutine fix_pop_energies
 !
 !    MPI routines:
 !
-!        MPI_Abort
+!        MPI_Abort   ----    via exit_YAHFC
 !
 !  Licensing:
 !
@@ -337,7 +337,7 @@ subroutine fix_pop_energies
 
    if(num_energies == 0)then
      if(iproc == 0)write(6,*)'num_energies = 0! Calculation will be terminated'
-     call MPI_Abort(icomm,101,ierr)
+     call exit_YAHFC(101)
    end if
 
    return

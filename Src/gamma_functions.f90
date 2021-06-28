@@ -741,7 +741,7 @@ real(kind=8) function E1_f_component(i_f, k, e_gamma, energy)
    if(.not. nucleus(i_f)%EL_mode(1)%gsf_read)then
       if(nucleus(i_f)%e1_model == 4)e_temp = nucleus(i_f)%sep_e(1)
 
-      l = 1
+      L = 1
       U = Ux(nucleus(i_f)%sep_e(1),nucleus(i_f)%level_param(3))
       ap = aparam_u(U,nucleus(i_f)%level_param(1),               &
                     nucleus(i_f)%level_param(4),                 &
@@ -751,7 +751,7 @@ real(kind=8) function E1_f_component(i_f, k, e_gamma, energy)
 
       f = 0.0
 
-      E1_f_component = Kxl(l)*E1_f_mode(e_gamma,T,nucleus(i_f)%e1_model,    &
+      E1_f_component = Kxl(L)*E1_f_mode(e_gamma,T,nucleus(i_f)%e1_model,    &
                                         nucleus(i_f)%EL_mode(1)%gsf(k)%er,  &
                                         nucleus(i_f)%EL_mode(1)%gsf(k)%gr,  &
                                         nucleus(i_f)%EL_mode(1)%gsf(k)%sr)
@@ -1403,7 +1403,7 @@ real(kind=8) function interpolate_grid(x_in, num, x, y)
 !
 !     Subroutines:
 !
-!        None
+!        exit_YAHFC
 !
 !     External functions:
 !
@@ -1411,7 +1411,7 @@ real(kind=8) function interpolate_grid(x_in, num, x, y)
 !
 !     MPI routines:
 !
-!        MPI_Abort
+!        MPI_Abort   ----    via exit_YAHFC
 !
 !  Licensing:
 !
@@ -1450,7 +1450,7 @@ real(kind=8) function interpolate_grid(x_in, num, x, y)
         write(6,*)x_in,x(num)
         write(6,*)'E_in larger than input grid'
      end if
-     call MPI_Abort(icomm,101,ierr)
+     call exit_YAHFC(101)
   end if
 
   if(abs(x_in - x(1)) <= 1.0d-6)then                  !  it is exactly on a grid point

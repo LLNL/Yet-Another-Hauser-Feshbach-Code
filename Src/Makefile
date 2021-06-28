@@ -1,18 +1,44 @@
-
-#F90CFLAGS   = '-Wall -fallow-argument-mismatch -fbounds-check -fcheck-array-temporaries -fcheck=all -g'
-F90CFLAGS   = '-Wall -fallow-argument-mismatch -Ofast'
-#F90CFLAGS   = '-Wall -Wintrinsic-shadow -Wsurprising -Wextra -Ofast'
-#F90CFLAGS   = '-Wall -g -fcheck=bounds -Ofast'
-MPIF90CFLAGS = '-Ofast'
-
-LFLAGS   = 
-DPLIBS   = 
-
+#
+#---   Uncomment lines to perform desired compilation, and set compilers for your system
+#
+#---   pre-processor variable USE_MPI is used to compile section of the code
+#---   with MPI calls. USE_MPI=0 means no MPI, USE_MPI=1 is with MPI
+#
+#----   Set compilers - default is gfortran for serial and mpifort for mpi 
+#
 F90COMPILER =  gfortran
 MPIF90COMPILER = mpifort
-
+#
+#************************************************************************************************
+#---   Standard set up with optimization -------------------------------------------------------*
+#************************************************************************************************
+F90CFLAGS   = '-Wall -Ofast -cpp -DUSE_MPI=0'
+#
+#----   Bounds checking, all checks and debugging with no optimization   ------------------------
+#
+#F90CFLAGS   = '-Wall -fbounds-check -fcheck-array-temporaries -fcheck=all -g -cpp -DUSE_MPI=0'
+#
+#----   Bounds checking, with optimization     --------------------------------------------------
+#
+#F90CFLAGS   = '-Wall -g -fcheck=bounds -Ofast -cpp -DUSE_MPI=0'
+#
+#************************************************************************************************
+#----   Flags for compilation with MPI         -------------------------------------------------*
+#************************************************************************************************
+MPIF90CFLAGS = '-Ofast -cpp -DUSE_MPI=1'
+#
+#----   Library flags - currently none         --------------------------------------------------
+#
+LFLAGS   = 
+DPLIBS   = 
+#
+#----   Dependencies - all modules defined in modules.f90, which must be compiled first and
+#----   everything must be recompiled if it is edited
+#
 DEPS = modules.o
-
+#
+#----    Objects comprised of YAHFC code system
+#
 HAUSER_OBJECTS =                 \
 modules.o                        \
 YAHFC-Master.o                   \
@@ -72,40 +98,35 @@ range_char.o                     \
 real8_equal.o                    \
 memory_used.o                    \
 spectrum.o                       \
-remove_states.o  
-
-# this is only made when building YAHFC, not YAHFC-MPI
-MPI_OBJECTS = dummy_MPI_libs.o
-
-modules.o : modules.f90
-	$(COMPILER) -c $(CFLAGS) $^ -o $@
-
-
-
+remove_states.o                  \
+read_saved_parameters.o
+#
+#----   Rules to compile .o files 
+#
 %.o : %.f90 $(DEPS)
 	$(COMPILER) -c $(CFLAGS) $(<F) -o $@
-
-# default: $(HAUSER_OBJECTS) $(MPI_OBJECTS)
-# 	$(COMPILER) -o $(EX).x  $(HAUSER_OBJECTS) $(MPI_OBJECTS) $(LFLAGS) $(DPLIBS)
-
-# YAHFC:
-# 	cp mpif.h.template mpif.h
-# 	$(MAKE) COMPILER=$(F90COMPILER) CFLAGS=$(F90CFLAGS) MPI_OBJECTS=dummy_MPI_libs.o EX=$@
-# 	rm mpif.h
-# 	cp $@.x $(YAHFC_BIN_DIR)/.
-
+#
+#----   Rules to compile serial verison, creates YAHFC.x and copies to YAHFC bin directory 
+#
 YAHFC:  
-	cp mpif.h.template mpif.h
-	$(MAKE) $(HAUSER_OBJECTS) $(MPI_OBJECTS) COMPILER=$(F90COMPILER) CFLAGS=$(F90CFLAGS) 
-	$(F90COMPILER) -o $@.x $(HAUSER_OBJECTS) $(MPI_OBJECTS)
-	rm mpif.h
+	$(MAKE) $(HAUSER_OBJECTS) COMPILER=$(F90COMPILER) CFLAGS=$(F90CFLAGS) 
+	$(F90COMPILER) -o $@.x $(HAUSER_OBJECTS) 
 	cp $@.x $(YAHFC_BIN_DIR)/.
-
+#
+#----   Rules to compile MPI verison, creates YAHFC.x and copies to YAHFC bin directory 
+#
 YAHFC-MPI:  
 	$(MAKE) $(HAUSER_OBJECTS) COMPILER=$(MPIF90COMPILER) CFLAGS=$(MPIF90CFLAGS) 
 	$(MPIF90COMPILER) -o $@.x $(HAUSER_OBJECTS) 
 	cp $@.x $(YAHFC_BIN_DIR)/.
-
+#
+#----   Rules to make modules
+#
+modules.o : modules.f90
+	$(COMPILER) -c $(CFLAGS) $^ -o $@
+#
+#----   Rules to clean up
+#
 clean :
-	rm -f *.o *.mod *.x mpif.h
+	rm -f *.o *.mod *.x
 
