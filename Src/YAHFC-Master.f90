@@ -502,7 +502,7 @@ program YAHFC_MASTER
       write(6,'(''****************************************************************'')')
       write(6,'(''* Yet Another Hauser Monte Hauser-Feshbach code - Monte Carlo  *'')')
       write(6,'(''* Version # '',a8,43x,''*'')')version(1:ilast)
-      write(6,'(''* Author W. E. Ormand, Lawrence Livermore national Laboratory  *'')')
+      write(6,'(''* Author W. E. Ormand, Lawrence Livermore National Laboratory  *'')')
 !      write(6,'(''* This code system is distributed under the license            *'')')
       write(6,'(''*--------------------------------------------------------------*'')')
       write(6,'(''* This code makes use of RIPL-3 data, with modifcations by the *'')')

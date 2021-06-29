@@ -852,3 +852,8 @@ Version 3.58
     Channels array and must be done for all particles and for each emission
     angle.
 
+Version 3.59
+1.  Adjusted low-energy behavior of level densities above the fission barriers
+    to fix a potential issue extrapolating the spin cut off parameter to
+    energies below the matching energy
+

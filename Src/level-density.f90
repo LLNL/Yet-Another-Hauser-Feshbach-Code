@@ -1340,7 +1340,10 @@ real(kind=8) function sig2_param(E,level_param,A)
 !      sig2_param = sg2cut
 !      return
 !   end if
-
+   if(ecut <= ematch)then
+      ecut = 0.0d0
+      sg2cut = sig2_min
+   end if
    if(E < ematch )then
       apu = aparam_u(Um,aparam,shell,gamma)
       sig2_em = sig*sqrt(max(0.2d0,Um*apu))/aparam
@@ -1371,6 +1374,7 @@ real(kind=8) function sig2_param(E,level_param,A)
          sig2 = max(sig2,(0.83*A**0.26)**2)
       end if
    end if
+
    sig2_param = sig2
 
    return

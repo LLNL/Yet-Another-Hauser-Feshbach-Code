@@ -111,6 +111,13 @@ subroutine output_nucleus_data(j_max, itarget)
    integer(kind=4) :: inuke_end
    integer(kind=4) :: nnn
    character(len=7) :: f_units
+
+
+!   real(kind=8) :: ematch, delta, Um, aparam
+!   real(kind=8) :: sig2_em, sig2_min, sg2cut, sig
+!   real(kind=8) :: deriv, ecut, shell, gamma
+!   integer(kind=4) :: sig_model
+
 !---------   External functions
    real(kind=8) :: parity_fac
    real(kind=8) :: EL_f
@@ -120,6 +127,8 @@ subroutine output_nucleus_data(j_max, itarget)
    real(kind=8) :: EL_absorption
    real(kind=8) :: ML_absorption
    integer(kind=4) :: find_ibin
+!   real(kind=8) :: sig2_param
+!   real(kind=8) :: aparam_u
 
 !--------------   Start subrotuine
    num_points = int(30.0d0/de,kind=4) + 1
@@ -1203,13 +1212,42 @@ subroutine output_nucleus_data(j_max, itarget)
                                 nucleus(i)%F_barrier(j)%vib_enh,                  &
                                 nucleus(i)%F_barrier(j)%rot_enh,                  &
                                 ia,rho_Fm,apu,sig2,K_vib,K_rot)
+
+!   write(6,*)energy,sig2_param(energy,nucleus(i)%F_barrier(j)%level_param,nucleus(i)%A)
+
+!      sig = nucleus(i)%F_barrier(j)%level_param(12)
+!      shell = nucleus(i)%F_barrier(j)%level_param(4)
+!      gamma = nucleus(i)%F_barrier(j)%level_param(5)
+!      sig_model = nint(nucleus(i)%F_barrier(j)%level_param(13))
+!      ematch = nucleus(i)%F_barrier(j)%level_param(6)
+!      delta = nucleus(i)%F_barrier(j)%level_param(3)
+!      Um = Ematch - delta
+!      aparam = nucleus(i)%F_barrier(j)%level_param(1)
+!      sg2cut = nucleus(i)%F_barrier(j)%level_param(8)
+!      ecut = nucleus(i)%F_barrier(j)%level_param(7)
+!      apu = aparam_u(Um,aparam,shell,gamma)
+!      sig2_em = sig*sqrt(max(0.2d0,Um*apu))/aparam
+!      if(sig_model == 0)sig2_em = sig*sqrt(max(0.2d0,Um*apu))/aparam
+!      if(sig_model == 1)sig2_em = sig*sqrt(max(0.2d0,Um)/apu)
+!      sig2_em = max(sig2_em,sig2_min)
+!      deriv = (sig2_em - sg2cut)/(ematch - ecut)
+!      sig2 = sig2_em - deriv*(ematch - energy)
+!      if(sig2 < sig2_min) sig2 = sig2_min
+
+!   write(6,*)energy,Ematch, delta, Um, ecut
+!   write(6,*)aparam, apu
+!   write(6,*)sig2_em, sig2_min, sg2cut
+!   write(6,*)deriv
+
+!   write(6,*)'sig2 ',sig2
+
                pfac = parity_fac(energy,xj,ip,pmode,pe1,pbb)
                write(13,fstring)                                                     &
                    energy,apu,sqrt(sig2),pfac,K_vib,K_rot,K_vib*K_rot,rho_FM*pfac,   &
                    (rho(jj,ip),jj = 0, min(j_max,60))
             end do
             write(13,*)
-
+!  stop
             write(13,'(''Level density States/MeV'')')
             write(13,'(''Negative parity'')')
             write(temp_string,*)min(j_max,60)+1

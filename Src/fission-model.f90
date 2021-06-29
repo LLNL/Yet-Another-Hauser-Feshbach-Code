@@ -208,7 +208,7 @@ subroutine Fission_levels(icomp)
    real(kind=8) :: ematch
    real(kind=8) :: A
    integer(kind=4) :: nfit
-   real(kind=8) :: ratio, sig2, sig2F
+   real(kind=8) :: ratio, sig2, sig2F, ecut
    real(kind=8), allocatable :: elv(:)
    real(kind=8), allocatable :: cum_rho(:),dcum_rho(:)
    real(kind=8), allocatable :: cum_fit(:)
@@ -352,14 +352,16 @@ subroutine Fission_levels(icomp)
 !------   should be specified by user, with that at the barrier. Scale the CN spin 
 !------   cut off by this amount.
 !--------------------------------------------------------------------------------
+         ecut = nucleus(icomp)%level_param(7)/2.0d0
+         nucleus(icomp)%F_Barrier(i)%ecut = ecut
+         nucleus(icomp)%F_Barrier(i)%level_param(7) = nucleus(icomp)%F_Barrier(i)%ecut
          Ematch = nucleus(icomp)%F_Barrier(i)%level_param(6)
          sig2 = sig2_param(Ematch,nucleus(icomp)%level_param,A)
          sig2F = sig2_param(Ematch,nucleus(icomp)%F_Barrier(i)%level_param,A)
          ratio = sig2F/sig2
-         sg2cut = nucleus(icomp)%level_param(8)*ratio
+         sg2cut = sig2_param(ecut,nucleus(icomp)%level_param,A)*ratio
+
          nucleus(icomp)%F_Barrier(i)%level_param(8) = sg2cut
-         nucleus(icomp)%F_Barrier(i)%ecut = nucleus(icomp)%level_param(7)
-         nucleus(icomp)%F_Barrier(i)%level_param(7) = nucleus(icomp)%F_Barrier(i)%ecut
          call Find_T_E0(ia,nucleus(icomp)%F_Barrier(i)%level_param,            &
                         nucleus(icomp)%F_Barrier(i)%vib_enh,                   &
                         nucleus(icomp)%F_Barrier(i)%rot_enh)
