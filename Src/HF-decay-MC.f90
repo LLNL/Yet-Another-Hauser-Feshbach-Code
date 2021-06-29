@@ -356,7 +356,6 @@ subroutine MC_decay_bin(icomp_i, Ix_i, ip_i, nbin_i,                &
       end do
       theta_0 = extra_angle_data(1,num_part)
       phi_0 = two_pi*random_32(iseed_32)
-!     phi_0 = two_pi*random_64(iseed_64)
    end if
 
    part_data(9,num_part)  = e_f
@@ -380,7 +379,6 @@ subroutine MC_decay_bin(icomp_i, Ix_i, ip_i, nbin_i,                &
    part_data(22,num_part) = xI_i
    part_data(23,num_part) = xip_i
    part_data(24,num_part) = real(nbin_i,kind=8)
-!   nucleus(icomp_f)%Kinetic_Energy = T_2
    if(.not.pop_calc)part_Ang_data(0,num_part) = 0.5d0
    return
 
@@ -1173,7 +1171,6 @@ subroutine MC_primary_decay(iproj,spin_target,                          &
                (2.0d0*xj_f+1.0d0)*(2.0d0*xl_f+1.0d0)*0.5d0
       xl_f = l_f
       do L_ang = 2, max_L, 2
-         part_Ang_data(L_ang,num_part) = 1.0d-3
          xL_ang = L_ang
          part_Ang_data(L_ang,num_part) =                                 &
             factor*                                                      &
@@ -1214,7 +1211,6 @@ subroutine MC_primary_decay(iproj,spin_target,                          &
       end do
       theta_0 = extra_angle_data(1,num_part)
       phi_0 = two_pi*random_32(iseed_32)
-!      phi_0 = two_pi*random_64(iseed_64)
    end if
 
    part_data(9,num_part) = e_f

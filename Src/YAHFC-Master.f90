@@ -486,7 +486,6 @@ program YAHFC_MASTER
 !----------------------------------------------------------------------+
 #if(USE_MPI == 1)
    call MPI_INIT(ierr)
-
    icomm = MPI_COMM_WORLD
    call MPI_COMM_RANK(icomm, iproc, ierr)
    call MPI_COMM_SIZE(icomm, nproc, ierr)
@@ -3149,14 +3148,14 @@ program YAHFC_MASTER
                   jproj = nint(part_data(2,nn))
                   if(jproj == iproj .and. idb == 1)then           !  Inelastic transition directly to discrete states
                      icc = int(part_data(12,nn)/de_spec) + 1
+                     Inelastic_cs(jstate,in) = Inelastic_cs(jstate,in) + tally_weight
+                     Inelastic_count(jstate,in) = Inelastic_count(jstate,in) + 1
+                     Inelastic_total(in) = Inelastic_total(in) + tally_weight
                      if(.not. xs_only)then
-                        Inelastic_cs(jstate,in) = Inelastic_cs(jstate,in) + tally_weight
                         do L = 0, Ang_L_max
                            Inelastic_Ang_L(L,jstate,in) = Inelastic_Ang_L(L,jstate,in) + part_Ang_data(L,nn)*tally_weight
                         end do
                      end if
-                     Inelastic_count(jstate,in) = Inelastic_count(jstate,in) + 1
-                     Inelastic_total(in) = Inelastic_total(in) + tally_weight
 
 !                     if(.not. xs_only)then
 !                        do nang = 1, num_theta
@@ -3751,6 +3750,9 @@ program YAHFC_MASTER
               Inelastic_cs(j,in) = Inelastic_cs(j,in)*reaction_cs(in)/tally_norm
            end do
         end if
+
+
+
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !-----------    Now the other Channels    -------------------------------------------------
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

@@ -86,12 +86,11 @@ subroutine Fission_data(data_path,len_path,icomp)
 
       nucleus(icomp)%fission = .true.
       nucleus(icomp)%F_n_barr = 2
-      if(Ea <= 0.001)then
+      if(Eb <= 0.001)then
          nucleus(icomp)%fission = .true.
          nucleus(icomp)%F_n_barr = 1
          if(.not.allocated(nucleus(icomp)%F_Barrier))allocate(nucleus(icomp)%F_Barrier(1))
-         nucleus(icomp)%F_barrier(1)%barrier = Eb
-         nucleus(icomp)%F_Barrier(1)%hbw = hbwa
+         nucleus(icomp)%F_barrier(1)%barrier = Ea
 
          if(symmb == 'S ')then
              nucleus(icomp)%F_barrier(1)%symmetry = 1
@@ -236,7 +235,6 @@ subroutine Fission_levels(icomp)
 
       sg2cut = (0.83d0*A**0.26d0)**2
       num = nucleus(icomp)%F_Barrier(i)%num_discrete
-
 
       if(num > 0)then
          sg2cut=0.0d0

@@ -64,7 +64,6 @@ subroutine Moldauer_WF(icomp,                                       &
 !
 !*******************************************************************************
 !
-   use nodeinfo
    use variable_kinds
    use options
    use nuclei

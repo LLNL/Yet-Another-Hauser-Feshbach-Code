@@ -114,7 +114,6 @@ subroutine PREEQ_sample(iproj, in, itarget, istate, e_in, ex_tot,      &
 
    real(kind=8) :: base_prob, tally_norm
 
-
    real(kind=8) :: dee
 
    real(kind=8) :: theta_0, phi_0
@@ -413,7 +412,6 @@ subroutine PREEQ_sample(iproj, in, itarget, istate, e_in, ex_tot,      &
            l_max = nint(xj_f_max + particle(k)%spin)
            do l = l_min, l_max
               par_f = (-1.0d0)**l*nucleus(icomp_f)%state(nbin_f)%parity*particle(k)%par
-!              if(par_f == par)exit
               if(real8_equal(par_f,par))exit
            end do
            l_f = l
