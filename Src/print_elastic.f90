@@ -82,7 +82,7 @@ subroutine print_elastic(itarget, istate, ilab, file_lab, ilib_dir, lib_dir, ch_
    logical, intent(out) :: write_error
 !----------------------------------------------------------------------
    integer(kind=4) :: iproj
-   integer(kind=4) :: ipi, ipf, in, j, jx, L
+   integer(kind=4) :: ipi, ipf, in, j, jx, L, Max_L
    real(kind=8) :: xA
    real(kind=8) :: x
    real(kind=8) :: e_in, cs
@@ -236,6 +236,7 @@ subroutine print_elastic(itarget, istate, ilab, file_lab, ilib_dir, lib_dir, ch_
       do jx = 1, max_jx_100
          xnorm = xnorm + (Ang_Dist(jx-1) + Ang_Dist(jx))*delta_jx_100*0.5d0
       end do
+
       do jx = 0, max_jx_100
          x = real(jx,kind=8)*delta_jx_100 - 1.0d0
          Temp = Ang_Dist(jx)
@@ -370,19 +371,19 @@ subroutine print_elastic(itarget, istate, ilab, file_lab, ilib_dir, lib_dir, ch_
          comp = 0.0d0
          do L = 0, Ang_L_max
             P_L = poly(L,1,alf,bet,x)
-            shape = shape + SE_Ang(L,in)*P_L
-            if(L <= Inelastic_L_max(istate,in))comp = comp + Inelastic_Ang_L(L,istate,in)*P_L
+            shape = shape + SE_Ang(L,in)*P_L              
+            if(L <= Inelastic_L_max(istate,in))comp = comp + Inelastic_Ang_L(L,istate,in)*P_L   !  No units
          end do
-         shape = shape
-         comp = comp*Inelastic_cs(istate,in)
-         if(iproj > 1)comp = comp/Sig_C
-         Ang_Dist(jx) = shape + comp
+         shape = shape*SE_cs(in)
+         comp = comp*Inelastic_cs(istate,in)              !  Cross section value
+         if(iproj > 1)comp = comp/Sig_C                   !  If charged particle ratio to Rutherford
+         Ang_Dist(jx) = shape + comp                      !  Shape + Compound elastic
          if(jx > 0)xnorm = xnorm + (Ang_Dist(jx-1) + Ang_Dist(jx))*delta_jx_100*0.5d0
       end do
       if(iproj == 1)then                   !  neutrons - cross section
          Elastic_Ang(0:Ang_L_max,in) = 0.0d0
          do L = 0, Ang_L_max
-            Temp = SE_Ang(L,in) + Inelastic_Ang_L(L,istate,in)*Inelastic_cs(istate,in)
+            Temp = SE_Ang(L,in)*SE_cs(in) + Inelastic_Ang_L(L,istate,in)*Inelastic_cs(istate,in)
             Elastic_Ang(L,in) = Temp/(SE_cs(in) + Inelastic_cs(istate,in))
          end do
          Elastic_cs(in) = (SE_cs(in) + Inelastic_cs(istate,in))
@@ -518,7 +519,11 @@ subroutine print_elastic(itarget, istate, ilab, file_lab, ilib_dir, lib_dir, ch_
    do in = 1, num_energies
       e_in = projectile%energy(in)
       write(100,'(''#'')')
+      Max_L = 0
       do L = 0, Ang_L_max
+         if(abs(Elastic_Ang(L,in)) > 1.0d-8 .and. L > Max_L)Max_L = L
+      end do
+      do L = 0, Max_L
          write(100,'(1x,3x,1pe16.7,3x,i5,3x,1pe16.7)')e_in, L, Elastic_Ang(L,in)
       end do 
    end do
@@ -603,7 +608,7 @@ subroutine print_compound_elastic(itarget, istate, ilab, file_lab, ilib_dir, lib
    integer(kind=4), intent(in) :: Inelastic_L_max(0:nstates,num_energies)
    logical, intent(out) :: write_error
    integer(kind=4) :: iproj
-   integer(kind=4) :: ipi, ipf, in, j, jx, L
+   integer(kind=4) :: ipi, ipf, in, j, jx, L, Max_L
    real(kind=8) :: x
    real(kind=8) :: e_in, cs
    real(kind=8) :: xnorm
@@ -727,7 +732,7 @@ subroutine print_compound_elastic(itarget, istate, ilab, file_lab, ilib_dir, lib
             sum = sum + Inelastic_Ang_L(L,istate,in)*poly(L,1,alf,bet,x)
          end do
          Ang_Dist(jx) = sum
-         if(jx >= 1)xnorm = (Ang_Dist(jx-1) + Ang_Dist(jx))*delta_jx_100*0.5d0
+         if(jx >= 1)xnorm = xnorm + (Ang_Dist(jx-1) + Ang_Dist(jx))*delta_jx_100*0.5d0
       end do
       do jx = 0, max_jx_100
          x = real(jx,kind=8)*delta_jx_100 - 1.0d0
@@ -788,7 +793,11 @@ subroutine print_compound_elastic(itarget, istate, ilab, file_lab, ilib_dir, lib
       end if
       write(100,'(''#   ----------------     ---     ----------------'')')
       xnorm = 2.0d0*Inelastic_Ang_L(0,istate,in)
+      Max_L = 0
       do L = 0, Inelastic_L_max(istate,in)
+         if(abs(Inelastic_Ang_L(L,istate,in)) > 1.0d-6 .and. L > Max_L)Max_L = L
+      end do
+      do L = 0, Max_L
          if(xnorm > 1.0d-8)Temp = Inelastic_Ang_L(L,istate,in)/xnorm
          if(iproj > 1)Temp = Temp*Inelastic_cs(istate,in)
          write(100,'(1x,3x,1pe16.7,3x,i5,3x,1pe16.7)')e_in, L, Temp

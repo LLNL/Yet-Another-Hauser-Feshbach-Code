@@ -74,9 +74,12 @@ subroutine HF_denominator(icomp)
    use channel_info
    use nodeinfo
    implicit none
-#if(USE_MPI==1)
+#if(USE_MPI == 1)
    include 'mpif.h'
+   integer(kind=4) :: num_data
+   integer(kind=4) :: my_proc
 #endif
+!-------------------------------------------------------------------------+
    integer(kind=4), intent(in) :: icomp
 !-------------------------------------------------------------------------+
    integer(kind=4) j, k, l, nnn, nnnn
@@ -115,10 +118,7 @@ subroutine HF_denominator(icomp)
    integer(kind=4) :: ndecay
    integer(kind=4) :: num_Ix_ip
    integer(kind=4) :: iloop
-#if(USE_MPI==1)
-   integer(kind=4) :: num_data
-   integer(kind=4) :: my_proc
-#endif
+
    real(kind=8) :: prob, prob_sum, prob_norm
 
 !-------------------------------------------------------------------------+
@@ -726,7 +726,7 @@ subroutine HF_denominator(icomp)
 !----   They need to be sent to all the other nodes
 !----   my_proc is the processor that worked on the (Ix_i,ip,n) block of data above
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-#if(USE_MPI==1)
+#if(USE_MPI == 1)
    if(nproc > 1) then
       do n = 1, nbin                  
          do iloop = 0, num_Ix_ip
@@ -794,11 +794,14 @@ subroutine HF_denominator(icomp)
    num_data = 1
    call MPI_Allreduce(MPI_IN_PLACE, num_tot, num_data, MPI_INTEGER, MPI_SUM, icomm, ierr)
 #endif
+
+
    if(print_me)then
       write(6,*)'Finished calculating the decay probabilities for ',nucleus(icomp)%Label
       write(6,*)'Total number = ', num_tot
    end if
 
 
-return
+   return
+
 end subroutine HF_denominator

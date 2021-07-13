@@ -1,0 +1,78 @@
+! Saved parameters for nuclei using command structure for YAHFC
+! The parameters are entered within a block initiated by 
+! the line 'start Isotope' or 'start  Z  A' where Z and A define 
+! the nucleus. The lines that follow are the paremeters using the YAHFC 
+! command structure. The input is terminated with the next 'start' line or 
+! the 'end' line. 
+! 
+!-------------     IMPORTANT  NOTE   -----------------------------------
+!   IF the command lev_nuc_option is used, it must come before any
+!   other level density commands. It resets the level density with a
+!   call to get_lev_den
+!-------------     IMPORTANT  NOTE   -----------------------------------
+! 
+#-------------------------  U239  ---------------------------------------
+start U239
+lev_nuc_option   U239  2
+lev_delta        U239   0.000
+el_param         U239   1  1   11.00   2.62    299.0   
+el_param         U239   1  2   14.0    4.53    382.0   
+el_param         U239   1  3    5.0    5.0      -5.78 
+f_num_barrier       U239  2
+f_barrier           U239  1   6.17   0.3             !  height, hbw
+f_barrier_damp      U239  1  -1.0   80.0
+f_lev_delta         U239  1   0.00                  !  pairing
+f_lev_shell         U239  1  -0.30                  !  shell correction
+f_lev_ematch        U239  1   1.475                 !  matching energy
+f_barrier_symmetry  U239  1   3                     !  type of level density above barrier
+f_barrier           U239  2   5.42   0.4
+f_barrier_damp      U239  2  -1.0   80.0
+f_lev_delta         U239  2   0.19
+f_lev_shell         U239  2  -0.3
+f_lev_ematch        U239  2   1.0
+f_barrier_symmetry  U239  2   2
+#---  U238
+start 92 238
+lev_nuc_option   U238  2
+lev_delta        U238   0.778
+lev_ecut         U238   1.15                         !  manually set ecut for U238
+lev_ematch       U238   2.38
+el_param         U238   1  1   11.00   2.62    299.0  
+el_param         U238   1  2   14.0    4.53    382.0  
+el_param         U238   1  3    5.0    5.0      -5.75  
+f_num_barrier       U238  2
+f_barrier           U238  1   6.15    0.65  
+f_barrier_damp      U238  1  -1.0d0  80.00
+f_lev_delta         U238  1   0.62
+f_lev_shell         U238  1  -0.6
+f_lev_ematch        U238  1   2.0
+f_barrier_symmetry  U238  1   3
+f_barrier           U238  2   5.6     0.6 
+f_barrier_damp      U238  2  -1.0d0  80.00
+f_lev_delta         U238  2   0.6
+f_lev_shell         U238  2   1.3
+f_lev_ematch        U238  2   1.65
+f_barrier_symmetry  U238  2   2
+#---  U237
+start 92 237
+lev_nuc_option   U237  2
+lev_delta        U237   0.0                          !  manually set ecut for U238
+lev_ecut         U237   0.6                          !  manually set ecut for U238
+el_param         U237   1  1   11.00   2.62    299.0
+el_param         U237   1  2   14.0    4.53    382.0
+el_param         U237   1  3    5.0    5.0      -6.6
+f_num_barrier       U237  2
+f_barrier           U237  1   6.10     0.6        !  height, hbw
+f_barrier_damp      U237  1  -1.0d0   80.00
+f_lev_delta         U237  1   0.22                !  pairing
+f_lev_shell         U237  1   0.0                 !  shell correction
+f_lev_ematch        U237  1   1.9                 !  matching energy
+f_barrier_symmetry  U237  1   3                   !  type of level density above barrier
+f_barrier           U237  2   5.65     0.5
+f_barrier_damp      U237  2  -1.0d0   80.00
+f_lev_delta         U237  2   0.25
+f_lev_shell         U237  2   0.8
+f_lev_ematch        U237  2   1.4
+f_barrier_symmetry  U237  2   2
+#
+end

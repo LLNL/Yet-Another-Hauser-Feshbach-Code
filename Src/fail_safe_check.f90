@@ -24,7 +24,7 @@ subroutine fail_safe_check
 !
 !     Subroutines:
 !
-!        None
+!        exit_YAHFC
 !
 !     External functions:
 !
@@ -33,7 +33,7 @@ subroutine fail_safe_check
 !
 !     MPI routines:
 !
-!        MPI_Abort
+!        MPI_Abort   ----   via exit_YAHFC
 !
 !  Licensing:
 !
@@ -169,9 +169,9 @@ subroutine fail_safe_check
          end do
       end if     
    end do 
-#if(USE_MPI==1)
-   if(terminate_execution)call MPI_Abort(icomm,1,ierr)
-#endif
+
+   if(terminate_execution)call exit_YAHFC(1)
+
    return
 
 end subroutine fail_safe_check

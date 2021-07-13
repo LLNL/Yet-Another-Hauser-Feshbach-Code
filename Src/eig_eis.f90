@@ -110,8 +110,8 @@ subroutine tri_eig(nm,n,d,e,z,ierror)
 !---   Look for small sub-diagonal element
       do m = l, n
          tst2 = tst1 + abs(e(m))
-!         if (tst2 == tst1)exit
-         if(abs(tst2 - tst1) < 1.0d-8)exit
+         if (tst2 == tst1)exit
+!         if(abs(tst2 - tst1) < 1.0d-30)exit
       end do
 !---   An eigenvalue is found
       if(m == l)then
@@ -250,7 +250,7 @@ real(kind=8) function pythag_90(a,b)
    if(abs(p - 0.0d0) < 1.0d-30) return
    r = (min(abs(a),abs(b))/p)**2
    t = 4.0d0 + r
-   do while(abs(t - 4.0d0) >= 1.0d-8)
+   do while(abs(t - 4.0d0) >= 1.0d-30)
       s = r/t
       u = 1.0d0 + 2.0d0*s
       p = u*p

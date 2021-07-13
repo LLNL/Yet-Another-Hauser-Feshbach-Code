@@ -138,7 +138,7 @@ subroutine compound_xs(e_in, itarget, istate, iproj, sigma,      &
          Ix_min = max(nint(xI_min-nucleus(1)%jshift),0)
          Ix_max = min(nint(xI_max-nucleus(1)%jshift),nucleus(1)%j_max)
          do Ix = Ix_min, Ix_max
-            xI = dfloat(Ix) + nucleus(1)%jshift
+            xI = real(Ix,kind=8) + nucleus(1)%jshift
             cs_fac = jhat(xI)/(jhat(spin_target)*jhat(spin_proj))
             tcoef = tco_interpolate(e_rel,nume,                      &
                                     particle(iproj)%e_grid,          &

@@ -28,6 +28,7 @@ subroutine set_up_decay_chain(Z_p, A_p, Z_t, A_t)
 !
 !       get_binding_energy
 !       make_channels
+!       exit_YAHFC
 !
 !     External functions:
 !
@@ -35,7 +36,7 @@ subroutine set_up_decay_chain(Z_p, A_p, Z_t, A_t)
 !
 !     MPI routines:
 !
-!        MPI_Abort
+!        MPI_Abort   ----    via exit_YAHFC
 !
 !  Licensing:
 !
@@ -137,7 +138,7 @@ subroutine set_up_decay_chain(Z_p, A_p, Z_t, A_t)
    if(projectile%particle_type >= 0 .and. projectile%particle_type <= 6)then
       em_proj = projectile%e_max
       if(em_proj < de) em_proj = de/2.
-      e_rel = em_proj*dfloat(A_t)/dfloat(A_t+A_p)
+      e_rel = em_proj*real(A_t,kind=8)/real(A_t+A_p,kind=8)
       emax = e_rel + sep(projectile%particle_type)
    else
       emax = 0.0
@@ -276,9 +277,7 @@ subroutine set_up_decay_chain(Z_p, A_p, Z_t, A_t)
       allocate(Exit_Channel(num_Channels))
    else
       if(print_me)write(6,*)'channels already allocated'
-#if(USE_MPI==1)
-      call MPI_Abort(icomm, 101, ierr)
-#endif
+      call exit_YAHFC(101)
    end if
 
 !--------------------------------------!
@@ -359,7 +358,7 @@ subroutine set_up_decay_chain(Z_p, A_p, Z_t, A_t)
                         nucleus(num_nuc)%beta(4) = 0.0d0
                         nucleus(num_nuc)%beta(5) = 0.0d0
                         nucleus(num_nuc)%beta(6) = 0.0d0
-                        nucleus(num_nuc)%fit_gamma_gamma = .true.
+                        nucleus(num_nuc)%fit_gamma_gamma = fit_gamma_gamma
                         nucleus(num_nuc)%ematch_warn = .false.
                         nucleus(num_nuc)%cum_rho_ratio = 0.0d0
                         nucleus(num_nuc)%lev_den_read = .false.
@@ -401,27 +400,35 @@ subroutine set_up_decay_chain(Z_p, A_p, Z_t, A_t)
                            nucleus(num_nuc)%ML_mode(lx)%gsf(1:max_num_gsf)%sr = 0.0d0
                         end do
 			
-
-                        if(A_f > 20)then
-                           nucleus(num_nuc)%lev_option = 1
-                           if(A_f > 130) nucleus(num_nuc)%lev_option = 2
-                           nucleus(num_nuc)%fit_aparam=.false.   !   When fitting to D0 do we adjust a-parameter
-                                                                 !   or shell correction 
+                        if(lev_option >= 0)then
+                           nucleus(num_nuc)%lev_option = lev_option
+                           if(lev_option == 0)then
+                              nucleus(num_nuc)%fit_aparam = .true.   !   When fitting to D0 do we adjust a-parameter
+                                                                     !   or shell correction 
+                           else
+                              nucleus(num_nuc)%fit_aparam = .false.
+                           end if
                         else
-                           nucleus(num_nuc)%lev_option = 0
-                           nucleus(num_nuc)%fit_aparam = .true.    !   When fitting to D0 do we adjust a-parameter
-                                                                   !   or shell correction 
+                           if(A_f > 20)then
+                              nucleus(num_nuc)%lev_option = 1
+                              if(A_f > 130) nucleus(num_nuc)%lev_option = 2
+                              nucleus(num_nuc)%fit_aparam=.false.
+                           else
+                              nucleus(num_nuc)%lev_option = 0
+                              nucleus(num_nuc)%fit_aparam = .true. 
+                           end if
                         end if
-                        nucleus(num_nuc)%pair_model = 1
+                        nucleus(num_nuc)%pair_model = pair_model
                         nucleus(num_nuc)%level_param(1:11) = 0.0d0
-                        nucleus(num_nuc)%fit_D0 = .true.       !   Fit to D0 (if known)  
+                        nucleus(num_nuc)%fit_D0 = lev_fit_d0       !   Fit to D0 (if known)  
                         nucleus(num_nuc)%fit_ematch = .true.   !   Fit ematch to cummlative level density
                                                        !----------   Now set up connections in the primary array nucleus so that
                                                        !----------   the HF denominators can be calculated
                                                        !             to overide set to false with 
                                                        !             option lev_fit_ematch for each nucleus
                                                        !             or globally with fit_ematch; 0 for false, 1 for true
-                        nucleus(num_nuc)%fission_read = .false.       !  Set true once fission parameters from default are read  
+                        nucleus(num_nuc)%param_read = .false.       !  Set true once fission parameters from default are read  
+                        nucleus(num_nuc)%reading_param = .false.       !  Set true once fission parameters from default are read  
                         nucleus(num_nuc)%atomic_symbol = symb(Z_f)
 
                         ifinish = 1

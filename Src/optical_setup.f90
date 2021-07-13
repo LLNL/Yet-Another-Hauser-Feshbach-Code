@@ -24,6 +24,7 @@ subroutine optical_setup(data_path, len_path, iproj, itarget,                  &
 !     Subroutines:
 !
 !        fresco_make_tco
+!        exit_YAHFC
 !
 !     External functions:
 !
@@ -34,7 +35,7 @@ subroutine optical_setup(data_path, len_path, iproj, itarget,                  &
 !
 !     MPI routines:
 !
-!        MPI_Abort
+!        MPI_Abort   -----    via exit_YAHFC
 !
 !  Licensing:
 !
@@ -312,9 +313,7 @@ subroutine optical_setup(data_path, len_path, iproj, itarget,                  &
                end do
             else
                if(iproc == 0)write(6,*)'Error, target in ,data file does not match target in calculation'
-#if(USE_MPI==1)
-               call MPI_Abort(icomm, 101, ierr)
-#endif
+               call exit_YAHFC(101)
             end if
          end if
 !----   Now OpticalCS%max_L is tied to Ang_L_max and should always be the same
@@ -363,17 +362,13 @@ subroutine optical_setup(data_path, len_path, iproj, itarget,                  &
                write(6,*)'ERROR!!!  -  do_dwba = .true. but Optical Model calculation was performed without DWBA states'
                write(6,*)'Edit command file and set do_dwba = .false. with the command "do_dwba n"'
             end if
-#if(USE_MPI==1)
-            call MPI_Abort(icomm,101,ierr)
-#endif
+            call exit_YAHFC(101)
          else if(.not. particle(iproj)%do_dwba .and. check_dwba)then
             if(iproc == 0)then
                write(6,*)'ERROR!!!  -  do_dwba = .false. but Optical Model calculation was performed with DWBA states'
                write(6,*)'Edit command file and set do_dwba = .true. with the command "do_dwba y"'
             end if
-#if(USE_MPI==1)
-            call MPI_Abort(icomm,101,ierr)
-#endif
+            call exit_YAHFC(101)
          end if
 
 
@@ -396,9 +391,7 @@ subroutine optical_setup(data_path, len_path, iproj, itarget,                  &
                            OpticalCS%state(i)%energy
                      write(6,'(''***********************************************************************'')')
                   end if
-#if(USE_MPI==1)
-                  call MPI_Abort(icomm,101,ierr)
-#endif
+                  call exit_YAHFC(101)
                end if
             end if
 
@@ -411,7 +404,7 @@ subroutine optical_setup(data_path, len_path, iproj, itarget,                  &
 !                write(6,*)'in this calculation. This is an error. Stop, rerun fresco with      +'
 !                write(6,*)'the same delta_e option                                             +'
 !                write(6,*)'+++++++++++++++++   ERROR!!   +++++++++++++++++++++++++++++++++++++++'
-!                stop
+!                call exit_YAHFC(110)
 !            end if
 !----   Before cc_index was setup in fresco-setup and was defined as an energy bin. Now, the state is computed
 !----   as a state with a defined energy. We need the energy bin for this state in this calculation.
@@ -463,9 +456,7 @@ subroutine optical_setup(data_path, len_path, iproj, itarget,                  &
                if(abs(nucleus(jtarget)%state(j)%energy - OpticalCS%state(in)%energy) > 1.0d-4)match = .false.
                if(.not. match)then
                   if(iproc ==0)write(6,*)'Error in coupled channels, state = ',in,' does not match with a state in target nucleus'
-#if(USE_MPI==1)
-                  call MPI_Abort(icomm,101,ierr)
-#endif
+                  call exit_YAHFC(101)
                end if
              end if
          end do
