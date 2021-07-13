@@ -6,6 +6,7 @@ subroutine PREEQ_sample(iproj, in, itarget, istate, e_in, ex_tot,      &
                         Ix_f, l_f, ip_f, nbin_f, idb,                  &
                         n_dat, dim_part, num_part_type, part_fact,     &
                         num_part, part_data,                           &
+                        Ang_L_max, part_Ang_data,                      &
                         num_theta, extra_angle_data)
 !
 !*******************************************************************************
@@ -32,16 +33,19 @@ subroutine PREEQ_sample(iproj, in, itarget, istate, e_in, ex_tot,      &
 !     Subroutines:
 !
 !        PREEQ_Angular
+!        exit_YAHFC
 !
 !     External functions:
 !
 !       integer(kind=4) :: preeq_l
 !       integer(kind=4) :: find_ibin
 !       logical :: real8_equal
+!       real(kind=8) :: exp_leg_int 
+!       real(kind=8) :: expdev
 !
 !     MPI routines:
 !
-!        MPI_Abort
+!        MPI_Abort   ----    via exit_YAHFC
 !
 !  Licensing:
 !
@@ -77,6 +81,8 @@ subroutine PREEQ_sample(iproj, in, itarget, istate, e_in, ex_tot,      &
    real(kind=8), intent(inout) :: part_fact(0:7)
    integer(kind=4), intent(out) :: num_part
    real(kind=8), intent(out) :: part_data(n_dat,dim_part)
+   integer(kind=4), intent(in) :: Ang_L_max
+   real(kind=8), intent(out) :: part_Ang_data(0:Ang_L_max,dim_part)
    integer(kind=4), intent(in) :: num_theta
    real(kind=8), intent(inout) :: extra_angle_data(3*num_theta,dim_part)
 !--------------------------------    Internal data
@@ -93,7 +99,10 @@ subroutine PREEQ_sample(iproj, in, itarget, istate, e_in, ex_tot,      &
    integer(kind=4) :: ixI_f_min, ixI_f_max
    real(kind=8) :: cpar, cpar2, par, par_f
    real(kind=8) :: ex_min_bin
+   real(kind=8) :: a_factor
    real(kind=8) :: x_Ang
+   real(kind=8) :: factor
+   real(kind=8) :: xnorm
    integer(kind=4) :: nang
 
    real(kind=8) :: e_state
@@ -104,7 +113,6 @@ subroutine PREEQ_sample(iproj, in, itarget, istate, e_in, ex_tot,      &
    integer(kind=4) :: ip_state
 
    real(kind=8) :: base_prob, tally_norm
-
 
    real(kind=8) :: dee
 
@@ -119,6 +127,8 @@ subroutine PREEQ_sample(iproj, in, itarget, istate, e_in, ex_tot,      &
    integer(kind=4) :: preeq_l
    integer(kind=4) :: find_ibin
    logical :: real8_equal
+   real(kind=8) :: exp_leg_int
+   real(kind=8) :: expdev
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !--------------------------------    Start Calculation
 
@@ -155,7 +165,7 @@ subroutine PREEQ_sample(iproj, in, itarget, istate, e_in, ex_tot,      &
      A_p = particle(iproj)%A
      A_t = nucleus(itarget)%A
 
-     xI_i = dfloat(Ix_i) + nucleus(1)%jshift
+     xI_i = real(Ix_i,kind=8) + nucleus(1)%jshift
      par = 2*ip_i - 1
      ran = random_32(iseed_32)
      preeq_cs = nucleus(icomp_i)%PREEQ_cs(in)
@@ -207,7 +217,7 @@ subroutine PREEQ_sample(iproj, in, itarget, istate, e_in, ex_tot,      &
      ex_final = -1.0d0
      prob = 0.0d0
      do m = 0, nbin_end
-        energy = dfloat(m)*de
+        energy = real(m,kind=8)*de
         ex_final = ex_tot - energy - nucleus(icomp_i)%sep_e(k)
         prob = prob + nucleus(icomp_i)%PREEQ_part_spectrum(kk,m)*de
         if(ran <= prob)exit
@@ -223,15 +233,17 @@ subroutine PREEQ_sample(iproj, in, itarget, istate, e_in, ex_tot,      &
 !
      theta_0 = 0.0d0
 
+     a_factor = 0.0d0
+
+     call PREEQ_Angular(icomp_i, icomp_f, iproj, e_in, k, energy, a_factor)
+
      do nang = 1, num_theta
         if(k > 0)then
-           call PREEQ_Angular(icomp_i, icomp_f, iproj, e_in, k, energy, x_Ang)
+           x_Ang = expdev(iseed_32,a_factor)
            if(abs(x_Ang) > 1.0d0)then
               write(6,*)'cos(theta) wrong in PREEQ_sample'
               write(6,*)'iproc = ',iproc
-#if(USE_MPI==1)
-              call MPI_Abort(icomm,101,ierr)
-#endif
+              call exit_YAHFC(101)
            end if
            extra_angle_data(nang,num_part) = acos(x_Ang)
         else               !   make photons isotropic for now
@@ -240,6 +252,15 @@ subroutine PREEQ_sample(iproj, in, itarget, istate, e_in, ex_tot,      &
      end do
      theta_0 = extra_angle_data(1,num_part)
      phi_0 = two_pi*random_32(iseed_32)
+!------------------------------------------------------------------------------------
+!-----     Also, compute Legendre coefficients
+!------------------------------------------------------------------------------------
+     part_Ang_data(0,num_part) = 0.5d0
+     xnorm = exp_leg_int(0,a_factor)
+     do L = 0, Ang_L_max
+        factor = 0.5d0*(2.0d0*real(L,kind=8)+1.0d0)/xnorm
+        part_Ang_data(L,num_part) = factor*exp_leg_int(L,a_factor)
+     end do
 
 !-----------------------------------------  Find energy bin, or discrete state
      ex_min_bin = nucleus(icomp_f)%e_grid(1) - 0.5d0*nucleus(icomp_f)%delta_e(1)
@@ -391,7 +412,6 @@ subroutine PREEQ_sample(iproj, in, itarget, istate, e_in, ex_tot,      &
            l_max = nint(xj_f_max + particle(k)%spin)
            do l = l_min, l_max
               par_f = (-1.0d0)**l*nucleus(icomp_f)%state(nbin_f)%parity*particle(k)%par
-!              if(par_f == par)exit
               if(real8_equal(par_f,par))exit
            end do
            l_f = l
@@ -479,11 +499,14 @@ end subroutine PREEQ_Sample
 !
 !*******************************************************************************
 !
-subroutine PREEQ_Angular(icomp_C, icomp_B, iproj, E_A, ieject, E_B, x_Ang)
+subroutine PREEQ_Angular(icomp_C, icomp_B, iproj, E_A, ieject, E_B, a)
 !
 !*******************************************************************************
 !
 !  Discussion:
+!
+!   Calculates the factor a for the ejected particle defining the angular distribution
+!   via exp(a*cos(theta)). 
 !
 !   Dependencies:
 !
@@ -502,7 +525,7 @@ subroutine PREEQ_Angular(icomp_C, icomp_B, iproj, E_A, ieject, E_B, x_Ang)
 !
 !     External functions:
 !
-!        real(kind=8) :: expdev
+!        None
 !
 !     MPI routines:
 !
@@ -535,15 +558,14 @@ subroutine PREEQ_Angular(icomp_C, icomp_B, iproj, E_A, ieject, E_B, x_Ang)
    real(kind=8), intent(in) :: E_A
    integer(kind=4), intent(in) :: ieject
    real(kind=8), intent(in) :: E_B
-   real(kind=8), intent(out) :: x_Ang
+   real(kind=8), intent(out) :: a           !    return a to compute Legendre coeeficients
 !-------------------   Internal data
-   real(kind=8) :: a, E1, E3, eap, ebp, Sa, Sb
+   real(kind=8) :: E1, E3, eap, ebp, Sa, Sb
    real(kind=8) :: Mb, ma
    real(kind=8) :: A_C, A_B, Z_C, Z_B, N_C, N_B, Ia, Ib
 
    real(kind=8) :: ex1, ex2, ex4
 !------------   External functions    -------------------------------
-   real(kind=8) :: expdev
 !-------------------   Run program    -------------------------------
 
    Ma = 0.0d0
@@ -594,21 +616,19 @@ subroutine PREEQ_Angular(icomp_C, icomp_B, iproj, E_A, ieject, E_B, x_Ang)
 
    a = 0.04d0*E1*ebp/eap + 1.8d-6*(E1*ebp/eap)**3 +      &
        6.7d-7*Ma*mb*(E3*ebp/eap)**4
-
-   x_Ang = expdev(iseed_32,a)
-
+   
    return
 end subroutine PREEQ_Angular
 !
 !*******************************************************************************
 !
-real(kind=8) function exp_leg_int(n,a)
+real(kind=8) function exp_leg_int(L,a)
 !
 !*******************************************************************************
 !
 !  Discussion:
 !
-!    This subroutine calculates the integral of exp(-a*x)*Leg(n,x)
+!    This subroutine calculates the integral of exp(-a*x)*Leg(L,x)
 !    Perfomed using Guass-Legendre integration with n_leg
 !    points. Weights and abbscissas are calculated in main 
 !    routine with a call to gauleg. The points x_gleg, and
@@ -653,22 +673,24 @@ real(kind=8) function exp_leg_int(n,a)
    use Gauss_integration
    implicit none
 !------------   Argument declarations
-   integer(kind=4), intent(in) :: n
+   integer(kind=4), intent(in) :: L
    real(kind=8), intent(in) :: a
 !------------  Internal data
-   integer(kind=4) :: m
+   integer(kind=4) :: ix
    real(kind=8) :: sum
 !------------  External functions
-   real(kind=8) :: poly
+!   real(kind=8) :: poly
 !------------  Start calculation
-!-----   Legendre(n,x) polynomials are compouted with function poly(n,kind,alf,bet,x)
+!-----   Legendre(n,x) polynomials are computed with function poly(n,kind,alf,bet,x)
+!-----   and are stored in the array Gauss_Leg(n,ix) in the module Gauss_integration to save time
 !-----   with kind=1, alf=bet=0.0
    exp_leg_int = 0.0d0
    alf = 0.0d0
    bet = 0.0d0
    sum = 0.0d0
-   do m = 1 , n_gleg
-      sum = sum + w_gleg(m)*exp(a*x_gleg(m))*poly(n,1,alf,bet,x_gleg(m))
+   do ix = 1 , n_gleg
+!      sum = sum + w_gleg(ix)*exp(a*x_gleg(ix))*poly(n,1,alf,bet,x_gleg(ix))
+      sum = sum + w_gleg(ix)*exp(a*x_gleg(ix))*Gauss_Leg(L,ix)
    end do
    sum = sum*(0.5d0*a/sinh(a))
    exp_leg_int = sum

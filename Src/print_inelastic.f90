@@ -4,7 +4,7 @@
 subroutine print_inelastic(itarget, istate, ilab, file_lab, ilib_dir, lib_dir, ch_par,     &
                            num_energies, Ang_L_max, max_jx_50, delta_jx_50,                &
                            cs_threshold, nstates, absorption_cs, Inelastic_cs,             &
-                           Inelastic_Ang_L, Inelastic_L_max, write_error)
+                           Inelastic_Ang_L, Inelastic_L_max, reaction_cs, write_error)
 !
 !*****************************************************************************80
 !
@@ -76,11 +76,14 @@ subroutine print_inelastic(itarget, istate, ilab, file_lab, ilib_dir, lib_dir, c
    real(kind=8), intent(in) :: Inelastic_cs(0:nstates,num_energies)
    real(kind=8), intent(in) :: Inelastic_Ang_L(0:Ang_L_max,0:nstates,num_energies)
    integer(kind=4), intent(in) :: Inelastic_L_max(0:nstates,num_energies)
+   real(kind=8), intent(in) :: reaction_cs(num_energies)
    logical, intent(out) :: write_error
 !----------------------------------------------------------------------
+   real(kind=8) :: Sum_Inelastic
    integer(kind=4) :: iproj
    integer(kind=4) :: inuc
-   integer(kind=4) :: ipi, ipf, in, j, jx, L
+   integer(kind=4) :: i, j, n
+   integer(kind=4) :: ipi, ipf, in, jx, L, Max_L
    real(kind=8) :: x
    real(kind=8) :: e_in
    real(kind=8) :: xnorm
@@ -167,7 +170,9 @@ subroutine print_inelastic(itarget, istate, ilab, file_lab, ilib_dir, lib_dir, c
       write(100,'(''# Target state = '',i3,3x,''J = '',f4.1,a1,3x,''Ex = '',1pe15.7,'' MeV'')') &
             istate-1,nucleus(itarget)%state(istate)%spin, ch_par(ipi),                          &
             nucleus(itarget)%state(istate)%energy
-      write(100,'(''# Inelastic cross section'')')
+      write(100,'(''# Inelastic cross section.'')')
+      write(100,'(''# Contains only primary decays to discrete final state.'')')
+      write(100,'(''# Note subsequent gamma decays from the final state are not tracked.'')')
       write(100,'(''#'')')
       write(100,'(''# Mass amu = '',1pe23.16,'' MeV'')')mass_u
       write(100,'(''# Mass of target = '',1pe23.16,'' amu'')')nucleus(itarget)%mass/mass_u
@@ -219,6 +224,8 @@ subroutine print_inelastic(itarget, istate, ilab, file_lab, ilib_dir, lib_dir, c
             istate-1,nucleus(itarget)%state(istate)%spin, ch_par(ipi),                          &
             nucleus(itarget)%state(istate)%energy
       write(100,'(''# Inelastic Angular Distribution data '')')
+      write(100,'(''# Contains only primary decays to discrete final state.'')')
+      write(100,'(''# Note subsequent gamma decays from the final state are not tracked.'')')
       write(100,'(''#'')')
       write(100,'(''# Mass amu = '',1pe23.16,'' MeV'')')mass_u
       write(100,'(''# Mass of target = '',1pe23.16,'' amu'')')nucleus(itarget)%mass/mass_u
@@ -289,6 +296,8 @@ subroutine print_inelastic(itarget, istate, ilab, file_lab, ilib_dir, lib_dir, c
             istate-1,nucleus(itarget)%state(istate)%spin, ch_par(ipi),                          &
             nucleus(itarget)%state(istate)%energy
       write(100,'(''# Inelastic Angular Distribution data '')')
+      write(100,'(''# Contains only primary decays to discrete final state.'')')
+      write(100,'(''# Note subsequent gamma decays from the final state are not tracked.'')')
       write(100,'(''# Coefficients of Legendre expansion'')')
       write(100,'(''# Ang_dist(x) = Sum_L a(L)*P(L,x)'')')
       write(100,'(''#'')')
@@ -312,7 +321,11 @@ subroutine print_inelastic(itarget, istate, ilab, file_lab, ilib_dir, lib_dir, c
          write(100,'(''#   ----------------     ---     ----------------'')')
 !         write(100,'(''#'')')
          xnorm = 2.0d0*Inelastic_Ang_L(0,j,in)
+         Max_L = 0
          do L = 0, Inelastic_L_max(j,in)
+            if(abs(Inelastic_Ang_L(L,j,in)) > 1.0d-6 .and. L > Max_L)Max_L = L
+         end do
+         do L = 0, Max_L
             if(xnorm > 1.0d-8)Temp = Inelastic_Ang_L(L,j,in)/xnorm
             write(100,'(1x,3x,1pe16.7,3x,i5,3x,1pe16.7)')e_in, L, Temp
          end do 
@@ -321,5 +334,71 @@ subroutine print_inelastic(itarget, istate, ilab, file_lab, ilib_dir, lib_dir, c
 !------------------------------------------------------------------------------------
    end do
    if(allocated(Ang_Dist))deallocate(Ang_Dist)
+
+!++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!---------    cross section v. E_in           ------------------------+
+!++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+      ifile = 18
+      outfile(1:ifile) = 'Inelastic_cs_Total'
+!**********************************************************************************
+!-----   Check if this state has appreciable cross section. If not, skip     -----*
+!-----   Threshold is based on the number of samples, and the smallest       -----*
+!-----   cross section observable with one sample, i.e., abs_cs/num_mc_samp  -----*
+!-----   We use 10 times this as a cut off. Cross ection below this will be  -----*
+!-----   unreliable due to limitations in Monte Carlo sampling               -----*
+!**********************************************************************************
+!**********************************************************************************
+
+      open(unit=100, file = directory(1:idir)//outfile(1:ifile)//'.dat',status = 'unknown')
+      file_lab2(1:20) = ' '
+      ilab2 = ilab
+      file_lab2(1:ilab2) = file_lab(1:ilab)
+      ilab2 = ilab2 + 1
+      file_lab2(ilab2:ilab2) = particle(iproj)%label
+      ilab2 = ilab2 + 1
+      file_lab2(ilab2:ilab2) = quote
+      ilab2 = ilab2 + 1
+      file_lab2(ilab2:ilab2) = ')'
+      write(100,'(''# '',a20)')file_lab2
+      ipi = nint((nucleus(itarget)%state(istate)%parity + 1)/2.0d0)
+      write(100,'(''# Target state = '',i3,3x,''J = '',f4.1,a1,3x,''Ex = '',1pe15.7,'' MeV'')') &
+            istate-1,nucleus(itarget)%state(istate)%spin, ch_par(ipi),                          &
+            nucleus(itarget)%state(istate)%energy
+      write(100,'(''# Inelastic cross section summed over all inelastic channels'')')
+      write(100,'(''#'')')
+      write(100,'(''# Mass amu = '',1pe23.16,'' MeV'')')mass_u
+      write(100,'(''# Mass of target = '',1pe23.16,'' amu'')')nucleus(itarget)%mass/mass_u
+      write(100,'(''# Mass of projectile = '',1pe23.16,'' amu'')')particle(iproj)%mass/mass_u
+      inuc = itarget
+      write(100,'(''# Mass of residual = '',1pe23.16,'' amu'')')nucleus(inuc)%mass/mass_u
+      ipf = nint((nucleus(inuc)%state(j)%parity + 1)/2.0d0)
+      write(100,'(''#'')')
+      write(100,'(''#         E_in              xs'',''('',a2,'')'')')cs_units
+      write(100,'(''#'',2(''   ----------------''))')
+      do in = 1, num_energies
+         e_in = projectile%energy(in)
+
+         Sum_Inelastic = 0.0d0
+         do j = 1, nucleus(itarget)%num_discrete
+            if(j == istate)cycle
+            Sum_Inelastic = Sum_Inelastic + Inelastic_cs(j,in)   !   already has units of b
+!   write(6,*)j,in,Inelastic_cs(J,in), Sum_Inelastic
+         end do
+         do i = 1, num_channels
+            inuc = Exit_Channel(i)%Final_nucleus
+            if(inuc == itarget)then
+               do n = 1, Exit_Channel(i)%num_cs
+                  Sum_Inelastic = Sum_Inelastic +                         &
+                     Exit_Channel(i)%Channel_cs(n,in)*reaction_cs(in)  ! does not yet have units
+!   write(6,*)Sum_Inelastic, Exit_Channel(i)%Channel_cs(n,in)*reaction_cs(in)
+               end do
+            end if
+         end do
+
+         write(100,'(1x,4(3x,1pe16.7))')e_in, Sum_Inelastic*cs_scale
+      end do
+      close(unit=100)
+
    return
 end subroutine print_inelastic

@@ -95,6 +95,8 @@ program YAHFC_MASTER
 !        print_pop_mult_data
 !        print_channels
 !        print_fission_cs
+!        read_saved_parameters
+!        exit_YAHFC
 !
 !     External functions:
 !
@@ -113,7 +115,7 @@ program YAHFC_MASTER
 !        MPI_INIT
 !        MPI_COMM_RANK
 !        MPI_COMM_SIZE
-!        MPI_Abort
+!        MPI_Abort    -----   via exit_YAHFC
 !        MPI_Bcast
 !        MPI_Barrier
 !        MPI_AllReduce
@@ -152,8 +154,9 @@ program YAHFC_MASTER
 !---------------------------------------------------------------------
       implicit none
 !---------------------------------------------------------------------
-#if(USE_MPI==1)
+#if(USE_MPI == 1)
       include 'mpif.h'
+      integer(kind=4) :: num_data
 #endif
 !---------------------------------------------------------------------
       character(len=1) quote
@@ -172,10 +175,7 @@ program YAHFC_MASTER
 !-----------------------------------------------------------------------
       integer(kind=4) :: num_e
       real(kind=8) :: ee_max
-#if(USE_MPI==1)
-      integer(kind=4) :: num_data
-      real(kind=8) :: e_shift
-#endif
+
 !-----------------------------------------------------------------------
 !----------   Temporary storage for state data if we need to remove discrete states
 
@@ -315,7 +315,6 @@ program YAHFC_MASTER
 !--------------------  Data to collect input information -------------
       integer(kind=4) :: read_err
       integer(kind=4) :: nchar
-      integer(kind=4) :: icommand
       character(len=132) :: command
       character(len=132) char_temp
       integer(kind=4) :: itemp
@@ -350,7 +349,6 @@ program YAHFC_MASTER
 !------------------------------------------------------------------
 !--------    Gauss-Legendre integration useful to construct "smooth"
 !--------    angular distributions
-      integer(kind=4) :: LL_max
       real(kind=8), allocatable :: xvalue(:)
 
 !--------   Total Inelastic Scattering
@@ -486,25 +484,25 @@ program YAHFC_MASTER
 !----------------------------------------------------------------------+
 !------   Setup MPI world                                              +
 !----------------------------------------------------------------------+
-#if(USE_MPI==1)
+#if(USE_MPI == 1)
    call MPI_INIT(ierr)
-
    icomm = MPI_COMM_WORLD
    call MPI_COMM_RANK(icomm, iproc, ierr)
    call MPI_COMM_SIZE(icomm, nproc, ierr)
-#else 
-   icomm = 0
-   iproc = 0
-   ierr  = 0
+#else
    nproc = 1
-
+   iproc = 0
+   icomm = 0
+   ierr = 0
 #endif
+
+
    ilast = index(version,' ') - 1
    if(iproc == 0)then
       write(6,'(''****************************************************************'')')
       write(6,'(''* Yet Another Hauser Monte Hauser-Feshbach code - Monte Carlo  *'')')
       write(6,'(''* Version # '',a8,43x,''*'')')version(1:ilast)
-      write(6,'(''* Author W. E. Ormand, Lawrence Livermore national Laboratory  *'')')
+      write(6,'(''* Author W. E. Ormand, Lawrence Livermore National Laboratory  *'')')
 !      write(6,'(''* This code system is distributed under the license            *'')')
       write(6,'(''*--------------------------------------------------------------*'')')
       write(6,'(''* This code makes use of RIPL-3 data, with modifcations by the *'')')
@@ -530,7 +528,9 @@ program YAHFC_MASTER
       ex_set = .false.
       track_gammas = .false.
       track_primary_gammas = .false.
-      fit_Gamma_gamma = .false.
+      fit_gamma_gamma = .true.
+      lev_fit_d0 = .true.
+      fit_aparam = .true.
       Apply_Coulomb_Barrier = .true.
       all_discrete_states = .false.
       Preeq_g_a = .false.
@@ -547,7 +547,12 @@ program YAHFC_MASTER
       pop_calc_prob = .true.
       pop_calc = .false.
       file_energy_index = .false.
+      read_saved_params = .true.
       refresh_library_directories = .true.
+      do_dwba = .false.
+
+      lev_option = -1
+
 
       num_bad_samp_e = 0
       num_bad_spread_e = 0
@@ -569,6 +574,10 @@ program YAHFC_MASTER
       target%istate = 1
       max_num_gsf = 4
 !      max_em_l = 3
+      tally_norm = 0.0d0
+      if(iproc == 0)print_me = .true.
+
+
 !
 !----   Start with no optical potentials being set
 !----   later they may be set with a choice of an option
@@ -645,6 +654,12 @@ program YAHFC_MASTER
       alf = 0.0d0
       bet = 0.0d0
       call gauss_quad(n_gleg, 1, alf, bet, x_gleg, w_gleg)
+      allocate(Gauss_Leg(0:Ang_L_max,n_gleg))
+      do L = 0, Ang_L_max
+         do ix = 1, n_gleg
+            Gauss_Leg(L,ix) = poly(L,1,alf,beta,x_gleg(ix))
+         end do
+      end do
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !--------------    ixx_max and jxx_max need to be even
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -680,11 +695,11 @@ program YAHFC_MASTER
       d_four = 4.0d0
       factorial(0) = 1.0d0
       do i = 1, 50
-         factorial(i) = factorial(i-1)*dfloat(i)
+         factorial(i) = factorial(i-1)*real(i,kind=8)
       end do
       lfactorial(0) = 0.0d0
       do i = 1, 200
-         lfactorial(i) = lfactorial(i-1) + dlog(dfloat(i))
+         lfactorial(i) = lfactorial(i-1) + dlog(real(i,kind=8))
       end do
 
       ifresco_shape = 13
@@ -699,19 +714,34 @@ program YAHFC_MASTER
 !---   initialize iseed to int(pi*10^9)
 !
       iseed_64 = 3141592654_int_64
-      iseed_32 = 3141592_int_64
+      iseed_32 = 3141592_int_32
 !---
 !---  "Randomize" iseed_64 with cnt from system clock. Generally, this
 !---  will be different for each runs.
 !---
-      call system_clock(COUNT = cnt, COUNT_RATE = cnt_r, COUNT_MAX = cnt_m)
+      cnt = 0
+      if(iproc == 0)then
+          call system_clock(COUNT = cnt, COUNT_RATE = cnt_r, COUNT_MAX = cnt_m)
+      end if
+#if(USE_MPI == 1)
+    call MPI_Barrier(icomm, ierr)
+    call MPI_BCAST(cnt, 1, MPI_INTEGER, 0, icomm, ierr)
+#endif
       cnt = max(mod(cnt,100000),1)
       iseed_64 = iseed_64 + cnt
       iseed_64 = iseed_64 + iproc*31415_int_64
       if(iand(iseed_64,1_int_64) /= 1_int_64)iseed_64 = iseed_64 + 1_int_64
       iseed_64 = -iseed_64
 
-      call system_clock(COUNT = cnt, COUNT_RATE = cnt_r, COUNT_MAX = cnt_m)
+!---
+      cnt = 0
+      if(iproc == 0)then
+          call system_clock(COUNT = cnt, COUNT_RATE = cnt_r, COUNT_MAX = cnt_m)
+      end if
+#if(USE_MPI == 1)
+    call MPI_Barrier(icomm, ierr)
+    call MPI_BCAST(cnt, 1, MPI_INTEGER, 0, icomm, ierr)
+#endif
       cnt = max(mod(cnt,100000),1)
       iseed_32 = iseed_32 + cnt
       iseed_32 = iseed_32 + iproc*31415_int_32
@@ -750,9 +780,7 @@ program YAHFC_MASTER
             write(6,*)'Environment variable for data is not set correctly'
             write(6,*)'Program exiting'
          end if
-#if(USE_MPI==1)
-         call MPI_Abort(icomm,101,ierr)
-#endif
+         call exit_YAHFC(101)
       end if
       KE = 0.0d0
 
@@ -857,7 +885,7 @@ program YAHFC_MASTER
 !----   NEED TO MPI_BCAST num_command here
 !-----------------------------------------------------------------------------------------
 !
-#if(USE_MPI==1)
+#if(USE_MPI == 1)
       if(nproc > 1)then
          call MPI_Barrier(icomm, ierr)
          call MPI_BCAST(num_command, 1, MPI_INTEGER, 0, icomm, ierr)
@@ -909,7 +937,9 @@ program YAHFC_MASTER
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
       if(iproc == 0)then
          open(unit=17,file='YAHFC-commands.txt',status='unknown')
-         write(17,'(''YAHFC commands in order of execution'')')
+         write(17,'(''#YAHFC commands in order of execution'')')
+         write(17,'(''# Default Random iseed_32 = '',i16)')iseed_32
+         write(17,'(''# Default Random iseed_64 = '',i16)')iseed_64
          do i = 1, num_command
             write(17,'(a132)')command_buffer(i)
          end do
@@ -917,11 +947,10 @@ program YAHFC_MASTER
       end if
 
       num_comp=0
-      icommand=1
       finish=.false.
       iproj = -10
       do i = 1, num_command
-         call parse_command(icommand, command_buffer(i), finish)
+         call parse_command(command_buffer(i), finish)
          if(target%specified)istate = target%istate
          if(.not. compound_setup .and. (target%specified .and.        &
                projectile%specified .and. ex_set))then
@@ -970,6 +999,10 @@ program YAHFC_MASTER
                if(fission .and. nucleus(icomp)%Z >= 80)then
                   call Fission_data(data_path,len_path,icomp)
                end if
+!----------------------------------------------------------------------------------------+
+!--------   Read in saved parameters from data_path(1:len_path)//'Saved-Parameters.txt'  +
+!----------------------------------------------------------------------------------------+
+               if(read_saved_params)call read_saved_parameters(data_path,len_path,icomp)
             end do
             spin_target = nucleus(itarget)%state(target%istate)%spin
             spin_proj = 0.0
@@ -985,15 +1018,11 @@ program YAHFC_MASTER
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
       if(.not.target%specified)then
          if(iproc == 0)write(6,*)'Target nucleus not specified, quitting'
-#if(USE_MPI==1)
-         call MPI_Abort(icomm,101,ierr)
-#endif
+         call exit_YAHFC(101)
       end if
       if(.not.projectile%specified)then
          if(iproc == 0)write(6,*)'Projectile nucleus not specified, quitting'
-#if(USE_MPI==1)
-         call MPI_Abort(icomm,101,ierr)
-#endif
+         call exit_YAHFC(101)
       end if
       mass_proj = particle(iproj)%mass
       mass_target = nucleus(itarget)%mass + nucleus(itarget)%state(target%istate)%energy
@@ -1001,8 +1030,6 @@ program YAHFC_MASTER
 !-------------------------------------------------------------------------------------
       num_theta = num_theta_angles
       if(xs_only)num_theta = 1
-      print_me = .false.
-      if(iproc == 0 .and. verbose)print_me = .true.
 !----------------------------------------------------------------------------------------+
 !------  After everything is set up, also check if preequilibrium model parameters       +
 !------  makes sense. In particular, the finite well parameter, can't have               +
@@ -1120,9 +1147,7 @@ program YAHFC_MASTER
                      write(6,*)'Cannot continue with this calculation'
                      write(6,*)'**************************************************'
                   end if
-#if(USE_MPI==1)
-                  call MPI_Abort(icomm,101,ierr)
-#endif
+                  call exit_YAHFC(101)
                end if
             end do
             call Fission_levels(icomp)
@@ -1193,8 +1218,6 @@ program YAHFC_MASTER
       if(print_output)then
          if(iproc == 0)open(unit=13,file=out_file(1:ifile)//'.out',status='unknown')
       end if
-!      open(unit=28,file=out_file(1:ifile)//'.bad_samp_energy',status='unknown')
-!      open(unit=400,file=out_file(1:ifile)//'.bad_spread_energy',status='unknown')
 
       cum_fit=2
 
@@ -1236,6 +1259,14 @@ program YAHFC_MASTER
          decay_mult(0:6,num_energies) = 0.0d0
          if(.not.allocated(decay_var))allocate(decay_var(0:6,num_energies))
          decay_var(0:6,num_energies) = 0.0d0
+      else
+         if(.not.allocated(pop_prob))allocate(pop_prob(1))
+         if(.not.allocated(pop_j))allocate(pop_j(1))
+         if(.not.allocated(pop_ip))allocate(pop_ip(1))
+         if(.not.allocated(decay_mult))allocate(decay_mult(0:6,1))
+         decay_mult(0:6,1) = 0.0d0
+         if(.not.allocated(decay_var))allocate(decay_var(0:6,1))
+         decay_var(0:6,1) = 0.0d0
       end if
 
 !-------------------------------------------------------------------------+
@@ -1290,6 +1321,9 @@ program YAHFC_MASTER
       if(fission)then
          allocate(fission_cs(1:num_energies))
          fission_cs(1:num_energies) = 0.0d0
+      else
+         allocate(fission_cs(1))
+         fission_cs(1) = 0.0d0
       end if
       if(.not. pop_calc)then
          allocate(direct_tot(1:num_energies))
@@ -1378,41 +1412,6 @@ program YAHFC_MASTER
 !----   Continuous level density read in from file                                       +
 !----------------------------------------------------------------------------------------+
          if(nucleus(i)%lev_den_read)call read_level_density(i, yrast, yrast_actual)
-!----------------------------------------------------------------------------------------+
-!------   Write yrast data to file in unit=99                                            +
-!----------------------------------------------------------------------------------------+
-!         yrast_file(1:1)='Z'
-!         if(nucleus(i)%z < 10)then
-!            yrast_file(2:3)='00'
-!            write(yrast_file(4:4),'(i1)')nucleus(i)%z
-!         elseif(nucleus(i)%z < 100)then
-!            yrast_file(2:2)='0'
-!            write(yrast_file(3:4),'(i2)')nucleus(i)%z
-!         else
-!            write(yrast_file(2:4),'(i3)')nucleus(i)%z
-!         end if
-!         yrast_file(5:6)='-A'
-!         if(nucleus(i)%A < 10)then
-!            yrast_file(7:8)='00'
-!            write(yrast_file(9:9),'(i1)')nucleus(i)%A
-!         elseif(nucleus(i)%A < 100)then
-!            yrast_file(7:7)='0'
-!            write(yrast_file(8:9),'(i2)')nucleus(i)%A
-!         else
-!            write(yrast_file(7:9),'(i3)')nucleus(i)%A
-!         end if
-
-!         if(iproc == 0)open(unit=99,file=yrast_file//'.yrast.dat',status='unknown')
-!         if(iproc == 0)then
-!            write(99,'(''#               Negative Parity          Positive Parity'')')
-!            write(99,'(''#  J           Yrast  Yrast-lev          Yrast  Yrast-lev'')')
-!            do j = 0, max_J_allowed
-!               xj = dfloat(j) + nucleus(i)%jshift
-!               write(99,'(1x,f4.1,2(4x,2(1x,f10.4)))')xj,          &
-!                  yrast_actual(j,0),yrast(j,0),yrast_actual(j,1),yrast(j,1)
-!            end do
-!            close(unit=99)
-!         end if
       end do
 !----------------------------------------------------------------------------------------+
 !----  Fit to Gamma_gamma                                                                +
@@ -1454,7 +1453,21 @@ program YAHFC_MASTER
              preeq_css(0:6,1:num_energies) = 0.0d0
              allocate(preeq_spect(0:6,0:num_e))
              allocate(preeq_spect_full(0:6,0:num_e))
+          else
+             allocate(preeq_css(0:6,1))
+             preeq_css(0:6,1:num_energies) = 0.0d0
+             allocate(preeq_spect(0:6,0))
+             preeq_spect(0:6,0) = 0.0d0
+             allocate(preeq_spect_full(0:6,0))
+             preeq_spect_full(0:6,0) = 0.0d0
           end if
+       else
+          allocate(preeq_css(0:6,1))
+          preeq_css(0:6,1:num_energies) = 0.0d0
+          allocate(preeq_spect(0:6,0))
+          preeq_spect(0:6,0) = 0.0d0
+          allocate(preeq_spect_full(0:6,0))
+          preeq_spect_full(0:6,0) = 0.0d0
        end if
 !-------------------------------------------------------------------------+
 !------                                                                   +
@@ -1532,13 +1545,6 @@ program YAHFC_MASTER
 
          if(.not.allocated(Exit_Channel(i)%part_mult))                                             &
                  allocate(Exit_Channel(i)%part_mult(0:6,-1:num_s))
-!         if(.not.allocated(Exit_Channel(i)%Ang_L))                                                 &
-!                 allocate(Exit_Channel(i)%Ang_L(0:Ang_L_max,0:num_e,                               &
-!                        0:6,-1:num_s,1:num_energies))
-!         Exit_Channel(i)%Ang_L(0:Ang_L_max,0:num_e,0:6,-1:num_s,1:num_energies) = 0.0d0
-!         if(.not.allocated(Exit_Channel(i)%Max_L))                                                 &
-!                 allocate(Exit_Channel(i)%Max_L(0:num_e,0:6,-1:num_s,1:num_energies))
-!         Exit_Channel(i)%Max_L(0:num_e,0:6,-1:num_s,1:num_energies) = 0.0d0
 
          if(.not.allocated(Exit_Channel(i)%Spect))                                                 &
                  allocate(Exit_Channel(i)%Spect(0:6,-1:num_s))
@@ -1583,13 +1589,13 @@ program YAHFC_MASTER
 !-------------
          if(.not.allocated(Inelastic_L_max))                                                       &
              allocate(Inelastic_L_max(0:nucleus(itarget)%num_discrete,1:num_energies))
-         Inelastic_L_max(1:nucleus(itarget)%num_discrete,1:num_energies) = 0
+         Inelastic_L_max(1:nucleus(itarget)%num_discrete,1:num_energies) = Ang_L_max
          if(.not.allocated(Inelastic_Ang_L))                                                       &
             allocate(Inelastic_Ang_L(0:Ang_L_max,0:nucleus(itarget)%num_discrete,1:num_energies))
          Inelastic_Ang_L(0:Ang_L_max,0:nucleus(itarget)%num_discrete,1:num_energies) = 0.0d0
-         if(.not.allocated(Inelastic_Ang_dist))                                                    &
-             allocate(Inelastic_Ang_dist(0:max_jx_10,1:nucleus(itarget)%num_discrete,1:num_energies))
-         Inelastic_Ang_dist(0:max_jx_10,1:nucleus(itarget)%num_discrete,1:num_energies) = 0.0d0
+!-rem         if(.not.allocated(Inelastic_Ang_dist))                                                    &
+!-rem             allocate(Inelastic_Ang_dist(0:max_jx_10,1:nucleus(itarget)%num_discrete,1:num_energies))
+!-rem         Inelastic_Ang_dist(0:max_jx_10,1:nucleus(itarget)%num_discrete,1:num_energies) = 0.0d0
 !-------------
          if(iproj > 0)then
             if(.not.allocated(direct_Spectrum))allocate(direct_Spectrum(0:num_e))
@@ -1624,6 +1630,10 @@ program YAHFC_MASTER
             SE_ang(0:Ang_L_max,1:num_energies)=0.0d0
             if(.not.allocated(SE_prob))allocate(SE_prob(0:ixx_max))
          else            !    not used with photo-absorption, but prevents warnings
+            if(.not.allocated(direct_Spectrum))allocate(direct_Spectrum(1))
+            direct_Spectrum(1) = 0.0d0
+            if(.not.allocated(dwba_Spectrum))allocate(dwba_Spectrum(1))
+            dwba_Spectrum(1) = 0.0d0
             if(.not.allocated(SE_cs))allocate(SE_cs(1))
             SE_cs(1) = 0.0d0
             if(.not.allocated(SE_Ang))allocate(SE_ang(1,1))
@@ -1673,8 +1683,8 @@ program YAHFC_MASTER
          Inelastic_L_max(1,1) = 0
          if(.not.allocated(Inelastic_Ang_L))allocate(Inelastic_Ang_L(1,1,1))
          Inelastic_Ang_L(1,1,1) = 0.0d0
-         if(.not.allocated(Inelastic_Ang_dist))allocate(Inelastic_Ang_dist(1,1,1))
-         Inelastic_Ang_dist(1,1,1) = 0.0d0
+!-rem         if(.not.allocated(Inelastic_Ang_dist))allocate(Inelastic_Ang_dist(1,1,1))
+!-rem         Inelastic_Ang_dist(1,1,1) = 0.0d0
 !-------------
          if(.not.allocated(direct_Spectrum))allocate(direct_Spectrum(1))
          direct_Spectrum(1) = 0.0d0
@@ -1727,7 +1737,11 @@ program YAHFC_MASTER
       if(.not.allocated(x_particle_Spectrum))allocate(x_particle_Spectrum(0:num_e,0:6))
       x_particle_cs(1:num_energies,0:6) = 0.0d0
 
-      if(track_primary_gammas)allocate(Primary_Gamma_Spectrum(0:num_e))
+      if(track_primary_gammas)then
+         allocate(Primary_Gamma_Spectrum(0:num_e))
+      else
+         allocate(Primary_Gamma_Spectrum(0))
+      end if
 
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !------   Create core file name for output                               +
@@ -1746,7 +1760,8 @@ program YAHFC_MASTER
       core_file = ifile
 
       if(iproc == 0)call check_directories(ntar, target_label, ilib_dir, lib_dir)
-#if(USE_MPI==1)
+
+#if(USE_MPI == 1)
       if(nproc > 1)then
          call MPI_BCAST(ilib_dir, 1, MPI_INTEGER, 0, icomm, ierr)
          call MPI_BCAST(lib_dir, 132, MPI_CHARACTER, 0, icomm, ierr)
@@ -2286,7 +2301,7 @@ program YAHFC_MASTER
          directory(idir:idir) = '/'
 
 !-----   If using MPI, then we need a different file name for each MPI process
-#if(USE_MPI==1)
+#if(USE_MPI == 1)
          if(nproc > 1)then
             node_name(1:8) = '_node000'
             if(iproc < 10)then
@@ -2297,10 +2312,11 @@ program YAHFC_MASTER
                write(node_name(6:8),'(i3)')iproc
             else if(iproc >= 1000)then
                write(6,*)'Error, many more MPI processes than expected'
-               call MPI_Abort(icomm, 101, ierr)
+               call exit_YAHFC(101)
             end if
          end if
 #endif
+
          if(dump_events .and. binary_event_file)then
             if(nproc == 1)then
                open(unit=88,file=                                                                   &
@@ -2339,7 +2355,6 @@ program YAHFC_MASTER
             Exit_Channel(i)%num_event = 0
          end do
 
-         tally_norm = 0.0d0
          max_e_diff = 0.0d0
          avg_e_diff = 0.0d0
          re_baseline = 0
@@ -2352,6 +2367,7 @@ program YAHFC_MASTER
 !--------    Monte Carlo sampling loop for each event                              -----
 !---------------------------------------------------------------------------------------
 !
+         tally_norm = 0.0d0
          do nsamp = iproc, num_mc_samp - 1, nproc
 
             fission_decay = .false.
@@ -2488,6 +2504,7 @@ program YAHFC_MASTER
                                        Ix_f, l_f, ip_f, nbin_f, idb,                     &
                                        n_dat, dim_part, num_part_type, part_fact,        &
                                        num_part, part_data,                              &
+                                       Ang_L_max, part_Ang_data,                         &
                                        num_theta, extra_angle_data)
 
                   else                                                                          !  Normal compound nucleus decay
@@ -2742,9 +2759,7 @@ program YAHFC_MASTER
                write(6,*)'nbin_i = ', nbin_i
                write(6,*)'idb = ', idb
                write(6,'(2(1x,i10),3(1x,f10.5))')nsamp, num_part
-#if(USE_MPI==1)
-               call MPI_ABort(icomm,101,ierr)
-#endif
+               call exit_YAHFC(101)
             end if
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !-------   Option for doing only the primary decay
@@ -2757,9 +2772,7 @@ program YAHFC_MASTER
                if(Ix_i > j_max)then
                   if(iproc == 0)write(6,*)'error Ix_i > j_max , Ix_i = ',Ix_i
                   flush(6)
-#if(USE_MPI==1)
-                  call MPI_ABort(icomm,101,ierr)
-#endif
+                  call exit_YAHFC(101)
                end if
                call MC_decay_bin(icomp_i, Ix_i, ip_i, nbin_i,                   &
                                  icomp_f, Ix_f, ip_f, nbin_f, idb,              &
@@ -2885,7 +2898,8 @@ program YAHFC_MASTER
                   write(6,*)'Check: preeq_decay = ', preeq_decay
                   write(6,*)'Check: direct = ',direct
                   write(6,*)'Check: dwba = ',dwba_decay
-                  write(6,*)'Info written to ',out_file(1:ifile)//'.bad_samp_energy'
+!                  write(6,*)'Info written to ',out_file(1:ifile)//'.bad_samp_energy'
+                  write(6,*)'Numer of particles = ', num_part
                   do nn = 1, num_part
                      write(6,'(1x,i5,21(2x,f12.5))')nn,(part_data(k,nn), k = 1, n_dat)
                   end do
@@ -2903,7 +2917,7 @@ program YAHFC_MASTER
 !                  do nn = 1, num_part
 !                     write(28,'(1x,i5,21(2x,f12.5))')nn,(part_data(k,nn), k = 1, n_dat)
 !                  end do
-                  flush(28)
+!                  flush(28)
                end if
             end if
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -2998,8 +3012,8 @@ program YAHFC_MASTER
                      call Boost_frame(e_rel, mass_1, mass_2, theta_0, phi_0,                 &
                                       Boost_Lab, Boost_COM, T_1, theta, phi,                 &
                                       T_2, T_L, theta_L, phi_L)
-                     extra_angle_data(num_theta+1,nn) = theta               !   COM frame
-                     extra_angle_data(2*num_theta+1,nn) = theta_L           !   Lab frame
+                     extra_angle_data(num_theta+nang,nn) = theta               !   COM frame
+                     extra_angle_data(2*num_theta+nang,nn) = theta_L           !   Lab frame
                   end do
                end do
 !
@@ -3057,9 +3071,7 @@ program YAHFC_MASTER
             if(biased_sampling .and. dabs(tally_weight - 1.0d0) > 1.0d-6)then
                write(6,*)'Error in sampling weight for unbiased sampling with processor #',iproc
                write(6,*)nsamp,tally_weight
-#if(USE_MPI==1)
-               call MPI_Abort(icomm, 101, ierr)
-#endif
+               call exit_YAHFC(101)
             end if
 
             if(fission_decay)then       !   Fission channel
@@ -3120,9 +3132,7 @@ program YAHFC_MASTER
                   write(6,*)'Check: cc_decay = ',cc_decay
                   write(6,*)'Check: dwba_decay = ',dwba_decay
                   write(6,*)'idb = ',idb
-#if(USE_MPI==1)
-                  call MPI_Abort(icomm,101,ierr)
-#endif
+                  call exit_YAHFC(101)
                end if
 
                icomp_f = nint(part_data(1,num_part))
@@ -3142,16 +3152,22 @@ program YAHFC_MASTER
                      Inelastic_count(jstate,in) = Inelastic_count(jstate,in) + 1
                      Inelastic_total(in) = Inelastic_total(in) + tally_weight
                      if(.not. xs_only)then
-                        do nang = 1, num_theta
-                           theta = extra_angle_data(nang+1,nn)
-                           x = cos(theta)
-                           jx = nint((x+1.0d0)/delta_jx_10)
-                           if(jx < 0)jx = 0
-                           if(jx > max_jx_10)jx = max_jx_10
-                           Inelastic_Ang_Dist(jx,jstate,in) = Inelastic_Ang_Dist(jx,jstate,in) +      &
-                                                              tally_weight/real(num_theta,kind=8)
+                        do L = 0, Ang_L_max
+                           Inelastic_Ang_L(L,jstate,in) = Inelastic_Ang_L(L,jstate,in) + part_Ang_data(L,nn)*tally_weight
                         end do
                      end if
+
+!                     if(.not. xs_only)then
+!                        do nang = 1, num_theta
+!                           theta = extra_angle_data(num_theta+nang,nn)
+!                           x = cos(theta)
+!                           jx = nint((x+1.0d0)/delta_jx_10)
+!                           if(jx < 0)jx = 0
+!                           if(jx > max_jx_10)jx = max_jx_10
+!                           Inelastic_Ang_Dist(jx,jstate,in) = Inelastic_Ang_Dist(jx,jstate,in) +      &
+!                                                              tally_weight/real(num_theta,kind=8)
+!                        end do
+!                     end if
                   else                                          !  Inelastic in some other fashion
                      Inelastic_cs(0,in) = Inelastic_cs(0,in) + tally_weight
                      Inelastic_count(0,in) = Inelastic_count(0,in) + 1
@@ -3179,7 +3195,7 @@ program YAHFC_MASTER
                               Exit_Channel(ichann)%Spect(k,ictype)%E_count(icc) =               &
                                   Exit_Channel(ichann)%Spect(k,ictype)%E_count(icc) + 1
                               do nang = 1, num_theta
-                                 theta = extra_angle_data(num_theta+1,nn)
+                                 theta = extra_angle_data(num_theta+nang,nn)
                                  x = cos(theta)
                                  jx = nint((x+1.0d0)/delta_jx_10)
                                  if(jx < 0)jx = 0
@@ -3215,7 +3231,7 @@ program YAHFC_MASTER
                            Exit_Channel(ichann)%Spect(k,ictype)%E_count(icc) =                  &
                                Exit_Channel(ichann)%Spect(k,ictype)%E_count(icc) + 1
                            do nang = 1, num_theta
-                              theta = extra_angle_data(num_theta + 1,nn)
+                              theta = extra_angle_data(num_theta+nang,nn)
                               x = cos(theta)
                               jx = nint((x+1.0d0)/delta_jx_10)
                               if(jx < 0)jx = 0
@@ -3295,7 +3311,7 @@ program YAHFC_MASTER
 !---------    Now, if using MPI, sum over the MPI processes    -------+
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
-#if(USE_MPI==1)
+#if(USE_MPI == 1)
       if(nproc > 1)then
          call MPI_Barrier(icomm, ierr)
          num_data = 1
@@ -3345,6 +3361,14 @@ program YAHFC_MASTER
             num_data = (nucleus(itarget)%num_discrete+1)
             call MPI_Allreduce(MPI_IN_PLACE, Inelastic_cs(0,in),                                   &
                                num_data, MPI_REAL8, MPI_SUM, icomm, ierr)
+            if(.not. xs_only)then
+               do j = 0, nucleus(itarget)%num_discrete
+                  num_data = Ang_L_max
+                  call MPI_Allreduce(MPI_IN_PLACE, Inelastic_Ang_L(0,j,in),                           &
+                                     num_data, MPI_REAL8, MPI_SUM, icomm, ierr)
+               end do
+            end if
+
             num_data = (nucleus(itarget)%num_discrete+1)
             call MPI_Allreduce(MPI_IN_PLACE, Inelastic_count(0,in),                                &
                                num_data, MPI_INTEGER, MPI_SUM, icomm, ierr)
@@ -3713,55 +3737,22 @@ program YAHFC_MASTER
 !---------    j = 0 is inelastic to continuous energy bins
 !---------    j = istate is compound elastic
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
         sum_inelastic = 0.0d0
         if(.not. pop_calc)then
            do j = 1, nucleus(itarget)%num_discrete
               sum_inelastic = sum_inelastic + Inelastic_cs(j,in)/tally_norm
-           end do
-        end if
-        if(.not. pop_calc .and. .not. event_generator)then
-           if(Inelastic_cs(0,in) >= 1.0d-8)then
-           end if
-           if(.not.allocated(xvalue))allocate(xvalue(0:max_jx_10))
-           do jx = 0, max_jx_10
-              xvalue(jx) = real(jx,kind=8)*delta_jx_10 - 1.0d0
-           end do
-           LL_max = max_jx_10 - 2
-           do j = 1, nucleus(itarget)%num_discrete
-!-----   Inelastic cross sections
-              Inelastic_cs(j,in) = Inelastic_cs(j,in)*reaction_cs(in)/tally_norm
-              if(.not. xs_only)then
-                 Inelastic_Ang_Dist(0,j,in) = Inelastic_Ang_Dist(0,j,in)*2.0d0
-                 Inelastic_Ang_Dist(max_jx_10,j,in) = Inelastic_Ang_Dist(max_jx_10,j,in)*2.0d0
-
-                 sum = 0.0d0
-                 do jx = 0, max_jx_10 - 1
-                    sum = sum + (Inelastic_Ang_Dist(jx,j,in) + Inelastic_Ang_Dist(jx+1,j,in))*      &
-                                 delta_jx_10*0.5d0
-                 end do
-
-                 Inelastic_L_max(j,in) = 0
-                 Inelastic_Ang_L(0:Ang_L_max,j,in) = 0.0d0
-                 Inelastic_Ang_L(0,j,in) = 0.5d0
-
-                 if(sum/tally_norm >= 1.0d-6)then
-
-                    do jx = 0, max_jx_10
-                       Inelastic_Ang_Dist(jx,j,in) = Inelastic_Ang_Dist(jx,j,in)/sum
-                    end do
-
-                    Inelastic_L_max(j,in) = 8
-                    if(Inelastic_count(j,in) < 9000)Inelastic_L_max(j,in) = 6
-                    if(Inelastic_count(j,in) < 6000)Inelastic_L_max(j,in) = 4
-                    if(Inelastic_count(j,in) < 3000)Inelastic_L_max(j,in) = 2
-                    if(Inelastic_count(j,in) < 1000)Inelastic_L_max(j,in) = 0
-                    call Legendre_expand(max_jx_10+1,xvalue(0),Inelastic_Ang_Dist(0,j,in),         &
-                                         Inelastic_L_max(j,in),Inelastic_Ang_L(0,j,in))
-                 end if
+              if(.not. xs_only .and. Inelastic_cs(j,in) > 1.0d-8)then
+                  do L = 0, Ang_L_max
+                     Inelastic_Ang_L(L,j,in) = Inelastic_Ang_L(L,j,in)/Inelastic_cs(j,in)
+                  end do
               end if
+              Inelastic_cs(j,in) = Inelastic_cs(j,in)*reaction_cs(in)/tally_norm
            end do
-           if(allocated(xvalue))deallocate(xvalue)
         end if
+
+
+
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !-----------    Now the other Channels    -------------------------------------------------
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -3917,12 +3908,12 @@ program YAHFC_MASTER
                isp_max = nint(2.0d0*spin_proj)
                Ix = 0
                do l = 0, particle(iproj)%lmax
-                  xj_min = abs(dfloat(l) - spin_proj)
-                  xj_max = abs(dfloat(l) + spin_proj)
+                  xj_min = abs(real(l,kind=8) - spin_proj)
+                  xj_max = abs(real(l,kind=8) + spin_proj)
                   isp = nint(xj_max - xj_min)
                   xj = real(l,kind=8) - spin_proj
                   do is = 0, isp_max
-                     xj = xj + dfloat(is)
+                     xj = xj + real(is,kind=8)
                      if(xj < 0.0d0)cycle
                      xI_min = abs(xj - spin_target)
                      xI_max = xj + spin_target
@@ -3978,13 +3969,14 @@ program YAHFC_MASTER
                                            ilib_dir, lib_dir, ch_par,                           &
                                            num_energies, num_e, max_jx_20, delta_jx_20,         &
                                            de_spec, cs_threshold, reaction_cs, write_error)
-#if(USE_MPI==1)
+#if(USE_MPI == 1)
          if(nproc > 1)then
             call MPI_Barrier(icomm, ierr)
             call MPI_BCAST(write_error, 1, MPI_LOGICAL, 0, icomm, ierr)
          end if
-         if(write_error)call MPI_Abort(icomm,51,ierr)
 #endif
+         if(write_error)call exit_YAHFC(51)
+
 !
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !---------    Finished incident Energy Loop     ----------------------+
@@ -4064,8 +4056,11 @@ program YAHFC_MASTER
          write(6,*)'----   Finished simulating and writing events.   ---'
          write(6,*)'----   All finished.                             ---'
          write(6,*)'****************************************************'
-#if(USE_MPI==1)
-         call MPI_Abort(icomm,101,ierr)
+#if(USE_MPI == 1)
+         call MPI_Finalize(ierr)
+         call exit
+#else
+         call exit_YAHFC(901)
 #endif
       end if
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -4095,28 +4090,27 @@ program YAHFC_MASTER
                if(iproc == 0)call print_total_cs(itarget, istate, ilab, file_lab,                &
                                                  ilib_dir,lib_dir, ch_par, num_energies,         &
                                                  reaction_cs, SE_cs, write_error)
-#if(USE_MPI==1)
+#if(USE_MPI == 1)
                if(nproc > 1)then
                   call MPI_Barrier(icomm, ierr)
                   call MPI_BCAST(write_error, 1, MPI_LOGICAL, 0, icomm, ierr)
                end if
-               if(write_error)call MPI_Abort(icomm,51,ierr)
 #endif
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !-----   Reaction cross section
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
+               if(write_error)call exit_YAHFC(51)
                write_error = .false.
                if(iproc == 0)call print_reaction_cs(itarget, istate, ilab, file_lab,               &
                                                    ilib_dir,lib_dir, ch_par, num_energies,         &
                                                    reaction_cs, write_error)
-#if(USE_MPI==1)
+#if(USE_MPI == 1)
                if(nproc > 1)then
                   call MPI_Barrier(icomm, ierr)
                   call MPI_BCAST(write_error, 1, MPI_LOGICAL, 0, icomm, ierr)
                end if
-               if(write_error)call MPI_Abort(icomm,51,ierr)
 #endif
+               if(write_error)call exit_YAHFC(51)
             end if
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !-----   Absorption cross section
@@ -4125,7 +4119,7 @@ program YAHFC_MASTER
             if(iproc == 0)call print_absorption_cs(itarget, istate, ilab, file_lab,                &
                                                    ilib_dir,lib_dir, ch_par, num_energies,         &
                                                    absorption_cs, write_error)
-#if(USE_MPI==1)
+#if(USE_MPI == 1)
             if(nproc > 1)then
                call MPI_Barrier(icomm, ierr)
                call MPI_BCAST(write_error, 1, MPI_LOGICAL, 0, icomm, ierr)
@@ -4140,13 +4134,13 @@ program YAHFC_MASTER
                                                    ilib_dir, lib_dir, ch_par,                   &
                                                    num_energies, reaction_cs, preeq_css,        &
                                                    write_error)
-#if(USE_MPI==1)
+#if(USE_MPI == 1)
             if(nproc > 1)then
                call MPI_Barrier(icomm, ierr)
                call MPI_BCAST(write_error, 1, MPI_LOGICAL, 0, icomm, ierr)
             end if
-            if(write_error)call MPI_Abort(icomm,51,ierr)
 #endif
+            if(write_error)call exit_YAHFC(51)
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !---------    Direct cross sections           ------------------------+
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -4155,13 +4149,13 @@ program YAHFC_MASTER
                                                ilib_dir, lib_dir, ch_par,                       &
                                                num_energies, direct_cc, direct_dwba,            &
                                                direct_tot, write_error)
-#if(USE_MPI==1)
+#if(USE_MPI == 1)
             if(nproc > 1)then
                call MPI_Barrier(icomm, ierr)
                call MPI_BCAST(write_error, 1, MPI_LOGICAL, 0, icomm, ierr)
             end if
-            if(write_error)call MPI_Abort(icomm,51,ierr)
 #endif
+            if(write_error)call exit_YAHFC(51)
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !---------  Elastic channels               ---------------------------+
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -4182,13 +4176,13 @@ program YAHFC_MASTER
                                             Inelastic_cs, Inelastic_Ang_L, Inelastic_L_max,    &
                                             write_error)
             end if
-#if(USE_MPI==1)
+#if(USE_MPI == 1)
             if(nproc > 1)then
                call MPI_Barrier(icomm, ierr)
                call MPI_BCAST(write_error, 1, MPI_LOGICAL, 0, icomm, ierr)
             end if
-            if(write_error)call MPI_Abort(icomm,51,ierr)
 #endif
+            if(write_error)call exit_YAHFC(51)
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !---------  Inelastic channels                 -----------------------+
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -4197,15 +4191,15 @@ program YAHFC_MASTER
                                                ilib_dir, lib_dir, ch_par,                       &
                                                num_energies, Ang_L_max, max_jx_50, delta_jx_50, &
                                                cs_threshold, nucleus(itarget)%num_discrete,     &
-                                               absorption_cs, Inelastic_cs,Inelastic_Ang_L,     &
-                                               Inelastic_L_max, write_error)
-#if(USE_MPI==1)
+                                               absorption_cs, Inelastic_cs, Inelastic_Ang_L,    &
+                                               Inelastic_L_max, reaction_cs, write_error)
+#if(USE_MPI == 1)
             if(nproc > 1)then
                call MPI_Barrier(icomm, ierr)
                call MPI_BCAST(write_error, 1, MPI_LOGICAL, 0, icomm, ierr)
             end if
-            if(write_error)call MPI_Abort(icomm,51,ierr)
 #endif
+            if(write_error)call exit_YAHFC(51)
          end if
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !---------  Population calculation statistics      -------------------+
@@ -4216,13 +4210,13 @@ program YAHFC_MASTER
                                                    ilib_dir, lib_dir, ch_par,                      &
                                                    num_energies, decay_mult, decay_var,            &
                                                    write_error)
-#if(USE_MPI==1)
+#if(USE_MPI == 1)
             if(nproc > 1)then
                call MPI_Barrier(icomm, ierr)
                call MPI_BCAST(write_error, 1, MPI_LOGICAL, 0, icomm, ierr)
             end if
-            if(write_error)call MPI_Abort(icomm,51,ierr)
 #endif
+            if(write_error)call exit_YAHFC(51)
          end if
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !---------    Fission cross section           ------------------------+
@@ -4233,13 +4227,14 @@ program YAHFC_MASTER
                                                            num_energies, reaction_cs, fission_cs,  &
                                                            num_comp,Fiss_J_avg, Fiss_J_var,        &
                                                            Fiss_tally, write_error)
-#if(USE_MPI==1)
+
+#if(USE_MPI == 1)
             if(nproc > 1)then
                call MPI_Barrier(icomm, ierr)
                call MPI_BCAST(write_error, 1, MPI_LOGICAL, 0, icomm, ierr)
             end if
-         if(write_error)call MPI_Abort(icomm,51,ierr)
 #endif
+         if(write_error)call exit_YAHFC(51)
       end if
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !---------    Discrete gammas                 ------------------------+
@@ -4254,9 +4249,11 @@ program YAHFC_MASTER
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !---------------------------------------------------------------------+
      if(iproc == 0)write(6,*)'That'//quote//'s all Folks'
-#if(USE_MPI==1)
+  
+#if(USE_MPI == 1)
      call MPI_Finalize(ierr)
 #endif
+
 end program YAHFC_MASTER
 !
 !*****************************************************************************80
@@ -4442,9 +4439,7 @@ real(kind=8) function interpolate_exp(itype, x_in, num, grid, vec)
   i0 = 0
   if(x_in < grid(1))then
      if(iproc == 0)write(6,*) 'E_in smaller than input grid'
-#if(USE_MPI==1)
-     call MPI_Abort(icomm,101,ierr)
-#endif
+     call exit_YAHFC(101)
   end if
   if(x_in > grid(num))then
      if(iproc == 0)then
@@ -4452,9 +4447,7 @@ real(kind=8) function interpolate_exp(itype, x_in, num, grid, vec)
         write(6,*)x_in,grid(num)
         write(6,*)'E_in larger than input grid'
      end if
-#if(USE_MPI==1)
-     call MPI_Abort(icomm,101,ierr)
-#endif
+     call exit_YAHFC(101)
   end if
   do i = 1, num - 1                                  !  start from the bottom of the grid
      if(abs(x_in - grid(i)) <= 1.0d-6)then                  !  it is exactly on a grid point
@@ -5047,9 +5040,7 @@ subroutine set_min_particle_energy
             write(6,'(''*  e_min >= '',1pe15.7,''                 *'')')particle(iproj)%min_e
             write(6,'(''*********************************************'')')
          end if
-#if(USE_MPI==1)
-         call MPI_Abort(icomm,101,ierr)
-#endif
+         call exit_YAHFC(101)
       end if
    else
       do k = 1, 6
@@ -5086,7 +5077,7 @@ subroutine modeled_level_density(inuc, yrast, yrast_actual)
 !
 !     Subroutines:
 !
-!        rhoe
+!        rho_J_par_e
 !
 !     External functions:
 !
@@ -5129,8 +5120,6 @@ subroutine modeled_level_density(inuc, yrast, yrast_actual)
    real(kind=8) :: apu, sig, K_vib, K_rot
 !---------    External Functions   -------------------------------------------
    integer(kind=4) :: find_ibin
-   real(kind=8) :: parity_fac
-   real(kind=8) :: spin_fac
 !-----------------------------------------------------------------------------
    yrast(0:100,0:1) = -1.0d0
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -5166,12 +5155,17 @@ subroutine modeled_level_density(inuc, yrast, yrast_actual)
             e_lev_min = 0.0d0
             do k = 1, 100000
                energy = real(k,kind=8)*dde
-               call rhoe(energy,nucleus(inuc)%level_param,                          &
+!               call rhoe(energy,nucleus(inuc)%level_param,                          &
+!                                nucleus(inuc)%vib_enh,                              &
+!                                nucleus(inuc)%rot_enh,                              &
+!                                nucleus(inuc)%A,rho,apu,sig,K_vib,K_rot)
+!               xnum = xnum + rho*spin_fac(xj,sig)*                                  &
+!                             parity_fac(energy,xj,ipar,pmode,pe1,bb)*dde
+               call rho_J_par_e(energy,xj,ipar,nucleus(inuc)%level_param,           &
                                 nucleus(inuc)%vib_enh,                              &
                                 nucleus(inuc)%rot_enh,                              &
                                 nucleus(inuc)%A,rho,apu,sig,K_vib,K_rot)
-               xnum = xnum + rho*spin_fac(xj,sig)*                                  &
-                             parity_fac(energy,xj,ipar,pmode,pe1,bb)*dde
+               xnum = xnum + rho*dde
                if(xnum >= rho_cut)then
                   e_lev_min = energy
                   exit
@@ -5198,12 +5192,11 @@ subroutine modeled_level_density(inuc, yrast, yrast_actual)
             do k = 1, nbin
                energy = nucleus(inuc)%e_grid(k)
                if(energy >= e_lev_min)then         !  check if above computed yrast line
-                  call rhoe(energy,nucleus(inuc)%level_param,                           &
+                  call rho_J_par_e(energy, xj, ipar, nucleus(inuc)%level_param,         &
                                    nucleus(inuc)%vib_enh,                               &
                                    nucleus(inuc)%rot_enh,                               &
-                                   nucleus(inuc)%A,rho,apu,sig,K_vib,K_rot)
-                  nucleus(inuc)%bins(j,ipar,k)%rho = max(rho*spin_fac(xj,sig)*          &
-                           parity_fac(energy,xj,ipar,pmode,pe1,bb),0.0d0)
+                                   nucleus(inuc)%A, rho, apu, sig, K_vib, K_rot)
+                  nucleus(inuc)%bins(j,ipar,k)%rho = max(rho,0.0d0)
                end if
             end do
          end do
@@ -5247,7 +5240,7 @@ subroutine read_level_density(inuc, yrast, yrast_actual)
 !
 !     Subroutines:
 !
-!        rhoe
+!        none
 !
 !     External functions:
 !
@@ -5255,6 +5248,7 @@ subroutine read_level_density(inuc, yrast, yrast_actual)
 !        integer(kind=4) :: find_ibin
 !        real(kind=8) :: parity_fac
 !        real(kind=8) :: spin_fac
+!        real(kind=8) :: sig2_param
 !        real(kind=8) :: interpolate_exp
 !
 !     MPI routines:
@@ -5291,7 +5285,7 @@ subroutine read_level_density(inuc, yrast, yrast_actual)
    integer(kind=4) :: num_read, j_max
    real(kind=8) :: energy
    real(kind=8) :: rho
-   real(kind=8) :: apu, sig, K_vib, K_rot
+   real(kind=8) :: sig
    real(kind=8), allocatable, dimension (:,:) :: rho_temp
    real(kind=8), allocatable, dimension (:,:) :: rho_sep
    real(kind=8), allocatable, dimension (:) :: e_grid
@@ -5304,6 +5298,7 @@ subroutine read_level_density(inuc, yrast, yrast_actual)
 !----------------------------------------------------------------------------------------+
    integer(kind=4) :: count_words
    integer(kind=4) :: find_ibin
+   real(kind=8) :: sig2_param
    real(kind=8) :: parity_fac
    real(kind=8) :: spin_fac
    real(kind=8) :: interpolate_exp
@@ -5329,9 +5324,7 @@ subroutine read_level_density(inuc, yrast, yrast_actual)
          if(iproc == 0)write(6,*)'Error in subroutine read_level_density'
          if(iproc == 0)write(6,*)'Level density file does not exist. Looking for ',  &
              nucleus(inuc)%lev_den_file(ipar)(1:ilast)
-#if(USE_MPI==1)
-         call MPI_Abort(icomm, 101, ierr)
-#endif
+         call exit_YAHFC(101)
       end if
       open(unit=50, file = nucleus(inuc)%lev_den_file(ipar)(1:ilast), status= 'unknown')
 !----------------------------------------------------------------------------------------+
@@ -5351,9 +5344,7 @@ subroutine read_level_density(inuc, yrast, yrast_actual)
          if(iproc == 0)write(6,*)'Not enough j-values. Maximum J >= ',     &
             real(nucleus(inuc)%j_max,kind=8) + nucleus(inuc)%jshift
          if(iproc == 0)write(6,*)'Number of entries musy be >= ',nucleus(inuc)%j_max + 1
-#if(USE_MPI==1)
-         call MPI_Abort(icomm,101,ierr)
-#endif
+         call exit_YAHFC(101)
       end if
       if(.not. allocated(e_grid))allocate(e_grid(num_read))
       if(.not. allocated(rho_temp))allocate(rho_temp(num_read,0:j_max))
@@ -5383,17 +5374,13 @@ subroutine read_level_density(inuc, yrast, yrast_actual)
          if(iproc == 0)write(6,*)'Error in subroutine read_level_density'
          if(iproc == 0)write(6,*)'Min energy in read is greater than in energy in level-density grid'
          if(iproc == 0)write(6,*)'Minimum energy must be <= ',nucleus(inuc)%e_grid(1)
-#if(USE_MPI==1)
-         call MPI_Abort(icomm,101,ierr)
-#endif      
+         call exit_YAHFC(101)
       end if
       if(e_grid(num_read) < nucleus(inuc)%e_grid(nbin))then
          if(iproc == 0)write(6,*)'Error in subroutine read_level_density'
          if(iproc == 0)write(6,*)'Max energy in read is less than max energy in level-density grid'
          if(iproc == 0)write(6,*)'Maximum energy must be >= ',nucleus(inuc)%e_grid(nbin)
-#if(USE_MPI==1)
-         call MPI_Abort(icomm,101,ierr)
-#endif
+         call exit_YAHFC(101)
       end if
 !----------------------------------------------------------------------------------------+
 !----   Fill level density array nucleus(inuc)%bins(j,ipar,n)%rho                        +
@@ -5434,19 +5421,20 @@ subroutine read_level_density(inuc, yrast, yrast_actual)
       elseif(j_max == 0)then
          do n = 1, nucleus(inuc)%nbin
             energy = nucleus(inuc)%e_grid(n)
-            call rhoe(energy,nucleus(inuc)%level_param,                                   &
-                             nucleus(inuc)%vib_enh,                                       &
-                             nucleus(inuc)%rot_enh,                                       &
-                             nucleus(inuc)%A,rho,apu,sig,K_vib,K_rot)
             rho = interpolate_exp(1, nucleus(inuc)%e_grid(n), num_read, e_grid, rho_temp(1,0))
+
+            sig = sig2_param(energy, nucleus(inuc)%level_param,nucleus(inuc)%A)
+
             do j = 0, nucleus(inuc)%j_max
                xj = real(j,kind=8) + nucleus(inuc)%jshift
                nucleus(inuc)%bins(j,ipar,n)%rho = rho*spin_fac(xj,sig)
                if(ipar_max == 1)then
                   nucleus(inuc)%bins(j,ipar,n)%rho = rho*spin_fac(xj,sig)
                else              !----   Use internal model for parity distribution
-                  nucleus(inuc)%bins(j,ipar,n)%rho = rho*spin_fac(xj,sig)*parity_fac(energy,xj,ipar,pmode,pe1,bb)
-                  nucleus(inuc)%bins(j,ipar+1,n)%rho = rho*spin_fac(xj,sig)*parity_fac(energy,xj,ipar+1,pmode,pe1,bb)
+                  nucleus(inuc)%bins(j,ipar,n)%rho = rho*spin_fac(xj,sig)*                 &
+                      parity_fac(energy,xj,ipar,pmode,pe1,bb)
+                  nucleus(inuc)%bins(j,ipar+1,n)%rho = rho*spin_fac(xj,sig)*               &
+                      parity_fac(energy,xj,ipar+1,pmode,pe1,bb)
                end if
             end do         
          end do
@@ -5454,10 +5442,7 @@ subroutine read_level_density(inuc, yrast, yrast_actual)
 !----   Store level density at the separation energy                                     +
 !----------------------------------------------------------------------------------------+
          energy = nucleus(inuc)%sep_e(1)
-         call rhoe(energy,nucleus(inuc)%level_param,                                      &
-                          nucleus(inuc)%vib_enh,                                          &
-                          nucleus(inuc)%rot_enh,                                          &
-                          nucleus(inuc)%A,rho,apu,sig,K_vib,K_rot)
+         sig = sig2_param(energy, nucleus(inuc)%level_param,nucleus(inuc)%A)
          do j = 0, nucleus(inuc)%j_max
             xj = real(j,kind=8) + nucleus(inuc)%jshift
             rho = interpolate_exp(1, energy, num_read, e_grid, rho_temp(1,j))
@@ -5710,5 +5695,61 @@ subroutine get_to_eof(iunit)
    backspace(iunit)
    return
 end subroutine get_to_eof
+!
+!*****************************************************************************80
+!
+!  Discussion:
+!
+!    This Subroutine terminates execution with either call exit or
+!    MPI_Abort if MPI is being used. Exit routine is controlled via the
+!    pre-processor variable USE_MPI.
+!
+!   Dependencies:
+!
+!     Modules:
+!
+!        None
+!
+!     Subroutines:
+!
+!        none
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        MPI_Abort
+!
+!  Licensing:
+!
+!    SPDX-License-Identifier: MIT 
+!
+!  Date:
+!
+!    11 May 2021
+!
+!  Author:
+!
+!      Erich Ormand, LLNL
+!
+!*****************************************************************************80
+!
+subroutine exit_YAHFC(error_code)
+   use nodeinfo
+   implicit none
+!-------------------------------------------------------------------------
+   integer(kind=4), intent(in) :: error_code
+!-------------------------------------------------------------------------
+#if(USE_MPI == 1)
+   call MPI_Abort(icomm,error_code,ierr)
+#else
+   call exit(error_code)
+#endif
+   return
+end subroutine exit_YAHFC
+
+
 
 

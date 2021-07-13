@@ -26,12 +26,12 @@ subroutine output_nucleus_data(j_max, itarget)
 !
 !     Subroutines:
 !
+!        rho_J_par_E
 !        rhoe
 !        cumm_rho
 !
 !     External functions:
 !
-!        real(kind=8) :: spin_fac
 !        real(kind=8) :: parity_fac
 !        real(kind=8) :: EL_f
 !        real(kind=8) :: EL_f_component
@@ -88,8 +88,8 @@ subroutine output_nucleus_data(j_max, itarget)
    real(kind=8),allocatable :: cum_rho(:), cumm_fit(:), elv(:)
    real(kind=8) :: energy, prob, prob1(0:60), prob_jpi(0:60,0:1)
    real(kind=8) :: rho(0:60,0:1)
-   real(kind=8) :: rho_Fm, sig2, apu
-   real(kind=8) :: xj, jfac, pfac, dde
+   real(kind=8) :: rho_Fm, rho_J_ip, sig2, apu
+   real(kind=8) :: xj, pfac, dde
    real(kind=8) :: E0, T, E1
    real(kind=8) :: sum_rho
    real(kind=8) :: K_vib, K_rot
@@ -111,8 +111,14 @@ subroutine output_nucleus_data(j_max, itarget)
    integer(kind=4) :: inuke_end
    integer(kind=4) :: nnn
    character(len=7) :: f_units
+
+
+!   real(kind=8) :: ematch, delta, Um, aparam
+!   real(kind=8) :: sig2_em, sig2_min, sg2cut, sig
+!   real(kind=8) :: deriv, ecut, shell, gamma
+!   integer(kind=4) :: sig_model
+
 !---------   External functions
-   real(kind=8) :: spin_fac
    real(kind=8) :: parity_fac
    real(kind=8) :: EL_f
    real(kind=8) :: EL_f_component, EL_trans
@@ -121,6 +127,8 @@ subroutine output_nucleus_data(j_max, itarget)
    real(kind=8) :: EL_absorption
    real(kind=8) :: ML_absorption
    integer(kind=4) :: find_ibin
+!   real(kind=8) :: sig2_param
+!   real(kind=8) :: aparam_u
 
 !--------------   Start subrotuine
    num_points = int(30.0d0/de,kind=4) + 1
@@ -131,6 +139,7 @@ subroutine output_nucleus_data(j_max, itarget)
    printZA(1:2,1:100) = 0
    do i = 1, num_comp
       lprint = .false.
+
       do j = 1, iprint           !   Check to see if this nucleus has been printed already
          if(nucleus(i)%Z == printZA(1,j) .and. nucleus(i)%A == printZA(2,j))then
             lprint=.true.            ! found in lest of previous printed nuclei
@@ -208,12 +217,12 @@ subroutine output_nucleus_data(j_max, itarget)
       end do
       write(13,*)'Particle separation energies '
       do k=1,6
-         write(13,'(2x,a8,1x,''Separation energy = '',f10.3,'' MeV'')')          &
+         write(13,'(2x,a8,1x,''Separation energy = '',f10.3,'' MeV'')')              &
            particle(k)%name,nucleus(i)%sep_e(k)
       end do
 
       if(nucleus(i)%D0exp > 0.0d0)then
-         write(13,'('' Experimental D0   ='',f10.3,'' +/- '',f10.3,'' eV'')')    &
+         write(13,'('' Experimental D0   ='',f10.3,'' +/- '',f10.3,'' eV'')')        &
                      nucleus(i)%D0exp,nucleus(i)%dD0exp
       else
          write(13,'('' Experimental D0   =  UNAVAILABLE'')')
@@ -226,7 +235,7 @@ subroutine output_nucleus_data(j_max, itarget)
       end if
 
       if(nucleus(i)%D1exp > 0.0d0)then
-         write(13,'('' Experimental D1 ='',f10.3,'' +/- '',f10.3,'' eV'')')      &
+         write(13,'('' Experimental D1 ='',f10.3,'' +/- '',f10.3,'' eV'')')          &
                      nucleus(i)%D1exp,nucleus(i)%dD1exp
       else
          write(13,'('' Experimental D1   =  UNAVAILABLE'')')
@@ -398,7 +407,7 @@ subroutine output_nucleus_data(j_max, itarget)
          write(13,'(''Otherwise E1 undefined as int(-infty,0)rho(E)DE < 1'')')
          E0 = nucleus(i)%level_param(15)
          T = nucleus(i)%level_param(14)
-         E1 = -10.0d0
+         E1 = 0.0d0
          if(E0 < 0.0d0)E1 = T*log(1.0d0-exp(E0/T))
          write(13,*)'Level-density parameters'
          write(13,*)'Level-density model = ',nucleus(i)%level_model
@@ -428,15 +437,59 @@ subroutine output_nucleus_data(j_max, itarget)
                 nucleus(i)%level_param(10)
             write(13,*)'Collective enhancement factors'
             write(13,*)'K_rot = Max[x(1)*(Factor-1)/(1+exp((E-x(2))/x(3))),0]+1'
+!            if(nint(nucleus(i)%level_param(10)) == 1)then
+!               write(13,*)'Factor = x(1)*sig2*(1+beta2/3)'
+!            elseif(nint(nucleus(i)%level_param(10)) == 2)then
+!               write(13,*)'Factor = 2.0*x(1)*sig2*(1+beta2/3)'
+!            elseif(nint(nucleus(i)%level_param(10)) == 3)then
+!               write(13,*)'Factor = x(1)*sig2**3/2*(1+beta2/3)*(1-2*beta2/3)'
+!            elseif(nint(nucleus(i)%level_param(10)) == 4)then
+!               write(13,*)'Factor = 2.0*x(1)*sig2**3/2*(1+beta2/3)*(1-2*beta2/3)'
+!            end if
+
             if(nint(nucleus(i)%level_param(10)) == 1)then
-               write(13,*)'Factor = x(1)*sig2*(1+beta2/3)'
-            elseif(nint(nucleus(i)%level_param(10)) == 2)then
-               write(13,*)'Factor = 2.0*x(1)*sig2*(1+beta2/3)'
-            elseif(nint(nucleus(i)%level_param(10)) == 3)then
-               write(13,*)'Factor = x(1)*sig2**3/2*(1+beta2/3)*(1-2*beta2/3)'
-            elseif(nint(nucleus(i)%level_param(10)) == 4)then
-               write(13,*)'Factor = 2.0*x(1)*sig2**3/2*(1+beta2/3)*(1-2*beta2/3)'
-            end if
+                   if(nint(nucleus(i)%level_param(19)) == 2 .or.            &
+                      nint(nucleus(i)%level_param(19)) == 3)then
+       write(13,*)'Factor = x(1)*sig2*(1+beta2/3)'
+       write(13,*)' --  Axially symmetric'
+                   elseif(nint(nucleus(i)%level_param(19)) == 4 .or.            &
+                      nint(nucleus(i)%level_param(19)) == 5)then
+       write(13,*)'Factor = x(1)*sig2*(1+sqrt(5/4pi)*beta2)'
+       write(13,*)' --  Axially symmetric'
+                   end if
+                elseif(nint(nucleus(i)%level_param(10)) == 2)then
+                   if(nint(nucleus(i)%level_param(19)) == 2 .or.            &
+                      nint(nucleus(i)%level_param(19)) == 3)then
+       write(13,*)'Factor = 2.0*x(1)*sig2*(1+beta2/3)'
+       write(13,*)' -- Left-right asymmetric'
+                   elseif(nint(nucleus(i)%level_param(19)) == 4 .or.            &
+                      nint(nucleus(i)%level_param(19)) == 5)then
+       write(13,*)'Factor = 2.0*x(1)*sig2*(1+sqrt(5/4pi)*beta2)'
+       write(13,*)' -- Left-right asymmetric'
+                   end if
+                elseif(nint(nucleus(i)%level_param(10)) == 3)then
+                   if(nint(nucleus(i)%level_param(19)) == 2 .or.            &
+                      nint(nucleus(i)%level_param(19)) == 3)then
+       write(13,*)'Factor = x(1)*sqrt(pi/2)**sig2**(3/2)*(1+beta2/3)*(1-2*beta2/3)'
+       write(13,*)' -- Triaxial and left-right asymmetric'
+                   elseif(nint(nucleus(i)%level_param(19)) == 4 .or.            &
+                      nint(nucleus(i)%level_param(19)) == 5)then
+       write(13,*)'Factor = x(1)*sqrt(pi/2)**sig2**(3/2)*(1+sqrt(5/4pi)*beta2)*(1-sqrt(5/4pi)beta2/2)'
+       write(13,*)' -- Triaxial and left-right asymmetric'
+                   end if
+                elseif(nint(nucleus(i)%level_param(10)) == 4)then
+                   if(nint(nucleus(i)%level_param(19)) == 2 .or.            &
+                      nint(nucleus(i)%level_param(19)) == 3)then
+       write(13,*)'Factor = 2.0*x(1)*sqrt(pi/2)**sig2**(3/2)*(1+beta2/3)*(1-2*beta2/3)'
+       write(13,*)' -- Triaxial and not left-right asymmetric'
+                   elseif(nint(nucleus(i)%level_param(19)) == 4 .or.            &
+                      nint(nucleus(i)%level_param(19)) == 5)then
+       write(13,*)'Factor = 2.0*x(1)*sqrt(pi/2)**sig2**(3/2)*(1+sqrt(5/4pi)*beta2)*(1-sqrt(5/4pi)beta2/2)'
+       write(13,*)' -- Triaxial and not left-right asymmetric'
+                   end if
+                end if
+
+
 
             write(13,*)'Rotational collective-enhancement parameters'
 
@@ -538,25 +591,20 @@ subroutine output_nucleus_data(j_max, itarget)
          pbb = nucleus(i)%level_param(18)
 
          fstring = "(1x,f8.3,6(1x,f10.3),(1x,e15.7),"//trim(adjustl(temp_string))//"(1x,e15.7))"
+         ip = 1
          do k = 1, nucleus(i)%nbin
             energy = nucleus(i)%e_grid(k)
-            sum_rho = 0.0d0
-            call rhoe(energy,nucleus(i)%level_param,                                &
-                      nucleus(i)%vib_enh,                                           &
-                      nucleus(i)%rot_enh,                                           &
-                      ia,rho_Fm,apu,sig2,K_vib,K_rot)
-             ip = 1
-             pfac=parity_fac(energy,xj,ip,pmode,pe1,pbb)
-             do jj = 0, min(j_max,60)
-                xj = jj + nucleus(i)%jshift
-                jfac=spin_fac(xj,sig2)
-                rho(jj,ip)=rho_FM*jfac*pfac
-                sum_rho = sum_rho + nucleus(i)%bins(jj,ip,k)%rho
-             end do
+             call rhoe(energy, nucleus(i)%level_param,                              &
+                       nucleus(i)%vib_enh,                                          &
+                       nucleus(i)%rot_enh,                                          &
+                       ia, rho_Fm, apu, sig2, K_vib, K_rot)
+             pfac = parity_fac(energy,xj,ip,pmode,pe1,pbb)
              write(13,fstring)                                                      &
-                  energy,apu,sqrt(sig2),pfac,K_vib,K_rot,K_vib*K_rot,sum_rho,       &
+                  energy,apu,sqrt(sig2),pfac,K_vib,K_rot,K_vib*K_rot,rho_FM*pfac,   &
                   (nucleus(i)%bins(jj,ip,k)%rho,jj = 0, min(j_max,60))
          end do
+
+
 !----   Format to write j_max elements to file
          write(temp_string,*)min(j_max,60)+1
          write(13,'(''Negative Parity '')')
@@ -573,23 +621,17 @@ subroutine output_nucleus_data(j_max, itarget)
 
          fstring = "(1x,f8.3,6(1x,f10.3),(1x,e15.7),"//trim(adjustl(temp_string))//"(1x,e15.7))"
 
+         ip = 0
          do k = 1, nucleus(i)%nbin
             energy = nucleus(i)%e_grid(k)
             sum_rho = 0.0d0
-           call rhoe(energy,nucleus(i)%level_param,                                 &
+            call rhoe(energy,nucleus(i)%level_param,                                &
                       nucleus(i)%vib_enh,                                           &
                       nucleus(i)%rot_enh,                                           &
                       ia,rho_Fm,apu,sig2,K_vib,K_rot)
-            ip = 0
-            pfac=parity_fac(energy,xj,ip,pmode,pe1,pbb)
-            do jj = 0, min(j_max,60)
-               xj = jj + nucleus(i)%jshift
-               jfac=spin_fac(xj,sig2)
-               rho(jj,ip)=rho_FM*jfac*pfac
-               sum_rho = sum_rho + nucleus(i)%bins(jj,ip,k)%rho
-            end do
+            pfac = parity_fac(energy,xj,ip,pmode,pe1,pbb)
             write(13,fstring)                                                       &
-                 energy,apu,sqrt(sig2),pfac,K_vib,K_rot,K_vib*K_rot,sum_rho,        &
+                 energy,apu,sqrt(sig2),pfac,K_vib,K_rot,K_vib*K_rot,rho_FM*pfac,    &
                  (nucleus(i)%bins(jj,ip,k)%rho,jj = 0, min(j_max,60))
          end do
 !-----------------------------------------------------------------------------
@@ -687,6 +729,7 @@ subroutine output_nucleus_data(j_max, itarget)
                write(13,*)'User input over rides fitting or default was used'
             end if
             nfit = nucleus(i)%ncut
+
             write(13,*)
             write(13,*)'Cumulative level density up to E_cut'
             cum_rho(1) = 1.0d0
@@ -703,6 +746,29 @@ subroutine output_nucleus_data(j_max, itarget)
                   write(13,'(f10.4,1x,f15.2)')elv(j+1), cum_rho(j)
                end if
             end do
+            if(nucleus(i)%ncut == nucleus(i)%num_discrete)then
+               open(unit=23,file = nuke_label(1:inuke_end)//'-CLD-exp.dat',status='unknown')
+               write(23,*)'#Cumulative level density up to E_cut'
+               cum_rho(1) = 1.0d0
+               elv(1) = nucleus(i)%state(1)%energy
+               cum_rho(1) = 1.0d0
+               do j = 2, nfit
+                  elv(j) = nucleus(i)%state(j)%energy
+                  cum_rho(j) = cum_rho(j-1) + 1.0d0
+               end do
+               do j = 1, nfit
+                  if(j > 1)cum_rho(j) = cum_rho(j-1) + 1.0d0
+                  write(23,'(f10.4,1x,f15.2)')elv(j), cum_rho(j)
+                  if(j < nfit)then
+                     write(23,'(f10.4,1x,f15.2)')elv(j+1), cum_rho(j)
+                  end if
+               end do
+            end if
+
+            if(nucleus(i)%ncut == nucleus(i)%num_discrete)then
+               open(unit=23,file = nuke_label(1:inuke_end)//'-CLD-exp.dat',status='unknown')
+                write(23,*)'#Modeled cumulative level density up to E_cut'
+            end if
             write(13,*)
             write(13,*)'Modeled cumulative level density up to E_cut'
             cumm_fit(1:nfit) = 0.0d0
@@ -710,12 +776,18 @@ subroutine output_nucleus_data(j_max, itarget)
                           nucleus(i)%vib_enh,nucleus(i)%rot_enh,cumm_fit)
             do j = 1, nfit
                write(13,'(f10.4,1x,f15.2)')elv(j),cumm_fit(j)
+               if(nucleus(i)%ncut == nucleus(i)%num_discrete)             &
+                  write(23,'(f10.4,1x,f15.2)')elv(j),cumm_fit(j)
             end do
 
             if(nucleus(i)%ncut /= nucleus(i)%num_discrete)then
                nfit = nucleus(i)%num_discrete
+!----   Added print to file - needed to edit .out file too often to get this info
+               open(unit=23,file = nuke_label(1:inuke_end)//'-CLD-exp.dat',status='unknown')
                write(13,*)
                write(13,*)'Cumulative level density for all discrete states'
+               write(23,*)'#Cumulative level density for all discrete states'
+               write(23,*)'#E_cut = ',nucleus(i)%level_param(7)
                cum_rho(1:nfit) = 0.0d0
                cum_rho(1) = 1.0d0
                elv(1) = nucleus(i)%state(1)%energy
@@ -727,23 +799,31 @@ subroutine output_nucleus_data(j_max, itarget)
                do j = 1, nfit
                   if(j > 1)cum_rho(j) = cum_rho(j-1) + 1.0d0
                   write(13,'(f10.4,1x,f15.2)')elv(j), cum_rho(j)
+                  write(23,'(f10.4,1x,f15.2)')elv(j), cum_rho(j)
                   if(j < nfit)then
                      write(13,'(f10.4,1x,f15.2)')elv(j+1), cum_rho(j)
+                     write(23,'(f10.4,1x,f15.2)')elv(j+1), cum_rho(j)
                   end if
                end do
+               close(unit=23)
+               open(unit=23,file = nuke_label(1:inuke_end)//'-CLD-modeled.dat',status='unknown')
                write(13,*)
                write(13,*)'Modeled cumulative level density up to maximum discrete state'
+               write(23,*)'#Modeled cumulative level density up to maximum discrete state'
+               write(23,*)'#E_cut = ',nucleus(i)%level_param(7)
                cumm_fit(1:nfit) = 0.0d0
                call cumm_rho(nfit,elv,ia,nucleus(i)%level_param,             &
                              nucleus(i)%vib_enh,nucleus(i)%rot_enh,cumm_fit)
                do j = 1, nfit
                   write(13,'(f10.4,1x,f15.2)')elv(j), cumm_fit(j)
+                  write(23,'(f10.4,1x,f15.2)')elv(j), cumm_fit(j)
                end do
             end if
          end if
          deallocate(cum_rho)
          deallocate(cumm_fit)
          deallocate(elv)
+         close(unit=23)
       end if
 
       if(.not. allocated(gsf))allocate(gsf(max_num_gsf))
@@ -873,7 +953,7 @@ subroutine output_nucleus_data(j_max, itarget)
          end if
          fstring = "(1x,f10.5,"//trim(adjustl(temp_string))//"(1x,e15.7),3(1x,e15.7))"
          do j = 0, nucleus(i)%nbin_em
-            energy = dfloat(j)*de
+            energy = real(j,kind=8)*de
             gsf(1:max_num_gsf) = 0.0d0
             do k = 1, nucleus(i)%ML_mode(l_radiation)%num_gsf
                gsf(k) = ML_f_component(i, l_radiation, k, energy)
@@ -915,8 +995,8 @@ subroutine output_nucleus_data(j_max, itarget)
             write(13,'(''Height = '',f10.4)')nucleus(i)%F_Barrier(j)%barrier
             write(13,'(''Width  = '',f10.4)')nucleus(i)%F_Barrier(j)%hbw
             write(13,'(''Deformation parameter beta(2) = '',f10.6)')nucleus(i)%F_Barrier(j)%beta_2
-            write(13,'(''Excitation energy dependent barrier, F = F*x(1)*exp(-x(3)**2*(Ex-x(2))**2)'')')
-            write(13,'(''x(1) = '',f10.4,'' x(2) = '',f10.4,'' x(3) = '',f10.4)')            &
+            write(13,'(''Excitation energy dependent barrier, F = F*x(1)*exp(-((Ex-x(2))/x(3))**2)'')')
+            write(13,'(''x(1) = '',f10.4,'' x(2) = '',f10.4,'' x(3) = '',e15.7)')            &
                   nucleus(i)%F_Barrier(j)%barrier_damp(1),                                   &
                   nucleus(i)%F_Barrier(j)%barrier_damp(2),                                   &
                   nucleus(i)%F_Barrier(j)%barrier_damp(3)
@@ -949,15 +1029,52 @@ subroutine output_nucleus_data(j_max, itarget)
                 write(13,*)'Collective enhancement factors'
                 write(13,*)'K_rot = Max[x(1)*(Factor-1)/(1+exp((E-x(2))/x(3))),0]+1'
                 if(nint(nucleus(i)%F_Barrier(j)%level_param(10)) == 1)then
-                   write(13,*)'Factor = x(1)*sig2*(1+beta2/3) --  Axially symmetric'
+                   if(nint(nucleus(i)%F_Barrier(j)%level_param(19)) == 2 .or.            &
+                      nint(nucleus(i)%F_Barrier(j)%level_param(19)) == 3)then
+       write(13,*)'Factor = x(1)*sig2*(1+beta2/3)'
+       write(13,*)' --  Axially symmetric'
+                   elseif(nint(nucleus(i)%F_Barrier(j)%level_param(19)) == 4 .or.            &
+                      nint(nucleus(i)%F_Barrier(j)%level_param(19)) == 5)then
+       write(13,*)'Factor = x(1)*sig2*(1+sqrt(5/4pi)*beta2)'
+       write(13,*)' --  Axially symmetric'
+                   end if
                 elseif(nint(nucleus(i)%F_Barrier(j)%level_param(10)) == 2)then
-                   write(13,*)'Factor = 2.0*x(1)*sig2*(1+beta2/3) -- Left-right asymmetric'
+                   if(nint(nucleus(i)%F_Barrier(j)%level_param(19)) == 2 .or.            &
+                      nint(nucleus(i)%F_Barrier(j)%level_param(19)) == 3)then
+       write(13,*)'Factor = 2.0*x(1)*sig2*(1+beta2/3)'
+       write(13,*)' -- Left-right asymmetric'
+                   elseif(nint(nucleus(i)%F_Barrier(j)%level_param(19)) == 4 .or.            &
+                      nint(nucleus(i)%F_Barrier(j)%level_param(19)) == 5)then
+       write(13,*)'Factor = 2.0*x(1)*sig2*(1+sqrt(5/4pi)*beta2)'
+       write(13,*)' -- Left-right asymmetric'
+                   end if
                 elseif(nint(nucleus(i)%F_Barrier(j)%level_param(10)) == 3)then
-                   write(13,*)'Factor = x(1)*sqrt(pi/2)*sig2**3/2*(1+beta2/3)*(1-2*beta2/3) -- Triaxial and left-right asymmetric'
+                   if(nint(nucleus(i)%F_Barrier(j)%level_param(19)) == 2 .or.            &
+                      nint(nucleus(i)%F_Barrier(j)%level_param(19)) == 3)then
+       write(13,*)'Factor = x(1)*sqrt(pi/2)**sig2**(3/2)*(1+beta2/3)*(1-2*beta2/3)'
+       write(13,*)' -- Triaxial and left-right asymmetric'
+                   elseif(nint(nucleus(i)%F_Barrier(j)%level_param(19)) == 4 .or.            &
+                      nint(nucleus(i)%F_Barrier(j)%level_param(19)) == 5)then
+       write(13,*)'Factor = x(1)*sqrt(pi/2)**sig2**(3/2)*(1+sqrt(5/4pi)*beta2)*(1-sqrt(5/4pi)beta2/2)'
+       write(13,*)' -- Triaxial and left-right asymmetric'
+                   end if
                 elseif(nint(nucleus(i)%F_Barrier(j)%level_param(10)) == 4)then
-                   write(13,*)                     &
-          'Factor = 2.0*x(1)*sqrt(pi/2)*sig2**3/2*(1+beta2/3)*(1-2*beta2/3) -- Triaxial and not left-right asymmetric'
+                   if(nint(nucleus(i)%F_Barrier(j)%level_param(19)) == 2 .or.            &
+                      nint(nucleus(i)%F_Barrier(j)%level_param(19)) == 3)then
+       write(13,*)'Factor = 2.0*x(1)*sqrt(pi/2)**sig2**(3/2)*(1+beta2/3)*(1-2*beta2/3)'
+       write(13,*)' -- Triaxial and not left-right asymmetric'
+                   elseif(nint(nucleus(i)%F_Barrier(j)%level_param(19)) == 4 .or.            &
+                      nint(nucleus(i)%F_Barrier(j)%level_param(19)) == 5)then
+       write(13,*)'Factor = 2.0*x(1)*sqrt(pi/2)**sig2**(3/2)*(1+sqrt(5/4pi)*beta2)*(1-sqrt(5/4pi)beta2/2)'
+       write(13,*)' -- Triaxial and not left-right asymmetric'
+                   end if
                 end if
+
+                if(nint(nucleus(i)%F_Barrier(j)%level_param(19)) == 3)then
+                   write(13,*)'Deformation-dependent spin cutoff parameter is used to compute the spin distribution'
+                   write(13,*)'sig2*(1+beta2/3)'
+                end if
+
 
                 write(13,'('' Rotational collective-enhancement parameters'')')
 
@@ -1052,12 +1169,12 @@ subroutine output_nucleus_data(j_max, itarget)
             end if
 !-------   Fission level densities
 
-            if(nucleus(i)%nbin > 1)then
-               dde = nucleus(i)%e_grid(2) - nucleus(i)%e_grid(1)
-            else
-               dde = 0.2
-            end if
+            dde = 0.2d0
+            if(nucleus(i)%nbin > 1)dde = nucleus(i)%e_grid(2) - nucleus(i)%e_grid(1)
+
             n_bin = int((20.0d0 - nucleus(i)%F_barrier(j)%ecut)/dde)
+
+
 
             pmode = nucleus(i)%F_barrier(j)%level_param(16)
             pe1 = nucleus(i)%F_barrier(j)%level_param(17)
@@ -1077,29 +1194,60 @@ subroutine output_nucleus_data(j_max, itarget)
                       //trim(adjustl(temp_string))//"(1x,'---------------'))"
             write(13,fstring)
             fstring = "(1x,f8.3,6(1x,f10.3),(1x,e15.7),"//trim(adjustl(temp_string))//"(1x,e15.7))"
+            ip = 1
             do k = 1, n_bin
                energy = real(k,kind=8)*dde
-               if(energy < nucleus(i)%F_barrier(j)%ecut) cycle
-               sum_rho = 0.0d0
-               call rhoe(energy,nucleus(i)%F_barrier(j)%level_param,                 &
-                         nucleus(i)%F_barrier(j)%vib_enh,                            &
-                         nucleus(i)%F_barrier(j)%rot_enh,                            &
-                         ia,rho_Fm,apu,sig2,K_vib,K_rot)
-               ip=1
-               pfac=parity_fac(energy,xj,ip,pmode,pe1,pbb)
+               if(nucleus(i)%F_barrier(j)%num_discrete > 0 .and.         &
+                  energy < nucleus(i)%F_barrier(j)%ecut) cycle
                do jj = 0, min(j_max,60)
                   xj = jj + nucleus(i)%jshift
-                  jfac=spin_fac(xj,sig2)
-                  rho(jj,ip)=rho_FM*jfac*pfac
-                  sum_rho = sum_rho + rho(jj,ip)
+                  call rho_J_par_e(energy, xj, ip,                                   &
+                                   nucleus(i)%F_barrier(j)%level_param,              &
+                                   nucleus(i)%F_barrier(j)%vib_enh,                  &
+                                   nucleus(i)%F_barrier(j)%rot_enh,                  &
+                                   ia,rho_Fm,apu,sig2,K_vib,K_rot)
+                  rho(jj,ip) = rho_FM
                end do
+               call rhoe(energy,nucleus(i)%F_barrier(j)%level_param,              &
+                                nucleus(i)%F_barrier(j)%vib_enh,                  &
+                                nucleus(i)%F_barrier(j)%rot_enh,                  &
+                                ia,rho_Fm,apu,sig2,K_vib,K_rot)
+
+!   write(6,*)energy,sig2_param(energy,nucleus(i)%F_barrier(j)%level_param,nucleus(i)%A)
+
+!      sig = nucleus(i)%F_barrier(j)%level_param(12)
+!      shell = nucleus(i)%F_barrier(j)%level_param(4)
+!      gamma = nucleus(i)%F_barrier(j)%level_param(5)
+!      sig_model = nint(nucleus(i)%F_barrier(j)%level_param(13))
+!      ematch = nucleus(i)%F_barrier(j)%level_param(6)
+!      delta = nucleus(i)%F_barrier(j)%level_param(3)
+!      Um = Ematch - delta
+!      aparam = nucleus(i)%F_barrier(j)%level_param(1)
+!      sg2cut = nucleus(i)%F_barrier(j)%level_param(8)
+!      ecut = nucleus(i)%F_barrier(j)%level_param(7)
+!      apu = aparam_u(Um,aparam,shell,gamma)
+!      sig2_em = sig*sqrt(max(0.2d0,Um*apu))/aparam
+!      if(sig_model == 0)sig2_em = sig*sqrt(max(0.2d0,Um*apu))/aparam
+!      if(sig_model == 1)sig2_em = sig*sqrt(max(0.2d0,Um)/apu)
+!      sig2_em = max(sig2_em,sig2_min)
+!      deriv = (sig2_em - sg2cut)/(ematch - ecut)
+!      sig2 = sig2_em - deriv*(ematch - energy)
+!      if(sig2 < sig2_min) sig2 = sig2_min
+
+!   write(6,*)energy,Ematch, delta, Um, ecut
+!   write(6,*)aparam, apu
+!   write(6,*)sig2_em, sig2_min, sg2cut
+!   write(6,*)deriv
+
+!   write(6,*)'sig2 ',sig2
+
+               pfac = parity_fac(energy,xj,ip,pmode,pe1,pbb)
                write(13,fstring)                                                     &
                    energy,apu,sqrt(sig2),pfac,K_vib,K_rot,K_vib*K_rot,rho_FM*pfac,   &
                    (rho(jj,ip),jj = 0, min(j_max,60))
             end do
-
-            ip = 1
-
+            write(13,*)
+!  stop
             write(13,'(''Level density States/MeV'')')
             write(13,'(''Negative parity'')')
             write(temp_string,*)min(j_max,60)+1
@@ -1112,29 +1260,36 @@ subroutine output_nucleus_data(j_max, itarget)
                       //trim(adjustl(temp_string))//"(1x,'---------------'))"
             write(13,fstring)
             fstring = "(1x,f8.3,6(1x,f10.3),(1x,e15.7),"//trim(adjustl(temp_string))//"(1x,e15.7))"
+            ip = 0
             do k = 1, n_bin
                energy = real(k,kind=8)*dde
-               if(energy < nucleus(i)%F_barrier(j)%ecut) cycle
+               if(nucleus(i)%F_barrier(j)%num_discrete > 0 .and.         &
+                  energy < nucleus(i)%F_barrier(j)%ecut) cycle
                sum_rho = 0.0d0
                call rhoe(energy,nucleus(i)%F_barrier(j)%level_param,                 &
                          nucleus(i)%F_barrier(j)%vib_enh,                            &
                          nucleus(i)%F_barrier(j)%rot_enh,                            &
                          ia,rho_Fm,apu,sig2,K_vib,K_rot)
-               ip=1
                pfac=parity_fac(energy,xj,ip,pmode,pe1,pbb)
                do jj = 0, min(j_max,60)
                   xj = jj + nucleus(i)%jshift
-                  jfac=spin_fac(xj,sig2)
-                  rho(jj,ip)=rho_FM*jfac*pfac
-                  sum_rho = sum_rho + rho(jj,ip)
+                  call rho_J_par_e(energy,xj, ip,                                    &
+                                   nucleus(i)%F_barrier(j)%level_param,              &
+                                   nucleus(i)%F_barrier(j)%vib_enh,                  &
+                                   nucleus(i)%F_barrier(j)%rot_enh,                  &
+                                   ia,rho_J_ip,apu,sig2,K_vib,K_rot)
+                  rho(jj,ip) = rho_J_ip
                end do
                write(13,fstring)                                                     &
                    energy,apu,sqrt(sig2),pfac,K_vib,K_rot,K_vib*K_rot,rho_FM*pfac,   &
                    (rho(jj,ip),jj = 0, min(j_max,60))
             end do
+
+
          end do
          write(13,*)
       end if
+
 
 !--------------   HF-denominators
       write(13,*)

@@ -28,6 +28,7 @@ subroutine print_channels(in, itarget, istate, ilab, file_lab, ilib_dir, lib_dir
 !
 !        nucleus_label
 !        get_to_eof
+!        exit_YAHFC
 !
 !     External functions:
 !
@@ -324,7 +325,7 @@ subroutine print_channels(in, itarget, istate, ilab, file_lab, ilib_dir, lib_dir
             write(outfile(ifile-2:ifile),'(i3)')l
          else
             write(6,*)'too many discrete states Channel_Eout_ANG_G_Ein ',l
-            stop
+            call exit_YAHFC(103)
          end if
          open(unit=100, file = directory(1:idir)//outfile(1:ifile)//'.dat',status = 'unknown')
 
@@ -511,7 +512,7 @@ subroutine print_channels(in, itarget, istate, ilab, file_lab, ilib_dir, lib_dir
             write(outfile(ifile-2:ifile),'(i3)')l
          else
             write(6,*)'too many discrete states Channel_Eout_ANG_Leg_G_Ein ',l
-            stop
+            call exit_YAHFC(103)
          end if
          open(unit=100, file = directory(1:idir)//outfile(1:ifile)//'.dat',status = 'unknown')
 
@@ -640,7 +641,7 @@ subroutine print_channels(in, itarget, istate, ilab, file_lab, ilib_dir, lib_dir
             write(outfile(ifile-2:ifile),'(i3)')l
          else
             write(6,*)'too many discrete states Channel_ANG_G_Ein ',l
-            stop
+            call exit_YAHFC(103)
          end if
          open(unit=100, file = directory(1:idir)//outfile(1:ifile)//'.dat',status = 'unknown')
 
@@ -770,7 +771,7 @@ subroutine print_channels(in, itarget, istate, ilab, file_lab, ilib_dir, lib_dir
             write(outfile(ifile-2:ifile),'(i3)')l
          else
             write(6,*)'too many discrete states Channel_G_Ein ',l
-            stop
+            call exit_YAHFC(103)
          end if
          open(unit=100, file = directory(1:idir)//outfile(1:ifile)//'.dat',status = 'unknown')
 
