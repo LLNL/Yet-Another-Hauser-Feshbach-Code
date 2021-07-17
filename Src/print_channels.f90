@@ -127,6 +127,8 @@ subroutine print_channels(in, itarget, istate, ilab, file_lab, ilib_dir, lib_dir
       outfile(1:ifile) = 'Channel_Prob'
       open(unit=100, file = directory(1:idir)//outfile(1:ifile)//'.dat',status = 'unknown')
 
+      write(temp_string,*)num_channels
+
       if(in == 1)then
          file_lab2(1:20) = ' '
          ilab2 = ilab
@@ -150,7 +152,6 @@ subroutine print_channels(in, itarget, istate, ilab, file_lab, ilib_dir, lib_dir
             write(100,'(''# Cross sections for each exit channel in '',a2)')cs_units
          end if
 
-         write(temp_string,*)num_channels
 
          fstring = "('#         E_in      ',"//trim(adjustl(temp_string))//'(7x,a10,2x))'
          write(100,fstring)(Exit_Channel(i)%Channel_Label(1:ilast_chann(i)), i = 1, num_channels)
@@ -174,6 +175,9 @@ subroutine print_channels(in, itarget, istate, ilab, file_lab, ilib_dir, lib_dir
                                                 reaction_cs(in)*cs_scale
          end do
       end do
+
+!  write(6,*)'fstring ',fstring
+
       write(100,fstring)e_in, (Channel_prob(i), i = 1, num_channels)
 
       close(unit=100)

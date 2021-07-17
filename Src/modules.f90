@@ -32,9 +32,10 @@ module options
 !
    use variable_kinds
    character(len=132) :: version
-   parameter (version = 'MC-3.59')
+   parameter (version = 'MC-3.61')
    integer(kind=int_64) :: iseed_64
    integer(kind=int_32) :: iseed_32
+   integer(kind=int_32) :: iseed_start
    integer(kind=4) :: PREEQ_Model
    logical :: analytic_preeq
    logical :: fission
@@ -48,6 +49,7 @@ module options
    logical :: fit_gamma_gamma
    logical :: fit_aparam
    logical :: lev_fit_d0
+   logical :: fit_ematch
    logical :: all_discrete_states
    logical :: explicit_channels
    logical :: Preeq_g_a
@@ -62,6 +64,8 @@ module options
    logical :: refresh_library_directories
    logical :: read_saved_params
    logical :: do_dwba
+   logical :: use_tran_states
+   logical :: use_eval_levels
 !-------------------------------------------
    integer(kind=4) :: num_comp
    integer(kind=4) :: output_mode
@@ -77,6 +81,7 @@ module options
    integer(kind=4) :: part_lmax
    integer(kind=4) :: E1_model
    integer(kind=4) :: e_l_max, m_l_max
+   real(kind=8) :: mold_cutoff
 !-----
    integer(kind=4) :: max_num_gsf
 
@@ -485,7 +490,8 @@ module nuclei
       real(kind=8) :: Max_J
       integer(kind=4) :: symmetry
       real(kind=8) :: beta_2
-      real(kind=8) :: level_param(20)
+      real(kind=8) :: level_param(25)
+      logical :: fit_ematch
       real(kind=8) :: vib_enh(3)
       real(kind=8) :: rot_enh(5)
       real(kind=8) :: ecut
@@ -494,6 +500,7 @@ module nuclei
       real(kind=8), allocatable, dimension (:) :: state_e
       real(kind=8), allocatable, dimension (:) :: state_j
       real(kind=8), allocatable, dimension (:) :: state_pi
+      real(kind=8) :: state_scale
    end type Fission_Barrier
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !---------    Derived types for Electromagnetic Strength Functions
@@ -514,6 +521,7 @@ module nuclei
    type EM_read
      logical :: gsf_read                !   Read in or use internal model
      integer(kind=4) :: num_gsf         !   number gsf used in this calculation
+     logical :: default
      type(gsf_data), allocatable, dimension (:) :: gsf         !   Gamma strength function
    end type EM_read
 
@@ -538,10 +546,11 @@ module nuclei
       real(kind=8) :: Kinetic_energy                                  !  Lab kinetic energy of nucleus
       real(kind=8) :: dKinetic_energy                                 !  Lab kinetic energy of nucleus
       logical :: PREEQ
-      logical :: modified
+!      logical :: modified
       logical :: lev_den_read
       logical :: lev_den_both
       logical :: ematch_warn
+      integer(kind=4) :: eval_levels
       real(kind=8) :: cum_rho_ratio
       character(len=100), dimension (0:1) :: lev_den_file
 !-----  Info definging bin structure
@@ -585,7 +594,7 @@ module nuclei
 
 !-----  Electromagnetic strength functions
       integer(kind=4) :: num_res
-      logical :: E1_default
+!      logical :: E1_default
       logical :: fit_gamma_gamma
       integer(kind=4) :: nbin_em
       integer(kind=4) :: lmax_E
@@ -598,9 +607,11 @@ module nuclei
       type(EM_read), allocatable, dimension (:) :: ML_mode       !  0=Electric, 1=Magnetic, 3=L_max
 !------   Fission information
       logical :: fission
+      logical :: fiss_tran_states
+      logical :: fiss_user_levels
       integer(kind=4) :: F_n_barr
       type(Fission_Barrier), allocatable, dimension (:) :: F_Barrier    !  variable describing properties Fission Barriers
-      real(kind=8) :: Fiss_cs
+!      real(kind=8) :: Fiss_cs
 !------  Level Density information
       real(kind=8) :: beta(2:6)
       real(kind=8) :: sig2
@@ -630,7 +641,7 @@ module nuclei
       real(kind=8) :: dGamma_g_1_exp
       character(len=10) :: level_model
       real(kind=8) :: level_ecut
-      real(kind=8) :: level_param(20)                                 !  array for level density parameters: (1-8)= aparam,spin_cut,del,shell,gamma,ematch,ecut,sg2cut
+      real(kind=8) :: level_param(25)                                 !  array for level density parameters: (1-8)= aparam,spin_cut,del,shell,gamma,ematch,ecut,sg2cut
       real(kind=8) :: a_Sn
       real(kind=8) :: sig2_Sn
       logical :: fit_D0
@@ -725,6 +736,8 @@ module particles_def
       real(kind=8), allocatable, dimension (:,:,:) :: trans_read
       integer(kind=4) :: nbin
       real(kind=8), allocatable, dimension (:,:,:) :: trans
+      real(kind=8), allocatable, dimension (:,:,:) :: trans_bin
+      real(kind=8), allocatable, dimension (:,:,:) :: trans_discrete
    end type particles
 !----------------------------------------------------------------------
    type(particles), allocatable, dimension (:) :: particle
@@ -832,6 +845,15 @@ module Gauss_integration
    integer(kind=4) :: n_gleg
    real(kind=8), allocatable :: x_gleg(:), w_gleg(:) 
    real(kind=8), allocatable :: Gauss_leg(:,:)
+
+   type gauss_int
+      integer(kind=4) :: num
+      real(kind=8), allocatable, dimension(:) :: nodes
+      real(kind=8), allocatable, dimension(:) :: weights
+   end type
+
+   type(gauss_int), allocatable, dimension(:) :: gauss_laguerre
+
 end module Gauss_integration
 !
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

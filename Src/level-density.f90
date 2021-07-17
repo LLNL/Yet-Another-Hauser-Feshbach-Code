@@ -162,6 +162,11 @@ subroutine get_lev_den(data_path,len_path,symb,iz,ia,icomp)
             5.05d0, 5.04d0, 5.03d0, 4.99d0, 4.98d0,            &
             5.11d0, 5.27d0, 5.39d0, 5.37d0, 5.30d0/
 !-----   Start calculation
+!-----   Calls to get_lev_den essentially reset the level-density model
+!-----   Reset some basic parameters
+   nucleus(icomp)%pair_model = pair_model
+   nucleus(icomp)%fit_gamma_gamma = fit_gamma_gamma
+   nucleus(icomp)%fit_ematch = .true.
 
 !------------   Number of neutrons
    in = ia - iz
@@ -421,6 +426,8 @@ subroutine get_lev_den(data_path,len_path,symb,iz,ia,icomp)
       nucleus(icomp)%rot_enh(1) = 0.0d0
       nucleus(icomp)%rot_enh(2) = 30.0d0
       nucleus(icomp)%rot_enh(3) = 5.0d0
+      nucleus(icomp)%rot_enh(4) = 0.0d0
+      nucleus(icomp)%rot_enh(5) = 0.0d0
       call Find_T_E0(ia,nucleus(icomp)%level_param,                  &
                      nucleus(icomp)%vib_enh,                         &
                      nucleus(icomp)%rot_enh)
@@ -558,13 +565,13 @@ subroutine get_lev_den(data_path,len_path,symb,iz,ia,icomp)
       ecut = nucleus(icomp)%level_ecut
 
 !-------   Deformation factors for spin-cutoff parameter for rotational enhancement
-      if(nucleus(icomp)%lev_option == 2 .or. nucleus(icomp)%lev_option == 3)then
-         nucleus(icomp)%sig2_perp = (1.0d0+beta2/3.0d0)
-         nucleus(icomp)%sig2_ax = (1.0d0-2.0d0*beta2/3.0d0)
-      elseif(nucleus(icomp)%lev_option == 4 .or. nucleus(icomp)%lev_option == 5)then 
-         nucleus(icomp)%sig2_perp = (1.0d0+sqrt(5.0d0/(4.0d0*pi))*beta2)
-         nucleus(icomp)%sig2_ax = (1.0d0-0.5d0*sqrt(5.0d0/(4.0d0*pi))*beta2)
-      end if
+!      if(nucleus(icomp)%lev_option == 2 .or. nucleus(icomp)%lev_option == 3)then
+         nucleus(icomp)%sig2_perp = (1.0d0 + beta2/3.0d0)
+         nucleus(icomp)%sig2_ax = (1.0d0 - 2.0d0*beta2/3.0d0)
+!      elseif(nucleus(icomp)%lev_option == 4 .or. nucleus(icomp)%lev_option == 5)then 
+!         nucleus(icomp)%sig2_perp = (1.0d0+sqrt(5.0d0/(4.0d0*pi))*beta2)
+!        nucleus(icomp)%sig2_ax = (1.0d0-0.5d0*sqrt(5.0d0/(4.0d0*pi))*beta2)
+!      end if
 
       if(maxlev > 0)then
          sg2cut = 0.0d0
@@ -728,11 +735,13 @@ subroutine finish_lev_den(icomp)
    elseif(nucleus(icomp)%lev_option == 2)then
       nucleus(icomp)%level_param(12) = nucleus(icomp)%level_param(2)*xA**(5.d0/3.d0)
    end if
+   call Find_T_E0(ia,nucleus(icomp)%level_param,                   &
+                  nucleus(icomp)%vib_enh,                          &
+                  nucleus(icomp)%rot_enh)
 
 
 
    if(nucleus(icomp)%level_param(7) < nucleus(icomp)%sep_e(1))then
-
 
       nucleus(icomp)%D0 = lev_space(e,xI,ipar,0,                   &
                                     nucleus(icomp)%level_param,    &
@@ -835,6 +844,7 @@ subroutine fit_lev_den(icomp)
 !
 !*******************************************************************************
 !
+   use options
    use nuclei
    use lev_fit
    use nodeinfo
@@ -843,16 +853,16 @@ subroutine fit_lev_den(icomp)
 !----------------------------------------------------------------------
 !---------   Parameters to fit cumulative level density
    real(kind=8), allocatable :: elv(:)
-   real(kind=8), allocatable :: cum_rho(:),dcum_rho(:)
+   real(kind=8), allocatable :: cum_rho(:),weight(:)
    real(kind=8), allocatable :: cum_fit(:)
    real(kind=8) :: chisq
    integer(kind=4) :: nca, nfit
    real(kind=8) :: D0,D0old
    real(kind=8) :: D0_exp,dD0_exp
 !-----------------------------
-   integer(kind=4) :: i,k
-   integer(kind=4) :: ia
-   real(kind=8) :: chi_min,ematch,emin,emax
+   integer(kind=4) :: i
+   integer(kind=4) :: iA
+   real(kind=8) :: chi_min,ematch,emin,emax, ematch_best
    real(kind=8) :: xI
    integer(kind=4) :: ipar
    integer(kind=4) :: numf
@@ -867,15 +877,25 @@ subroutine fit_lev_den(icomp)
    D0_exp = nucleus(icomp)%D0exp
    dD0_exp = nucleus(icomp)%dD0exp
    nfit = nucleus(icomp)%ncut
-   if(nfit <= 5)return                            !  Their are so few discretes, no point in fitting to the cumulative level density
+   if(nfit <= 5)then
+       if(print_me)then
+           write(6,*)'*************************************************'
+           write(6,*)'Warning too few discrete states to fit Ematch for nucleus Z= ',&
+               nucleus(icomp)%Z,' A = ',nucleus(icomp)%A
+           write(6,*)'*************************************************'
+       end if
+       return                            !  Their are so few discretes, no point in fitting to the cumulative level density
+   end if
    if(.not.allocated(elv))allocate(elv(nfit))     !  allocate cumulative density array
    if(.not.allocated(cum_rho))allocate(cum_rho(nfit))     !  allocate cumulative density array
-   if(.not.allocated(dcum_rho))allocate(dcum_rho(nfit))
+   if(.not.allocated(weight))allocate(weight(nfit))
    if(.not.allocated(cum_fit))allocate(cum_fit(nfit))     !  allocate cumulative density array
    do i = 1,nfit                                    !  Make cumulative rho array
       elv(i) = nucleus(icomp)%state(i)%energy
       cum_rho(i) = real(i,kind=8)
-      dcum_rho(i) = 1.0d0/dsqrt(cum_rho(i))           !  assume error 1/sqrt
+      weight(i) = 1.0d0/cum_rho(i)                  !  weight larger values more
+!      weight(i) = 1.0d0/sqrt(cum_rho(i))           !  weight larger values more
+!      weight(i) = 1.0d0
    end do
    D0old = nucleus(icomp)%D0                         !  original D0
    sep_e_l = nucleus(icomp)%sep_e(1)                 !  variables stored in module and used by subroutine func1
@@ -902,6 +922,9 @@ subroutine fit_lev_den(icomp)
 !-------    Then refit Delta and Ematch.                              +
 !-------    Rinse and repeat as many times as needed                  +
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+   call Find_T_E0(ia,nucleus(icomp)%level_param,             &
+                  nucleus(icomp)%vib_enh,                    &
+                  nucleus(icomp)%rot_enh)
    call cumm_rho(nfit,elv,ia,nucleus(icomp)%level_param,      &
                  nucleus(icomp)%vib_enh,                      &
                  nucleus(icomp)%rot_enh,cum_fit)
@@ -909,26 +932,33 @@ subroutine fit_lev_den(icomp)
    chisq = 0.0d0
 
    do i = 2, nfit
-      chisq = chisq+(cum_rho(i)-cum_fit(i))**2/dcum_rho(i)**2
+      chisq = chisq + (cum_rho(i)-cum_fit(i))**2/weight(i)**2
    end do
    chisq = chisq/real(nfit-2,kind=8)
-   if(.not.nucleus(icomp)%fit_ematch)goto 119                       !  they have changed, so keep trying to fit
+   if(.not. nucleus(icomp)%fit_ematch)then
+      if(allocated(elv))deallocate(elv)
+      if(allocated(cum_rho))deallocate(cum_rho)
+      if(allocated(weight))deallocate(weight)
+      if(allocated(cum_fit))deallocate(cum_fit)
+      return
+   end if
+
 !------   Check to see if fit makes sense, and if known spectrum does. It is 
 !------   possible that the known spectrum is incomplete, and we should actually
 !------   use many fewer states. Check cumulative fit and if fitted value exceeds
 !------   actual by 50% then reduce the number of states we keep.
 !      ematch=dc(6)
    ematch = nucleus(icomp)%level_param(6)
-   chi_min = 1.0d10
 !
 !   Min and max range of E_match. Must be greater than Delta = level_param(3)
 !   and E_cut = level_param(7)
 !   Search for E_match in 10 keV steps
 
-   emin  = max(nucleus(icomp)%level_param(7),                   &
-               nucleus(icomp)%level_param(3)) + 0.2
+   emin  = max(nucleus(icomp)%level_param(7)+0.2d0,                &
+               nucleus(icomp)%level_param(3)) + 0.4d0
    emax = nucleus(icomp)%sep_e(1) - 0.2d0          !   neutron separation energy
    numf = int((emax-emin)/0.01d0) + 1
+
 
 !************************************************************************
 !                                                                       *
@@ -936,8 +966,12 @@ subroutine fit_lev_den(icomp)
 !   best match to cummlative level density for known discrete states    *
 !                                                                       *
 !************************************************************************
-   do k = 1, numf
-      nucleus(icomp)%level_param(6) = emin + real(k-1,kind=8)*0.01d0
+   chi_min = 1.0d20
+   ematch = emax
+   ematch_best = ematch
+   do while(ematch > emin)
+      ematch = ematch - 0.01d0
+      nucleus(icomp)%level_param(6) = ematch
       call Find_T_E0(ia,nucleus(icomp)%level_param,             &
                      nucleus(icomp)%vib_enh,                    &
                      nucleus(icomp)%rot_enh)
@@ -946,14 +980,15 @@ subroutine fit_lev_den(icomp)
                     nucleus(icomp)%rot_enh,cum_fit)
       chisq = 0.0d0
       do i = 1,nfit
-         chisq = chisq + (cum_rho(i)-cum_fit(i))**2/dcum_rho(i)**2
+         chisq = chisq + (cum_rho(i)-cum_fit(i))**2/weight(i)**2
       end do
       chisq = chisq/real(nfit-2,kind=8)
       if(chisq < chi_min)then
-         ematch = nucleus(icomp)%level_param(6)
          chi_min = chisq
+         ematch_best = ematch
       end if
    end do
+   ematch = ematch_best
    nucleus(icomp)%level_param(6) = ematch
    call Find_T_E0(ia,nucleus(icomp)%level_param,                &
                   nucleus(icomp)%vib_enh,                       &
@@ -968,9 +1003,9 @@ subroutine fit_lev_den(icomp)
    if(ratio > 1.25d0 .or. ratio < 0.75d0)nucleus(icomp)%ematch_warn = .true.
 
 
- 119  if(allocated(elv))deallocate(elv)
+   if(allocated(elv))deallocate(elv)
    if(allocated(cum_rho))deallocate(cum_rho)
-   if(allocated(dcum_rho))deallocate(dcum_rho)
+   if(allocated(weight))deallocate(weight)
    if(allocated(cum_fit))deallocate(cum_fit)
    return
 end subroutine fit_lev_den
@@ -1027,7 +1062,7 @@ subroutine rho_J_par_e(E, xJ, ipar, level_param, vib_enhance, rot_enhance, ia, &
    real(kind=8), intent(in) :: e
    real(kind=8), intent(in) :: xJ
    integer(kind=4), intent(in) :: ipar
-   real(kind=8), intent(in) :: level_param(20)
+   real(kind=8), intent(in) :: level_param(25)
    real(kind=8), intent(in) :: vib_enhance(3), rot_enhance(5)
    integer(kind=4), intent(in) :: ia
 !-----
@@ -1036,7 +1071,7 @@ subroutine rho_J_par_e(E, xJ, ipar, level_param, vib_enhance, rot_enhance, ia, &
    real(kind=8), intent(out) :: sig2
    real(kind=8), intent(out) :: K_vib, K_rot 
 !-----
-   real(kind=8) :: sig2_perp
+!   real(kind=8) :: sig2_spin
    real(kind=8) :: aparam, spin_cut, delta, shell, gamma
    real(kind=8) :: ematch, ecut, sg2cut
    real(kind=8) :: A
@@ -1045,12 +1080,13 @@ subroutine rho_J_par_e(E, xJ, ipar, level_param, vib_enhance, rot_enhance, ia, &
    real(kind=8) :: de
    real(kind=8) :: low_e_mod
    real(kind=8) :: enhance
-   integer(kind=4) :: vib_mode, rot_mode
+   integer(kind=4) :: lev_model, vib_mode, rot_mode
    real(kind=8) :: pmode, pe1, pbb
    real(kind=8) :: jfac, pfac
 !-----    External Functions-----------------------------------------------------
    real(kind=8) :: aparam_u
    real(kind=8) :: sig2_param
+!   real(kind=8) :: sig2_param_coll
    real(kind=8) :: enhance_rot
    real(kind=8) :: enhance_vib
    real(kind=8) :: spin_fac
@@ -1074,6 +1110,7 @@ subroutine rho_J_par_e(E, xJ, ipar, level_param, vib_enhance, rot_enhance, ia, &
    pe1 = level_param(17)
    pbb = level_param(18)
 
+   lev_model = nint(level_param(19))
    rot_mode = nint(level_param(10))
    vib_mode = nint(level_param(11))
 
@@ -1086,10 +1123,6 @@ subroutine rho_J_par_e(E, xJ, ipar, level_param, vib_enhance, rot_enhance, ia, &
 
       sig2 = sig2_param(E,level_param,A)
 
-      if(nint(level_param(19)) == 3 .or. nint(level_param(19)) == 5)then
-         sig2 = sig2*rot_enhance(4)
-      end if
- 
       U = E - delta
       apu = aparam_u(U,aparam,shell,gamma)
       K_rot = 1.0d0
@@ -1101,23 +1134,35 @@ subroutine rho_J_par_e(E, xJ, ipar, level_param, vib_enhance, rot_enhance, ia, &
       rho = rho*enhance
    else                                   !  fermi Gas
       U = E - delta
-      sig2 = sig2_param(E,level_param,A)
-      sig2_perp = rot_enhance(4)*sig2
       apu = aparam_u(U,aparam,shell,gamma)
+      sig2 = sig2_param(E, level_param, A)
+      K_rot = enhance_rot(rot_mode, sig2, rot_enhance, E)
+!      if(lev_model <= 3)then
+!         sig2 = sig2_param(E, level_param, A)
+!         K_rot = enhance_rot(rot_mode, sig2, rot_enhance, E)
+!      else
+!         sig2 = sig2_param_coll(E, level_param, rot_enhance, A)
+!         K_rot = 1.0d0
+!      end if
 
-      K_rot = enhance_rot(rot_mode, sig2, sig2_perp, rot_enhance, E)
       K_vib = enhance_vib(vib_mode, A, U, E, apu, Shell, vib_enhance)
-
-      if(nint(level_param(19)) == 3 .or. nint(level_param(19)) == 5)then
-         sig2 = sig2*rot_enhance(4)
-      end if
-
       call rho_BFM(U, apu, sig2, rho)
 
       enhance = K_rot*K_vib
       rho = rho*enhance
    end if
 
+!   if(lev_model == 0 .or. lev_model == 1)then
+!      sig2_spin = sig2
+!   elseif(lev_model >= 2 .and. lev_model < 4)then
+!      if(sig2_ax > 1.0d0)then
+!         sig2_spin = sig2_ax*sig2
+!      else
+!         sig2_spin = sig2_ax**(1.0d0/3.0d0)*sig2_perp**(2.0d0/3.0d0)*sig2
+!      end if
+!   end if
+!   sig2_spin = sig2_param_coll(E,level_param,rot_enhance, A)
+!   jfac = spin_fac(xJ, sig2_spin)
    jfac = spin_fac(xJ, sig2)
    pfac = parity_fac(E, xJ, ipar, pmode, pe1, pbb)
 
@@ -1177,7 +1222,7 @@ subroutine rhoe(E, level_param, vib_enhance, rot_enhance, ia, rho,     &
 !
    implicit none
    real(kind=8), intent(in) :: e
-   real(kind=8), intent(in) :: level_param(20)
+   real(kind=8), intent(in) :: level_param(25)
    real(kind=8), intent(in) :: vib_enhance(3), rot_enhance(5)
    integer(kind=4), intent(in) :: ia
 !-----
@@ -1186,7 +1231,6 @@ subroutine rhoe(E, level_param, vib_enhance, rot_enhance, ia, rho,     &
    real(kind=8), intent(out) :: sig2
    real(kind=8), intent(out) :: K_vib, K_rot 
 !-----
-   real(kind=8) :: sig2_perp
    real(kind=8) :: aparam, spin_cut, delta, shell, gamma
    real(kind=8) :: ematch, ecut, sg2cut
    real(kind=8) :: A
@@ -1196,9 +1240,11 @@ subroutine rhoe(E, level_param, vib_enhance, rot_enhance, ia, rho,     &
    real(kind=8) :: low_e_mod
    real(kind=8) :: enhance
    integer(kind=4) :: vib_mode, rot_mode
+   integer(kind=4) :: lev_model
 !-----    External Functions-----------------------------------------------------
    real(kind=8) :: aparam_u
    real(kind=8) :: sig2_param
+!   real(kind=8) :: sig2_param_coll
    real(kind=8) :: enhance_rot
    real(kind=8) :: enhance_vib
 !--------------------------------------------------------------------------------
@@ -1217,6 +1263,7 @@ subroutine rhoe(E, level_param, vib_enhance, rot_enhance, ia, rho,     &
 
    rot_mode = nint(level_param(10))
    vib_mode = nint(level_param(11))
+   lev_model = nint(level_param(19))
 
 !------------    start of calculation   --------------------
    de = 0.01d0
@@ -1226,15 +1273,11 @@ subroutine rhoe(E, level_param, vib_enhance, rot_enhance, ia, rho,     &
       E0 = level_param(15)              !  constant temperature
 
       sig2 = sig2_param(E,level_param,A)
- 
+
       U = E - delta
       apu = aparam_u(U,aparam,shell,gamma)
       K_rot = 1.0d0
       K_vib = 1.0d0
-
-      if(nint(level_param(19)) == 3 .or. nint(level_param(19)) == 5)then
-         sig2 = sig2*rot_enhance(4)
-      end if
 
       call rho_FT(E, E0, T, rho)
 
@@ -1243,16 +1286,18 @@ subroutine rhoe(E, level_param, vib_enhance, rot_enhance, ia, rho,     &
 
    else                                   !  fermi Gas
       U = E - delta
-      sig2 = sig2_param(E,level_param,A)
-      sig2_perp = rot_enhance(4)*sig2
       apu = aparam_u(U,aparam,shell,gamma)
+      sig2 = sig2_param(E, level_param, A)
+      K_rot = enhance_rot(rot_mode, sig2, rot_enhance, E)
+!      if(lev_model <= 3)then
+!         sig2 = sig2_param(E, level_param, A)
+!         K_rot = enhance_rot(rot_mode, sig2, rot_enhance, E)
+!      else
+!         sig2 = sig2_param_coll(E, level_param, rot_enhance, A)
+!         K_rot = 1.0d0
+!      end if
 
-      K_rot = enhance_rot(rot_mode, sig2, sig2_perp, rot_enhance, E)
       K_vib = enhance_vib(vib_mode, A, U, E, apu, Shell, vib_enhance)
-
-      if(nint(level_param(19)) == 3 .or. nint(level_param(19)) == 5)then
-         sig2 = sig2*rot_enhance(4)
-      end if
 
       call rho_BFM(U, apu, sig2, rho)
 
@@ -1272,7 +1317,8 @@ real(kind=8) function sig2_param(E,level_param,A)
 !
 !  Discussion:
 !
-!    This function returns the spin cutoff parameter
+!    This function returns the spin cutoff parameter used in the 
+!    calculation of the level density
 !
 !   Dependencies:
 !
@@ -1311,15 +1357,18 @@ real(kind=8) function sig2_param(E,level_param,A)
    use constants
    implicit none
 !------  Passed in
-   real(kind=8), intent(in) :: E, level_param(20), A
+   real(kind=8), intent(in) :: E, level_param(25), A
 !------  Passed out
 !------  Internal
-   real(kind=8) :: aparam,apu,delta,shell,gamma,spin_cut,sg2cut
-   real(kind=8) :: ecut,ematch,low_e_mod
-   real(kind=8) :: U, Um, sig2, sig2_em, deriv, sig, sig2_min
-   integer(kind=4) :: i, sig_model
+   real(kind=8) :: aparam, apu
+   real(kind=8) :: delta, shell, gamma
+   real(kind=8) :: spin_cut, sg2cut, sig2_em, sig2_min
+   real(kind=8) :: ecut, ematch, low_e_mod
+   real(kind=8) :: U, Um, sig2, deriv, sig
+   integer(kind=4) :: sig_model
 !------  External functions  ---------------------------------------------------
    real(kind=8) :: aparam_u
+!------  Start Calculation -----------------------------------------------------
 !------  Start Calculation -----------------------------------------------------
    aparam = level_param(1)
    spin_cut = level_param(2)
@@ -1334,51 +1383,145 @@ real(kind=8) function sig2_param(E,level_param,A)
    Um = Ematch - delta
    sig = level_param(12)
    sig_model = nint(level_param(13))
+   deriv = level_param(20)
    sig2_min = min((0.83d0*A**0.26d0)**2.0d0,sg2cut)
+!   sig2_min = max((0.83d0*A**0.26d0)**2.0d0,sg2cut)
 
-!   if( E < ecut)then
-!      sig2_param = sg2cut
-!      return
-!   end if
-   if(ecut <= ematch)then
-      ecut = 0.0d0
-      sg2cut = sig2_min
-   end if
    if(E < ematch )then
       apu = aparam_u(Um,aparam,shell,gamma)
       sig2_em = sig*sqrt(max(0.2d0,Um*apu))/aparam
       if(sig_model == 0)sig2_em = sig*sqrt(max(0.2d0,Um*apu))/aparam
       if(sig_model == 1)sig2_em = sig*sqrt(max(0.2d0,Um)/apu)
       sig2_em = max(sig2_em,sig2_min)
-      deriv = (sig2_em - sg2cut)/(ematch - ecut)
-      sig2 = sig2_em - deriv*(ematch - e)
-      if(sig2 < sig2_min) sig2 = sig2_min
-      if(sig2 < 0.0)then
-         write(6,*)'A =',A, E
-         do i = 1, 9
-            write(6,*)i,level_param(i)
-         end do
-         write(6,*)'sig_mod',sig_model
-         write(6,*)spin_cut, apu, aparam
-         write(6,'(''sig2'',7(1x,f10.5))')sg2cut,sig2_em,deriv,    &
-            e,ecut,ematch,sig2
-         if(iproc == 0)write(6,*)'sig2 < 0'
-         call exit_YAHFC(401)
-      end if
+      sig2 = max(sig2_em - deriv*(ematch - e),sg2cut)
    else
       apu = aparam_u(U,aparam,shell,gamma)
       sig2 = (0.83*A**0.26)**2
+      sig2 = sig2_min
       if(U > 0.0d0)then
          if(sig_model == 0)sig2 = sig*sqrt(apu*U)/aparam
          if(sig_model == 1)sig2 = sig*sqrt(U/apu)
-         sig2 = max(sig2,(0.83*A**0.26)**2)
       end if
+      sig2 = max(sig2,sig2_min)
    end if
 
    sig2_param = sig2
 
    return
 end function sig2_param
+!
+!--------------------------------------------------------------------
+!
+real(kind=8) function sig2_param_coll(E,level_param,rot_enhance,A)
+!
+!*******************************************************************************
+!
+!  Discussion:
+!
+!    This function returns the spin cutoff parameter to be used for 
+!    the spin distribution
+!
+!   Dependencies:
+!
+!     Modules:
+!
+!        nodeinfo
+!        constants
+!
+!     Subroutines:
+!
+!        exit_YAHFC
+!
+!     External functions:
+!
+!        aparam_u
+!
+!     MPI routines:
+!
+!        MPI_Abort   ----    via exit_YAHFC
+!
+!  Licensing:
+!
+!    SPDX-License-Identifier: MIT 
+!
+!  Date:
+!
+!    11 May 2021
+!
+!  Author:
+!
+!      Erich Ormand, LLNL
+!
+!*******************************************************************************
+!
+   use nodeinfo
+   use constants
+   implicit none
+!------  Passed in
+   real(kind=8), intent(in) :: E
+   real(kind=8), intent(in) :: level_param(25)
+   real(kind=8), intent(in) :: rot_enhance(5)
+   real(kind=8), intent(in) :: A
+!------  Passed out
+!------  Internal
+   real(kind=8) :: aparam, apu
+   real(kind=8) :: delta, shell, gamma
+   real(kind=8) :: spin_cut, sg2cut, sig2_em, sig2_min
+   real(kind=8) :: ecut, ematch, low_e_mod
+   real(kind=8) :: U, Um, sig2, deriv, sig
+   real(kind=8) :: sig_factor
+   integer(kind=4) :: sig_model
+!------  External functions  ---------------------------------------------------
+   real(kind=8) :: aparam_u
+!------  Start Calculation -----------------------------------------------------
+!------  Start Calculation -----------------------------------------------------
+   sig_factor = 1.0d0
+   if(nint(level_param(19)) > 3)then
+      if(rot_enhance(5) > 1.0d0)then
+         sig_factor = rot_enhance(5)
+      else
+         sig_factor = rot_enhance(5)**(1.0d0/3.0d0)*rot_enhance(4)**(2.0d0/3.0d0)
+      end if
+   end if 
+   aparam = level_param(1)
+   spin_cut = level_param(2)
+   delta = level_param(3)
+   shell = level_param(4)
+   gamma = level_param(5)
+   ematch = level_param(6)
+   ecut = level_param(7)
+   sg2cut = level_param(8)
+   low_e_mod = level_param(9)
+   U = E - delta
+   Um = Ematch - delta
+   sig = level_param(12)
+   sig_model = nint(level_param(13))
+   deriv = level_param(20)
+   sig2_min = min((0.83d0*A**0.26d0)**2.0d0,sg2cut)
+!   sig2_min = max(sig_factor*(0.83d0*A**0.26d0)**2.0d0,sg2cut)
+
+   if(E < ematch )then
+      apu = aparam_u(Um,aparam,shell,gamma)
+      sig2_em = sig*sig_factor*sqrt(max(0.2d0,Um*apu))/aparam
+      if(sig_model == 0)sig2_em = sig*sqrt(max(0.2d0,Um*apu))/aparam
+      if(sig_model == 1)sig2_em = sig*sqrt(max(0.2d0,Um)/apu)
+      sig2_em = max(sig2_em,sig2_min)
+      sig2 = max(sig2_em - deriv*(ematch - e),sg2cut)
+   else
+      apu = aparam_u(U,aparam,shell,gamma)
+      sig2 = sig_factor*(0.83*A**0.26)**2
+      sig2 = sig2_min
+      if(U > 0.0d0)then
+         if(sig_model == 0)sig2 = sig*sig_factor*sqrt(apu*U)/aparam
+         if(sig_model == 1)sig2 = sig*sig_factor*sqrt(U/apu)
+      end if
+      sig2 = max(sig2,sig2_min)
+   end if
+
+   sig2_param_coll = sig2
+
+   return
+end function sig2_param_coll
 !
 !--------------------------------------------------------------------
 !
@@ -1501,13 +1644,6 @@ subroutine rho_BFM(U, apu, sig2, rho)
    rho_0 = exp(exponent1+1.0d0)*(an+ap)**2/(24.0d0*sqrt(sig2)*sqrt(an*ap))
    rho = rho_F*rho_0/(rho_F+rho_0)
 
-!   write(40,*)U,rho_f,rho_0,1.0d0/(rho_f+
-
-!   if(nint(low_e_mod) == 0)then
-!      rho = rho_F
-!   elseif(nint(low_e_mod) == 1)then
-!      rho = 1.0d0/(rho_F + rho_0)
-!   end if
    return
 end subroutine rho_BFM
 !
@@ -1684,7 +1820,7 @@ real(kind=8) function lev_space(e, xj, ipar, l, level_param,       &
    real(kind=8), intent(in) :: e, xj
    integer(kind=4), intent(in) :: l
    integer(kind=4), intent(in) :: ipar
-   real(kind=8), intent(in) :: level_param(20)
+   real(kind=8), intent(in) :: level_param(25)
    real(kind=8), intent(in) :: vib_enh(3), rot_enh(5)
    integer(kind=4), intent(in) :: ia
    real(kind=8) :: mode, e1, bb
@@ -1880,7 +2016,7 @@ subroutine cumm_rho(nfit,elv,ia,level_param,vib_enh,rot_enh,cumrho)
    integer(kind=4), intent(in) :: nfit
    real(kind=8), intent(in) :: elv(nfit)
    integer(kind=4), intent(in) :: ia
-   real(kind=8), intent(in) :: level_param(20)
+   real(kind=8), intent(in) :: level_param(25)
    real(kind=8), intent(in) :: vib_enh(3), rot_enh(5)
    real(kind=8), intent(out) :: cumrho(nfit)
 !----------------------------------------------------------------------
@@ -1973,7 +2109,7 @@ subroutine fit_D0(D0exp,sep_e,xj,ipar,lev_param,fit_aparam,vib_enh,rot_enh,iA)
    real(kind=8), intent(in) :: sep_e
    real(kind=8), intent(in) :: xj
    integer(kind=4), intent(in) :: ipar
-   real(kind=8), intent(inout) :: lev_param(20)
+   real(kind=8), intent(inout) :: lev_param(25)
    logical, intent(in) :: fit_aparam
    real(kind=8), intent(inout) :: vib_enh(3), rot_enh(5)
    integer(kind=4), intent(in) :: iA
@@ -2186,7 +2322,7 @@ end function enhance_vib
 !
 !*******************************************************************************
 !
-real(kind=8) function enhance_rot(mode, sig2, sig2_perp, enh, Ex)
+real(kind=8) function enhance_rot(mode, sig2, enh, Ex)
 !
 !*******************************************************************************
 !
@@ -2227,15 +2363,13 @@ real(kind=8) function enhance_rot(mode, sig2, sig2_perp, enh, Ex)
    use constants
    integer(kind=4), intent(in) :: mode
    real(kind=8), intent(in) :: sig2
-   real(kind=8), intent(in) :: sig2_perp
    real(kind=8), intent(in) :: enh(5)
    real(kind=8), intent(in) :: Ex
    real(kind=8) :: K_r
    real(kind=8) :: damp
 !----------------------------------------------------------------------------------
    K_r = 0.0d0
-!   if(mode > 0)K_r = enh(4)*sig2
-   if(mode > 0)K_r = sig2_perp
+   if(mode > 0)K_r = enh(4)*sig2
    if(mode == 2 )then
       K_r = 2.0d0*K_r
    end if
@@ -2351,15 +2485,15 @@ subroutine Find_T_E0(ia, level_param, vib_enhance, rot_enhance)
    implicit none
 !---------------  data passed in 
    integer(kind=4), intent(in) :: ia    
-   real(kind=8), intent(inout) :: level_param(20)
+   real(kind=8), intent(inout) :: level_param(25)
    real(kind=8), intent(inout) :: vib_enhance(3), rot_enhance(5)
 !---------------   Internal data      
    real(kind=8) :: A
    real(kind=8) :: aparam, spin_cut, delta, shell, gamma
    real(kind=8) :: ematch, ecut, sg2cut, low_e_mod
-   real(kind=8) :: sig2_perp
    integer(kind=4) :: rot_mode, vib_mode
    real(kind=8) :: enhance, K_rot, K_vib
+   integer(kind=4) :: lev_model
       
    real(kind=8) :: E, U, de
       
@@ -2373,6 +2507,7 @@ subroutine Find_T_E0(ia, level_param, vib_enhance, rot_enhance)
 !------     External functions     ------------------------------------------------
    real(kind=8) :: aparam_u
    real(kind=8) :: sig2_param
+   real(kind=8) :: sig2_param_coll
    real(kind=8) :: enhance_rot
    real(kind=8) :: enhance_vib    
 !----------------------------------------------------------------------------------
@@ -2394,6 +2529,7 @@ subroutine Find_T_E0(ia, level_param, vib_enhance, rot_enhance)
 
    rot_mode = nint(level_param(10))
    vib_mode = nint(level_param(11))
+   lev_model = nint(level_param(19))
 
 !------------    start of calculation   --------------------
    de = 0.01d0
@@ -2404,13 +2540,21 @@ subroutine Find_T_E0(ia, level_param, vib_enhance, rot_enhance)
    U = E - delta
 
    apu = aparam_u(U,aparam,shell,gamma)
-   sig2 = sig2_param(E,level_param,A)
-   sig2_perp = rot_enhance(4)*sig2
+!-----------------------------------------------------------------------
+!----    Find_T_E0 is called everytime Ematch is set, so use this 
+!----    opportunity to set level_params to compute the spin
+!----    cutoff below Ematch. Match linearly from Ematch to Ecut
+!----    level_param(20) = deriv
+!----------------------------------------------------------------
+   
+   sig2 = sig2_param(E+1.0d-5,level_param,A)
+   if(lev_model == 4)sig2 = sig2_param_coll(E+1.0d-5,level_param,rot_enhance,A)
 
-   K_rot = enhance_rot(rot_mode, sig2, sig2_perp, rot_enhance, E)
+   deriv = (sig2 - sg2cut)/(ematch-ecut)
+   level_param(20) = deriv
+
+   K_rot = enhance_rot(rot_mode, sig2, rot_enhance, E)
    K_vib = enhance_vib(vib_mode, A, U, E, apu, Shell, vib_enhance)
-
-   if(nint(level_param(19)) == 3 .or. nint(level_param(19)) == 5) sig2 = sig2_perp
 
    call rho_BFM(U, apu, sig2, rho_F0)
 
@@ -2421,13 +2565,14 @@ subroutine Find_T_E0(ia, level_param, vib_enhance, rot_enhance)
    U = E - delta
 
    apu = aparam_u(U,aparam,shell,gamma)
-   sig2 = sig2_param(E,level_param,A)
-   sig2_perp = rot_enhance(4)*sig2
+   if(lev_model <= 3)then
+      sig2 = sig2_param(E,level_param,A)
+   elseif(lev_model == 4)then
+      sig2 = sig2_param_coll(E,level_param,rot_enhance,A)
+   end if
 
-   K_rot = enhance_rot(rot_mode, sig2, sig2_perp, rot_enhance, E)
+   K_rot = enhance_rot(rot_mode, sig2, rot_enhance, E)
    K_vib = enhance_vib(vib_mode, A, U, E, apu, Shell, vib_enhance)
-
-   if(nint(level_param(19)) == 3 .or. nint(level_param(19)) == 5) sig2 = sig2_perp
 
    call rho_BFM(U, apu, sig2, rho_Fm)
 
@@ -2439,13 +2584,14 @@ subroutine Find_T_E0(ia, level_param, vib_enhance, rot_enhance)
    U = E - delta
 
    apu = aparam_u(U,aparam,shell,gamma)
-   sig2 = sig2_param(E,level_param,A)
-   sig2_perp = rot_enhance(4)*sig2
+   if(lev_model <= 3)then
+      sig2 = sig2_param(E,level_param,A)
+   elseif(lev_model == 4)then
+      sig2 = sig2_param_coll(E,level_param,rot_enhance,A)
+   end if
 
-   K_rot = enhance_rot(rot_mode, sig2, sig2_perp, rot_enhance, E)
+   K_rot = enhance_rot(rot_mode, sig2, rot_enhance, E)
    K_vib = enhance_vib(vib_mode, A, U, E, apu, Shell, vib_enhance)
-
-   if(nint(level_param(19)) == 3 .or. nint(level_param(19)) == 5) sig2 = sig2_perp
 
    call rho_BFM(U, apu, sig2, rho_Fp)
 

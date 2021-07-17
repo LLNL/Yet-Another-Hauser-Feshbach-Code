@@ -89,16 +89,21 @@ subroutine Moldauer_WF(icomp,                                       &
    real(kind=8) :: xnu_a
    real(kind=8) :: Product,Product_p,Product_g
    real(kind=8) :: weight(0:1)
-   real(kind=8) :: factor,elastic
+   real(kind=8) :: factor, elastic
+   integer(kind=4) :: g_index
 
    real(kind=8) :: xstop
 
    integer(kind=4) :: ndata
-   parameter (ndata = 10)
+!   parameter (ndata = 10)
+   parameter (ndata = 4)
    real(kind=8) :: xx(ndata), yy(ndata), xxxx, yyxx
    real(kind=8) :: afit
    save xx
-   data xx/ 0.2d0,  0.4d0, 0.6d0, 0.8d0, 1.0d0, 1.2d0, 1.4d0, 1.6d0, 1.8d0, 2.0d0/
+!   data xx/ 0.2d0,  0.4d0, 0.6d0, 0.8d0, 1.0d0, 1.2d0, 1.4d0, 1.6d0, 1.8d0, 2.0d0/
+!   data xx/ 0.5d0, 1.0d0, 1.5d0, 2.0d0, 2.5d0/
+   data xx/ 1.0d0, 2.0d0, 3.0d0, 4.0d0/
+!   data xx/0.5d0, 1.0d0, 1.5d0, 2.0d0, 3.0d0, 3.50d0, 4.0d0, 4.50d0, 5.0d0, 5.5d0/
 !-------------     External Functions   
    real(kind=8) :: xnu
 !-------------------------------------------------------------------------+
@@ -124,13 +129,15 @@ subroutine Moldauer_WF(icomp,                                       &
 
    xxxx = 0.0d0
    yyxx = 0.0d0
+!   write(40,*)'exp_gamma ',exp_gamma,' HF_den ',HF_den
+
    do ix = 1, ndata
       x = xx(ix)
       call Moldauer_product(icomp,                                       &
                             k_a,l_a,xj_a,istate_a,                       &
                             k_b,l_b,xj_b,istate_b,xI_b,                  &
                             ip,xI,energy,                                &
-                            HF_den,F_trans,x,CHnorm,Product_p)
+                            exp_gamma,HF_den,F_trans,x,CHnorm,Product_p)
       Product_g = exp(-exp_gamma*x)
       Product = Product_p*Product_g*factor
       yy(ix) = log(Product)
@@ -140,21 +147,62 @@ subroutine Moldauer_WF(icomp,                                       &
 
    afit = abs(yyxx/xxxx)
 
+!   write(40,'(3(1x,e15.7))')yyxx,xxxx,afit
+
+!   flush(40)
+
 !  write(6,*)'afit ',yyxx,xxxx,afit
 
+   if(HF_den <= 2.0d0)then
+      g_index = 1
+   elseif(HF_den > 2.0d0 .and. HF_den <= 5.0d0)then
+      g_index = 2
+   elseif(HF_den > 5.0d0 .and. HF_den <= 10.0d0)then
+      g_index = 3
+   elseif(HF_den > 10.0d0)then
+      g_index = 4
+   end if
+
+
    WF = 0.0d0
-   do ix = 1, n_glag
-      x = x_glag(ix)/afit
+   do ix = 1, gauss_laguerre(g_index)%num
+      x = gauss_laguerre(g_index)%nodes(ix)/afit
       call Moldauer_product(icomp,                                       &
                             k_a,l_a,xj_a,istate_a,                       &
                             k_b,l_b,xj_b,istate_b,xI_b,                  &
                             ip,xI,energy,                                &
-                            HF_den,F_trans,x,CHnorm,Product_p)
+                            exp_gamma, HF_den,F_trans,x,CHnorm,Product_p)
       Product_g = exp(-exp_gamma*x)
       Product = Product_p*Product_g*factor
-      WF = WF + Product/exp(-afit*x)*w_glag(ix)
+      WF = WF + Product/exp(-afit*x)*gauss_laguerre(g_index)%weights(ix)
+!      write(40,'(1x,f10.5,1x,e15.7,1x,f10.5,4(1x,e15.7))')x, w_glag(ix), factor,  &
+!           Product_g, Product_p, Product, Product/exp(-afit*x)
    end do
    WF = WF/afit
+
+
+!   WF = 0.0d0
+!   do ix = 1, n_glag
+!      x = x_glag(ix)/afit
+!      call Moldauer_product(icomp,                                       &
+!                            k_a,l_a,xj_a,istate_a,                       &
+!                            k_b,l_b,xj_b,istate_b,xI_b,                  &
+!                            ip,xI,energy,                                &
+!                            exp_gamma, HF_den,F_trans,x,CHnorm,Product_p)
+!      Product_g = exp(-exp_gamma*x)
+!      Product = Product_p*Product_g*factor
+!      WF = WF + Product/exp(-afit*x)*w_glag(ix)
+!      write(40,'(1x,f10.5,1x,e15.7,1x,f10.5,4(1x,e15.7))')x, w_glag(ix), factor,  &
+!           Product_g, Product_p, Product, Product/exp(-afit*x)
+!   end do
+!   WF = WF/afit
+
+!   write(6,*)exp_gamma, exp_gamma*HF_den
+!
+!   write(40,'(3(1x,i4),2(1x,f4.1))')k_a,l_a,istate_a,xj_a,xI 
+!   write(40,'(3(1x,i4),2(1x,f4.1))')k_b,l_b,istate_b,xj_b,xI_b 
+
+!   write(40,'(''HFden = '',1xf15.5,'' WF = '',1x,f10.6)')HF_den, WF
 
    return
 end subroutine Moldauer_WF
@@ -228,7 +276,7 @@ subroutine Moldauer_product(icomp,                               &
                             k_a,l_a,xj_a,istate_a,               &
                             k_b,l_b,xj_b,istate_b,xI_b,          &
                             ip,xI,energy,                        &
-                            HF_den,F_trans,x,CHnorm,Product)
+                            exp_gamma,HF_den,F_trans,x,CHnorm,Product)
 !
 !*******************************************************************************
 !
@@ -306,7 +354,7 @@ subroutine Moldauer_product(icomp,                               &
    real(kind=8), intent(in) :: xj_b,xI_b
    integer(kind=4), intent(in) :: ip
    real(kind=8), intent(in) :: xI
-   real(kind=8), intent(in) :: energy, HF_den, F_trans(4)
+   real(kind=8), intent(in) :: energy, exp_gamma, HF_den, F_trans(4)
    real(kind=8), intent(in) :: x
    real(kind=8), intent(in) :: CHnorm
    real(kind=8), intent(out) :: Product
@@ -326,7 +374,8 @@ subroutine Moldauer_product(icomp,                               &
    real(kind=8) :: p_spin
    real(kind=8) :: E_c, E_f
    real(kind=8) :: trans 
-   real(kind=8) :: par,cpar2
+   real(kind=8) :: par
+   integer(kind=4) :: cpar2
    real(kind=8) :: sum_Tg,sum_n,sum_p
    integer(kind=4) :: nptsx
    real(kind=8) :: trans_eff
@@ -347,6 +396,8 @@ subroutine Moldauer_product(icomp,                               &
    real(kind=8) :: E0, T, E11, ecut, emin
    real(kind=8) :: xZ_i, xA_i, xZ_part, xA_part
    real(kind=8) :: Coulomb_Barrier(6)
+   real(kind=8) :: HFcheck, exp_g
+   logical :: elastic
 !-------------------------------------------------------------------------+
 !------   External  Functions
    real(kind=8) :: tco_interpolate
@@ -380,6 +431,7 @@ subroutine Moldauer_product(icomp,                               &
    nbin = nucleus(icomp)%nbin
 
    Product = 0.0d0
+   HFcheck = 0.0d0
    num = 0
    num_bin = 0
    par = 2.0*real(ip)-1.0
@@ -392,22 +444,23 @@ subroutine Moldauer_product(icomp,                               &
       EM_c = 0
 !--------------------------   particle decay to continuous level bins
       p_spin = particle(k_c)%spin
+      isc = nint(2.0d0*p_spin)
       do n_c = 1, nucleus(i_c)%nbin                          !  loop over final excitation energies
          e_f = energy - nucleus(icomp)%sep_e(k_c) -                                       &
                nucleus(i_c)%e_grid(n_c)
          if(e_f - Coulomb_Barrier(k_c) <= 1.0d-6)exit
          do l_c = 0, particle(k_c)%lmax                      !  loop over l-partial wave
-            cpar2 = par*particle(k_c)%par*(-1.0d0)**l_c      !  parity for channel c
-            ip_c = nint((cpar2 + 1.0d0)/2.0d0)                     !  parity index for channel c
-            xj_c_min = abs(real(l_c,kind=8) - p_spin)
-            xj_c_max = real(l_c,kind=8) + p_spin
-            isc = nint(xj_c_max - xj_c_min)
+            cpar2 = nint(par*particle(k_c)%par*(-1.0d0)**l_c)      !  parity for channel c
+            ip_c = (cpar2 + 1)/2                     !  parity index for channel c
+            xj_c = real(l_c) - p_spin
             do iss = 0, isc
-               trans = tco_interpolate(e_f,particle(k_c)%nume,                            &
-                                       particle(k_c)%e_grid,                              &
-                                       particle(k_c)%trans_read(1,iss,l_c))
+               xj_c = xj_c + real(iss,kind=8)
+               if(xj_c < 0.0d0)cycle
+!               trans = tco_interpolate(e_f,particle(k_c)%nume,                            &
+!                                       particle(k_c)%e_grid,                              &
+!                                       particle(k_c)%trans_read(1,iss,l_c))
+               trans = particle(k_c)%trans_bin(iss,l_c,n_c)
                if(trans < trans_p_cut)cycle
-               xj_c = xj_c_min + real(iss,kind=8)
                xI_c_min = abs(xI - xj_c)
                xI_c_max = xI + xj_c
                Ix_c_min = max(nint(xI_c_min - nucleus(i_c)%jshift),0)
@@ -418,10 +471,10 @@ subroutine Moldauer_product(icomp,                               &
                           nucleus(i_c)%delta_e(n_c)
                   trans_eff = trans*N_eff
                   if(trans_eff/CHnorm < prob_cut)cycle
+                  HFcheck = HFcheck + trans_eff
                   exp_2 = 0.0d0
-                  if(k_b == k_c .and. l_b == l_c .and. istate_b == -n_c .and.             &
-                     abs(xj_b - xj_c) < 1.0d-3 .and. abs(xI_c - xI_b) < 1.0d-3)           &
-                     exp_2 = exp_2 + 1.0d0
+                  if(k_b == k_c .and. l_b == l_c .and. abs(xI_b - xI_c) < 1.0d-3 .and.    &
+                     abs(xj_b - xj_c) < 1.0d-3 .and. istate_b == -n_c )exp_2 = 1.0d0
                   xnu_c = xnu(trans,HF_den)
                   exponent = -0.5d0*xnu_c*N_eff - exp_2
                   Product = Product +                                                     &
@@ -435,48 +488,60 @@ subroutine Moldauer_product(icomp,                               &
       if(all_discrete_states)num_discrete = nucleus(i_c)%num_discrete
       do n_c = 1, num_discrete
          E_c = energy - nucleus(icomp)%sep_e(k_c) - nucleus(i_c)%state(n_c)%energy
-         if(E_c < 1.0d-6)exit
+         if(E_c - Coulomb_Barrier(k_c) < 1.0d-6)exit
          xI_c = nucleus(i_c)%state(n_c)%spin
-         xj_c_min = abs(xI - xI_c)
-         xj_c_max = xI + xI_c
+         xj_c_min = abs(xI_c - xI)
+         xj_c_max = xI_c + xI
          num_j = nint(xj_c_max - xj_c_min)
          do j = 0, num_j
             xj_c = real(j,kind=8) + xj_c_min
 
             l_c_min = nint(abs(xj_c - p_spin))
             l_c_max = min(particle(k_c)%lmax, nint(xj_c + p_spin))
-            cpar2 = particle(k_c)%par*nucleus(i_c)%state(n_c)%parity
-            ip_c = nint((cpar2+1.0d0)/2.0d0)
+            cpar2 = nint(particle(k_c)%par*nucleus(i_c)%state(n_c)%parity)
+            ip_c = (cpar2+1)/2
             if(ip == ip_c)then                            !   parities are the same, l=even
-               if(iand(l_c_min,1) == 1)l_c_min=l_c_min+1                  !   odd l_c_min, add 1 to make it even
-               if(iand(l_c_max,1) == 1)l_c_max=l_c_max-1                  !   odd l_c_max, subtract 1 to make it even
+               if(iand(l_c_min,1) == 1)l_c_min = l_c_min + 1                  !   odd l_c_min, add 1 to make it even
+               if(iand(l_c_max,1) == 1)l_c_max = l_c_max - 1                  !   odd l_c_max, subtract 1 to make it even
             else                                          !   parities are different, l=odd
-               if(iand(l_c_min,1) == 0)l_c_min=l_c_min+1                  !   even l_c_min, add 1 to make it even
-               if(iand(l_c_max,1) == 0)l_c_max=l_c_max-1                  !   even l_c_max, subtract 1 to make it even
+               if(iand(l_c_min,1) == 0)l_c_min = l_c_min + 1                  !   even l_c_min, add 1 to make it even
+               if(iand(l_c_max,1) == 0)l_c_max = l_c_max - 1                  !   even l_c_max, subtract 1 to make it even
             end if
-            do l_c = l_c_min,l_c_max,2
-               xj_c_min1 = abs(real(l_c,kind=8) - p_spin)
+            do l_c = l_c_min, l_c_max, 2
+               xj_c_min1 = (real(l_c,kind=8) - p_spin)
                iss = nint(xj_c - xj_c_min1)
                if(iss < 0 .or. iss > nint(2*p_spin))cycle
-               trans = tco_interpolate(E_c,particle(k_c)%nume,                            &
-                                      particle(k_c)%e_grid,                               &
-                                      particle(k_c)%trans_read(1,iss,l_c))  
+!               trans = tco_interpolate(E_c,particle(k_c)%nume,                            &
+!                                      particle(k_c)%e_grid,                               &
+!                                      particle(k_c)%trans_read(1,iss,l_c))  
+               trans = particle(k_c)%trans_discrete(iss,l_c,n_c)
+               elastic = .false. 
                if(trans < trans_p_cut)cycle
                if(trans/CHnorm < prob_cut)cycle
+               HFcheck = HFcheck + trans
                exp_1 = 0.0d0
                exp_2 = 0.0d0
                if(k_a == k_c .and. l_a == l_c .and.                                       &
-                  abs(xj_a - xj_c) < 1.0d-3 .and. istate_a == n_c )exp_1=1.0d0
+                  abs(xj_a - xj_c) < 1.0d-3 .and. istate_a == n_c )exp_1 = 1.0d0
                if(k_b == k_c .and. l_b == l_c .and.                                       &
-                  abs(xj_b - xj_c) < 1.0d-3 .and. istate_b == n_c )exp_2=1.0d0
+                  abs(xj_b - xj_c) < 1.0d-3 .and. istate_b == n_c )exp_2 = 1.0d0
                xnu_c = xnu(trans,HF_den)
                exponent = -0.5d0*xnu_c - exp_1 - exp_2
                Product = Product +                                                        &
                   log(1.0d0 + 2.0d0*trans*x/(xnu_c*HF_den))*exponent
+!   if(k_a == 1)then
+!   write(41,*)x,i_c,n_c,l_c,xj_c,exp_1,exp_2
+!   write(41,*)x,trans,xnu_c,exponent,log(1.0d0 + 2.0d0*trans*x/(xnu_c*HF_den))*exponent,   &
+!              Product 
+!   end if
             end do
          end do
       end do
    end do
+
+   exp_g = exp_gamma*HF_den
+!   write(41,*)'Check ',HFcheck, exp_gamma*HF_den, HF_den, (HFcheck+exp_gamma*HF_den)/HF_den
+!   write(6,*)'Check ',HFcheck, exp_gamma*HF_den, HF_den, (HFcheck+F_trans(4)+exp_gamma*HF_den)/HF_den
 
 !-------------------------------------------------------------------*
 !---------    Now fission, new approach                             *
@@ -567,14 +632,16 @@ subroutine Moldauer_product(icomp,                               &
 
          T_f = 0.0d0
 
-         emin = E11
+         emin = 0.0d0
          if(nucleus(icomp)%F_Barrier(ib)%num_discrete > 0)  &
             emin = nucleus(icomp)%F_Barrier(ib)%ecut
 
-         j = 0
+!----   k_c = -1 signals fission for this event
+
          converged = .false.
+         Ef = emin - 0.5d0*de
          do while (.not. converged)
-            Ef = real(j,kind=8)*de + emin 
+            Ef = Ef + de
 
             call rho_J_par_e(Ef,xI, ip, nucleus(icomp)%F_barrier(ib)%level_param,         &
                              nucleus(icomp)%F_barrier(ib)%vib_enh,                        &
@@ -598,13 +665,13 @@ subroutine Moldauer_product(icomp,                               &
             N_eff = rho*de
             xnu_c = xnu(trans,HF_den)
             exponent = -0.5d0*xnu_c*N_eff
+            if(k_c == -1)exponent = exponent - 1.0d0
             Product = Product +                                                           &
                       log(1.0d0 + 2.0d0*trans*x/(xnu_c*HF_den))*exponent
             tt = tt*rho*de
-            if(T_f > 0.0 .and. tt/T_f < 1.0d-6)converged = .true.
-            if(Ef > energy .and. tt < 1.0d-7)converged = .true.
+            if(T_f > 0.0 .and. tt/T_f < 1.0d-5)converged = .true.
+            if(Ef > energy .and. tt < 1.0d-6)converged = .true.
             T_f = T_f + tt
-            j = j + 1
          end do
       end if
    end if

@@ -151,6 +151,7 @@ subroutine start_IO
    write(13,*)'Calculation options set in this calculation:'
    write(13,*)
 !   write(13,*)'output_mode = ',output_mode
+   write(13,*)'Initial random seed = ',iseed_start
    write(13,*)'fission = ',fission
    write(13,*)'channels = ',channels
    write(13,*)'dump_events = ',dump_events

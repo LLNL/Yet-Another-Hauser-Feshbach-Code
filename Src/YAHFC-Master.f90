@@ -216,6 +216,7 @@ program YAHFC_MASTER
       integer(kind=4) :: icomp_f, ip_f, nbin_f, idb
       real(kind=8) :: xip_f
       character(len=1) ch_par(0:1)
+      integer(kind=4) :: i_f, isp_f_max
 
 
       integer(kind=4) :: num_part, n_dat, dim_part
@@ -405,7 +406,7 @@ program YAHFC_MASTER
 
       integer(kind=4) :: num_bad_samp_e, num_bad_spread_e
 
-      integer :: cnt, cnt_r, cnt_m
+      integer :: cnt, cnt1, cnt_r, cnt_m
 
       real(kind=8) :: ratio
 
@@ -531,6 +532,7 @@ program YAHFC_MASTER
       fit_gamma_gamma = .true.
       lev_fit_d0 = .true.
       fit_aparam = .true.
+      fit_ematch = .true.
       Apply_Coulomb_Barrier = .true.
       all_discrete_states = .false.
       Preeq_g_a = .false.
@@ -547,9 +549,11 @@ program YAHFC_MASTER
       pop_calc_prob = .true.
       pop_calc = .false.
       file_energy_index = .false.
-      read_saved_params = .true.
+      read_saved_params = .false.
       refresh_library_directories = .true.
       do_dwba = .false.
+      use_tran_states = .true.
+      use_eval_levels = .true.
 
       lev_option = -1
 
@@ -576,6 +580,7 @@ program YAHFC_MASTER
 !      max_em_l = 3
       tally_norm = 0.0d0
       if(iproc == 0)print_me = .true.
+      mold_cutoff = 50.0d0
 
 
 !
@@ -640,11 +645,35 @@ program YAHFC_MASTER
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !------------    Set up Gauss-Laguerre quadrature values
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-      n_glag = 50
+      n_glag = 100
       allocate(x_glag(n_glag),w_glag(n_glag))
       alf = 0.0d0
       bet = 0.0d0
       call gauss_quad(n_glag, 2, alf, bet, x_glag, w_glag)
+      allocate(gauss_laguerre(4))
+      gauss_laguerre(1)%num = 100
+      allocate(gauss_laguerre(1)%nodes(gauss_laguerre(1)%num))
+      allocate(gauss_laguerre(1)%weights(gauss_laguerre(1)%num))
+      call gauss_quad(gauss_laguerre(1)%num, 2, alf, bet,                &
+                      gauss_laguerre(1)%nodes, gauss_laguerre(1)%weights)
+      gauss_laguerre(2)%num = 50
+      allocate(gauss_laguerre(2)%nodes(gauss_laguerre(2)%num))
+      allocate(gauss_laguerre(2)%weights(gauss_laguerre(2)%num))
+      call gauss_quad(gauss_laguerre(2)%num, 2, alf, bet,                &
+                      gauss_laguerre(2)%nodes, gauss_laguerre(2)%weights)
+      gauss_laguerre(3)%num = 25
+      allocate(gauss_laguerre(3)%nodes(gauss_laguerre(3)%num))
+      allocate(gauss_laguerre(3)%weights(gauss_laguerre(3)%num))
+      call gauss_quad(gauss_laguerre(3)%num, 2, alf, bet,                &
+                      gauss_laguerre(3)%nodes, gauss_laguerre(3)%weights)
+      gauss_laguerre(4)%num = 10
+      allocate(gauss_laguerre(4)%nodes(gauss_laguerre(4)%num))
+      allocate(gauss_laguerre(4)%weights(gauss_laguerre(4)%num))
+      call gauss_quad(gauss_laguerre(4)%num, 2, alf, bet,                &
+                      gauss_laguerre(4)%nodes, gauss_laguerre(4)%weights)
+      
+
+
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !------------    Set up Gauss-Legendre quadrature values
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -713,40 +742,6 @@ program YAHFC_MASTER
 !
 !---   initialize iseed to int(pi*10^9)
 !
-      iseed_64 = 3141592654_int_64
-      iseed_32 = 3141592_int_32
-!---
-!---  "Randomize" iseed_64 with cnt from system clock. Generally, this
-!---  will be different for each runs.
-!---
-      cnt = 0
-      if(iproc == 0)then
-          call system_clock(COUNT = cnt, COUNT_RATE = cnt_r, COUNT_MAX = cnt_m)
-      end if
-#if(USE_MPI == 1)
-    call MPI_Barrier(icomm, ierr)
-    call MPI_BCAST(cnt, 1, MPI_INTEGER, 0, icomm, ierr)
-#endif
-      cnt = max(mod(cnt,100000),1)
-      iseed_64 = iseed_64 + cnt
-      iseed_64 = iseed_64 + iproc*31415_int_64
-      if(iand(iseed_64,1_int_64) /= 1_int_64)iseed_64 = iseed_64 + 1_int_64
-      iseed_64 = -iseed_64
-
-!---
-      cnt = 0
-      if(iproc == 0)then
-          call system_clock(COUNT = cnt, COUNT_RATE = cnt_r, COUNT_MAX = cnt_m)
-      end if
-#if(USE_MPI == 1)
-    call MPI_Barrier(icomm, ierr)
-    call MPI_BCAST(cnt, 1, MPI_INTEGER, 0, icomm, ierr)
-#endif
-      cnt = max(mod(cnt,100000),1)
-      iseed_32 = iseed_32 + cnt
-      iseed_32 = iseed_32 + iproc*31415_int_32
-      if(iand(iseed_32,1_int_32) /= 1_int_32)iseed_32 = iseed_32 + 1_int_32
-      iseed_32 = -iseed_32
 
 !----------------------------------------------------------------------
       do i=1,80
@@ -855,12 +850,13 @@ program YAHFC_MASTER
       if(iproc == 0)then
          open(unit=17,file='YAHFC-commands.txt',status='unknown')
          do while(.not. finish)
+            command(1:132) = ' '
             read(5,'(a)',iostat = read_err)command
             if(read_err /= 0)then
                finish = .true.
                cycle
             end if
-            if(command(1:1) == '#' .or. command(1:1) == '!')cycle
+            if(command(1:1) == '#' .or. command(1:1) == '!' .or. command(1:1) == ' ')cycle
             call parse_string(command, numw, startw, stopw)
             if(numw < 1)cycle
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -871,15 +867,16 @@ program YAHFC_MASTER
 !-----   check if energy input is in commands
             if(command(startw(1):stopw(1)) == 'proj_eminmax')energy_input = .true.
             if(command(startw(1):stopw(1)) == 'proj_e_file')energy_input = .true.
+            num_command = num_command + 1
+            write(17,'(a132)')command
             if(command(startw(1):stopw(1)) == 'end')then
                 finish = .true.
                 cycle
             end if
-            num_command = num_command + 1
-            write(17,'(a132)')command
          end do
          close(unit=17)
       end if
+
 !
 !----------------------------------------------------------
 !----   NEED TO MPI_BCAST num_command here
@@ -896,8 +893,8 @@ program YAHFC_MASTER
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !-------   Set up buffer for input commands
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-      if(.not. allocated(command_buffer))allocate(command_buffer(num_command))
-      if(.not. allocated(command_rank))allocate(command_rank(num_command))
+      if(.not. allocated(command_buffer))allocate(command_buffer(num_command+1))
+      if(.not. allocated(command_rank))allocate(command_rank(num_command+1))
       command_buffer(1:num_command) = blank132
       command_rank(1:num_command) = 10
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -915,8 +912,8 @@ program YAHFC_MASTER
          command_rank(i) = rank_commands(command_buffer(i))
       end do
 
-!---------------------------------------------------------------------------+
-!-------   order the commands by rank                                       +
+!----------------------------------------------------------------------------------------+
+!-------   order the commands by rank                                                    +
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !-------   ranks need to be adjusted.                                                    +
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -932,6 +929,42 @@ program YAHFC_MASTER
             end if
          end do
       end do
+!----------------------------------------------------------------------------------------+
+!-------   Check if ran_seed is in the commands (would have highest rank)                +
+!-------   If not add it and push other commands down, this is why buffer was allocated  +
+!-------   to num_command + 1                                                            +
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+      call parse_string(command_buffer(1), numw, startw, stopw)
+      if(command_buffer(1)(startw(1):stopw(1)) /= 'ran_seed')then
+         do i = num_command, 1, -1
+            command_buffer(i+1) = command_buffer(i)
+            command_rank(i+1) = command_rank(i)
+         end do
+         num_command = num_command + 1
+         command_buffer(1)(1:9) = 'ran_seed '
+!----------------------------------------------------------------------------------------+
+!---  "Randomize" iseed_32 with cnt from system clock. Generally, this                   +
+!---  will be different for each runs.                                                   +
+!----------------------------------------------------------------------------------------+
+         cnt = 0
+         if(iproc == 0)then
+             call system_clock(COUNT = cnt, COUNT_RATE = cnt_r, COUNT_MAX = cnt_m)
+             cnt = max(mod(cnt,10000),1)
+             call system_clock(COUNT = cnt1, COUNT_RATE = cnt_r, COUNT_MAX = cnt_m)
+             cnt1 = max(mod(cnt,10000),1)
+             cnt = cnt*cnt1
+         end if
+#if(USE_MPI == 1)
+         call MPI_Barrier(icomm, ierr)
+         call MPI_BCAST(cnt, 1, MPI_INTEGER, 0, icomm, ierr)
+#endif
+         iseed_32 = cnt
+         if(iand(iseed_32,1) /= 1)iseed_32 = iseed_32 + 1
+         iseed_start = iseed_32
+         write(command_buffer(1)(10:19),'(i10)')iseed_32
+         command_rank(1) = 0
+      end if
+
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !-------   Write back out to unit=17 in the order of execution                           +
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -1075,13 +1108,18 @@ program YAHFC_MASTER
 !---------    Check if we have any bad data set up that would                   +
 !---------    mess things up.                                                   +
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-      call fail_safe_check
+      call fail_safe_check(de)
 
 !----------------------------------------------------------------------------------------+
 !------    Do clean up and finish setting up nuclei, level density, etc.                 +
 !----------------------------------------------------------------------------------------+
       do icomp = 1, num_comp
          ia = nucleus(icomp)%A
+!-------------------------------------------------------------------------------
+!----    Set EM strength parameters again if they have been adjusted
+!----    and some are still default
+!-------------------------------------------------------------------------------
+         call EM_str_param(icomp)
 !----------------------------------------------------------------------------------------+
 !-------------    Check if D0exp > 0 and requesting to fit it, if not
 !-------------    make flag to fit it .false.
@@ -1097,14 +1135,22 @@ program YAHFC_MASTER
            if(iproc == 0)then
               write(6,*)
               write(6,'(''******************************************************************'')')
-              write(6,'(''*****    CAUTION   CAUTION   CAUTION  CAUTION   CAUTION      *****'')')
+              write(6,'(''****** CAUTION ** CAUTION ** CAUTION ** CAUTION ** CAUTION  ******'')')
               write(6,'(''*****  The fitted cumulative level density for '',a5,'' at      *****'')')nucleus(icomp)%Label
               write(6,'(''*****  E_cut is more than 1.3 larger than the experimental   *****'')')
-              write(6,'(''*****  value. You should check this and possibly change      *****'')')
-              write(6,'(''*****  E_cut with the command "lev_ecut Z A  Value"          *****'')')
-              write(6,'(''*****  Problems of this nature usually means E_cut           *****'')')
-              write(6,'(''*****  is too high                                           *****'')')
-              write(6,'(''*****    CAUTION   CAUTION   CAUTION  CAUTION   CAUTION      *****'')')
+              write(6,'(''*****  value. You should check this. Possible causes are:    *****'')')
+              write(6,'(''*****   1. Ecut is too high and the experimental spectrum    *****'')')
+              write(6,'(''*****      is incomplete up to Ecut, so the modled spectrum  *****'')')
+              write(6,'(''*****      is higher than experiment.                        *****'')')
+              write(6,'(''*****   2. Level density parameters such as the pairing gap  *****'')')
+              write(6,'(''*****      and/or the shell correction are such that the     *****'')')
+              write(6,'(''*****      modeled level density is too large and cannot     *****'')')
+              write(6,'(''*****      reproduce the experimental spectrum. This can     *****'')')
+              write(6,'(''*****      can happen if D0 is not known, and in odd-odd     *****'')')
+              write(6,'(''*****      nuclei where the default pairing gap is zero.     *****'')')
+              write(6,'(''*****   3. There are too few discrete states to effectively  *****'')')
+              write(6,'(''*****      fit the experimental cumulative density.          *****'')')
+              write(6,'(''****** CAUTION ** CAUTION ** CAUTION ** CAUTION ** CAUTION  ******'')')
               write(6,'(''******************************************************************'')')
               write(6,*)
            end if
@@ -1112,15 +1158,17 @@ program YAHFC_MASTER
         if(nucleus(icomp)%fit_ematch .and. nucleus(icomp)%cum_rho_ratio < 0.7d0)then
            if(iproc == 0)then
               write(6,*)
-              write(6,'(''******************************************************************'')')
+              write(6,'(''****** CAUTION ** CAUTION ** CAUTION ** CAUTION ** CAUTION  ******'')')
               write(6,'(''*****    CAUTION   CAUTION   CAUTION  CAUTION   CAUTION      *****'')')
               write(6,'(''*****  The fitted cumulative level density for '',a5,'' at      *****'')')nucleus(icomp)%Label
               write(6,'(''*****  E_cut is more than 0.7 smaller than the experimental  *****'')')
-              write(6,'(''*****  value. You should check this and possibly change      *****'')')
-              write(6,'(''*****  E_cut with the command "lev_ecut Z A  Value"          *****'')')
-              write(6,'(''*****  Problems of this nature usually means E_cut           *****'')')
-              write(6,'(''*****  is too high                                           *****'')')
-              write(6,'(''*****    CAUTION   CAUTION   CAUTION  CAUTION   CAUTION      *****'')')
+              write(6,'(''*****  value. You should check this and possibly adjust      *****'')')
+              write(6,'(''*****  level density parameters. In this case the            *****'')')
+              write(6,'(''*****  modeled level density is too small and cannot be      *****'')')
+              write(6,'(''*****  made to match the experimental spectrum.              *****'')')
+              write(6,'(''*****  Possibly there are too few experimental states to     *****'')')
+              write(6,'(''*****  effectively fit the experimental cumulative density   *****'')')
+              write(6,'(''****** CAUTION ** CAUTION ** CAUTION ** CAUTION ** CAUTION  ******'')')
               write(6,'(''******************************************************************'')')
               write(6,*)
            end if
@@ -1131,6 +1179,7 @@ program YAHFC_MASTER
 !----   excitation energies
 !----------------------------------------------------------------------------------------+
          if(nucleus(icomp)%fission)then
+            call Fission_levels(data_path,len_path,icomp)
             do i = 1, nucleus(icomp)%F_n_barr
                if(nucleus(icomp)%F_Barrier(i)%level_param(6) >                        &
                   nucleus(icomp)%F_Barrier(i)%level_param(3))then
@@ -1150,7 +1199,6 @@ program YAHFC_MASTER
                   call exit_YAHFC(101)
                end if
             end do
-            call Fission_levels(icomp)
          end if
         if(.not. all_discrete_states)nucleus(icomp)%num_discrete = nucleus(icomp)%ncut
       end do
@@ -1455,19 +1503,19 @@ program YAHFC_MASTER
              allocate(preeq_spect_full(0:6,0:num_e))
           else
              allocate(preeq_css(0:6,1))
-             preeq_css(0:6,1:num_energies) = 0.0d0
-             allocate(preeq_spect(0:6,0))
-             preeq_spect(0:6,0) = 0.0d0
-             allocate(preeq_spect_full(0:6,0))
-             preeq_spect_full(0:6,0) = 0.0d0
+             preeq_css(0:6,1:1) = 0.0d0
+             allocate(preeq_spect(0:6,1))
+             preeq_spect(0:6,1) = 0.0d0
+             allocate(preeq_spect_full(0:6,1))
+             preeq_spect_full(0:6,1) = 0.0d0
           end if
        else
           allocate(preeq_css(0:6,1))
-          preeq_css(0:6,1:num_energies) = 0.0d0
-          allocate(preeq_spect(0:6,0))
-          preeq_spect(0:6,0) = 0.0d0
-          allocate(preeq_spect_full(0:6,0))
-          preeq_spect_full(0:6,0) = 0.0d0
+          preeq_css(0:6,1) = 0.0d0
+          allocate(preeq_spect(0:6,1))
+          preeq_spect(0:6,1) = 0.0d0
+          allocate(preeq_spect_full(0:6,1))
+          preeq_spect_full(0:6,1) = 0.0d0
        end if
 !-------------------------------------------------------------------------+
 !------                                                                   +
@@ -1574,6 +1622,22 @@ program YAHFC_MASTER
          end do
       end do
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!     Arrays used to cache transmission coefficients used in               +
+!     HF_primary_decay_setup and to compute the Molauer product            +
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+      if(.not. pop_calc)then
+         do if1 = 1, nucleus(1)%num_decay                                      !  loop over nuclei in the decay chain
+            i_f = nucleus(1)%decay_to(if1)
+            k = nucleus(1)%decay_particle(if1)
+            isp_f_max = nint(2.0d0*particle(k)%spin)
+            if(k == 0)cycle
+            if(.not. allocated(particle(k)%trans_bin))                                 &
+               allocate(particle(k)%trans_bin(0:isp_f_max,0:particle(k)%lmax,nucleus(i_f)%nbin))
+            if(.not. allocated(particle(k)%trans_discrete))                            &
+               allocate(particle(k)%trans_discrete(0:isp_f_max,0:particle(k)%lmax,nucleus(i_f)%num_discrete))
+         end do
+      end if
 
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !     Arrays tracking Inelastic and Compound Elastic Channels              +
@@ -1947,7 +2011,7 @@ program YAHFC_MASTER
             end if
          end if
 !----------------------------------
-         nucleus(1:num_comp)%Fiss_cs = 0.0d0
+!         nucleus(1:num_comp)%Fiss_cs = 0.0d0
          nbin = find_ibin(ex_tot,1)
 
          if(fission)fission_cs(in) = 0.0d0
@@ -1979,26 +2043,23 @@ program YAHFC_MASTER
 !------  if necessary. Thus, this nucleus is treated slightly differnet     +
 !------  than others in the chain.                                          +
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-               if(WF_model == 1)then
-                  if(e_in > 0.5d0 .and. e_in < 1.0d0 .and. n_glag .ne. 40)then
-                     n_glag = 40
-                     alf = 0.0d0
-                     bet = 0.0d0
-                     call gauss_quad(n_glag, 2, alf, bet, x_glag, w_glag)
-                  elseif(e_in >= 1.0d0 .and. e_in < 1.75d0 .and. n_glag .ne. 25)then
-                     n_glag = 25
-                     alf = 0.0d0
-                     bet = 0.0d0
-                     call gauss_quad(n_glag, 2, alf, bet, x_glag, w_glag)
-                  elseif(e_in >= 1.75d0 .and. n_glag .ne. 20)then
-                     n_glag = 20
-                     alf = 0.0d0
-                     bet = 0.0d0
-                     call gauss_quad(n_glag, 2, alf, bet, x_glag, w_glag)
-                  end if
-               end if
+!               if(WF_model == 1)then
+!                  alf = 0.0d0
+!                  bet = 0.0d0
+!                  if(e_in < 0.5d0)then
+!                     n_glag = 100
+!                  elseif(e_in > 0.5d0 .and. e_in < 1.0d0)then
+!                     n_glag = 50
+!                  elseif(e_in >= 1.0d0 .and. e_in < 2.0d0)then
+!                     n_glag = 25
+!                  elseif(e_in >= 2.0d0)then
+!                     n_glag = 10
+!                  end if
+!                  n_glag = 10
+!                  call gauss_quad(n_glag, 2, alf, bet, x_glag, w_glag)
+!               end if
 
-               call HF_primary_decay_setup(e_in,iproj,itarget,1,istate,ex_tot)
+               call HF_primary_decay_setup(e_in,iproj,itarget,1,istate,ex_tot,absorption_cs(in))
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !------    We have both the channel formation probability and all the decay
 !------    probabilities. There are rare occasions with very low formation
@@ -2579,6 +2640,18 @@ program YAHFC_MASTER
                            Ex = OpticalCS%state(n)%E_min +                          &
                                 random_32(iseed_32)*OpticalCS%state(n)%Delta_E
                            nbin_f = find_ibin(Ex,itarget)
+                           if(nbin_f < 1)then
+                              if(iproc == 0)then
+                                 write(6,*)
+                                 write(6,*)'***************************************************************'
+                                 write(6,*)'ERROR - Attempting to excite a continuous DWBA state below'
+                                 write(6,*)'the first bin. To continue either rerun Frescox or manually'
+                                 write(6,*)'set Ecut for the target nucleus below ',OpticalCS%state(n)%E_min
+                                 write(6,*)'***************************************************************'
+                                 write(6,*)
+                              end if
+                              call exit_YAHFC(902)
+                           end if
                            Ex = nucleus(itarget)%e_grid(nbin_f)
                            E_f = ex_tot - nucleus(icomp_i)%sep_e(iproj) - Ex
                            Ex_f = nucleus(itarget)%e_grid(nbin_f)

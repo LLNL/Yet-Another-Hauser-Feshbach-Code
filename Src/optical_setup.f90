@@ -462,7 +462,7 @@ subroutine optical_setup(data_path, len_path, iproj, itarget,                  &
          end do
 !
 !-----   Also, regarding DWBA states, set up excitation energy window for sampling them. This addresses an issue 
-!-----   arising when the spacing between the stated DWBA states is greater than thespacing between the bins
+!-----   arising when the spacing between the stated DWBA states is greater than the spacing between the bins
 !-----   This leads to a funny series of peaks. Overall, these DWBA states to bins, are meant to be
 !-----   distributed "evenly" in the energy window between adjacent DWBA states
          if(OpticalCS%numcc > 1)then
@@ -472,14 +472,14 @@ subroutine optical_setup(data_path, len_path, iproj, itarget,                  &
                if(OpticalCS%state(in)%state_type /= 1)then
                   if(in == OpticalCS%numcc)then              !   last one, no states above
                      if(OpticalCS%state(in-1)%state_type /= 1)then
-                        OpticalCS%state(in)%Delta_E = OpticalCS%state(in)%energy -             &
+                        OpticalCS%state(in)%Delta_E = OpticalCS%state(in)%energy -           &
                                                       OpticalCS%state(in-1)%energy
-                        OpticalCS%state(in)%E_min = OpticalCS%state(in)%energy -               &
+                        OpticalCS%state(in)%E_min = OpticalCS%state(in)%energy -             &
                                                     OpticalCS%state(in)%Delta_E/2.0d0
                      else
-                        OpticalCS%state(in)%Delta_E = OpticalCS%state(in+1)%energy -             &
+                        OpticalCS%state(in)%Delta_E = OpticalCS%state(in+1)%energy -         &
                                                       OpticalCS%state(in)%energy
-                        OpticalCS%state(in)%E_min = OpticalCS%state(in)%energy -               &
+                        OpticalCS%state(in)%E_min = OpticalCS%state(in)%energy -             &
                                                     OpticalCS%state(in)%Delta_E/2.0d0
                      end if
                      cycle
@@ -527,8 +527,6 @@ subroutine optical_setup(data_path, len_path, iproj, itarget,                  &
             if(cc_index(n) == target%istate .and. OpticalCS%state(n)%state_type == 1)OpticalCS%ielastic = n
          end do
          deallocate(cc_index)
-
-
       end if
    end do
 
