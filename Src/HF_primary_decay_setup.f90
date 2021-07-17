@@ -301,12 +301,12 @@ subroutine HF_primary_decay_setup(e_in,iproj,itarget,icomp,                  &
                         cpar2 = par*(-1)**l                                           !  Parity of nculeus and emitted part
                         par_f = cpar2*nint(particle(k)%par)                           !  Parity of final nucleus
                         ip_f = (par_f + 1)/2
-                        xj_f = real(l,kind=8) - p_spin
+                        xj_f_min = real(l,kind=8) - p_spin
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !------   Now Loop over possible exit particle angular momenta j       +
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
                         do is_f = 0, isp_f_max
-                           xj_f = xj_f + real(is_f,kind=8)
+                           xj_f = xj_f_min + real(is_f,kind=8)
                            if(xj_f < 0.0d0)cycle
                            trans = tco_interpolate(e_f,particle(k)%nume,             &
                                                    particle(k)%e_grid,               &
@@ -531,12 +531,12 @@ subroutine HF_primary_decay_setup(e_in,iproj,itarget,icomp,                  &
                            cpar2 = par*(-1)**l                                      !  Parity of nculeus and emitted part
                            par_f = cpar2*nint(particle(k)%par)                      !  Parity of final nucleus
                            ip_f = (par_f + 1)/2
-                           xj_f = real(l,kind=8) - p_spin
+                           xj_f_min = real(l,kind=8) - p_spin
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !------   Now Loop over possible exit particle angular momenta j       +
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
                            do is_f = 0, isp_f_max
-                              xj_f = xj_f + real(is_f,kind=8)
+                              xj_f = xj_f_min + real(is_f,kind=8)
                               if(xj_f < 0.0d0)cycle
 !                              trans = tco_interpolate(e_f,particle(k)%nume,             &
 !                                                      particle(k)%e_grid,               &

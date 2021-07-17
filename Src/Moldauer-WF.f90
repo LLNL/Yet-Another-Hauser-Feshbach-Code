@@ -306,7 +306,6 @@ subroutine Moldauer_product(icomp,                               &
 !
 !     External functions:
 !
-!       real(kind=8) :: tco_interpolate
 !       real(kind=8) :: xnu
 !       real(kind=8) :: exp_1,exp_2
 !       real(kind=8) :: HW_trans
@@ -400,7 +399,6 @@ subroutine Moldauer_product(icomp,                               &
    logical :: elastic
 !-------------------------------------------------------------------------+
 !------   External  Functions
-   real(kind=8) :: tco_interpolate
    real(kind=8) :: xnu
    real(kind=8) :: exp_1,exp_2
    real(kind=8) :: HW_trans
@@ -452,9 +450,9 @@ subroutine Moldauer_product(icomp,                               &
          do l_c = 0, particle(k_c)%lmax                      !  loop over l-partial wave
             cpar2 = nint(par*particle(k_c)%par*(-1.0d0)**l_c)      !  parity for channel c
             ip_c = (cpar2 + 1)/2                     !  parity index for channel c
-            xj_c = real(l_c) - p_spin
+            xj_c_min = real(l_c) - p_spin
             do iss = 0, isc
-               xj_c = xj_c + real(iss,kind=8)
+               xj_c = xj_c_min + real(iss,kind=8)
                if(xj_c < 0.0d0)cycle
 !               trans = tco_interpolate(e_f,particle(k_c)%nume,                            &
 !                                       particle(k_c)%e_grid,                              &
@@ -611,6 +609,7 @@ subroutine Moldauer_product(icomp,                               &
                xnu_c = xnu(tt,HF_den)
                trans = tt*P_f
                exponent = -0.5d0*xnu_c
+               if(k_c == -1)exponent = exponent - 1.0d0
                Product = Product + log(1.0d0 + 2.0d0*trans*x/(xnu_c*HF_den))*exponent
             end if
          end do

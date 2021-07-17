@@ -926,10 +926,13 @@ Version 3.61
     for DWBA state to exit program and throw and error message.
 16. Fixed bug parsing command "lev_fit_d0" - check was on "lev_fit_D0".
 17. Fixed bug where Ematch could fit incorrectly (introduced around 3.53).
-18. Added command to set maximum value of the HF denominator for with the 
+
+Version 3.62
+1.  Added command to set maximum value of the HF denominator for with the 
     Moldauer width fluctuations are computed.
-19. Added cache to store transmission coefficients used in H_primary_decay_setup
+2.  Added cache to store transmission coefficients used in H_primary_decay_setup
     and to compute the Moldauer products. 
+3.  Fixed bug computing xj = l+s in HF denominator calculations.
  
  
 

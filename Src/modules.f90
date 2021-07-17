@@ -32,7 +32,7 @@ module options
 !
    use variable_kinds
    character(len=132) :: version
-   parameter (version = 'MC-3.61')
+   parameter (version = 'MC-3.62')
    integer(kind=int_64) :: iseed_64
    integer(kind=int_32) :: iseed_32
    integer(kind=int_32) :: iseed_start
