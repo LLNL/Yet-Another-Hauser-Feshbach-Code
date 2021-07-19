@@ -64,6 +64,7 @@ subroutine Moldauer_WF(icomp,                                       &
 !
 !*******************************************************************************
 !
+   use nodeinfo
    use variable_kinds
    use options
    use nuclei
@@ -71,6 +72,9 @@ subroutine Moldauer_WF(icomp,                                       &
    use constants 
    use Gauss_integration
    implicit none
+#if(USE_MPI==1)
+   include 'mpif.h'
+#endif
    integer(kind=4), intent(in) :: icomp
    integer(kind=4), intent(in) :: k_a, l_a, istate_a
    real(kind=8), intent(in) :: xj_a, xI_a, trans_a
@@ -178,6 +182,9 @@ subroutine Moldauer_WF(icomp,                                       &
 !      write(40,'(1x,f10.5,1x,e15.7,1x,f10.5,4(1x,e15.7))')x, w_glag(ix), factor,  &
 !           Product_g, Product_p, Product, Product/exp(-afit*x)
    end do
+#if(USE_MPI==1)
+   if(nproc > 1)call MPI_Allreduce(MPI_IN_PLACE, WF, 1, MPI_REAL8, MPI_SUM, icomm, ierr)
+#endif
    WF = WF/afit
 
 
@@ -308,7 +315,7 @@ subroutine Moldauer_product(icomp,                               &
 !
 !       real(kind=8) :: xnu
 !       real(kind=8) :: exp_1,exp_2
-!       real(kind=8) :: HW_trans
+!!       real(kind=8) :: HW_trans
 !       logical :: real8_equal
 !
 !     MPI routines:

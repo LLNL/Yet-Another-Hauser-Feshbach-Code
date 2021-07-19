@@ -487,6 +487,7 @@ program YAHFC_MASTER
 !----------------------------------------------------------------------+
 #if(USE_MPI == 1)
    call MPI_INIT(ierr)
+
    icomm = MPI_COMM_WORLD
    call MPI_COMM_RANK(icomm, iproc, ierr)
    call MPI_COMM_SIZE(icomm, nproc, ierr)
@@ -742,6 +743,25 @@ program YAHFC_MASTER
 !
 !---   initialize iseed to int(pi*10^9)
 !
+      iseed_64 = 3141592654_int_64
+      iseed_32 = 3141592_int_64
+!---
+!---  "Randomize" iseed_64 with cnt from system clock. Generally, this
+!---  will be different for each runs.
+!---
+      call system_clock(COUNT = cnt, COUNT_RATE = cnt_r, COUNT_MAX = cnt_m)
+      cnt = max(mod(cnt,100000),1)
+      iseed_64 = iseed_64 + cnt
+      iseed_64 = iseed_64 + iproc*31415_int_64
+      if(iand(iseed_64,1_int_64) /= 1_int_64)iseed_64 = iseed_64 + 1_int_64
+      iseed_64 = -iseed_64
+
+      call system_clock(COUNT = cnt, COUNT_RATE = cnt_r, COUNT_MAX = cnt_m)
+      cnt = max(mod(cnt,100000),1)
+      iseed_32 = iseed_32 + cnt
+      iseed_32 = iseed_32 + iproc*31415_int_32
+      if(iand(iseed_32,1_int_32) /= 1_int_32)iseed_32 = iseed_32 + 1_int_32
+      iseed_32 = -iseed_32
 
 !----------------------------------------------------------------------
       do i=1,80
@@ -1657,9 +1677,6 @@ program YAHFC_MASTER
          if(.not.allocated(Inelastic_Ang_L))                                                       &
             allocate(Inelastic_Ang_L(0:Ang_L_max,0:nucleus(itarget)%num_discrete,1:num_energies))
          Inelastic_Ang_L(0:Ang_L_max,0:nucleus(itarget)%num_discrete,1:num_energies) = 0.0d0
-!-rem         if(.not.allocated(Inelastic_Ang_dist))                                                    &
-!-rem             allocate(Inelastic_Ang_dist(0:max_jx_10,1:nucleus(itarget)%num_discrete,1:num_energies))
-!-rem         Inelastic_Ang_dist(0:max_jx_10,1:nucleus(itarget)%num_discrete,1:num_energies) = 0.0d0
 !-------------
          if(iproj > 0)then
             if(.not.allocated(direct_Spectrum))allocate(direct_Spectrum(0:num_e))
@@ -1747,8 +1764,6 @@ program YAHFC_MASTER
          Inelastic_L_max(1,1) = 0
          if(.not.allocated(Inelastic_Ang_L))allocate(Inelastic_Ang_L(1,1,1))
          Inelastic_Ang_L(1,1,1) = 0.0d0
-!-rem         if(.not.allocated(Inelastic_Ang_dist))allocate(Inelastic_Ang_dist(1,1,1))
-!-rem         Inelastic_Ang_dist(1,1,1) = 0.0d0
 !-------------
          if(.not.allocated(direct_Spectrum))allocate(direct_Spectrum(1))
          direct_Spectrum(1) = 0.0d0
