@@ -230,7 +230,7 @@ subroutine memory_used
             end do
          end do    
       end if
-      if(print_me)write(6,'(''Memory used for Exit_CHannel arrays     = '',f14.2,'' kbytes'')')mem_channels/1.0d3
+      if(print_me)write(6,'(''Memory used for Exit_Channel arrays     = '',f14.2,'' kbytes'')')mem_channels/1.0d3
 !-------------------------------------------------------------------------+
 !------   Memory in Inelastic arrays
 !-------------------------------------------------------------------------+

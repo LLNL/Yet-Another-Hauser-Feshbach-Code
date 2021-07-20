@@ -138,7 +138,7 @@ subroutine get_spectrum(data_path, len_path, overide, symb, iz, ia, inuc)
    found = .false.
    io_error = 0
    do while(.not. found .and. io_error == 0)
-      read(51,'(i3,a2)',iostat=io_error)iap,symbb !  find element, end -. end of subroutine abort
+      read(51,'(i3,a2)',iostat = io_error)iap,symbb !  find element, end -. end of subroutine abort
       if(symbb(2:2) == ' ')then
          symbb(2:2) = symbb(1:1)
          symbb(1:1) = ' '
@@ -182,50 +182,103 @@ subroutine get_spectrum(data_path, len_path, overide, symb, iz, ia, inuc)
    close(unit=51)
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !------  Open data file
-!------   First check to see if it exists in the evaluated area
+!------   First check to see if it exists in the my evaluated area
 !------   set internal overide switch to that passed in
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+   nucleus(inuc)%eval_levels = 0
    evaluated = .false.
    toveride = overide 
    fexist = .false.
    found = .false.
-   inquire(file=data_path(1:len_path)//'levels-eval/'//fname(1:len_fname),exist=fexist)
-   if(fexist)then
-      if(iproc == 0)write(6,'(''Looking in evaluated file for '',a5)')nucleus(inuc)%Label(1:ilast)
-      open(unit=51,                                                                   &
-         file=data_path(1:len_path)//'levels-eval/'//fname(1:len_fname),              &
-         status='old')
-      io_error = 0
-      do while(.not. found .and. io_error == 0)
-         line(1:300) = ' '
-         read(51,'(a)', iostat=io_error)line
-         if(line(1:1) == '#' .or. line(1:1) == '!')cycle
-         read(line,'(i3,a2)')iap,symbb !  find element, end -. end of subroutine abort
-         if(symbb(2:2) == ' ')then
-            symbb(2:2) = symbb(1:1)
-            symbb(1:1) = ' '
-         end if
-         if(ia == iap .and. symb == symbb)then
-            backspace(51)
-            read(51,'(a5,6i5,2f12.6)',iostat=io_error)char, iap, izp, nol, nog, nmax, nc, sn, sp
-            found = .true.
-            evaluated = .true.               ! skip optional additional input
-         end if
-      end do
-      if(.not. found)then
-          if(iproc == 0)write(6,'(a5,'' Not found in file '',a70)')                           &
-                                     nucleus(inuc)%Label(1:ilast),                            &
-                                     data_path(1:len_path)//'levels-eval/'//fname(1:len_fname)
-          close(unit=51)
+   if(use_eval_levels)then
+      inquire(file=data_path(1:len_path)//'my-levels-eval/'//fname(1:len_fname),exist=fexist)
+      if(fexist)then
+         open(unit=51,                                                                   &
+            file=data_path(1:len_path)//'my-levels-eval/'//fname(1:len_fname),              &
+            status='old')
+         io_error = 0
+         do while(.not. found .and. io_error == 0)
+            line(1:300) = ' '
+            read(51,'(a)', iostat=io_error)line
+            if(line(1:1) == '#' .or. line(1:1) == '!')cycle
+            read(line,'(i3,a2)')iap,symbb !  find element, end -. end of subroutine abort
+            if(symbb(2:2) == ' ')then
+               symbb(2:2) = symbb(1:1)
+               symbb(1:1) = ' '
+            end if
+            if(ia == iap .and. symb == symbb)then
+               backspace(51)
+               read(51,'(a5,6i5,2f12.6)',iostat=io_error)char, iap, izp, nol, nog, nmax, nc, sn, sp
+               nucleus(inuc)%eval_levels = 3
+               found = .true.
+               evaluated = .true.               ! skip optional additional input
+               if(print_me)then
+                  write(6,*)
+                  write(6,'(''******************************************************'')')
+                  write(6,'(''Using levels found in USER evaluated file for '',a5,'' *'')')nucleus(inuc)%Label(1:ilast)
+                  write(6,'(''******************************************************'')')
+                  write(6,*)
+               end if
+            end if
+         end do
+!         if(.not. found)then
+!             if(iproc == 0)write(6,'(a5,'' Not found in file '',a70)')                           &
+!                                        nucleus(inuc)%Label(1:ilast),                            &
+!                                        data_path(1:len_path)//'levels-eval/'//fname(1:len_fname)
+!             close(unit=51)
+!         end if
+      end if
+   end if
+!++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!------   If it isn't found in my evaluates area, try the distribution evaluated area
+!------   set internal overide switch to that passed in
+!++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+   if(.not. found .and. use_eval_levels)then
+      inquire(file=data_path(1:len_path)//'levels-eval/'//fname(1:len_fname),exist=fexist)
+      if(fexist)then
+         open(unit=51,                                                                   &
+            file=data_path(1:len_path)//'levels-eval/'//fname(1:len_fname),              &
+            status='old')
+         io_error = 0
+         do while(.not. found .and. io_error == 0)
+            line(1:300) = ' '
+            read(51,'(a)', iostat=io_error)line
+            if(line(1:1) == '#' .or. line(1:1) == '!')cycle
+            read(line,'(i3,a2)')iap,symbb !  find element, end -. end of subroutine abort
+            if(symbb(2:2) == ' ')then
+               symbb(2:2) = symbb(1:1)
+               symbb(1:1) = ' '
+            end if
+            if(ia == iap .and. symb == symbb)then
+               backspace(51)
+               read(51,'(a5,6i5,2f12.6)',iostat=io_error)char, iap, izp, nol, nog, nmax, nc, sn, sp
+               found = .true.
+               evaluated = .true.               ! skip optional additional input
+               nucleus(inuc)%eval_levels = 2
+               if(print_me)then
+                  write(6,*)
+                  write(6,'(''*************************************************************'')')
+                  write(6,'(''Using levels found in DISTRIBUTION evaluated file for '',a5,'' *'')')  &
+                  nucleus(inuc)%Label(1:ilast)
+                  write(6,'(''*************************************************************'')')
+                  write(6,*)
+               end if
+            end if
+         end do
+!         if(.not. found)then
+!             if(iproc == 0)write(6,'(a5,'' Not found in file '',a70)')                           &
+!                                        nucleus(inuc)%Label(1:ilast),                            &
+!                                        data_path(1:len_path)//'levels-eval/'//fname(1:len_fname)
+!             close(unit=51)
+!         end if
       end if
    end if
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !----    It isn't in the evaluated file, so try standard RIPL file
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    if(.not. found)then
-      if(iproc == 0)write(6,'(''Looking in standard RIPL-3 file '',a70)')                  &
-            data_path(1:len_path)//'levels/'//fname(1:len_fname)
-      open(unit=51,file=data_path(1:len_path)//'levels/'//fname(1:len_fname),              &
+      open(unit=51,file=data_path(1:len_path)//'levels/'//fname(1:len_fname),                 &
            status='old')
       io_error = 0
       do while(.not. found .and. io_error == 0)
@@ -238,6 +291,14 @@ subroutine get_spectrum(data_path, len_path, overide, symb, iz, ia, inuc)
             backspace(51)
             read(51,'(a5,6i5,2f12.6)',iostat=io_error)char, iap, izp, nol, nog, nmax, nc, sn, sp
             found = .true.
+            nucleus(inuc)%eval_levels = 1
+            if(print_me)then
+               write(6,*)
+               write(6,'(''****************************************************'')')
+               write(6,'(''Using levels in the standard RIPL-3 file for '',a5,'' *'')')nucleus(inuc)%Label(1:ilast)
+               write(6,'(''****************************************************'')')
+               write(6,*)
+            end if
          end if
       end do
    end if
@@ -420,7 +481,7 @@ subroutine get_spectrum(data_path, len_path, overide, symb, iz, ia, inuc)
 !--------     Nucleus wasn't found, so set up with dummy values
    else
       close(unit=51)
-      if(iproc == 0)then
+      if(print_me)then
          write(6,'(i3,a2,'' Not found in file '',a70)')ia, symb(1:isymb),                   &
                                      data_path(1:len_path)//'levels-eval/'//fname(1:len_fname)
          write(6,*)'Will set up with no levels with "dummy" spins and parities to continue'

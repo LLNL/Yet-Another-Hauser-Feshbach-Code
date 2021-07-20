@@ -857,3 +857,84 @@ Version 3.59
     to fix a potential issue extrapolating the spin cut off parameter to
     energies below the matching energy
 
+Version 3.60
+1.  Further adjustment to how low-energy behavior of level densities above 
+    the fission barriers are treated to improve the low-energy spin cut off 
+    parameters. Changed the algorithm to compute the spin cutoff parameter.
+    Introduced the derivative in level_param(20) rather than calculating it. 
+2.  Fixed a bug where the E0 and T are not set correctly when specifying 
+    Ematch with the lev_ematch command.
+
+Version 3.61
+1.  Added ran_seed to default command set up first for all runs. If ran_seed
+    is not input by user, the command is generated with a "random" seed
+    based on the system clock counter. The seed is setup with  ran_seed 
+    caommand that is executed first. Intial random seed is printed to the
+    .out file.nedit fisd	
+2.  Adjusted command ranks to account for ran_seed and to add options.
+3.  Added "error" trap on E1_model if input is < 1 or > 3, as these are
+    invalid options. Termintes execution is set incorrectly.
+4.  Added ability to set E1_model for each nucleus via nuc_e1_model. Sets it
+    for isoptope called. While one might set e1_model globally, this was needed
+    if one stores commands in Saved_parameters.txt based on the assumption
+    that E1_model is set to a specific value. Since E1_model is a global
+    value it wouldn't be set reading from Saved-parameters.txt, which is 
+    meant to specify parameters for a given isotope. This option is called
+    before other EM options, and calls EM_str_param to set the ML strengths
+    which are based on the E1 strength. These are set for the default E1 values.
+    Setting any of the EM strengths through the commands overrides fit to
+    Gamma_gamma, so the user should adjust accordingly.
+5.  Provided better low-energy behavior for the level density. Addresses issue
+    with back-shifted fermi gass at low energy with 1/U behavior.
+6.  Modified global parameters for level densities to have prefix "global" to 
+    distinguish them from parameters defining parameters for individual
+    nuclei.
+7.  Fixed a bug that was introduced at some point into the calculation of 
+    the Moldauer Width fluctuation factor. Checked the integration for speed 
+    and accuracy. Adjusted the number of Laguerre integration points. Increased
+    the number of integration points at low excitation energy due to deviations
+    from a simple exponential. Decreased it for higher energies. Put in a check
+    to bypass EF if the HF denominator is > 50 and if the channel contributes
+    less than 0.1% to the absorption cross section. Idea being why compute what 
+    is at most a 20% correction to something that constributes less than 0.1%
+    to the reaction. Overall improvement in performance for the WF calculation.
+8.  Adjusted lower limit on the entrance channels due to a small contribution.
+    Previous a channel was bypassed if it contributed 1.0e-7 b to the absorption
+    cross section. Now, it is bypassed if it its fraction is < 1.0e-6 of the
+    total absorption cross section. The absorption cross section is
+    renormalized. 
+9.  Changed calls to "print_command_error" to terminate and to print the full 
+    text of the offending command.
+10. Added warning if user attempts to call both "proj_e_file" and
+    "proj_eminmax". Adjusted priorities so proj_e_file takes precedence.
+11. Fixed out-of-bounds error for pre-equilibrium spectra and cs when 
+    pre-equilibirum model is turned off (caused by "dummy" allocations to
+    eliminate spurious compilation warnings).
+12. Fixed bug setting axial rotational-collective enhancement factor when
+    reading in beta_2 for a barrier. Factor of sqrt(pi/2.0) was moved to
+    inside subroutine enhance_rot.
+13. Reverted to previous treatment of spin cutoff parameter below Ematch for 
+    fission-barrier level densities when no discrete transiton states are being
+    used, i.e., continuous level density is taken to Ex = 0.
+14. Set default beta_2 deformations for the fission inner and outer barriers to be
+    2x and 4x the ground state beta_2 value, respectively.
+15. Added fail safe check to readjust Ecut for the target if a Coupled-Channels
+    plus DWBA calculation was done for the transmission coefficients. Checks
+    to make sure Ecut is lower than the lowest DWBA excitation to a continuous
+    energy bin. Allows the user to continue using a "-CC.data" file if Ecut had
+    been set and then remobved. Added error check that if bin is not found
+    for DWBA state to exit program and throw and error message.
+16. Fixed bug parsing command "lev_fit_d0" - check was on "lev_fit_D0".
+17. Fixed bug where Ematch could fit incorrectly (introduced around 3.53).
+
+Version 3.62
+1.  Added command to set maximum value of the HF denominator for with the 
+    Moldauer width fluctuations are computed.
+2.  Added cache to store transmission coefficients used in H_primary_decay_setup
+    and to compute the Moldauer products. 
+3.  Fixed bug computing xj = l+s in HF denominator calculations.
+ 
+ 
+
+
+ 

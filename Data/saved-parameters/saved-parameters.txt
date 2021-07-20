@@ -1,0 +1,268 @@
+#-----    File containing saved parameters from previous YAHFC runs that
+#-----    will then set specific nuclear-model parameters as defined
+#-----    in the file. Note that it is not possible to specify global 
+#-----    model parameters in this file. The data is is set via a statement
+#-----    "start Z A" or "start Isotope". All parameters for that nucleus 
+#-----    must be placed within the block between different isotopes. 
+#-----    comments maybe placed in the file. And the file is terminated with
+#-----    an "end" statement. There can only be one entry per isotope. In 
+#-----    global commands should not be executed from this file.
+############  U239     ############
+start U239
+lev_option     U239   2
+e1_model       U239   1
+lev_delta      U239   0.000
+el_param       U239   1  1   11.00   2.62    299.0
+el_param       U239   1  2   14.0    4.53    382.0
+el_param       U239   1  3    5.0    5.0      -5.345
+f_num_barrier       U239  2
+f_use_tran_states   U239  n
+f_barrier           U239  1   6.13  0.3 0.3    !  height, hbw
+f_barrier_damp      U239  1  -1.0   80.0
+f_lev_delta         U239  1   0.00          !  pairing
+f_lev_shell         U239  1  -0.30          !  shell correction
+f_lev_ematch        U239  1   1.78          !  matching energy
+f_barrier_symmetry  U239  1   3             !  type of level density above barrier
+f_barrier           U239  2   5.45   0.4
+f_barrier_damp      U239  2  -1.0   80.0
+f_lev_delta         U239  2   0.22
+f_lev_shell         U239  2  -0.3
+f_lev_ematch        U239  2   2.0
+f_barrier_symmetry  U239  2   2
+############  U238     ############
+start U238
+lev_option     U238   2
+e1_model       U238   1
+lev_delta      U238   0.778
+lev_ecut       U238   1.15    1.15         !  manually set ecut for U238
+el_param       U238   1  1   11.00   2.62    299.0   11.20  3.0   300.0  300.0
+el_param       U238   1  2   14.0    4.53    382.0   14.40  4.8   330.0
+el_param       U238   1  3    5.0    5.0      -4.7  18.8
+f_num_barrier       U238  2
+f_use_tran_states   U238  n
+f_barrier           U238  1   6.15  0.65  6.10  0.7
+f_barrier_damp      U238  1  -1.0   80.00
+f_lev_delta         U238  1   0.55
+f_lev_shell         U238  1  -1.0
+f_lev_ematch        U238  1   1.9
+f_barrier_symmetry  U238  1   3
+f_barrier           U238  2   5.6  0.6 0.5  5.85   0.5
+f_barrier_damp      U238  2  -1.0   80.00
+f_lev_delta         U238  2   0.5
+f_lev_shell         U238  2   0.8
+f_lev_ematch        U238  2   1.7
+f_barrier_symmetry  U238  2   2
+############  U237     ############
+start U237
+lev_option     U237   2
+e1_model       U237   1
+el_param       U237   1  1   11.00   2.62    299.0
+el_param       U237   1  2   14.0    4.53    382.0
+el_param       U237   1  3    5.0    5.0      -6.1
+lev_delta      U237   0.0         !  manually set ecut for U238
+lev_ecut       U237   0.6         !  manually set ecut for U238
+f_num_barrier       U237  2
+f_barrier           U237  1   6.0  0.5    !  height, hbw
+f_use_tran_states   U237  n
+f_barrier_damp      U237  1   -1.0d0   80.00
+f_lev_delta         U237  1   0.2          !  pairing
+f_lev_shell         U237  1  -0.4         !  shell correction
+f_lev_ematch        U237  1   2.0   3.75          !  matching energy
+f_barrier_symmetry  U237  1   3             !  type of level density above barrier
+f_barrier           U237  2   5.5   0.5
+f_barrier_damp      U237  2   -1.0d0   80.00
+f_lev_delta         U237  2   0.47
+f_lev_shell         U237  2   1.0
+f_lev_ematch        U237  2   2.0
+f_barrier_symmetry  U237  2   2
+############  U236     ############
+start U236
+lev_option     U236  2
+e1_model       U236  1
+lev_delta      U236  0.781
+el_param       U236   1  1   11.00   2.62    299.0
+el_param       U236   1  2   14.0    4.53    382.0
+el_param       U236   1  3    5.0    5.0      -5.23
+f_num_Barrier       U236  2
+f_use_tran_states   U236  n
+f_Barrier           U236  1   5.6  0.7
+f_barrier_damp      U236  1  -1.0   80.0
+f_lev_delta         U236  1   0.4
+f_lev_shell         U236  1   1.8
+f_lev_ematch        U236  1   2.0
+f_barrier_symmetry  U236  1   1
+f_Barrier           U236  2   6.1  0.5 0.6
+f_barrier_damp      U236  2  -1.0   80.0
+f_lev_delta         U236  2   0.6
+f_lev_shell         U236  2   0.5
+f_lev_ematch        U236  2   2.3
+f_barrier_symmetry  U236  2   2
+############  U235     ############
+start U235
+lev_option     U235  2
+e1_model       U235  1
+lev_delta      U235   0.1
+el_param       U235   1  1   11.00   2.50    299.00 
+el_param       U235   1  2   14.0    4.53    382.00
+el_param       U235   1  3    5.0    5.0      -5.525
+f_num_Barrier       U235  2
+f_Barrier           U235  1   5.6    0.4 
+f_use_tran_states   U235  n
+f_barrier_damp      U235  1  -1.0   80.0
+f_lev_delta         U235  1   0.23
+f_lev_shell         U235  1   2.2
+f_lev_ematch        U235  1   2.75
+f_barrier_symmetry  U235  1   1
+f_Barrier           U235  2   5.8   0.4
+f_barrier_damp      U235  2  -1.0   80.0
+f_lev_delta         U235  2   0.35
+f_lev_shell         U235  2   2.2
+f_lev_ematch        U235  2   3.15
+f_barrier_symmetry  U235  2   2
+############  U234     ############
+start U234
+lev_option     U234   2
+lev_delta      U234   0.781
+e1_model       U234   1
+el_param       U234   1  1   11.00   2.62    299.00 
+el_param       U234   1  2   14.0    4.53    382.00
+el_param       U234   1  3    5.0    5.0      -5.868
+f_num_barrier       U234  2
+f_use_tran_states   U234  n
+f_Barrier           U234  1   4.9  0.4
+f_barrier_damp      U234  1  -1.0   80.0
+f_lev_delta         U234  1   1.35
+f_lev_shell         U234  1   2.2
+f_lev_ematch        U234  1   2.7
+f_barrier_symmetry  U234  1   1
+f_Barrier           U234  2   5.25  0.4  
+f_barrier_damp      U234  2  -1.0   80.0
+f_lev_delta         U234  2   1.37  
+f_lev_shell         U234  2   2.0
+f_lev_ematch        U234  2   2.7
+f_barrier_symmetry  U234  2   2
+############  U233     ############
+start U233
+lev_option     U233   2
+lev_delta      U233   0.0
+e1_model       U233   1
+el_param       U233   1  1   11.00   2.50    240.00 
+el_param       U233   1  2   14.0    4.53    380.00
+el_param       U233   1  3    5.0    5.0      -5.868
+f_num_barrier       U233  2
+f_use_tran_states   U233  n 
+f_barrier           U233  1   5.1   0.4
+f_barrier_damp      U233  1  -1.0   80.0
+f_lev_delta         U233  1   0.5 
+f_lev_shell         U233  1   1.8 
+f_lev_ematch        U233  1   3.3
+f_barrier_symmetry  U233  1   1
+f_barrier           U233  2   5.65    0.3
+f_barrier_damp      U233  2  -1.0   80.0
+f_lev_delta         U233  2   0.5
+f_lev_shell         U233  2   1.8
+f_lev_ematch        U233  2   3.3
+f_barrier_symmetry  U233  2   2
+############  U232     ############
+start U232
+lev_option     U232  2
+lev_shell      U232   -0.45
+lev_delta      U232    0.784 
+e1_model       U232   1
+el_param       U232   1  1   11.00   2.62    299.00 
+el_param       U232   1  2   14.0    4.53    382.00
+el_param       U232   1  3    5.0    5.0      -5.868
+f_num_barrier       U232  2
+f_use_tran_states   U232  n
+f_barrier           U232  1   5.0  0.45
+f_barrier_damp      U232  1  -1.0   80.0
+f_lev_delta         U232  1   0.3 
+f_lev_shell         U232  1   1.2 
+f_lev_ematch        U232  1   3.0
+f_barrier_symmetry  U232  1   1
+f_barrier           U232  2   5.5    0.5
+f_barrier_damp      U232  2  -1.0   80.0
+f_lev_delta         U232  2   0.3 
+f_lev_shell         U232  2   1.2 
+f_lev_ematch        U232  2   3.0
+f_barrier_symmetry  U232  2   2
+############  U231     ############
+start U231
+lev_option     U231   2
+lev_delta      U231   0.0    
+lev_shell      U231   0.0
+lev_ecut       U231   0.90
+e1_model       U231   1
+el_param       U231   1  1   11.00   2.62    299.00 
+el_param       U231   1  2   14.0    4.53    382.00
+el_param       U231   1  3    5.0    5.0      -5.868
+f_num_barrier       U231  2
+f_use_tran_states   U231  n 
+f_barrier           U231  1   5.85  0.45
+f_lev_delta         U231  1   0.3 
+f_lev_shell         U231  1   1.2 
+f_lev_ematch        U231  1   2.4 2.5
+f_barrier_symmetry  U231  1   1
+f_barrier           U231  2   5.55    0.5
+f_lev_delta         U231  2   0.4 
+f_lev_shell         U231  2   1.0
+f_lev_ematch        U231  2   2.0
+f_barrier_symmetry  U231  2   2
+############  Pu240     ############
+lev_option   Pu240   2
+e1_model     Pu240   1
+el_param     Pu240   1 1  11.28 3.25  325.0
+el_param     Pu240   1 2  13.73 4.25  384.0
+el_param     Pu240   1 3    5.0 5.0    -6.99
+lev_delta    Pu240   0.775
+f_num_barrier       Pu240  2
+F_Barrier           Pu240  1   6.6  0.45
+f_use_tran_states   Pu240  n
+F_lev_delta         Pu240  1   0.1
+F_lev_shell         Pu240  1   1.7
+F_lev_ematch        Pu240  1   1.5
+F_Barrier           Pu240  2   0.0  0.05  6.1  0.6
+F_lev_delta         Pu240  2   0.4
+F_lev_shell         Pu240  2   1.8
+F_lev_ematch        Pu240  2   2.0
+############  Pu239     ############
+lev_option   Pu239   2
+lev_delta    Pu239   0.0  0.250
+lev_ematch   Pu239   0.8 
+e1_model     Pu239   1
+el_param     Pu239   1 1  11.28 3.25  325.0
+el_param     Pu239   1 2  13.73 4.25  384.0
+el_param     Pu239   1 3    5.0 5.0    -7.0
+lev_parity_fac      Pu239 -1.0 0.39  1.0
+f_num_barrier       Pu239  2
+f_use_tran_states   Pu239  n
+f_barrier           Pu239  1   5.85  0.45
+f_lev_delta         Pu239  1   0.3
+f_lev_shell         Pu239  1   1.2
+f_lev_ematch        Pu239  1   2.4 2.5
+f_barrier_symmetry  Pu239  1   3
+f_barrier           Pu239  2   5.55    0.5
+f_lev_delta         Pu239  2   0.4
+f_lev_shell         Pu239  2   1.0
+f_lev_ematch        Pu239  2   2.0
+f_barrier_symmetry  Pu239  2   2
+############  Pu238     ############
+lev_option   Pu238   2
+lev_delta    Pu238   0.694
+lev_shell    Pu238   0.050
+e1_model     Pu238   1
+el_param     Pu238   1 1  11.28 3.25  325.0
+el_param     Pu238   1 2  13.73 4.25  384.0
+el_param     Pu238   1 3    5.0 5.0    -6.99
+f_num_barrier       Pu238  2
+f_use_tran_states   Pu238  n
+f_barrier           Pu238  1   5.5   0.6
+f_lev_delta         Pu238  1   0.0
+f_lev_ematch        Pu238  1   2.30
+f_barrier_symmetry  Pu238  1   1
+f_barrier           Pu238  2   5.20   0.6
+f_lev_delta         Pu238  2   0.3
+f_lev_shell         Pu238  2   0.0
+f_lev_ematch        Pu238  2   1.00
+f_barrier_symmetry  Pu238  2   2
+end 

@@ -1,7 +1,8 @@
 !
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
-subroutine HF_primary_decay_setup(e_in,iproj,itarget,icomp,istate,energy)
+subroutine HF_primary_decay_setup(e_in,iproj,itarget,icomp,                  &
+                                  istate,energy,absorption_cs)
 !
 !*******************************************************************************
 !
@@ -66,6 +67,7 @@ subroutine HF_primary_decay_setup(e_in,iproj,itarget,icomp,istate,energy)
    integer(kind=4), intent(in) :: iproj,itarget,istate
    integer(kind=4), intent(in) :: icomp
    real(kind=8), intent(in) :: energy
+   real(kind=8), intent(in) :: absorption_cs
 !------------------------------------    Internal Data
    integer(kind=4) :: i, j, k, l, ii
    integer(kind=4) :: j_max
@@ -75,7 +77,7 @@ subroutine HF_primary_decay_setup(e_in,iproj,itarget,icomp,istate,energy)
    real(kind=8) :: xI_f,xI_f_min,xI_f_max,xI_f_max1
    integer(kind=4) :: Ix_i,Ix_i_min,Ix_i_max
    integer(kind=4) :: Ix_f,Ix_f_min,Ix_f_max
-   real(kind=8) :: xj_f,xj_f_min,xj_f_max,xj_f_min1
+   real(kind=8) :: xj_f, xj_f_min, xj_f_max, xj_f_min1
    real(kind=8) :: xj_i
    integer(kind=4) :: ipt
    integer(kind=4) :: ip_i, ip_f
@@ -85,7 +87,6 @@ subroutine HF_primary_decay_setup(e_in,iproj,itarget,icomp,istate,energy)
    real(kind=8) :: p_spin
    real(kind=8) :: e_f,e_gamma
    real(kind=8) :: trans
-   real(kind=8) :: prob, start
    real(kind=8) :: trans_eff
    real(kind=8) :: F_trans(4)
    real(kind=8) :: exp_gamma
@@ -94,6 +95,8 @@ subroutine HF_primary_decay_setup(e_in,iproj,itarget,icomp,istate,energy)
    integer(kind=4) :: num_discrete
    integer(kind=4) :: nnn
 !-------------------------------------------------------------------------
+
+   real(kind=8) :: sum_cs
 
    real(kind=8) :: xZ_i, xA_i, xZ_part, xA_part
    real(kind=8) :: Coulomb_Barrier(6)
@@ -106,7 +109,8 @@ subroutine HF_primary_decay_setup(e_in,iproj,itarget,icomp,istate,energy)
    real(kind=8) :: momentum, wave_number
    real(kind=8) :: spin_proj, spin_target
    real(kind=8) sp1,sp2
-   integer(kind=4) :: isp, is_i, is_f, isp_f_max, isp_max
+   integer(kind=4) :: isp, is_i, is_f
+   integer(kind=4) :: isp_f_max, isp_max
    integer(kind=4) nume
    integer(kind=4) :: l_proj
    integer(kind=4) :: EM_proj, EM_k
@@ -114,11 +118,16 @@ subroutine HF_primary_decay_setup(e_in,iproj,itarget,icomp,istate,energy)
    real(kind=8) :: tcoef
    real(kind=8) :: HFden, CHnorm, CHnorm2, prob_sum, prob_norm
    integer(kind=4) :: WF_calc
+   real(kind=8) :: WF_avg, WF_min, WF_max
+   real(kind=8) :: chan_cs
+   integer(kind=4) :: WF_num
+!   real(kind=8) :: xnu_a
 !-------------------------------------------------------------------------+
 !--------------------------   External Function declarations
    real(kind=8) :: tco_interpolate
    real(kind=8) :: jhat
    real(kind=8) :: EL_trans, ML_trans
+!-rem   real(kind=8) :: xnu
 !-------------------------------------------------------------------------+
 !------                                                                   +
 !--------------------   Start subroutine                                  +
@@ -144,8 +153,6 @@ subroutine HF_primary_decay_setup(e_in,iproj,itarget,icomp,istate,energy)
    sp2 = spin_target+spin_proj
    cpar = nint(particle(iproj)%par*nucleus(itarget)%state(istate)%parity)
    ipt = nint((nucleus(itarget)%state(istate)%parity + 1.0d0)/2.0d0)
-   
-   start = 0.0d0
 
    Coulomb_barrier(1:6) = 0.0d0
    if(Apply_Coulomb_Barrier)then
@@ -158,6 +165,17 @@ subroutine HF_primary_decay_setup(e_in,iproj,itarget,icomp,istate,energy)
             (1.2d0*((xA_i-xA_part)**(1.0d0/3.0d0) + xA_part**(1.0d0/3.0d0)))
       end do
    end if
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!     Zero out Arrays used to cache transmission coefficients              +
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+   do if1 = 1, nucleus(1)%num_decay                                      !  loop over nuclei in the decay chain
+      i_f = nucleus(1)%decay_to(if1)
+      k = nucleus(1)%decay_particle(if1)
+      isp_f_max = nint(2.0d0*particle(k)%spin)
+      if(k == 0)cycle
+      particle(k)%trans_bin(0:isp_f_max,0:particle(k)%lmax,1:nucleus(i_f)%nbin) = 0.0d0
+      particle(k)%trans_discrete(0:isp_f_max,0:particle(k)%lmax,1:nucleus(i_f)%num_discrete) = 0.0d0
+   end do
 
 
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -187,6 +205,7 @@ subroutine HF_primary_decay_setup(e_in,iproj,itarget,icomp,istate,energy)
          write(6,*)'****************************************************************************'
     end if
 
+   sum_cs = 0.0d0
    do l_proj = 0, particle(iproj)%lmax
       par = cpar*(-1)**l_proj
       ip_i = (par+1)/2
@@ -235,20 +254,26 @@ subroutine HF_primary_decay_setup(e_in,iproj,itarget,icomp,istate,energy)
                                     particle(iproj)%e_grid,                               &
                                     particle(iproj)%trans_read(1,is_i,l_proj))
 
-            if(tcoef*cs*cs_fac <= 1.0d-7)cycle
+            chan_cs = tcoef*cs*cs_fac
+
+            sum_cs = sum_cs + chan_cs
+            if(chan_cs/absorption_cs <= 1.0d-7)cycle
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !------   First compute the Hauser-Feshbach denominator
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-            call sum_HFden(icomp, xI_i, par, energy, HFden, exp_gamma)
-            Channel(l_proj,is_i,Ix_i)%Channel_HFden = HFden
-            Channel(l_proj,is_i,Ix_i)%Channel_exp_gamma = exp_gamma
+!            call sum_HFden(icomp, xI_i, par, energy, HFden, exp_gamma)
+!            Channel(l_proj,is_i,Ix_i)%Channel_HFden = HFden
+!            Channel(l_proj,is_i,Ix_i)%Channel_exp_gamma = exp_gamma
 
-            WF_calc = 0
-            if(WF_model > 0 .and. HFden < 100.0d0)WF_calc = 1
+!            WF_calc = 0
+!            if(WF_model > 0 .and. HFden < 100.0d0)WF_calc = 1
+!            if(WF_model > 0 )WF_calc = 1
 
             CHnorm2 = 0.0d0
+            exp_gamma = 0.0d0
+            HFden = 0.0d0
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!---------   Now loop over all nuclei this compound nucleus decays to  +
+!---------   Now loop over all nuclei this compound nucleus decays     +
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
             do if1 = 1, nucleus(icomp)%num_decay                                      !  loop over nuclei in the decay chain
                prob_sum = 0.0d0
@@ -276,16 +301,17 @@ subroutine HF_primary_decay_setup(e_in,iproj,itarget,icomp,istate,energy)
                         cpar2 = par*(-1)**l                                           !  Parity of nculeus and emitted part
                         par_f = cpar2*nint(particle(k)%par)                           !  Parity of final nucleus
                         ip_f = (par_f + 1)/2
-                        xj_f = real(l,kind=8) - p_spin
+                        xj_f_min = real(l,kind=8) - p_spin
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !------   Now Loop over possible exit particle angular momenta j       +
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
                         do is_f = 0, isp_f_max
-                           xj_f = xj_f + real(is_f,kind=8)
+                           xj_f = xj_f_min + real(is_f,kind=8)
                            if(xj_f < 0.0d0)cycle
                            trans = tco_interpolate(e_f,particle(k)%nume,             &
                                                    particle(k)%e_grid,               &
                                                    particle(k)%trans_read(1,is_f,l))
+                           particle(k)%trans_bin(is_f,l,n_f) = trans
                            if(trans < trans_p_cut)cycle
                            xI_f_min = abs(xI_i - xj_f)
                            xI_f_max = xI_i + xj_f
@@ -336,6 +362,7 @@ subroutine HF_primary_decay_setup(e_in,iproj,itarget,icomp,istate,energy)
                            trans = tco_interpolate(e_f,particle(k)%nume,                  &
                                                    particle(k)%e_grid,                    &
                                                    particle(k)%trans_read(1,is_f,l))
+                           particle(k)%trans_discrete(is_f,l,n_f) = trans
                            if(trans < trans_p_cut)cycle
                            CHnorm2 = CHnorm2 + trans
                         end do
@@ -361,6 +388,7 @@ subroutine HF_primary_decay_setup(e_in,iproj,itarget,icomp,istate,energy)
                            trans_eff = trans*nucleus(i_f)%bins(Ix_f,ip_f,n_f)%rho*         &
                                              nucleus(i_f)%delta_e(n_f)
                            CHnorm2 = CHnorm2 + trans_eff
+                           exp_gamma = exp_gamma + trans_eff
                         end do
                      end do
 !---------------------------   Now Magnetic decay 
@@ -379,6 +407,7 @@ subroutine HF_primary_decay_setup(e_in,iproj,itarget,icomp,istate,energy)
                            trans_eff = trans*nucleus(i_f)%bins(Ix_f,ip_f,n_f)%rho*         &
                                              nucleus(i_f)%delta_e(n_f)
                            CHnorm2 = CHnorm2 + trans_eff
+                           exp_gamma = exp_gamma + trans_eff
                         end do
                      end do
                   end do
@@ -415,12 +444,14 @@ subroutine HF_primary_decay_setup(e_in,iproj,itarget,icomp,istate,energy)
                         trans = EL_trans(i_f, l, e_gamma, energy)
                         if(trans < trans_e_cut)cycle
                         CHnorm2 = CHnorm2 + trans
+                        exp_gamma = exp_gamma + trans
                      end do
                      EM_k = 2
                      do l = lm_min, nucleus(i_f)%lmax_M, 2
                         trans = ML_trans(i_f, l, e_gamma)
                         if(trans < trans_e_cut)cycle
                         CHnorm2 = CHnorm2 + trans
+                        exp_gamma = exp_gamma + trans
                      end do
                   end do
                end if
@@ -434,6 +465,13 @@ subroutine HF_primary_decay_setup(e_in,iproj,itarget,icomp,istate,energy)
                CHnorm2 = CHnorm2 + F_trans(4)
             end if
 
+            HFden = CHnorm2
+            exp_gamma = exp_gamma/CHnorm2
+
+            WF_calc = 0
+            if(WF_model == 1 .and. HFden < mold_cutoff)WF_calc = 1
+            if(WF_model == 1 .and. chan_cs/absorption_cs <= 1.0d-4)WF_calc = 0
+
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !-------      Run again to count and to implement other cuts on prob   +
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -445,9 +483,22 @@ subroutine HF_primary_decay_setup(e_in,iproj,itarget,icomp,istate,energy)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
             WF_def = 1.0d0
 
+   WF_avg = 0.0d0
+   WF_min = 1.0d6
+   WF_max = -1.0d0
+   WF_num = 0
 
-            do ii = 1,2
-               if(ii == 1) CHnorm = 0.0d0
+!   write(6,*)'CHnorm2 = ',CHnorm2, sum_cs
+
+            HFden = 0.0d0
+            exp_gamma = 0.0d0
+            do ii = 1, 2
+               if(ii == 1)CHnorm = 0.0d0
+               if(ii == 2)then
+                  exp_gamma = exp_gamma/HFden
+                  Channel(l_proj,is_i,Ix_i)%Channel_HFden = HFden
+                  Channel(l_proj,is_i,Ix_i)%Channel_exp_gamma = exp_gamma
+               end if
                ifi = 1
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !---------   Loop over all nuclei this compound nucleus decays to      +
@@ -462,7 +513,7 @@ subroutine HF_primary_decay_setup(e_in,iproj,itarget,icomp,istate,energy)
                   xI_f_max1 = real(nucleus(i_f)%j_max,kind=8) + nucleus(i_f)%jshift
                   if(k > 0)then                                                    ! k > 0 - particle n,p,d,t,h,a decay
                      EM_k = 0
-!--------------------------   pChannel_nn_cs_L1.datarticle decay to continuous level bins
+!--------------------------  particle decay to continuous level bins
                      p_spin = particle(k)%spin
                      isp_f_max = nint(2.0d0*p_spin)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -480,16 +531,17 @@ subroutine HF_primary_decay_setup(e_in,iproj,itarget,icomp,istate,energy)
                            cpar2 = par*(-1)**l                                      !  Parity of nculeus and emitted part
                            par_f = cpar2*nint(particle(k)%par)                      !  Parity of final nucleus
                            ip_f = (par_f + 1)/2
-                           xj_f = real(l,kind=8) - p_spin
+                           xj_f_min = real(l,kind=8) - p_spin
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !------   Now Loop over possible exit particle angular momenta j       +
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
                            do is_f = 0, isp_f_max
-                              xj_f = xj_f + real(is_f,kind=8)
+                              xj_f = xj_f_min + real(is_f,kind=8)
                               if(xj_f < 0.0d0)cycle
-                              trans = tco_interpolate(e_f,particle(k)%nume,             &
-                                                      particle(k)%e_grid,               &
-                                                      particle(k)%trans_read(1,is_f,l))
+!                              trans = tco_interpolate(e_f,particle(k)%nume,             &
+!                                                      particle(k)%e_grid,               &
+!                                                      particle(k)%trans_read(1,is_f,l))
+                              trans = particle(k)%trans_bin(is_f,l,n_f)
                               if(trans < trans_p_cut)cycle
                               xI_f_min = abs(xI_i - xj_f)
                               xI_f_max = xI_i + xj_f
@@ -506,19 +558,26 @@ subroutine HF_primary_decay_setup(e_in,iproj,itarget,icomp,istate,energy)
 
                                  if(trans_eff/CHnorm2 < prob_cut)cycle
                                  WF = WF_def
-                                 if( WF_model == 1 .and. WF_calc == 1 .and. ii == 2)then
+                                 if(WF_model == 1 .and. WF_calc == 1 .and. ii == 2)then
                                     call  Moldauer_WF(icomp,                              &
                                                       iproj,l_proj,xj_i,istate,           &
                                                       spin_target,tcoef,                  &
                                                       k,l,xj_f,-n_f,xI_f,                 &
                                                       ip_i,xI_i,energy,                   &
                                                       exp_gamma,HFden,F_trans,CHnorm2,WF)
-!    write(6,*)'1',WF
+                                    WF_avg = WF_avg + WF
+                                    WF_num = WF_num + 1
+                                    if(WF < WF_min)WF_min = WF
+                                    if(WF > WF_max)WF_max = WF
                                  end if
                                  num = num + 1
-                                 if(ii == 2)then
+                                 if(ii == 1)then
+                                    HFden = HFden + trans_eff
+                                  else
                                     CHnorm = CHnorm + WF*trans_eff
                                     prob_sum = prob_sum + WF*trans_eff
+!   write(81,'(''bin '',2(1x,i3,1x,f4.1,1x,f4.1),3(1x,e15.7))')l_proj,xj_i,xI_i,l,xj_f,xI_f, &
+!             trans_eff/CHnorm2,trans_eff, prob_sum
                                     Channel(l_proj,is_i,Ix_i)%Channel_decay(ifi)%decay_prob(num) = WF*trans_eff
                                     idb = 0
                                     call pack_data(Ix_f,ip_f,n_f,idb,l,is_f,itemp)
@@ -532,7 +591,7 @@ subroutine HF_primary_decay_setup(e_in,iproj,itarget,icomp,istate,energy)
                      num_discrete = nucleus(i_f)%ncut
                      if(all_discrete_states)num_discrete = nucleus(i_f)%num_discrete
                      do n_f = 1, num_discrete
-                        e_f = energy-nucleus(icomp)%sep_e(k)-                             &
+                        e_f = energy-nucleus(icomp)%sep_e(k)-                                 &
                               nucleus(i_f)%state(n_f)%energy
                         if(e_f - Coulomb_Barrier(k) <= 1.0d-6)exit
                         xI_f = nucleus(i_f)%state(n_f)%spin
@@ -545,7 +604,7 @@ subroutine HF_primary_decay_setup(e_in,iproj,itarget,icomp,istate,energy)
                            lmin = nint(abs(xj_f - p_spin))
                            lmax = min(particle(k)%lmax, nint(xj_f + p_spin))
                            cpar2 = nint(particle(k)%par*nucleus(i_f)%state(n_f)%parity)
-                           ip_f = nint((cpar2+1.0d0)/2.0d0)
+                           ip_f = (cpar2+1)/2
                            if(ip_i == ip_f)then                                               !   parities are the same, l=even
                               if(iand(lmin,1) == 1)lmin = lmin + 1                            !   odd lmin, add 1 to make it even
                               if(iand(lmax,1) == 1)lmax = lmax - 1                            !   odd lmax, subtract 1 to make it even
@@ -557,9 +616,10 @@ subroutine HF_primary_decay_setup(e_in,iproj,itarget,icomp,istate,energy)
                               xj_f_min1 = real(l,kind=8) - p_spin
                               is_f = nint(xj_f - xj_f_min1)
                               if(is_f < 0 .or. is_f > nint(2*p_spin))cycle
-                              trans=tco_interpolate(e_f,particle(k)%nume,                 &
-                                                    particle(k)%e_grid,                   &
-                                                    particle(k)%trans_read(1,is_f,l))  
+!                              trans = tco_interpolate(e_f,particle(k)%nume,                     &
+!                                                      particle(k)%e_grid,                       &
+!                                                      particle(k)%trans_read(1,is_f,l))  
+                              trans = particle(k)%trans_discrete(is_f,l,n_f)
                               if(trans < trans_p_cut)cycle
                               if(trans/CHnorm2 < prob_cut)cycle
                               WF = WF_def
@@ -569,12 +629,19 @@ subroutine HF_primary_decay_setup(e_in,iproj,itarget,icomp,istate,energy)
                                                    k,l,xj_f,n_f,xI_f,                           &
                                                    ip_i,xI_i,energy,                            &
                                                    exp_gamma,HFden,F_trans,CHnorm2,WF)
-!    write(6,*)'2',WF
+                                    WF_avg = WF_avg + WF
+                                    WF_num = WF_num + 1
+                                    if(WF < WF_min)WF_min = WF
+                                    if(WF > WF_max)WF_max = WF
                               end if
                               num = num + 1
-                              if(ii == 2)then
+                              if(ii == 1)then
+                                 HFden = HFden + trans
+                              else
                                  CHnorm = CHnorm + WF*trans
                                  prob_sum = prob_sum + WF*trans
+!   write(81,'(''discrete '',2(1x,i3,1x,f4.1,1x,f4.1),3(1x,e15.7))')l_proj,xj_i,xI_i,l,xj_f,xI_f, &
+!             trans/CHnorm2,trans, prob_sum
                                  Channel(l_proj,is_i,Ix_i)%Channel_decay(ifi)%decay_prob(num) = WF*trans
                                  idb = 1
 
@@ -594,12 +661,16 @@ subroutine HF_primary_decay_setup(e_in,iproj,itarget,icomp,istate,energy)
                      if(WF_model == 1 .and. WF_calc == 1 .and. ii == 2)then
                         l = 1
                         xj_f = 0.0
+                        xI_f_min = xI_i
                         call Moldauer_WF(icomp,                                           &
                                          iproj,l_proj,xj_i,istate,spin_target,tcoef,      &
                                          0,l,xj_f,-n_f,xI_f_min,                          &
                                          ip_i,xI_i,energy,                                &
                                          exp_gamma,HFden,F_trans,CHnorm2,WF)
-!    write(6,*)'3',WF,exp_gamma
+                        WF_avg = WF_avg + WF
+                        WF_num = WF_num + 1
+                        if(WF < WF_min)WF_min = WF
+                        if(WF > WF_max)WF_max = WF
                      end if
                      do n_f = 1, nucleus(i_f)%nbin                                                   !  loop over final excitation energies
                         e_gamma = energy - nucleus(i_f)%e_grid(n_f)
@@ -619,9 +690,11 @@ subroutine HF_primary_decay_setup(e_in,iproj,itarget,icomp,istate,energy)
                               trans_eff = trans*nucleus(i_f)%bins(Ix_f,ip_f,n_f)%rho*         &
                                                 nucleus(i_f)%delta_e(n_f)
                               if(trans_eff/CHnorm2 < prob_cut)cycle
-                              prob = WF*trans_eff/HFden
                               num = num + 1
-                              if(ii == 2)then
+                              if(ii == 1)then
+                                 HFden = HFden + trans_eff
+                                 exp_gamma = exp_gamma + trans_eff
+                              else
                                  CHnorm = CHnorm + WF*trans_eff
                                  prob_sum = prob_sum + WF*trans_eff
                                  Channel(l_proj,is_i,Ix_i)%Channel_decay(ifi)%decay_prob(num) = WF*trans_eff
@@ -648,9 +721,11 @@ subroutine HF_primary_decay_setup(e_in,iproj,itarget,icomp,istate,energy)
                               trans_eff = trans*nucleus(i_f)%bins(Ix_f,ip_f,n_f)%rho*         &
                                                 nucleus(i_f)%delta_e(n_f)
                               if(trans_eff/CHnorm2 < prob_cut)cycle
-                              prob = WF*trans_eff/HFden
                               num = num + 1
-                              if(ii == 2)then
+                              if(ii == 1)then
+                                 HFden = HFden + trans_eff
+                                 exp_gamma = exp_gamma + trans_eff
+                              else
                                  CHnorm = CHnorm + WF*trans_eff
                                  prob_sum = prob_sum + WF*trans_eff
                                  Channel(l_proj,is_i,Ix_i)%Channel_decay(ifi)%decay_prob(num) = WF*trans_eff
@@ -697,7 +772,10 @@ subroutine HF_primary_decay_setup(e_in,iproj,itarget,icomp,istate,energy)
                            if(trans < trans_e_cut)cycle
                            if(trans/CHnorm2 < prob_cut)cycle
                            num = num + 1
-                           if(ii == 2)then
+                           if(ii == 1)then
+                              HFden = HFden + trans
+                              exp_gamma = exp_gamma + trans
+                           else
                               CHnorm = CHnorm + WF*trans
                               prob_sum = prob_sum + WF*trans
                               Channel(l_proj,is_i,Ix_i)%Channel_decay(ifi)%decay_prob(num) = WF*trans
@@ -713,7 +791,10 @@ subroutine HF_primary_decay_setup(e_in,iproj,itarget,icomp,istate,energy)
                            if(trans < trans_e_cut)cycle
                            if(trans/CHnorm2 < prob_cut)cycle
                            num = num + 1
-                           if(ii == 2)then
+                           if(ii == 1)then
+                              HFden = HFden + trans
+                              exp_gamma = exp_gamma + trans
+                           else
                               CHnorm = CHnorm + WF*trans
                               prob_sum = prob_sum + WF*trans
                               Channel(l_proj,is_i,Ix_i)%Channel_decay(ifi)%decay_prob(num) = WF*trans
@@ -768,18 +849,23 @@ subroutine HF_primary_decay_setup(e_in,iproj,itarget,icomp,istate,energy)
                      xj_f = 0.0
                      call Moldauer_WF(icomp,                                              &
                                       iproj,l_proj,xj_i,istate,spin_target,tcoef,         &
-                                      0,l,xj_f,-n_f,xI_f_min,                             &
+                                      -1,l,xj_f,-n_f,xI_f_min,                            &
                                       ip_i,xI_i,energy,                                   &
                                       exp_gamma,HFden,F_trans,CHnorm2,WF)
+                     WF_avg = WF_avg + WF
+                     WF_num = WF_num + 1
+                     if(WF < WF_min)WF_min = WF
+                     if(WF > WF_max)WF_max = WF
 !    write(6,*)'4',WF
                   end if
-                  prob = F_trans(4)/CHnorm2
-                  if(prob > prob_cut)then
+                  if(F_trans(4)/CHnorm2 > prob_cut)then
                      if(ii == 1)then
                         Channel(l_proj,is_i,Ix_i)%num_decay =                             &
                            Channel(l_proj,is_i,Ix_i)%num_decay + 1
                         CHnorm = CHnorm + F_trans(4)*WF
+                        HFden = HFden + F_trans(4)
                      else
+!   write(81,'(''Fission '',(1x,i3,1x,f4.1,1x,f4.1),2(1x,e15.7))')l_proj,xj_i,xI_i,F_trans(4)/CHnorm2,F_trans(4)
                         nnn = Channel(l_proj,is_i,Ix_i)%num_decay
                         Channel(l_proj,is_i,Ix_i)%Channel_prob(nnn) = F_trans(4)*WF
 !-rem                        Channel(l_proj,is_i,Ix_i)%Channel_trans(nnn) = F_trans(4)*WF
@@ -789,8 +875,16 @@ subroutine HF_primary_decay_setup(e_in,iproj,itarget,icomp,istate,energy)
                      end if
                   end if
                end if
+!   if(WF_num > 0)then
+!      WF_avg = WF_avg/real(WF_num,kind=8)
+!      write(6,*)l_proj, xj_i,Ix_i
+!      write(6,*)'Num computed = ',WF_num
+!   end if
 !---------------------------------------------------------------------------------------------------
             end do                           ! ----  Finish ii loop
+!      if(WF_num > 0)WF_avg = WF_avg/real(WF_num,kind=8)
+!      write(6,*)'HFden ', HFden,'num = ',WF_num,' WF_avg = ',WF_avg,' WF_min = ', WF_min,' WF_max = ', WF_max
+!      write(60,*)HFden,WF_avg,WF_min, WF_max
 
 
             do if1 = 1, Channel(l_proj,is_i,Ix_i)%num_decay
@@ -812,6 +906,7 @@ subroutine HF_primary_decay_setup(e_in,iproj,itarget,icomp,istate,energy)
          end do                           ! ----  Finish j loop
       end do                              ! ----  Finish is loop
    end do                                 ! ----  Finish l_proj loop
+
 
    return
 end subroutine HF_primary_decay_setup

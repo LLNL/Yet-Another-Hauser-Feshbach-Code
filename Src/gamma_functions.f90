@@ -187,6 +187,7 @@ real(kind=8) function E1_f_mode(e_gam, T, e1_model, er, gr, sr)
    else
       gam = gr
    end if
+
    str = M_Lorentzian(e_gam,er,gam)
    str = e_gam*str
    if(e1_model > 1)str = str + 0.7d0*gr*(2.0d0*pi*T)**2/er**5      !  from RIPL handbook, note er**5

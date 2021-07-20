@@ -253,9 +253,9 @@ subroutine HF_denominator(icomp)
                      cpar2 = par*(-1.0d0)**l                                               !  Parity of nucleus and emitted part
                      par_f = cpar2*particle(k)%par                                         !  Parity of final nucleus
                      ip_f = nint((par_f + 1.0)/2.0)
-                     xj_f = real(l,kind=8) - p_spin    
+                     xj_f_min = real(l,kind=8) - p_spin    
                      do iss = 0, isp                                                       !  loop over particle spins
-                        xj_f = xj_f + real(iss,kind=8)
+                        xj_f = xj_f_min + real(iss,kind=8)
                         if(xj_f < 0.0d0)cycle
                         trans = tco_interpolate(e_f,particle(k)%nume,                    &
                                                 particle(k)%e_grid,                      &
@@ -458,12 +458,12 @@ subroutine HF_denominator(icomp)
                      e_f = energy-nucleus(icomp)%sep_e(k) - nucleus(i_f)%e_grid(n_f)
                      if(e_f - Coulomb_Barrier(k) <= 1.0d-6)exit
                      do l = 0, particle(k)%lmax                                            !  loop over l-partial wave
-                        xj_f = real(l,kind=8) - p_spin
+                        xj_f_min = real(l,kind=8) - p_spin
                         cpar2 = par*(-1.)**l                                               !  Parity of nucleus and emitted part
                         par_f = cpar2*particle(k)%par                                      !  Parity of final nucleus
                         ip_f = nint((par_f + 1.0)/2.0)
                         do iss = 0, isp                                                    !  loop over particle spins
-                           xj_f = xj_f + real(iss,kind=8)
+                           xj_f = xj_f_min + real(iss,kind=8)
                            if(xj_f < 0.0d0)cycle
                            trans = tco_interpolate(e_f,particle(k)%nume,                 &
                                                    particle(k)%e_grid,                   &

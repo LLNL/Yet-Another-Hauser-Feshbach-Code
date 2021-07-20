@@ -76,7 +76,7 @@ subroutine output_nucleus_data(j_max, itarget)
    integer(kind=4), intent(in) :: j_max
    integer(kind=4), intent(in) :: itarget
 !-------------------------------------------------------
-   integer(kind=4) :: i, j, k, m, n, jj, ip, ii
+   integer(kind=4) :: i, j, k, m, mm, n, jj, ip, ii
    integer(kind=4) :: if1, ifi
    integer(kind=4) :: iA, iZ, iN
    integer(kind=4) :: l_radiation
@@ -111,12 +111,8 @@ subroutine output_nucleus_data(j_max, itarget)
    integer(kind=4) :: inuke_end
    integer(kind=4) :: nnn
    character(len=7) :: f_units
+   real(kind=8) :: d_energy
 
-
-!   real(kind=8) :: ematch, delta, Um, aparam
-!   real(kind=8) :: sig2_em, sig2_min, sg2cut, sig
-!   real(kind=8) :: deriv, ecut, shell, gamma
-!   integer(kind=4) :: sig_model
 
 !---------   External functions
    real(kind=8) :: parity_fac
@@ -127,8 +123,6 @@ subroutine output_nucleus_data(j_max, itarget)
    real(kind=8) :: EL_absorption
    real(kind=8) :: ML_absorption
    integer(kind=4) :: find_ibin
-!   real(kind=8) :: sig2_param
-!   real(kind=8) :: aparam_u
 
 !--------------   Start subrotuine
    num_points = int(30.0d0/de,kind=4) + 1
@@ -273,14 +267,52 @@ subroutine output_nucleus_data(j_max, itarget)
       end if
 !------------------------------------------------------------------
       write(13,*)
-      write(13,'(''******************************************************************'')')
-      write(13,'(''  Data on discrete levels are based on the RIPL-3 data, with     *'')')
-      write(13,'(''  modifcations by the author and users. RIPL-3 data is           *'')')
-      write(13,'(''  available at https://www-nds.iaea.org/RIPL-3/. Discrete level  *'')')
-      write(13,'(''  information is based on M. Verpelli and R. Capote Noy,         *'')')
-      write(13,'(''  INDC(NDS)-0702, IAEA, 2015, and R. Capote, et al., Nuclear     *'')')
-      write(13,'(''  Data Sheets 110 (2009), 3107-3214.                             *'')')
-      write(13,'(''******************************************************************'')')
+      if(nucleus(i)%eval_levels == 0)then
+         write(13,'(''******************************************************************'')')
+         write(13,'(''* -- IMPORTANT NOTICE -- IMPORTANT NOTICE -- IMPORTANT NOTICE  --*'')')
+         write(13,'(''* Data on discrete levels was not found in the RIPL-3 data base  *'')')
+         write(13,'(''* in the directory $YAHFC_DATA/levels. A DUMMY ground            *'')')
+         write(13,'(''* is used to continue the calculation.                           *'')')
+         write(13,'(''*----------------------------------------------------------------*'')')
+         write(13,'(''* RIPL-3 data is available at https://www-nds.iaea.org/RIPL-3/.  *'')')
+         write(13,'(''* Discrete level information is based on:                        *'')')
+         write(13,'(''* M. Verpelli andR. Capote Noy, INDC(NDS)-0702, IAEA, 2015, and  *'')')
+         write(13,'(''* R. Capote, et al., Nuclear Data Sheets 110 (2009), 3107-3214.  *'')')
+         write(13,'(''* -- IMPORTANT NOTICE -- IMPORTANT NOTICE -- IMPORTANT NOTICE  --*'')')
+         write(13,'(''******************************************************************'')')
+      elseif(nucleus(i)%eval_levels == 1)then
+         write(13,'(''******************************************************************'')')
+         write(13,'(''* Data on discrete levels are based on the RIPL-3 data, found    *'')')
+         write(13,'(''* in the directory $YAHFC_DATA/levels.                           *'')')
+         write(13,'(''*----------------------------------------------------------------*'')')
+         write(13,'(''* RIPL-3 data is available at https://www-nds.iaea.org/RIPL-3/.  *'')')
+         write(13,'(''* Discrete level information is based on:                        *'')')
+         write(13,'(''* M. Verpelli andR. Capote Noy, INDC(NDS)-0702, IAEA, 2015, and  *'')')
+         write(13,'(''* R. Capote, et al., Nuclear Data Sheets 110 (2009), 3107-3214.  *'')')
+         write(13,'(''******************************************************************'')')
+      elseif(nucleus(i)%eval_levels == 2)then
+         write(13,'(''******************************************************************'')')
+         write(13,'(''* Data on discrete levels are based on the RIPL-3 data, with     *'')')
+         write(13,'(''* evaluations made for the YAHFC distribution, which is found in *'')')
+         write(13,'(''* in the directory $YAHFC_DATA/levels-eval.                      *'')')
+         write(13,'(''*----------------------------------------------------------------*'')')
+         write(13,'(''* RIPL-3 data is available at https://www-nds.iaea.org/RIPL-3/.  *'')')
+         write(13,'(''* Discrete level information is based on:                        *'')')
+         write(13,'(''* M. Verpelli andR. Capote Noy, INDC(NDS)-0702, IAEA, 2015, and  *'')')
+         write(13,'(''* R. Capote, et al., Nuclear Data Sheets 110 (2009), 3107-3214.  *'')')
+         write(13,'(''******************************************************************'')')
+      elseif(nucleus(i)%eval_levels == 3)then
+         write(13,'(''******************************************************************'')')
+         write(13,'(''* Data on discrete levels are based on the RIPL-3 data, with     *'')')
+         write(13,'(''* evaluations made by the current user, which is found in        *'')')
+         write(13,'(''* in the directory $YAHFC_DATA/my-levels-eval.                   *'')')
+         write(13,'(''*----------------------------------------------------------------*'')')
+         write(13,'(''* RIPL-3 data is available at https://www-nds.iaea.org/RIPL-3/.  *'')')
+         write(13,'(''* Discrete level information is based on:                        *'')')
+         write(13,'(''* M. Verpelli andR. Capote Noy, INDC(NDS)-0702, IAEA, 2015, and  *'')')
+         write(13,'(''* R. Capote, et al., Nuclear Data Sheets 110 (2009), 3107-3214.  *'')')
+         write(13,'(''******************************************************************'')')
+      end if
       write(13,*)
       write(13,*)'Discrete states used in calculation'
       write(13,'(''State'',6x,''Energy'',2x,''Spin'','//               &
@@ -365,6 +397,7 @@ subroutine output_nucleus_data(j_max, itarget)
          end do
          write(13,*)
          write(13,'(''Additional DWBA states'')')
+         write(13,'(''Number of addition DWBA states = '',i4)')OpticalCS%numcc - numcc
          write(13,*)
          write(13,'(''    N    J  PAR    K     Energy'')')
          write(13,'(''  ---  ---  ---  ---     ------'')')
@@ -402,13 +435,8 @@ subroutine output_nucleus_data(j_max, itarget)
 !------    First in the list is modeled
 !-----------------------------------------------------------------------------
       if(.not. nucleus(i)%lev_den_read)then
-         write(13,'(''E1 defined as the energy so that int(E1,0)rho(E)dE = 1'')')
-         write(13,'(''Generally, E1 < 0 if E0 < 0'')')
-         write(13,'(''Otherwise E1 undefined as int(-infty,0)rho(E)DE < 1'')')
          E0 = nucleus(i)%level_param(15)
          T = nucleus(i)%level_param(14)
-         E1 = 0.0d0
-         if(E0 < 0.0d0)E1 = T*log(1.0d0-exp(E0/T))
          write(13,*)'Level-density parameters'
          write(13,*)'Level-density model = ',nucleus(i)%level_model
          write(13,'('' a =        '',f12.7)')nucleus(i)%level_param(1)
@@ -418,16 +446,11 @@ subroutine output_nucleus_data(j_max, itarget)
          write(13,'('' gamma =    '',f12.7)')nucleus(i)%level_param(5)
          write(13,'('' E_match =  '',f12.7)')nucleus(i)%level_param(6)
          write(13,'('' E_cut =    '',f12.7)')nucleus(i)%level_param(7)
-         write(13,'('' sigma_cut ='',f12.7)')nucleus(i)%level_param(8)
+         write(13,'('' sig2_cut = '',f12.7)')nucleus(i)%level_param(8)
          write(13,'('' T =        '',f12.7)')nucleus(i)%level_param(14)
          write(13,'('' E0 =       '',f12.7)')nucleus(i)%level_param(15)
          write(13,'('' a(Sn) =    '',f12.7)')nucleus(i)%a_Sn
          write(13,'('' sig2(Sn) = '',f12.7)')nucleus(i)%sig2_Sn
-         if(E1 < 0.0d0)then
-             write(13,'('' E1 =       '',f12.7)')E1
-         else
-             write(13,'(''E1 is undefined as E0 > 0, E1 ~ -10.0'')')
-         end if
          write(13,*)
          if(nint(nucleus(i)%level_param(10)) == 0)then
             write(13,*)'No rotational collective enhancement included'
@@ -437,15 +460,6 @@ subroutine output_nucleus_data(j_max, itarget)
                 nucleus(i)%level_param(10)
             write(13,*)'Collective enhancement factors'
             write(13,*)'K_rot = Max[x(1)*(Factor-1)/(1+exp((E-x(2))/x(3))),0]+1'
-!            if(nint(nucleus(i)%level_param(10)) == 1)then
-!               write(13,*)'Factor = x(1)*sig2*(1+beta2/3)'
-!            elseif(nint(nucleus(i)%level_param(10)) == 2)then
-!               write(13,*)'Factor = 2.0*x(1)*sig2*(1+beta2/3)'
-!            elseif(nint(nucleus(i)%level_param(10)) == 3)then
-!               write(13,*)'Factor = x(1)*sig2**3/2*(1+beta2/3)*(1-2*beta2/3)'
-!            elseif(nint(nucleus(i)%level_param(10)) == 4)then
-!               write(13,*)'Factor = 2.0*x(1)*sig2**3/2*(1+beta2/3)*(1-2*beta2/3)'
-!            end if
 
             if(nint(nucleus(i)%level_param(10)) == 1)then
                    if(nint(nucleus(i)%level_param(19)) == 2 .or.            &
@@ -701,33 +715,47 @@ subroutine output_nucleus_data(j_max, itarget)
                if(nucleus(i)%cum_rho_ratio > 1.25)then
                   write(13,*)
                   write(13,'(''******************************************************************'')')
-                  write(13,'(''*****    CAUTION     CAUTION     CAUTION    CAUTION          *****'')')
-                  write(13,'(''*****  The fitted cumulative level density for at            *****'')')
+                  write(13,'(''****** CAUTION ** CAUTION ** CAUTION ** CAUTION ** CAUTION  ******'')')
+                  write(13,'(''*****  The fitted cumulative level density for '',a5,'' at      *****'')')nucleus(i)%Label
                   write(13,'(''*****  E_cut is more than 1.3 larger than the experimental   *****'')')
-                  write(13,'(''*****  value. You should check this and possibly change      *****'')')
-                  write(13,'(''*****  E_cut with the command "lev_ecut Z A  Value"          *****'')')
-                  write(13,'(''*****  Problems of this nature usually means E_cut           *****'')')
-                  write(13,'(''*****  is too high                                           *****'')')
+                  write(13,'(''*****  value. You should check this. Possible causes are:    *****'')')
+                  write(13,'(''*****   1. Ecut is too high and the experimental spectrum    *****'')')
+                  write(13,'(''*****      is incomplete up to Ecut, so the modled spectrum  *****'')')
+                  write(13,'(''*****      is higher than experiment.                        *****'')')
+                  write(13,'(''*****   2. Level density parameters such as the pairing gap  *****'')')
+                  write(13,'(''*****      and/or the shell correction are such that the     *****'')')
+                  write(13,'(''*****      modeled level density is too large and cannot     *****'')')
+                  write(13,'(''*****      reproduce the experimental spectrum. This can     *****'')')
+                  write(13,'(''*****      can happen if D0 is not known, and in odd-odd     *****'')')
+                  write(13,'(''*****      nuclei where the default pairing gap is zero.     *****'')')
+                  write(13,'(''*****   3. There are too few discrete states to effectively  *****'')')
+                  write(13,'(''*****      fit the experimental cumulative density.          *****'')')
+                  write(13,'(''****** CAUTION ** CAUTION ** CAUTION ** CAUTION ** CAUTION  ******'')')
                   write(13,'(''******************************************************************'')')
                   write(13,*)
                end if
                if(nucleus(i)%cum_rho_ratio < 0.75)then
                   write(13,*)
                   write(13,'(''******************************************************************'')')
-                  write(13,'(''*****    CAUTION     CAUTION     CAUTION    CAUTION          *****'')')
-                  write(13,'(''*****  The fitted cumulative level density for at            *****'')')
+                  write(13,'(''****** CAUTION ** CAUTION ** CAUTION ** CAUTION ** CAUTION  ******'')')
+                  write(13,'(''*****  The fitted cumulative level density for '',a5,'' at      *****'')')nucleus(i)%Label
                   write(13,'(''*****  E_cut is more than 0.7 smaller than the experimental  *****'')')
-                  write(13,'(''*****  value. You should check this and possibly change      *****'')')
-                  write(13,'(''*****  E_cut with the command "lev_ecut Z A  Value"          *****'')')
-                  write(13,'(''*****  Problems of this nature usually means E_cut           *****'')')
-                  write(13,'(''*****  is too high                                           *****'')')
+                  write(13,'(''*****  value. You should check this and possibly adjust      *****'')')
+                  write(13,'(''*****  level density parameters. In this case the            *****'')')
+                  write(13,'(''*****  modeled level density is too small and cannot be      *****'')')
+                  write(13,'(''*****  made to match the experimental spectrum.              *****'')')
+                  write(13,'(''*****  Possibly there are too few experimental states to     *****'')')
+                  write(13,'(''*****  effectively fit the experimental cumulative density   *****'')')
+                  write(13,'(''****** CAUTION ** CAUTION ** CAUTION ** CAUTION ** CAUTION  ******'')')
                   write(13,'(''******************************************************************'')')
                   write(13,*)
                end if
             else
-               write(13,*)'E_match was not fit cumulative density for known discrete states'
+               write(13,*)'E_match was not to fit cumulative density for known discrete states'
                write(13,*)'User input over rides fitting or default was used'
             end if
+
+
             nfit = nucleus(i)%ncut
 
             write(13,*)
@@ -1009,7 +1037,10 @@ subroutine output_nucleus_data(j_max, itarget)
             write(13,'('' Shell =    '',f12.7)')nucleus(i)%F_barrier(j)%level_param(4)
             write(13,'('' gamma =    '',f12.7)')nucleus(i)%F_barrier(j)%level_param(5)
             write(13,'('' E_match =  '',f12.7)')nucleus(i)%F_barrier(j)%level_param(6)
-            write(13,'('' E_cut =    '',f12.7)')nucleus(i)%F_barrier(j)%level_param(7)
+            if(nucleus(i)%F_barrier(j)%num_discrete > 0)then
+               write(13,'('' E_cut =    '',f12.7)')nucleus(i)%F_barrier(j)%level_param(7)
+               write(13,'('' Sig2_cut =    '',f12.7)')nucleus(i)%F_barrier(j)%level_param(8)
+            end if
             write(13,'('' T =        '',f12.7)')nucleus(i)%F_barrier(j)%level_param(14)
             write(13,'('' E0 =       '',f12.7)')nucleus(i)%F_barrier(j)%level_param(15)
             if(E1 < 0.0d0)then
@@ -1213,41 +1244,13 @@ subroutine output_nucleus_data(j_max, itarget)
                                 nucleus(i)%F_barrier(j)%rot_enh,                  &
                                 ia,rho_Fm,apu,sig2,K_vib,K_rot)
 
-!   write(6,*)energy,sig2_param(energy,nucleus(i)%F_barrier(j)%level_param,nucleus(i)%A)
-
-!      sig = nucleus(i)%F_barrier(j)%level_param(12)
-!      shell = nucleus(i)%F_barrier(j)%level_param(4)
-!      gamma = nucleus(i)%F_barrier(j)%level_param(5)
-!      sig_model = nint(nucleus(i)%F_barrier(j)%level_param(13))
-!      ematch = nucleus(i)%F_barrier(j)%level_param(6)
-!      delta = nucleus(i)%F_barrier(j)%level_param(3)
-!      Um = Ematch - delta
-!      aparam = nucleus(i)%F_barrier(j)%level_param(1)
-!      sg2cut = nucleus(i)%F_barrier(j)%level_param(8)
-!      ecut = nucleus(i)%F_barrier(j)%level_param(7)
-!      apu = aparam_u(Um,aparam,shell,gamma)
-!      sig2_em = sig*sqrt(max(0.2d0,Um*apu))/aparam
-!      if(sig_model == 0)sig2_em = sig*sqrt(max(0.2d0,Um*apu))/aparam
-!      if(sig_model == 1)sig2_em = sig*sqrt(max(0.2d0,Um)/apu)
-!      sig2_em = max(sig2_em,sig2_min)
-!      deriv = (sig2_em - sg2cut)/(ematch - ecut)
-!      sig2 = sig2_em - deriv*(ematch - energy)
-!      if(sig2 < sig2_min) sig2 = sig2_min
-
-!   write(6,*)energy,Ematch, delta, Um, ecut
-!   write(6,*)aparam, apu
-!   write(6,*)sig2_em, sig2_min, sg2cut
-!   write(6,*)deriv
-
-!   write(6,*)'sig2 ',sig2
-
                pfac = parity_fac(energy,xj,ip,pmode,pe1,pbb)
                write(13,fstring)                                                     &
                    energy,apu,sqrt(sig2),pfac,K_vib,K_rot,K_vib*K_rot,rho_FM*pfac,   &
                    (rho(jj,ip),jj = 0, min(j_max,60))
             end do
             write(13,*)
-!  stop
+
             write(13,'(''Level density States/MeV'')')
             write(13,'(''Negative parity'')')
             write(temp_string,*)min(j_max,60)+1
@@ -1286,10 +1289,92 @@ subroutine output_nucleus_data(j_max, itarget)
             end do
 
 
-         end do
-         write(13,*)
-      end if
 
+            if(nucleus(i)%F_barrier(j)%ncut > 0)then
+               nfit = nucleus(i)%F_barrier(j)%ncut
+               allocate(cum_rho(nfit))
+               allocate(cumm_fit(nfit))
+               allocate(elv(nfit))
+
+               write(13,*)
+               write(13,*)'Cumulative level density for transition states up to E_cut'
+               cum_rho(1) = 1.0d0
+               elv(1) = nucleus(i)%F_barrier(j)%state_e(1)
+               cum_rho(1) = 1.0d0
+               do mm = 2, nfit
+                  elv(mm) = nucleus(i)%F_barrier(j)%state_e(mm)
+                  cum_rho(mm) = cum_rho(mm-1) + 1.0d0
+               end do
+               do mm = 1, nfit
+                  if(mm > 1)cum_rho(mm) = cum_rho(mm-1) + 1.0d0
+                  write(13,'(f10.4,1x,f15.2)')elv(mm), cum_rho(mm)
+                  if(mm < nfit)then
+                     write(13,'(f10.4,1x,f15.2)')elv(mm+1), cum_rho(mm)
+                  end if
+               end do
+               if(j == 1)then
+                  open(unit=23,file = nuke_label(1:inuke_end)//'-CLD-Barr-1.dat',status='unknown')
+               else
+                  open(unit=23,file = nuke_label(1:inuke_end)//'-CLD-Barr-2.dat',status='unknown')
+               end if
+               write(23,*)'#Cumulative level density up to E_cut'
+               cum_rho(1) = 1.0d0
+               elv(1) = nucleus(i)%F_barrier(j)%state_e(1)
+               cum_rho(1) = 1.0d0
+               do mm = 2, nfit
+                  elv(mm) = nucleus(i)%F_barrier(j)%state_e(mm)
+                  cum_rho(mm) = cum_rho(mm-1) + 1.0d0
+               end do
+               do mm = 1, nfit
+                  if(mm > 1)cum_rho(mm) = cum_rho(mm-1) + 1.0d0
+                  write(23,'(f10.4,1x,f15.2)')elv(mm), cum_rho(mm)
+                  if(mm < nfit)then
+                     write(23,'(f10.4,1x,f15.2)')elv(mm+1), cum_rho(mm)
+                  end if
+               end do
+               deallocate(cum_rho)
+               deallocate(cumm_fit)
+               deallocate(elv)
+               close(unit=23)
+            end if
+
+            if(j == 1)then
+               open(unit=23,file = nuke_label(1:inuke_end)//'-CLD-Barr-1-modeled.dat',status='unknown')
+            else
+               open(unit=23,file = nuke_label(1:inuke_end)//'-CLD-Barr-2-modeled.dat',status='unknown')
+            end if
+            d_energy = 0.005
+            if(nucleus(i)%num_discrete > 0)then
+               nfit = nint((nucleus(i)%F_barrier(j)%ecut + 0.2d0)/d_energy) + 1
+            else
+               nfit = nint(1.0d0/d_energy) + 1
+            end if
+            allocate(cum_rho(nfit))
+            allocate(cumm_fit(nfit))
+            allocate(elv(nfit))
+            write(13,*)
+            write(13,*)'Modeled cumulative level density up to E_cut'
+            write(23,*)'#Modeled cumulative level density up to E_cut'
+            elv(1) = 0.0d0
+            do mm = 1, nfit
+               elv(mm) = real(mm,kind=8)*d_energy
+            end do
+            cumm_fit(1:nfit) = 0.0d0
+            call cumm_rho(nfit,elv,iA,nucleus(i)%F_barrier(j)%level_param,             &
+                                      nucleus(i)%F_barrier(j)%vib_enh,                 &
+                                      nucleus(i)%F_barrier(j)%rot_enh,cumm_fit)
+            do mm = 1, nfit
+               write(13,'(f10.4,1x,f15.2)')elv(mm),cumm_fit(mm)
+               write(23,'(f10.4,1x,f15.2)')elv(mm),cumm_fit(mm)
+            end do
+            deallocate(cum_rho)
+            deallocate(cumm_fit)
+            deallocate(elv)
+            close(unit=23)
+
+         end do
+
+      end if
 
 !--------------   HF-denominators
       write(13,*)
@@ -1303,10 +1388,10 @@ subroutine output_nucleus_data(j_max, itarget)
       fstring = "('----------',"//trim(adjustl(temp_string))//"(1x,'---------------'))"
       write(13,fstring)
       fstring = '(f10.6,'//trim(adjustl(temp_string))//'(1x,e15.7))'
-      do n = 1, nucleus(i)%nbin
-         energy=nucleus(i)%e_grid(n)
+      do mm = 1, nucleus(i)%nbin
+         energy = nucleus(i)%e_grid(mm)
          write(13,fstring)                                                           &
-           energy,(nucleus(i)%bins(j,0,n)%HF_den,j=0,min(j_max,60))
+           energy,(nucleus(i)%bins(j,0,mm)%HF_den,j=0,min(j_max,60))
       end do
       write(13,*)
       write(13,*)'Negative Parity'
