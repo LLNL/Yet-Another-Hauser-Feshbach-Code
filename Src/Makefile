@@ -64,7 +64,6 @@ pack_data.o                      \
 unpack_data.o                    \
 HF-decay-MC.o                    \
 HF_primary_decay_setup.o         \
-sum_HFden.o                      \
 interp.o                         \
 level-density.o                  \
 Moldauer-WF.o                    \
@@ -90,7 +89,7 @@ print_channel_gammas_all_ein.o   \
 print_pop_mult_data.o            \
 print_primary_decay.o            \
 particle-properties.o            \
-pre-equilibrium-1.o              \
+pre-equilibrium-exciton.o        \
 PREEQ-Samp.o                     \
 random_32.o                      \
 random_64.o                      \

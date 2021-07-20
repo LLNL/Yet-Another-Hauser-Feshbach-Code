@@ -359,13 +359,14 @@ subroutine set_up_decay_chain(Z_p, A_p, Z_t, A_t)
                         nucleus(num_nuc)%beta(5) = 0.0d0
                         nucleus(num_nuc)%beta(6) = 0.0d0
                         nucleus(num_nuc)%fit_gamma_gamma = fit_gamma_gamma
+                        nucleus(num_nuc)%fit_ematch = fit_ematch
                         nucleus(num_nuc)%ematch_warn = .false.
                         nucleus(num_nuc)%cum_rho_ratio = 0.0d0
                         nucleus(num_nuc)%lev_den_read = .false.
                         nucleus(num_nuc)%lev_den_both = .false.
                         nucleus(num_nuc)%lev_den_file(0:1)(1:100) = ' '
                         nucleus(num_nuc)%E1_model = E1_model
-                        nucleus(num_nuc)%E1_default = .true.
+                        nucleus(num_nuc)%eval_levels = 0
 !------    Initialize information needed for the  possibility of reading in strength funcitons
                         if(.not. allocated(nucleus(num_nuc)%EL_mode))                          &
                            allocate(nucleus(num_nuc)%EL_mode(e_l_max))
@@ -373,6 +374,7 @@ subroutine set_up_decay_chain(Z_p, A_p, Z_t, A_t)
                         nucleus(num_nuc)%EL_mode(e_l_max)%num_gsf = 0
                         do lx = 1, e_l_max
                            nucleus(num_nuc)%EL_mode(lx)%gsf_read = .false.
+                           nucleus(num_nuc)%EL_mode(lx)%default = .true.
                            nucleus(num_nuc)%EL_mode(lx)%num_gsf = 0
                            if(.not. allocated(nucleus(num_nuc)%EL_mode(lx)%gsf))               &
                               allocate(nucleus(num_nuc)%EL_mode(lx)%gsf(max_num_gsf))
@@ -387,8 +389,9 @@ subroutine set_up_decay_chain(Z_p, A_p, Z_t, A_t)
                            allocate(nucleus(num_nuc)%ML_mode(e_l_max))
                         nucleus(num_nuc)%ML_mode(e_l_max)%gsf_read = .false.
                         nucleus(num_nuc)%ML_mode(e_l_max)%num_gsf = 0
-                        do lx = 1, e_l_max
+                        do lx = 1, m_l_max
                            nucleus(num_nuc)%ML_mode(lx)%gsf_read = .false.
+                           nucleus(num_nuc)%ML_mode(lx)%default = .true.
                            nucleus(num_nuc)%ML_mode(lx)%num_gsf = 0
                            if(.not. allocated(nucleus(num_nuc)%ML_mode(lx)%gsf))               &
                               allocate(nucleus(num_nuc)%ML_mode(lx)%gsf(max_num_gsf))

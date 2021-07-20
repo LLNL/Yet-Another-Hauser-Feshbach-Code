@@ -93,7 +93,35 @@ subroutine compound_xs(e_in, itarget, istate, iproj, sigma,      &
    nume = particle(iproj)%nume
    sum1 = 0.0d0
 
-   sum = 0.0d0
+   sum1 = 0.0d0
+   do l = 0, particle(iproj)%lmax                                !   loop over angular momentum
+      par = nint(cpar*(-1.0d0)**l)
+      xj = real(l,kind=8) - spin_proj
+      do i = 0, isp                                         !   loop over channel spins
+         xj = xj + real(i,kind=8)
+         if(xj < 0.0d0)cycle   
+         xI_min = abs(xj - spin_target)
+         xI_max = xj + spin_target
+         Ix_min = max(nint(xI_min-nucleus(1)%jshift),0)
+         Ix_max = min(nint(xI_max-nucleus(1)%jshift),nucleus(1)%j_max)
+         do Ix = Ix_min, Ix_max
+            xI = real(Ix,kind=8) + nucleus(1)%jshift
+            cs_fac = jhat(xI)/(jhat(spin_target)*jhat(spin_proj))
+            tcoef = tco_interpolate(e_rel,nume,                      &
+                                    particle(iproj)%e_grid,          &
+                                    particle(iproj)%trans_read(1,i,l))
+
+            channel_xs = cs*cs_fac*tcoef
+
+            sum1 = sum1 + channel_xs
+         end do
+      end do
+   end do
+
+   sigma = sum1
+
+   if(sigma < 1.0d-7)return
+   
    num_channel = 0
    do l = 0, particle(iproj)%lmax                                !   loop over angular momentum
       par = nint(cpar*(-1.0d0)**l)
@@ -114,13 +142,11 @@ subroutine compound_xs(e_in, itarget, istate, iproj, sigma,      &
 
             channel_xs = cs*cs_fac*tcoef
 
-            if(channel_xs < 1.0d-7)cycle
-            sum = sum + channel_xs
+            if(channel_xs/sum1 < 1.0d-6)cycle
             num_channel = num_channel + 1
          end do
       end do
    end do
-   sigma = sum
 
    allocate(channel_prob(num_channel))
    allocate(ichannel(4,num_channel))
@@ -144,7 +170,7 @@ subroutine compound_xs(e_in, itarget, istate, iproj, sigma,      &
                                     particle(iproj)%e_grid,          &
                                     particle(iproj)%trans_read(1,i,l))
             channel_xs = cs*cs_fac*tcoef
-            if(channel_xs < 1.0d-7)cycle
+            if(channel_xs/sum1 < 1.0d-6)cycle
             sum = sum + channel_xs
             nn = nn + 1
             channel_prob(nn) = sum/sigma
@@ -155,6 +181,8 @@ subroutine compound_xs(e_in, itarget, istate, iproj, sigma,      &
          end do
       end do
    end do
+
+   sigma = sum
 
    return
 

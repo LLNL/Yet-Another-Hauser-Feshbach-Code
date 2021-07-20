@@ -71,10 +71,11 @@ subroutine EM_str_param(inuc)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !-------   Magnetic dipole
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   if(m_l_max >= 1)then
+   l_radiation = 1
+   if(m_l_max >= 1 .and. nucleus(inuc)%ML_mode(l_radiation)%default)then
+
       nucleus(inuc)%lmax_M = m_l_max
 
-      l_radiation = 1
       nucleus(inuc)%ML_mode(l_radiation)%num_gsf = 1
       nucleus(inuc)%ML_mode(l_radiation)%gsf(1)%er = 41.0d0/xa**(1.0d0/3.0d0)
       nucleus(inuc)%ML_mode(l_radiation)%gsf(1)%gr = 4.0d0
@@ -90,36 +91,42 @@ subroutine EM_str_param(inuc)
 !-------   Higher electric multipoles
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    if(e_l_max >= 2)then           !  Include electric quadrupole
-      nucleus(inuc)%EL_mode(2)%num_gsf = 1
-      nucleus(inuc)%EL_mode(2)%gsf(1)%er = 63.0d0/xA**(1.0d0/3.0d0)
-      nucleus(inuc)%EL_mode(2)%gsf(1)%gr = 6.11d0 - 0.012d0*xA
-      nucleus(inuc)%EL_mode(2)%gsf(1)%sr =                                                &
-            0.00014d0*xZ**2*nucleus(inuc)%EL_mode(2)%gsf(1)%er/                           &
-              (xA**(1.0d0/3.0d0)*nucleus(inuc)%EL_mode(2)%gsf(1)%gr) 
+      if(nucleus(inuc)%EL_mode(2)%default)then
+         nucleus(inuc)%EL_mode(2)%num_gsf = 1
+         nucleus(inuc)%EL_mode(2)%gsf(1)%er = 63.0d0/xA**(1.0d0/3.0d0)
+         nucleus(inuc)%EL_mode(2)%gsf(1)%gr = 6.11d0 - 0.012d0*xA
+         nucleus(inuc)%EL_mode(2)%gsf(1)%sr =                                                &
+               0.00014d0*xZ**2*nucleus(inuc)%EL_mode(2)%gsf(1)%er/                           &
+                 (xA**(1.0d0/3.0d0)*nucleus(inuc)%EL_mode(2)%gsf(1)%gr) 
+      end if
    end if
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !----------    Electric multipoles above E2
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    do l_radiation = 3, e_l_max
-      nucleus(inuc)%EL_mode(l_radiation)%num_gsf = 1
-      nucleus(inuc)%EL_mode(l_radiation)%gsf(1)%er =                                      &
-           nucleus(inuc)%EL_mode(l_radiation-1)%gsf(1)%er
-      nucleus(inuc)%EL_mode(l_radiation)%gsf(1)%gr =                                      &
-           nucleus(inuc)%EL_mode(l_radiation-1)%gsf(1)%gr
-      nucleus(inuc)%EL_mode(l_radiation)%gsf(1)%sr =                                      &
-           8.0d-4*nucleus(inuc)%EL_mode(l_radiation-1)%gsf(1)%sr
+      if(nucleus(inuc)%EL_mode(l_radiation)%default)then
+         nucleus(inuc)%EL_mode(l_radiation)%num_gsf = 1
+         nucleus(inuc)%EL_mode(l_radiation)%gsf(1)%er =                                      &
+              nucleus(inuc)%EL_mode(l_radiation-1)%gsf(1)%er
+         nucleus(inuc)%EL_mode(l_radiation)%gsf(1)%gr =                                      &
+              nucleus(inuc)%EL_mode(l_radiation-1)%gsf(1)%gr
+         nucleus(inuc)%EL_mode(l_radiation)%gsf(1)%sr =                                      &
+              8.0d-4*nucleus(inuc)%EL_mode(l_radiation-1)%gsf(1)%sr
+      end if
    end do
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !----------    Magnetic multipoles above M1
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
    do l_radiation = 2, m_l_max
-      nucleus(inuc)%ML_mode(l_radiation)%num_gsf = 1
-      nucleus(inuc)%ML_mode(l_radiation)%gsf(1)%er =                                      &
-           nucleus(inuc)%ML_mode(l_radiation-1)%gsf(1)%er
-      nucleus(inuc)%ML_mode(l_radiation)%gsf(1)%gr =                                      &
-           nucleus(inuc)%ML_mode(l_radiation-1)%gsf(1)%gr
-      nucleus(inuc)%ML_mode(l_radiation)%gsf(1)%sr =                                      &
-           8.0d-4*nucleus(inuc)%ML_mode(l_radiation-1)%gsf(1)%sr
+      if(nucleus(inuc)%ML_mode(l_radiation)%default)then
+         nucleus(inuc)%ML_mode(l_radiation)%num_gsf = 1
+         nucleus(inuc)%ML_mode(l_radiation)%gsf(1)%er =                                      &
+              nucleus(inuc)%ML_mode(l_radiation-1)%gsf(1)%er
+         nucleus(inuc)%ML_mode(l_radiation)%gsf(1)%gr =                                      &
+              nucleus(inuc)%ML_mode(l_radiation-1)%gsf(1)%gr
+         nucleus(inuc)%ML_mode(l_radiation)%gsf(1)%sr =                                      &
+              8.0d-4*nucleus(inuc)%ML_mode(l_radiation-1)%gsf(1)%sr
+      end if
    end do
 
    return

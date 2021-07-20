@@ -119,6 +119,8 @@ subroutine parse_command(command, finish)
    istart = 1
    istop = index(command,' ')-1
 
+!   write(6,*)command
+
    call parse_string(command,numw,startw,stopw)
 
    if(numw <= 0)then
@@ -159,19 +161,36 @@ subroutine parse_command(command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
-   if(command(startw(1):stopw(1)) == 'fission')then
+   if(command(startw(1):stopw(1)) == 'use_eval_levels')then
 
       if(numw < 2)then
-!         write(6,*)'Error in input for option "fission"'
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
 
       call char_logical(command(startw(2):stopw(2)), logic_char, read_error)
 
       if(read_error)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
+      end if
+
+      use_eval_levels = logic_char
+
+      return
+   end if
+!
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!
+   if(command(startw(1):stopw(1)) == 'fission')then
+
+      if(numw < 2)then
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
+      end if
+
+      call char_logical(command(startw(2):stopw(2)), logic_char, read_error)
+
+      if(read_error)then
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
 
       fission = logic_char
@@ -186,15 +205,13 @@ subroutine parse_command(command, finish)
    if(command(startw(1):stopw(1)) == 'event_generator')then
  
       if(numw < 2)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
 
       call char_logical(command(startw(2):stopw(2)), logic_char, read_error)
 
       if(read_error)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
 
       event_generator = logic_char
@@ -202,8 +219,7 @@ subroutine parse_command(command, finish)
       if(numw == 3)then
          call char_logical(command(startw(2):stopw(2)), logic_char, read_error)
          if(read_error)then
-            call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-            return
+            call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
          end if
          file_energy_index = logic_char
       end if
@@ -233,15 +249,13 @@ subroutine parse_command(command, finish)
    if(command(startw(1):stopw(1)) == 'use_unequal_bins')then
  
       if(numw /= 2)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
 
       call char_logical(command(startw(2):stopw(2)), logic_char, read_error)
 
       if(read_error)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
 
       use_unequal_bins = logic_char
@@ -255,15 +269,13 @@ subroutine parse_command(command, finish)
    if(command(startw(1):stopw(1)) == 'xs_only')then
  
       if(numw /= 2)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
 
       call char_logical(command(startw(2):stopw(2)), logic_char, read_error)
 
       if(read_error)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
 
       xs_only = logic_char
@@ -300,8 +312,7 @@ subroutine parse_command(command, finish)
    if(command(startw(1):stopw(1)) == 'target_state')then
  
       if(numw < 2)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
       read(command(startw(2):stopw(2)),*)target%istate
       return
@@ -529,8 +540,7 @@ subroutine parse_command(command, finish)
    if(command(startw(1):stopw(1)) == 'max_particle')then
  
       if(numw < 3)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
 !      read(command(startw(2):stopw(2)),*)k
       k = particle_index(command(startw(2):stopw(2)))
@@ -571,94 +581,109 @@ subroutine parse_command(command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
-   if(command(startw(1):stopw(1)) == 'proj_e_file' .and. .not. ex_set)then
+   if(command(startw(1):stopw(1)) == 'proj_e_file')then
 
-      if(projectile%particle_type == -1)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
+      if(.not. ex_set)then
+         if(projectile%particle_type == -1)then
+            call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
+         end if
+         read_file(1:50)=' '
+         iend = 101
+         ibegin = 101
+         do n = 100, istop + 1, -1
+            if(command(n:n) /= ' ')then
+               iend = n
+               exit
+            end if
+         end do
+         do n = iend, istop + 1, -1
+            if(command(n:n) == ' ')then
+               ibegin = n + 1
+               exit
+            end if
+         end do
+         read_file = command(ibegin:iend)
+         ilast = iend - ibegin + 1
+         open(unit=8, file = read_file(1:ilast), status='old')
+         num = 0
+ 7       read(8,*,end=8)
+         num = num + 1
+         goto 7
+ 8       rewind(8)
+         allocate(projectile%energy(num))
+         projectile%num_e = num
+         do i = 1, num
+            read(8,*)projectile%energy(i)
+         end do
+         close(unit=8)
+         e_min = 1000000.
+         e_max = -1000000.
+         do i = 1, num
+            if(projectile%energy(i) < e_min)    &
+               e_min = projectile%energy(i)
+               if(projectile%energy(i) > e_max) &
+               e_max = projectile%energy(i)
+         end do
+         projectile%e_min = e_min
+         projectile%e_max = e_max
+         ex_set = .true.    
          return
       end if
-      read_file(1:50)=' '
-      iend = 101
-      ibegin = 101
-      do n = 100, istop + 1, -1
-         if(command(n:n) /= ' ')then
-            iend = n
-            exit
-         end if
-      end do
-      do n = iend, istop + 1, -1
-         if(command(n:n) == ' ')then
-            ibegin = n + 1
-            exit
-         end if
-      end do
-      read_file = command(ibegin:iend)
-      ilast = iend - ibegin + 1
-      open(unit=8, file = read_file(1:ilast), status='old')
-      num = 0
- 7    read(8,*,end=8)
-      num = num + 1
-      goto 7
- 8    rewind(8)
-      allocate(projectile%energy(num))
-      projectile%num_e = num
-      do i = 1, num
-         read(8,*)projectile%energy(i)
-      end do
-      close(unit=8)
-      e_min = 1000000.
-      e_max = -1000000.
-      do i = 1, num
-         if(projectile%energy(i) < e_min)    &
-            e_min = projectile%energy(i)
-            if(projectile%energy(i) > e_max) &
-            e_max = projectile%energy(i)
-      end do
-      projectile%e_min = e_min
-      projectile%e_max = e_max
-      ex_set = .true.    
-      return
    end if
 !
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
-   if(command(startw(1):stopw(1)) == 'proj_eminmax' .and. .not. ex_set)then
+   if(command(startw(1):stopw(1)) == 'proj_eminmax')then
  
-      if(projectile%particle_type == -1)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
-      end if
-      if(numw < 4)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
-      end if
-      read(command(startw(2):stopw(2)),*)emin
-      read(command(startw(3):stopw(3)),*)emax
-      read(command(startw(4):stopw(4)),*)estep
+      if(.not. ex_set)then
+         if(projectile%particle_type == -1)then
+            call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
+         end if
+         if(numw < 4)then
+            call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
+         end if
+         read(command(startw(2):stopw(2)),*)emin
+         read(command(startw(3):stopw(3)),*)emax
+         read(command(startw(4):stopw(4)),*)estep
 
-      if(emin <= de)then
-         emin = de/2.0d0
+         if(emin <= de)then
+            emin = de/2.0d0
+         else
+            emin = emin - de/2.0d0
+            num = int(emin/de)
+            emin = real(num,kind=8)*de + de/2.0d0
+            emax = emax - de/2.0d0
+            num = int(emax/de)
+            emax = real(num,kind=8)*de + de/2.0d0
+         end if
+         projectile%e_min = emin
+         projectile%e_max = emax
+         projectile%e_step = estep
+         num = nint((projectile%e_max - projectile%e_min)/projectile%e_step) + 1
+         allocate(projectile%energy(1:num))
+         projectile%num_e = num
+         do i = 1, num
+            projectile%energy(i)=projectile%e_min + real(i-1,kind=8)*projectile%e_step
+         end do
+         projectile%e_max = projectile%energy(num)
+         ex_set = .true.
+         return
       else
-         emin = emin - de/2.0d0
-         num = int(emin/de)
-         emin = real(num,kind=8)*de + de/2.0d0
-         emax = emax - de/2.0d0
-         num = int(emax/de)
-         emax = real(num,kind=8)*de + de/2.0d0
+         if(iproc == 0)then
+            write(6,*)
+            write(6,*)'*****************************************************************'
+            write(6,*)'*  WARNING!!!  WARNING!!!  WARNING!!!  WARNING!!!  WARNING!!!   *' 
+            write(6,*)'*  Attempting to set incident energies with both "proj_e_file"  *'
+            write(6,*)'*  and "proj_eminmax" commands. Command "proj_e_file" takes     *'
+            write(6,*)'*  precedence and will be used in this calcualtion.             *'
+            write(6,*)'*  If your intent was something different, edit the command     *'
+            write(6,*)'*  script file and restart.                                     *'
+            write(6,*)'*****************************************************************'
+            write(6,*)
+         end if
+         return
       end if
-      projectile%e_min = emin
-      projectile%e_max = emax
-      projectile%e_step = estep
-      num = nint((projectile%e_max - projectile%e_min)/projectile%e_step) + 1
-      allocate(projectile%energy(1:num))
-      projectile%num_e = num
-      do i = 1, num
-         projectile%energy(i)=projectile%e_min + real(i-1,kind=8)*projectile%e_step
-      end do
-      projectile%e_max = projectile%energy(num)
-      ex_set = .true.
-      return
    end if
 !
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -684,8 +709,7 @@ subroutine parse_command(command, finish)
    if(command(startw(1):stopw(1)) == 'cs_units')then
  
       if(numw < 2)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
       if(command(startw(2):stopw(2)) == 'b')then
          cs_scale = 1.0d0
@@ -715,8 +739,7 @@ subroutine parse_command(command, finish)
       call extract_ZA_data(command, numw, startw, stopw, ndat,                    &
                            iZ, iA, X, nw, read_error)
       if(read_error)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
 
       do i = 1, num_comp
@@ -745,8 +768,7 @@ subroutine parse_command(command, finish)
       call extract_ZA_data(command, numw, startw, stopw, ndat,         &
                            iZ, iA, X, nw, read_error)
       if(read_error)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
 
       do i = 1, num_comp
@@ -769,8 +791,7 @@ subroutine parse_command(command, finish)
       call extract_ZA_data(command, numw, startw, stopw, ndat,         &
                            iZ, iA, X, nw, read_error)
       if(read_error)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
 
       do i = 1, num_comp
@@ -799,8 +820,7 @@ subroutine parse_command(command, finish)
       call extract_ZA_data(command, numw, startw, stopw, ndat,         &
                            iZ, iA, X, nw, read_error)
       if(read_error)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
 
       do i = 1, num_comp
@@ -829,8 +849,7 @@ subroutine parse_command(command, finish)
       call extract_ZA_data(command, numw, startw, stopw, ndat,         &
                            iZ, iA, X, nw, read_error)
       if(read_error)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
 
       do i = 1, num_comp
@@ -853,8 +872,7 @@ subroutine parse_command(command, finish)
       call extract_ZA_data(command, numw, startw, stopw, ndat,         &
                            iZ, iA, X, nw, read_error)
       if(read_error)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
 
       do i = 1, num_comp
@@ -888,8 +906,7 @@ subroutine parse_command(command, finish)
       call extract_ZA_data(command, numw, startw, stopw, ndat,         &
                            iZ, iA, X, nw, read_error)
       if(read_error)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
 
       do i = 1, num_comp
@@ -921,8 +938,7 @@ subroutine parse_command(command, finish)
       call extract_ZA_data(command, numw, startw, stopw, ndat,         &
                            iZ, iA, X, nw, read_error)
       if(read_error)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
 
       do i = 1, num_comp
@@ -950,8 +966,7 @@ subroutine parse_command(command, finish)
       call extract_ZA_data(command, numw, startw, stopw, ndat,         &
                            iZ, iA, X, nw, read_error)
       if(read_error)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
 
       do i = 1, num_comp
@@ -979,8 +994,7 @@ subroutine parse_command(command, finish)
       call extract_ZA_data(command, numw, startw, stopw, ndat,         &
                            iZ, iA, X, nw, read_error)
       if(read_error)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
 
       do i = 1, num_comp
@@ -996,24 +1010,19 @@ subroutine parse_command(command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
-   if(command(startw(1):stopw(1)) == 'lev_fit_d0')then
+   if(command(startw(1):stopw(1)) == 'global_lev_fit_d0')then
  
       if(numw /= 2)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
 
       call char_logical(command(startw(2):stopw(2)), logic_char, read_error)
 
       if(read_error)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
 
       lev_fit_d0 = logic_char
-      do i = 1, num_comp
-         nucleus(i)%fit_d0 = lev_fit_d0
-      end do
 
       return
    end if
@@ -1021,23 +1030,18 @@ subroutine parse_command(command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
-   if(command(startw(1):stopw(1)) == 'lev_fit_aparam')then
+   if(command(startw(1):stopw(1)) == 'global_lev_fit_aparam')then
  
       if(numw /= 2)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
       call char_logical(command(startw(2):stopw(2)), logic_char, read_error)
 
       if(read_error)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
 
       fit_aparam = logic_char
-      do i = 1, num_comp
-         nucleus(i)%fit_aparam = fit_aparam
-      end do
 
       return
    end if
@@ -1048,8 +1052,7 @@ subroutine parse_command(command, finish)
    if(command(startw(1):stopw(1)) == 't12_isomer')then
  
       if(numw /= 2)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
       read(command(startw(2):stopw(2)),*)t12_isomer
 
@@ -1059,28 +1062,27 @@ subroutine parse_command(command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
-   if(command(startw(1):stopw(1)) == 'fit_aparam')then
+   if(command(startw(1):stopw(1)) == 'lev_fit_aparam')then
  
-      if(iproc ==0)then
-         write(6,*)
-         write(6,*)'---------------------------------------------'
-         write(6,*)'---  The command "fit_aparam" is obsolete ---'
-         write(6,*)'---- Use "lev_fit_d0" or "lev_fit_aparam" ---'
-         write(6,*)'---- See manual for input guidance        ---'
-         write(6,*)'---------------------------------------------'
-         write(6,*)'*********************************************'
-         write(6,*)'**** Continuing as if:                    ***'
-         write(6,*)'**** "lev_fit_d0 y"                       ***'
-         write(6,*)'**** "lev_fit_aparam n"                   ***'
-         write(6,*)'**** Fit to D0 for all nuclei by          ***'
-         write(6,*)'**** adjusting the shell correction       ***'
-         write(6,*)'**** parameter                            ***'
-         write(6,*)'*********************************************'
-         write(6,*)
+      if(numw /= 3)then
+         write(6,*)'"Command "lev_fit_aparam" is used to set the level density option for individual nuclei'
+         write(6,*)'To set it for all nuclei, use command "global_lev_fit_aparam"'
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
+
+      ndat = 0
+      call extract_ZA_data(command, numw, startw, stopw, ndat,         &
+                           iZ, iA, X, nw, read_error)
+
+      if(read_error)then
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
+      end if
+
+      call char_logical(command(startw(nw+1):stopw(nw+1)), logic_char, read_error)
+
       do i = 1, num_comp
-         nucleus(i)%fit_D0 = .true.
-         nucleus(i)%fit_aparam = .false.
+         if(iZ == nucleus(i)%Z .and. iA == nucleus(i)%A)        &
+            nucleus(i)%fit_aparam = .false.
       end do
       return
    end if
@@ -1088,22 +1090,61 @@ subroutine parse_command(command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
-   if(command(startw(1):stopw(1)) == 'lev_fit_ematch')then
+   if(command(startw(1):stopw(1)) == 'global_fit_aparam')then
  
       if(numw /= 2)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
+      end if
+
+      call char_logical(command(startw(2):stopw(2)), logic_char, read_error)
+
+      fit_aparam = logic_char
+
+      return
+   end if
+!
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!
+   if(command(startw(1):stopw(1)) == 'global_lev_fit_ematch')then
+ 
+      if(numw /= 2)then
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
 
       call char_logical(command(startw(2):stopw(2)), logic_char, read_error)
 
       if(read_error)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
+      end if
+
+      fit_ematch = logic_char
+
+      return
+   end if
+!
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!
+   if(command(startw(1):stopw(1)) == 'lev_fit_ematch')then
+
+      ndat = 0
+      call extract_ZA_data(command, numw, startw, stopw, ndat,         &
+                           iZ, iA, X, nw, read_error)
+
+      if(read_error)then
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
+      end if
+
+      call char_logical(command(startw(nw+1):stopw(nw+1)), logic_char, read_error)
+
+      if(read_error)then
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
 
       do i = 1, num_comp
-         nucleus(i)%fit_ematch = logic_char
+         if(iz == nucleus(i)%Z .and. iA == nucleus(i)%A)        &
+            nucleus(i)%fit_ematch = logic_char
       end do
 
       return
@@ -1119,8 +1160,9 @@ subroutine parse_command(command, finish)
       call extract_ZA_data(command, numw, startw, stopw, ndat,         &
                            iZ, iA, X, nw, read_error)
       if(read_error)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         if(iproc == 0)then
+         end if
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
 
       do i = 1, num_comp
@@ -1145,8 +1187,7 @@ subroutine parse_command(command, finish)
       call extract_ZA_data(command, numw, startw, stopw, ndat,         &
                            iZ, iA, X, nw, read_error)
       if(read_error)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
 
       do i = 1, num_comp
@@ -1168,8 +1209,7 @@ subroutine parse_command(command, finish)
    if(command(startw(1):stopw(1)) == 'lev_vib_enhance_mode')then
  
       if(numw < 2)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
       read(command(startw(2):stopw(2)),*)k
       do i = 1, num_comp
@@ -1207,8 +1247,7 @@ subroutine parse_command(command, finish)
    if(command(startw(1):stopw(1)) == 'quasi_elastic')then
  
       if(numw < 2)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
       read(command(startw(2):stopw(2)),*)quasi_e
       return
@@ -1224,15 +1263,15 @@ subroutine parse_command(command, finish)
       call extract_ZA_data(command, numw, startw, stopw, ndat,         &
                            iZ, iA, X, nw, read_error)
       if(read_error)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
 
       do i = 1, num_comp
          if(iZ == nucleus(i)%Z .and. iA == nucleus(i)%A)then
             nucleus(i)%beta(2) = x(1)
             nucleus(i)%rot_enh(4) = (1.0d0 + x(1)/3.0d0)
-            nucleus(i)%rot_enh(5) = sqrt(pi/2.0d0)*(1.0d0 - 2.0d0*x(1)/3.0d0)
+            nucleus(i)%rot_enh(5) = (1.0d0 - 2.0d0*x(1)/3.0d0)
+!            nucleus(i)%rot_enh(5) = sqrt(pi/2.0d0)*(1.0d0 - 2.0d0*x(1)/3.0d0)
             return
          end if
       end do
@@ -1242,17 +1281,15 @@ subroutine parse_command(command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
-   if(command(startw(1):stopw(1)) == 'lev_option')then          !   global setting of this parameter
+   if(command(startw(1):stopw(1)) == 'global_lev_option')then          !   global setting of this parameter
  
       if(numw < 2)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
       read(command(startw(2):stopw(2)),*)j
 
       if(j > 5)then
-         if(iproc == 0)write(6,*)'Bad input for "lev_option"'
-         call exit_YAHFC(101)
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
 
       return
@@ -1263,21 +1300,22 @@ subroutine parse_command(command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
 
-   if(command(startw(1):stopw(1)) == 'lev_nuc_option')then          !   setting of this parameter for nucleus iZ,iA
+   if(command(startw(1):stopw(1)) == 'lev_option')then          !   setting of this parameter for nucleus iZ,iA
  
 
       ndat = 1
       call extract_ZA_data(command, numw, startw, stopw, ndat,         &
                            iZ, iA, X, nw, read_error)
       if(read_error)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         write(6,*)'"Command "lev_option" is used to set the level density option for individual nuclei'
+         write(6,*)'To set it for all nuclei, use command "global_lev_option"'
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
 
       j = nint(x(1),kind=4)
 
-      if(j > 2)then
-         if(iproc == 0)write(6,*)'Bad input for "lev_nuc_option"'
+      if(j > 5)then
+         if(iproc == 0)write(6,*)'Bad input for "lev_option"'
          call exit_YAHFC(101)
       end if
       if(iA <= 20 .and. j > 1)then
@@ -1288,7 +1326,7 @@ subroutine parse_command(command, finish)
       do i = 1, num_comp
          if(iZ == nucleus(i)%Z .and. iA == nucleus(i)%A)then
             if(nucleus(i)%param_read)then
-               if(iproc == 0)write(6,*)'Warning! "lev_nuc_option" will override parameters parameters from saved file' 
+               if(iproc == 0)write(6,*)'Warning! "lev_option" will override parameters parameters from saved file' 
             end if
             nucleus(i)%lev_option = j
             nucleus(i)%level_param(9) = X(1)
@@ -1303,7 +1341,6 @@ subroutine parse_command(command, finish)
 
             if(nucleus(i)%fission .and. .not. nucleus(i)%reading_param .and.      &
                .not. nucleus(i)%param_read)call init_barrier_data(i)
-
             return
          end if         
       end do
@@ -1313,7 +1350,7 @@ subroutine parse_command(command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
-   if(command(startw(1):stopw(1)) == 'lev_nuc_fit_D0')then
+   if(command(startw(1):stopw(1)) == 'lev_fit_d0')then
  
 
       ndat = 0
@@ -1321,15 +1358,15 @@ subroutine parse_command(command, finish)
                            iZ, iA, X, nw, read_error)
       nw = nw + 1
       if(numw < nw)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         write(6,*)'"Command "lev_fit_d0" is used to set the level density option for individual nuclei'
+         write(6,*)'To set it for all nuclei, use command "global_lev_fit_d0"'
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
 
-      call char_logical(command(startw(nw):stopw(nw)), logic_char, read_error)
+      call char_logical(command(startw(nw+1):stopw(nw+1)), logic_char, read_error)
 
       if(read_error)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
 
       do i = 1, num_comp
@@ -1345,7 +1382,7 @@ subroutine parse_command(command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
-   if(command(startw(1):stopw(1)) == 'lev_nuc_fit_aparam')then
+   if(command(startw(1):stopw(1)) == 'lev_fit_aparam')then
  
 
 
@@ -1354,15 +1391,13 @@ subroutine parse_command(command, finish)
                            iZ, iA, X, nw, read_error)
       nw = nw + 1
       if(numw < nw)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
 
-      call char_logical(command(startw(nw):stopw(nw)), logic_char, read_error)
+      call char_logical(command(startw(nw+1):stopw(nw+1)), logic_char, read_error)
 
       if(read_error)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
 
       do i = 1, num_comp
@@ -1378,23 +1413,21 @@ subroutine parse_command(command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
-   if(command(startw(1):stopw(1)) == 'lev_nuc_fit_ematch')then
+   if(command(startw(1):stopw(1)) == 'lev_fit_ematch')then
  
 
       ndat = 0
       call extract_ZA_data(command, numw, startw, stopw, ndat,         &
                            iZ, iA, X, nw, read_error)
       if(read_error)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
 
       nw = nw + 1
-      call char_logical(command(startw(nw):stopw(nw)), logic_char, read_error)
+      call char_logical(command(startw(nw+1):stopw(nw+1)), logic_char, read_error)
 
       if(read_error)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
 
       do i = 1, num_comp
@@ -1410,15 +1443,42 @@ subroutine parse_command(command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
-   if(command(startw(1):stopw(1)) == 'e1_param')then          !   global setting of this parameter
+   if(command(startw(1):stopw(1)) == 'e1_model')then          
+ 
+
+      ndat = 1
+      call extract_ZA_data(command, numw, startw, stopw, ndat,         &
+                           iZ, iA, X, nw, read_error)
+      if(read_error)then
+         write(6,*)'"Command "e1_model" is used to set the level density option for individual nuclei'
+         write(6,*)'To set it for all nuclei, use command "global_e1_model"'
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
+      end if
+      j = nint(X(1),kind=4)
+      if(j < 1 .or. j > 3)then
+         if(iproc == 0)write(6,*)'Bad input for e1_model! 1 <= E1_model <= 3'
+         call exit_YAHFC(101)
+      end if
+      do i = 1, num_comp
+         if(iZ == nucleus(i)%Z .and. iA == nucleus(i)%A)then
+            nucleus(i)%e1_model = j
+            call EM_str_param(i)        !   need to call in order to consistently set ML strengths
+         end if
+      end do
+      return
+   end if
+!
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!
+   if(command(startw(1):stopw(1)) == 'e1_param')then          
  
 
       ndat = 4
       call extract_ZA_data(command, numw, startw, stopw, ndat,         &
                            iZ, iA, X, nw, read_error)
       if(read_error)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
       j = nint(X(1),kind=4)
       X(1) = X(2)
@@ -1431,7 +1491,7 @@ subroutine parse_command(command, finish)
       end if
       do i = 1, num_comp
          if(iZ == nucleus(i)%Z .and. iA == nucleus(i)%A)then
-            if(nucleus(i)%E1_default)nucleus(i)%E1_default = .false.
+            nucleus(i)%ML_mode(1)%default = .false.
             nucleus(i)%EL_mode(1)%gsf(j)%er = X(1)
             nucleus(i)%EL_mode(1)%gsf(j)%gr = X(2)
             nucleus(i)%EL_mode(1)%gsf(j)%sr = X(3)
@@ -1444,15 +1504,14 @@ subroutine parse_command(command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
-   if(command(startw(1):stopw(1)) == 'el_param')then          !   global setting of this parameter
+   if(command(startw(1):stopw(1)) == 'el_param')then          
  
 
       ndat = 5
       call extract_ZA_data(command, numw, startw, stopw, ndat,         &
                            iZ, iA, X, nw, read_error)
       if(read_error)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
       lx = nint(X(1),kind=4)
       j = nint(X(2),kind=4)
@@ -1470,7 +1529,7 @@ subroutine parse_command(command, finish)
       end if
       do i = 1, num_comp
          if(iZ == nucleus(i)%Z .and. iA == nucleus(i)%A)then
-            if(nucleus(i)%E1_default)nucleus(i)%E1_default = .false.
+            nucleus(i)%EL_mode(lx)%default = .false.
 !            nucleus(i)%er_E1(j) = x(1)
 !            nucleus(i)%gr_E1(j) = x(2)
 !            nucleus(i)%sr_E1(j) = x(3)
@@ -1486,15 +1545,14 @@ subroutine parse_command(command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
-   if(command(startw(1):stopw(1)) == 'ml_param')then          !   global setting of this parameter
+   if(command(startw(1):stopw(1)) == 'ml_param')then          
  
 
       ndat = 5
       call extract_ZA_data(command, numw, startw, stopw, ndat,         &
                            iZ, iA, X, nw, read_error)
       if(read_error)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
       lx = nint(X(1),kind=4)
       j = nint(X(2),kind=4)
@@ -1512,7 +1570,7 @@ subroutine parse_command(command, finish)
       end if
       do i = 1, num_comp
          if(iZ == nucleus(i)%Z .and. iA == nucleus(i)%A)then
-            if(nucleus(i)%E1_default)nucleus(i)%E1_default = .false.
+            nucleus(i)%ML_mode(lx)%default = .false.
             nucleus(i)%ML_mode(lx)%gsf(j)%er = X(1)
             nucleus(i)%ML_mode(lx)%gsf(j)%gr = X(2)
             nucleus(i)%ML_mode(lx)%gsf(j)%sr = X(3)
@@ -1525,15 +1583,14 @@ subroutine parse_command(command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
-   if(command(startw(1):stopw(1)) == 'f_num_barrier')then          !   global setting of this parameter
+   if(command(startw(1):stopw(1)) == 'f_num_barrier')then          
  
 
       ndat = 1
       call extract_ZA_data(command, numw, startw, stopw, ndat,         &
                            iZ, iA, X, nw, read_error)
       if(read_error)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
       j = nint(X(1),kind=4)
 
@@ -1564,15 +1621,14 @@ subroutine parse_command(command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
-   if(command(startw(1):stopw(1)) == 'f_barrier')then          !   global setting of this parameter
+   if(command(startw(1):stopw(1)) == 'f_barrier')then          
  
 
       ndat = 3
       call extract_ZA_data(command, numw, startw, stopw, ndat,         &
                            iZ, iA, X, nw, read_error)
       if(read_error)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
       j = nint(X(1),kind=4)
       X(1) = X(2)
@@ -1598,15 +1654,14 @@ subroutine parse_command(command, finish)
 !    damping factor for fission barriers
 !    F_barrier = F_barrier*x(1)*exp(-((Ex-x(2))/x(3))**2)
 !   
-   if(command(startw(1):stopw(1)) == 'f_barrier_damp')then          !   global setting of this parameter
+   if(command(startw(1):stopw(1)) == 'f_barrier_damp')then          
  
 
       ndat = 3
       call extract_ZA_data(command, numw, startw, stopw, ndat,         &
                            iZ, iA, X, nw, read_error)
       if(read_error)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
       j = nint(X(1),kind=4)
 
@@ -1647,21 +1702,19 @@ subroutine parse_command(command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !    Set symmetry for barrier
 !   
-   if(command(startw(1):stopw(1)) == 'f_barrier_symmetry')then          !   global setting of this parameter
+   if(command(startw(1):stopw(1)) == 'f_barrier_symmetry')then          
  
 
       ndat = 1
       call extract_ZA_data(command, numw, startw, stopw, ndat,         &
                            iZ, iA, X, nw, read_error)
       if(read_error)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
       j = nint(X(1),kind=4)
       nw = nw + 1
       if(numw < nw)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
 
       do i = 1, num_comp
@@ -1705,15 +1758,14 @@ subroutine parse_command(command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
-   if(command(startw(1):stopw(1)) == 'f_ecut')then          !   global setting of this parameter
+   if(command(startw(1):stopw(1)) == 'f_lev_ecut')then          
  
 
       ndat = 2
       call extract_ZA_data(command, numw, startw, stopw, ndat,         &
                            iZ, iA, X, nw, read_error)
       if(read_error)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
       j = nint(X(1),kind=4)
       X(1) = X(2)
@@ -1728,22 +1780,21 @@ subroutine parse_command(command, finish)
             return
          end if
       end do
-      if(iproc == 0)write(6,*)'Nucleus not found: F_ecut',' Z = ',iZ,' A = ',iA
+      if(iproc == 0)write(6,*)'Nucleus not found: f_lev_ecut',' Z = ',iZ,' A = ',iA
       return
    end if
 !
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
-   if(command(startw(1):stopw(1)) == 'f_lev_aparam')then          !   global setting of this parameter
+   if(command(startw(1):stopw(1)) == 'f_lev_aparam')then          
  
 
       ndat = 2
       call extract_ZA_data(command, numw, startw, stopw, ndat,         &
                            iZ, iA, X, nw, read_error)
       if(read_error)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
       j = nint(X(1),kind=4)
       X(1) = X(2)
@@ -1765,15 +1816,14 @@ subroutine parse_command(command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
-   if(command(startw(1):stopw(1)) == 'f_lev_spin')then          !   global setting of this parameter
+   if(command(startw(1):stopw(1)) == 'f_lev_spin')then          
  
 
       ndat = 2
       call extract_ZA_data(command, numw, startw, stopw, ndat,         &
                            iZ, iA, X, nw, read_error)
       if(read_error)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
       j = nint(X(1),kind=4)
       X(1) = X(2)
@@ -1799,15 +1849,14 @@ subroutine parse_command(command, finish)
 !
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   if(command(startw(1):stopw(1)) == 'f_lev_delta')then          !   global setting of this parameter
+   if(command(startw(1):stopw(1)) == 'f_lev_delta')then          
  
 
       ndat = 2
       call extract_ZA_data(command, numw, startw, stopw, ndat,         &
                            iZ, iA, X, nw, read_error)
       if(read_error)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
 
       j = nint(X(1),kind=4)
@@ -1837,8 +1886,7 @@ subroutine parse_command(command, finish)
       call extract_ZA_data(command, numw, startw, stopw, ndat,         &
                            iZ, iA, X, nw, read_error)
       if(read_error)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
 
       j = nint(X(1),kind=4)
@@ -1861,6 +1909,34 @@ subroutine parse_command(command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
+   if(command(startw(1):stopw(1)) == 'f_spect_scale')then
+
+      ndat = 2
+      call extract_ZA_data(command, numw, startw, stopw, ndat,         &
+                           iZ, iA, X, nw, read_error)
+      if(read_error)then
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
+      end if
+
+      j = nint(X(1))
+
+      do i = 1, num_comp
+         if(iZ == nucleus(i)%Z .and. iA == nucleus(i)%A)then
+            if(j > nucleus(i)%F_n_barr)then
+               if(iproc == 0)write(6,*)'too many barriers for F_lev_shell',' Z = ',iZ,' A = ',iA
+               call exit_YAHFC(101)
+            end if
+            nucleus(i)%F_Barrier(j)%state_scale = X(2)
+            return
+         end if
+      end do
+      if(iproc == 0)write(6,*)'Nucleus not found: F_spect_scale',' Z = ',iZ,' A = ',iA
+      return
+   end if
+!
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!
    if(command(startw(1):stopw(1)) == 'f_lev_gamma')then
  
 
@@ -1868,8 +1944,7 @@ subroutine parse_command(command, finish)
       call extract_ZA_data(command, numw, startw, stopw, ndat,         &
                            iZ, iA, X, nw, read_error)
       if(read_error)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
 
       j = nint(X(1),kind=4)
@@ -1899,8 +1974,7 @@ subroutine parse_command(command, finish)
       call extract_ZA_data(command, numw, startw, stopw, ndat,         &
                            iZ, iA, X, nw, read_error)
       if(read_error)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
 
       j = nint(X(1),kind=4)
@@ -1934,8 +2008,7 @@ subroutine parse_command(command, finish)
       call extract_ZA_data(command, numw, startw, stopw, ndat,         &
                            iZ, iA, X, nw, read_error)
       if(read_error)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
 
       j = nint(X(1),kind=4)
@@ -1969,8 +2042,7 @@ subroutine parse_command(command, finish)
       call extract_ZA_data(command, numw, startw, stopw, ndat,         &
                            iZ, iA, X, nw, read_error)
       if(read_error)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
 
       j = nint(X(1),kind=4)
@@ -1996,6 +2068,7 @@ subroutine parse_command(command, finish)
                   nucleus(i)%F_Barrier(j)%level_param(6)  + 0.25d0
             else
                nucleus(i)%F_Barrier(j)%level_param(6) = x(1)
+               nucleus(i)%F_Barrier(j)%fit_ematch = .false.
             end if
             return
          end if
@@ -2007,15 +2080,14 @@ subroutine parse_command(command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
-   if(command(startw(1):stopw(1)) == 'f_beta2')then          !   global setting of this parameter
+   if(command(startw(1):stopw(1)) == 'f_beta2')then          
  
 
       ndat = 2
       call extract_ZA_data(command, numw, startw, stopw, ndat,         &
                            iZ, iA, X, nw, read_error)
       if(read_error)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
 
       j = nint(X(1),kind=4)
@@ -2030,7 +2102,8 @@ subroutine parse_command(command, finish)
             beta_2 = x(1)
             nucleus(i)%F_Barrier(j)%beta_2 = beta_2
             sig2_perp = (1.0d0 + beta_2/3.0d0)
-            sig2_ax = sqrt(pi/2.0d0)*(1.0d0 - 2.0d0*beta_2/3.0d0)
+            sig2_ax = (1.0d0 - 2.0d0*beta_2/3.0d0)
+!            sig2_ax = sqrt(pi/2.0d0)*(1.0d0 - 2.0d0*beta_2/3.0d0)
             nucleus(i)%F_Barrier(j)%rot_enh(4) = sig2_perp
             nucleus(i)%F_Barrier(j)%rot_enh(5) = sig2_ax
             return
@@ -2043,15 +2116,55 @@ subroutine parse_command(command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
-   if(command(startw(1):stopw(1)) == 'f_barr_levels')then
+   if(command(startw(1):stopw(1)) == 'global_use_tran_states')then          !   global setting of this parameter
+
+      call char_logical(command(startw(2):stopw(2)),logic_char,read_error)
+
+      if(read_error)then
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
+      end if 
+
+      use_tran_states = logic_char
+      return
+   end if
+!
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!
+   if(command(startw(1):stopw(1)) == 'f_use_tran_states')then          
+
+      ndat = 0
+      call extract_ZA_data(command, numw, startw, stopw, ndat,         &
+                           iZ, iA, X, nw, read_error)
+      if(read_error)then
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
+      end if 
+
+      call char_logical(command(startw(nw+1):stopw(nw+1)),logic_char,read_error)
+
+      if(read_error)then
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
+      end if 
+
+      do i = 1, num_comp
+         if(iZ == nucleus(i)%Z .and. iA == nucleus(i)%A)            &
+            nucleus(i)%fiss_tran_states = logic_char
+      end do
+      if(iproc == 0)write(6,*)'Nucleus not found: f_use_tran_states',' Z = ',iZ,' A = ',iA
+      return
+   end if
+!
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!
+   if(command(startw(1):stopw(1)) == 'f_barr_states')then
  
 
       ndat = 1
       call extract_ZA_data(command, numw, startw, stopw, ndat,         &
                            iZ, iA, X, nw, read_error)
       if(read_error)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
       j = nint(X(1),kind=4)
       nw = nw + 1
@@ -2065,10 +2178,14 @@ subroutine parse_command(command, finish)
          if(nucleus(i)%Z == iZ .and. nucleus(i)%A == iA)then
             open(unit=8, file = read_file(1:ilast), status='old')
             num = 0
- 9          read(8,*,end=10)
-            num = num + 1
-            goto 9
- 10         rewind(8)
+            io_error = 0
+            do while(io_error == 0)
+               read(8,'(a)',iostat = io_error)temp_char
+               if(temp_char(1:1) == '!' .or. temp_char(1:1) == '#')cycle
+               if(io_error /= 0)cycle
+               num = num + 1
+            end do
+            rewind(8)
             nucleus(i)%F_Barrier(j)%num_discrete = num
             if(.not.allocated(nucleus(i)%F_barrier(j)%state_e))then
                allocate(nucleus(i)%F_barrier(j)%state_e(num))
@@ -2088,16 +2205,24 @@ subroutine parse_command(command, finish)
                deallocate(nucleus(i)%F_barrier(j)%state_pi)
                allocate(nucleus(i)%F_barrier(j)%state_pi(num))
             end if
-            do k = 1, num
-               read(8,*)nucleus(i)%F_Barrier(j)%state_e(k),             &
-                         nucleus(i)%F_Barrier(j)%state_j(k),            &
-                         nucleus(i)%F_Barrier(j)%state_pi(k)
+            io_error = 0
+            k = 0
+            do while(io_error == 0)
+               read(8,'(a)', iostat = io_error)temp_char
+               if(temp_char(1:1) == '!' .or. temp_char(1:1) == '#')cycle
+               if(io_error /= 0)cycle
+               k = k + 1
+               read(temp_char,*)nucleus(i)%F_Barrier(j)%state_e(k),    &
+                                nucleus(i)%F_Barrier(j)%state_j(k),    &
+                                nucleus(i)%F_Barrier(j)%state_pi(k)
             end do
             close(unit=8)
+            nucleus(i)%fiss_tran_states = .true.
+            nucleus(i)%fiss_user_levels = .true.
          end if
       end do
 
-      if(iproc == 0)write(6,*)'Nucleus not found: F_Barr_levels',' Z = ',iZ,' A = ',iA
+      if(iproc == 0)write(6,*)'Nucleus not found: f_barr_states',' Z = ',iZ,' A = ',iA
       return
    end if
 !
@@ -2107,21 +2232,21 @@ subroutine parse_command(command, finish)
    if(command(startw(1):stopw(1)) == 'ran_seed')then
  
       if(numw < 2)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
       read(command(startw(2):stopw(2)),*)iseed
       iseed_32 = iseed
-      iseed_64 = int(iseed,kind=int_64)
+      if(iseed_32 > 0)iseed_32 = -iseed_32      
+      iseed_64 = int(iseed,kind=int_64) + int(27182818,kind=int_64)
       one_int_64 = 1_int_64
-      if(iand(iseed_64,one_int_64) /= one_int_64)iseed_64 = iseed_64 + one_int_64
-      if(iand(iseed_32,1) /= 1)iseed_32 = iseed_32 + 1
       if(nproc >0)then
          iseed_32 = iseed_32 + iproc*31415_int_32
          iseed_64 = iseed_64 + iproc*31415_int_64
       end if
-      if(iseed_32 > 0)iseed_32 = -iseed_32      
-      if(iseed_64 > 0)iseed_64 = -iseed_64
+      if(iand(iseed_32,1) /= 1)iseed_32 = iseed_32 + 1
+      if(iand(iseed_64,one_int_64) /= one_int_64)iseed_64 = iseed_64 + one_int_64
+      iseed_32 = -iseed_32      
+      iseed_64 = -iseed_64
       return
    end if
 !
@@ -2131,8 +2256,7 @@ subroutine parse_command(command, finish)
    if(command(startw(1):stopw(1)) == 'num_mc_samp')then
  
       if(numw < 2)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
       read(command(startw(2):stopw(2)),*)j
       if(j < 1)then
@@ -2148,12 +2272,11 @@ subroutine parse_command(command, finish)
    if(command(startw(1):stopw(1)) == 'preeq_model')then
  
       if(numw < 2)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
       read(command(startw(2):stopw(2)),*)j
       if(j > 1)then
-         if(iproc == 0)write(6,*)'Invalid choice using default'
+         if(iproc == 0)write(6,*)'Invalid choice for "pree_model" using default'
          return
       end if
       PREEQ_Model = j
@@ -2166,8 +2289,7 @@ subroutine parse_command(command, finish)
    if(command(startw(1):stopw(1)) == 'preeq_m2_c1')then
  
       if(numw < 2)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
       read(command(startw(2):stopw(2)),*)x(1)
       M2_C1 = x(1)
@@ -2180,8 +2302,7 @@ subroutine parse_command(command, finish)
    if(command(startw(1):stopw(1)) == 'preeq_m2_c2')then
  
       if(numw < 2)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
       read(command(startw(2):stopw(2)),*)x(1)
       M2_C2 = x(1)
@@ -2194,8 +2315,7 @@ subroutine parse_command(command, finish)
    if(command(startw(1):stopw(1)) == 'preeq_m2_c3')then
  
       if(numw < 2)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
       read(command(startw(2):stopw(2)),*)x(1)
       M2_C3 = x(1)
@@ -2208,8 +2328,7 @@ subroutine parse_command(command, finish)
    if(command(startw(1):stopw(1)) == 'preeq_m2_rpp')then
  
       if(numw < 2)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
       read(command(startw(2):stopw(2)),*)x(1)
       M2_Rpp = x(1)
@@ -2222,8 +2341,7 @@ subroutine parse_command(command, finish)
    if(command(startw(1):stopw(1)) == 'preeq_m2_rnn')then
  
       if(numw < 2)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
       read(command(startw(2):stopw(2)),*)x(1)
       M2_Rnn = x(1)
@@ -2236,8 +2354,7 @@ subroutine parse_command(command, finish)
    if(command(startw(1):stopw(1)) == 'preeq_m2_rpn')then
  
       if(numw < 2)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
       read(command(startw(2):stopw(2)),*)x(1)
       M2_Rpn = x(1)
@@ -2250,8 +2367,7 @@ subroutine parse_command(command, finish)
    if(command(startw(1):stopw(1)) == 'preeq_m2_rnp')then
  
       if(numw < 2)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
       read(command(startw(2):stopw(2)),*)x(1)
       M2_Rnp = x(1)
@@ -2264,8 +2380,7 @@ subroutine parse_command(command, finish)
    if(command(startw(1):stopw(1)) == 'preeq_well_v')then
  
       if(numw < 2)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
       read(command(startw(2):stopw(2)),*)x(1)
       Preeq_V = x(1)
@@ -2278,8 +2393,7 @@ subroutine parse_command(command, finish)
    if(command(startw(1):stopw(1)) == 'preeq_gam_fact')then
  
       if(numw < 2)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
       read(command(startw(2):stopw(2)),*)x(1)
       Preeq_gam_fact = x(1)
@@ -2292,8 +2406,7 @@ subroutine parse_command(command, finish)
    if(command(startw(1):stopw(1)) == 'preeq_well_v1')then
  
       if(numw < 2)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
       read(command(startw(2):stopw(2)),*)x(1)
       Preeq_V1 = x(1)
@@ -2310,8 +2423,7 @@ subroutine parse_command(command, finish)
    if(command(startw(1):stopw(1)) == 'preeq_well_k')then
  
       if(numw < 2)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
       read(command(startw(2):stopw(2)),*)x(1)
       Preeq_K = x(1)
@@ -2324,8 +2436,7 @@ subroutine parse_command(command, finish)
    if(command(startw(1):stopw(1)) == 'preeq_g_div')then
  
       if(numw < 2)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
       read(command(startw(2):stopw(2)),*)x(1)
       Preeq_g_div = x(1)
@@ -2338,8 +2449,7 @@ subroutine parse_command(command, finish)
    if(command(startw(1):stopw(1)) == 'preeq_g_a')then
  
       if(numw < 2)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
       read(command(startw(2):stopw(2)),*)i
       if(i == 0)then
@@ -2356,8 +2466,7 @@ subroutine parse_command(command, finish)
    if(command(startw(1):stopw(1)) == 'preeq_pair_model')then
  
       if(numw < 3)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
       read(command(startw(2):stopw(2)),*)preeq_pair_model
       if(preeq_pair_model > 2)preeq_pair_model = 1
@@ -2373,8 +2482,7 @@ subroutine parse_command(command, finish)
    if(command(startw(1):stopw(1)) == 'preeq_fwell')then
  
       if(numw < 2)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
       read(command(startw(2):stopw(2)),*)preeq_fwell
       if(preeq_fwell < 0 .or. preeq_fwell > 2)preeq_fwell=1
@@ -2387,15 +2495,13 @@ subroutine parse_command(command, finish)
    if(command(startw(1):stopw(1)) == 'preeq_analytic')then
  
       if(numw < 2)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
 
       call char_logical(command(startw(2):stopw(2)),logic_char,read_error)
 
       if(read_error)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
 
       analytic_preeq = logic_char
@@ -2409,8 +2515,7 @@ subroutine parse_command(command, finish)
    if(command(startw(1):stopw(1)) == 'wf_model')then
  
       if(numw < 2)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
       read(command(startw(2):stopw(2)),*)WF_model
       if(WF_model > 1)WF_model = 1
@@ -2423,8 +2528,7 @@ subroutine parse_command(command, finish)
    if(command(startw(1):stopw(1)) == 'delta_e')then
  
       if(numw < 2)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
       read(command(startw(2):stopw(2)),*)de
       return
@@ -2433,14 +2537,29 @@ subroutine parse_command(command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
-   if(command(startw(1):stopw(1)) == 'e1_model')then
+   if(command(startw(1):stopw(1)) == 'moldauer_cutoff')then
  
       if(numw < 2)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
+      end if
+      read(command(startw(2):stopw(2)),*)mold_cutoff
+      return
+   end if
+!
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!
+   if(command(startw(1):stopw(1)) == 'global_e1_model')then
+ 
+      if(numw < 2)then
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
 
       read(command(startw(2):stopw(2)),*)E1_model
+      if(E1_model < 1 .or. E1_model > 3)then
+         if(iproc == 0)write(6,*)'Bad E1_model input! 1 <= E1_model <= 3'
+         call exit_YAHFC(101)
+      end if
 
       return
 
@@ -2449,17 +2568,17 @@ subroutine parse_command(command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
-   if(command(startw(1):stopw(1)) == 'pair_model')then
+   if(command(startw(1):stopw(1)) == 'global_pair_model')then
  
       if(numw < 2)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
       read(command(startw(2):stopw(2)),*)j
       pair_model = j
 
       if(J > 2)then
-         if(iproc == 0)write(6,*)'Invalid input for option: pair_model'
+         if(iproc == 0)write(6,*)'Invalid input for option: global_pair_model'
+         call exit_YAHFC(101)
       end if
 
       return
@@ -2482,8 +2601,7 @@ subroutine parse_command(command, finish)
    if(command(startw(1):stopw(1)) == 'max_j_allowed')then
  
       if(numw < 2)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
       read(command(startw(2):stopw(2)),*)itemp_read
       if(pop_calc)then
@@ -2504,15 +2622,13 @@ subroutine parse_command(command, finish)
           write(6,*)'Use "track_gammas y" instead. Continuing as if "track_gammas" was called'
       end if
       if(numw < 2)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
 
       call char_logical(command(startw(2):stopw(2)),logic_char,read_error)
 
       if(read_error)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
 
       track_gammas = logic_char         
@@ -2525,15 +2641,13 @@ subroutine parse_command(command, finish)
    if(command(startw(1):stopw(1)) == 'track_gammas')then
  
       if(numw < 2)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
 
       call char_logical(command(startw(2):stopw(2)),logic_char,read_error)
 
       if(read_error)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
 
       track_gammas = logic_char         
@@ -2547,8 +2661,7 @@ subroutine parse_command(command, finish)
    if(command(startw(1):stopw(1)) == 'prob_cut')then
  
       if(numw < 2)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
       read(command(startw(2):stopw(2)),*)x(1)
       prob_cut = x(1)
@@ -2561,8 +2674,7 @@ subroutine parse_command(command, finish)
    if(command(startw(1):stopw(1)) == 'trans_p_cut')then
  
       if(numw < 2)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
       read(command(startw(2):stopw(2)),*)x(1)
       trans_p_cut = x(1)
@@ -2575,8 +2687,7 @@ subroutine parse_command(command, finish)
    if(command(startw(1):stopw(1)) == 'trans_e_cut')then
  
       if(numw < 2)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
       read(command(startw(2):stopw(2)),*)x(1)
       trans_e_cut = x(1)
@@ -2589,8 +2700,7 @@ subroutine parse_command(command, finish)
    if(command(startw(1):stopw(1)) == 'rho_cut')then
  
       if(numw < 2)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
       read(command(startw(2):stopw(2)),*)x(1)
       rho_cut = x(1)
@@ -2661,16 +2771,14 @@ subroutine parse_command(command, finish)
    if(command(startw(1):stopw(1)) == 'explicit_channels')then
  
       if(numw < 2)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
       explicit_channels = .false.
 
       call char_logical(command(startw(2):stopw(2)),logic_char,read_error)
 
       if(read_error)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
 
       explicit_channels = logic_char
@@ -2684,15 +2792,13 @@ subroutine parse_command(command, finish)
    if(command(startw(1):stopw(1)) == 'dump_events')then
  
       if(numw < 2)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
 
       call char_logical(command(startw(2):stopw(2)),logic_char,read_error)
 
       if(read_error)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
 
       if(.not. event_generator)then
@@ -2733,8 +2839,7 @@ subroutine parse_command(command, finish)
    if(command(startw(1):stopw(1)) == 'e_l_max')then
  
       if(numw < 2)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
       read(command(startw(2):stopw(2)),*)j
       e_l_max = j
@@ -2747,8 +2852,7 @@ subroutine parse_command(command, finish)
    if(command(startw(1):stopw(1)) == 'm_l_max')then
  
       if(numw < 2)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
       read(command(startw(2):stopw(2)),*)j
       m_l_max = j
@@ -2758,18 +2862,12 @@ subroutine parse_command(command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
-   if(command(startw(1):stopw(1)) == 'fit_gamma_gamma')then
+   if(command(startw(1):stopw(1)) == 'global_fit_gamma_gamma')then
  
-      if(numw < 2)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
-      end if
-
       call char_logical(command(startw(2):stopw(2)),logic_char,read_error)
 
       if(read_error)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
 
       fit_gamma_gamma = logic_char
@@ -2780,23 +2878,22 @@ subroutine parse_command(command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
-   if(command(startw(1):stopw(1)) == 'nuc_fit_gamma_gamma')then
+   if(command(startw(1):stopw(1)) == 'fit_gamma_gamma')then
  
 
       ndat = 0
       call extract_ZA_data(command, numw, startw, stopw, ndat,         &
                            iZ, iA, X, nw, read_error)
-      nw = nw + 1
-      if(numw < nw)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+      if(read_error)then
+         write(6,*)'"Command "fit_gamma_gamma" is used to set the level density option for individual nuclei'
+         write(6,*)'To set it for all nuclei, use command "global_fit_gamma_gamma"'
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
 
-      call char_logical(command(startw(nw):stopw(nw)), logic_char, read_error)
+      call char_logical(command(startw(nw+1):stopw(nw+1)), logic_char, read_error)
 
       if(read_error)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
 
       do i = 1, num_comp
@@ -2816,15 +2913,13 @@ subroutine parse_command(command, finish)
    if(command(startw(1):stopw(1)) == 'do_dwba')then
  
       if(numw < 2)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
 
       call char_logical(command(startw(2):stopw(2)),logic_char,read_error)
 
       if(read_error)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
 
       do_dwba = logic_char
@@ -2843,8 +2938,7 @@ subroutine parse_command(command, finish)
       call extract_ZA_data(command, numw, startw, stopw, ndat,         &
                            iZ, iA, X, nw, read_error)
       if(read_error)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
 
       do i = 1, num_comp
@@ -2867,13 +2961,11 @@ subroutine parse_command(command, finish)
       call extract_ZA_data(command, numw, startw, stopw, ndat,                 &
                            iZ, iA, X, nw, read_error)
       if(read_error)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
 
       if(numw - nw < 2)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
 
       do i = 1, num_comp
@@ -2929,8 +3021,7 @@ subroutine parse_command(command, finish)
    if(command(startw(1):stopw(1)) == 'all_gammas')then
  
       if(numw < 2)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
       if(iproc == 0)then
          write(6,*)
@@ -2951,8 +3042,7 @@ subroutine parse_command(command, finish)
       call char_logical(command(startw(2):stopw(2)),logic_char,read_error)
 
       if(read_error)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
 
       all_discrete_states = logic_char
@@ -2966,16 +3056,14 @@ subroutine parse_command(command, finish)
    if(command(startw(1):stopw(1)) == 'all_discrete_states')then
  
       if(numw < 2)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
       all_discrete_states = .false.
 
       call char_logical(command(startw(2):stopw(2)),logic_char,read_error)
 
       if(read_error)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
 
       all_discrete_states = logic_char
@@ -2986,19 +3074,17 @@ subroutine parse_command(command, finish)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
-   if(command(startw(1):stopw(1)) == 'read_saved_parameters')then
+   if(command(startw(1):stopw(1)) == 'use_saved_parameters')then
  
       if(numw < 2)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
       read_saved_params = .true.
 
       call char_logical(command(startw(2):stopw(2)),logic_char,read_error)
 
       if(read_error)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
 
       read_saved_params = logic_char
@@ -3012,16 +3098,14 @@ subroutine parse_command(command, finish)
    if(command(startw(1):stopw(1)) == 'primary_decay')then
  
       if(numw < 2)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
       primary_decay = .false.
 
       call char_logical(command(startw(2):stopw(2)),logic_char,read_error)
 
       if(read_error)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
 
       primary_decay = logic_char
@@ -3051,8 +3135,7 @@ subroutine parse_command(command, finish)
    if(command(startw(1):stopw(1)) == 'cc_file')then
  
       if(numw < 2)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
       istart = startw(2)
       istop = stopw(2)
@@ -3072,8 +3155,7 @@ subroutine parse_command(command, finish)
    if(command(startw(1):stopw(1)) == 'cc_scale')then
  
       if(numw < 2)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
       read(command(startw(2):stopw(2)),*)cc_scale
       return
@@ -3100,8 +3182,7 @@ subroutine parse_command(command, finish)
          return
       end if
       if(numw < 4)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
       elastic_scale = 1.0d0
       elastic_shift = 1.0d0
@@ -3130,8 +3211,7 @@ subroutine parse_command(command, finish)
    if(command(startw(1):stopw(1)) == 'fiss_max_j')then
  
       if(numw < 2)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
       read(command(startw(2):stopw(2)),*)Fiss_Max_J
       do i = 1, num_comp
@@ -3151,8 +3231,7 @@ subroutine parse_command(command, finish)
    if(command(startw(1):stopw(1)) == 'trans_avg_l')then
  
       if(numw < 2)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
       if(numw /= 2)then
          if(iproc == 0)write(6,*)'Wrong input for command trans_avg_l'
@@ -3163,8 +3242,7 @@ subroutine parse_command(command, finish)
       call char_logical(command(startw(2):stopw(2)),logic_char,read_error)
 
       if(read_error)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
 
       trans_avg_l = logic_char
@@ -3178,8 +3256,7 @@ subroutine parse_command(command, finish)
    if(command(startw(1):stopw(1)) == 'num_theta_angles' )then
  
       if(numw < 2)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
       read(command(startw(2):stopw(2)),*)num_theta_angles
       if(num_theta_angles < 0)num_theta_angles = 1
@@ -3192,8 +3269,7 @@ subroutine parse_command(command, finish)
    if(command(startw(1):stopw(1)) == 'trans_norm' )then
  
       if(numw < 2)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
       read(command(startw(2):stopw(2)),*)x(1)
       T_norm = x(1)
@@ -3206,8 +3282,7 @@ subroutine parse_command(command, finish)
    if(command(startw(1):stopw(1)) == 'max_num_gsf' )then
  
       if(numw < 2)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
       read(command(startw(2):stopw(2)),*)x(1)
       max_num_gsf = nint(x(1),kind=4)
@@ -3220,8 +3295,7 @@ subroutine parse_command(command, finish)
    if(command(startw(1):stopw(1)) == 'fresco_shape')then
  
       if(numw < 2)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
       read(command(startw(2):stopw(2)),*)ifresco_shape
       return
@@ -3233,16 +3307,14 @@ subroutine parse_command(command, finish)
    if(command(startw(1):stopw(1)) == 'biased_sampling')then
  
       if(numw < 2)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
       biased_sampling = .false.
 
       call char_logical(command(startw(2):stopw(2)),logic_char,read_error)
 
       if(read_error)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
 
       biased_sampling = logic_char
@@ -3256,16 +3328,14 @@ subroutine parse_command(command, finish)
    if(command(startw(1):stopw(1)) == 'clean_library')then
  
       if(numw < 2)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
       refresh_library_directories = .true.
 
       call char_logical(command(startw(2):stopw(2)),logic_char,read_error)
 
       if(read_error)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
 
       refresh_library_directories = logic_char
@@ -3288,16 +3358,13 @@ subroutine parse_command(command, finish)
    if(command(startw(1):stopw(1)) == 'verbose_output')then
  
       if(numw < 2)then
-!         write(6,*)'Error in input for option "fission"'
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
 
       call char_logical(command(startw(2):stopw(2)), logic_char, read_error)
 
       if(read_error)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
 
       verbose = logic_char
@@ -3314,15 +3381,13 @@ subroutine parse_command(command, finish)
  
       if(numw < 2)then
 !         write(6,*)'Error in input for option "fission"'
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
 
       call char_logical(command(startw(2):stopw(2)), logic_char, read_error)
 
       if(read_error)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
 
       print_output = logic_char
@@ -3341,8 +3406,7 @@ subroutine parse_command(command, finish)
       call extract_ZA_data(command, numw, startw, stopw, ndat,         &
                            iZ, iA, X, nw, read_error)
       if(read_error)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
       if(numw < nw + 3)then
          if(iproc == 0)write(6,*)'Error, not enough input in call to "read_e_l_gsf"'
@@ -3484,12 +3548,10 @@ subroutine parse_command(command, finish)
       call extract_ZA_data(command, numw, startw, stopw, ndat,         &
                            iZ, iA, X, nw, read_error)
       if(read_error)then
-         call print_command_error(stopw(1)-startw(1)+1,command(startw(1):stopw(1)))
-         return
+         call print_command_error(stopw(numw)-startw(1)+1,command(startw(1):stopw(numw)))
       end if
       if(numw < nw + 3)then
          if(iproc == 0)write(6,*)'Error, not enough input in call to "read_m_l_gsf"'
-         call exit_YAHFC(101)
       end if
       ix = 0
 !-----   Find the multipolarity 
@@ -3620,11 +3682,12 @@ subroutine parse_command(command, finish)
 !
 !-----   If we get here, then the command wasn't recognized
    if(iproc == 0)then
-      write(6,*)'*******************************************************'
-      write(6,*)'*  WARNING!! WARNING!! WARNING!! WARNING!! WARNING!!  *' 
-      write(6,*)'*          COMMAND NOT RECOGNIZED  --   CHECK         *'
+      write(6,*)'*********************************************************'
+      write(6,*)'*  ERROR!!  ERROR!!  ERROR!!  ERROR!!  ERROR!!  ERROR!!  *'
+      write(6,*)'*          COMMAND NOT RECOGNIZED  --   CHECK            *'
       write(6,*)command(1:stopw(numw))
-      write(6,*)'*******************************************************'
+      write(6,*)'**********************************************************'
+      call exit_YAHFC(101)
    end if
 
    return
@@ -3970,7 +4033,7 @@ integer(kind=4) function rank_commands(command)
    integer(kind=4) :: startw(66), stopw(66)
 !-----   Start with base assumption of rank of 20 for all commands
 !-----   and set to different value based individual importance
-   rank_commands = 20
+   rank_commands = 100
 !
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -3980,15 +4043,31 @@ integer(kind=4) function rank_commands(command)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
-   if(command(startw(1):stopw(1)) == 'verbose_output')then
+   if(command(startw(1):stopw(1)) == 'ran_seed')then
       rank_commands = 0 
+      return
+   end if
+!
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!
+   if(command(startw(1):stopw(1)) == 'use_eval_levels')then
+      rank_commands = 1 
+      return
+   end if
+!
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!
+   if(command(startw(1):stopw(1)) == 'verbose_output')then
+      rank_commands = 1 
       return
    end if
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'all_gammas')then
-      rank_commands = 0 
+      rank_commands = 1 
       return
    end if
 !
@@ -3996,15 +4075,15 @@ integer(kind=4) function rank_commands(command)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'all_discrete_states')then
-      rank_commands = 0 
+      rank_commands = 1 
       return
    end if
 !
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
-   if(command(startw(1):stopw(1)) == 'read_saved_parameters')then
-      rank_commands = 0 
+   if(command(startw(1):stopw(1)) == 'use_saved_parameters')then
+      rank_commands = 1 
       return
    end if
 !
@@ -4012,7 +4091,7 @@ integer(kind=4) function rank_commands(command)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 't12_isomer')then
-      rank_commands = 0 
+      rank_commands = 1 
       return
    end if
 !
@@ -4020,7 +4099,7 @@ integer(kind=4) function rank_commands(command)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'explicit_channels')then
-      rank_commands = 0 
+      rank_commands = 1 
       return
    end if
 !
@@ -4028,7 +4107,7 @@ integer(kind=4) function rank_commands(command)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'event_generator')then
-      rank_commands = 0 
+      rank_commands = 1 
       return
    end if
 !
@@ -4036,7 +4115,7 @@ integer(kind=4) function rank_commands(command)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'e_l_max')then
-      rank_commands = 0 
+      rank_commands = 1 
       return
    end if
 !
@@ -4044,7 +4123,15 @@ integer(kind=4) function rank_commands(command)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'm_l_max')then
-      rank_commands = 0 
+      rank_commands = 1 
+      return
+   end if
+!
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!
+   if(command(startw(1):stopw(1)) == 'moldauer_cutoff')then
+      rank_commands = 1 
       return
    end if
 !
@@ -4052,39 +4139,63 @@ integer(kind=4) function rank_commands(command)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'max_num_gsf')then
-      rank_commands = 0 
+      rank_commands = 1 
       return
    end if
 !
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
-   if(command(startw(1):stopw(1)) == 'lev_option')then
-      rank_commands = 0 
+   if(command(startw(1):stopw(1)) == 'global_lev_option')then
+      rank_commands = 1 
       return
    end if
 !
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
-   if(command(startw(1):stopw(1)) == 'pair_model')then
-      rank_commands = 0 
+   if(command(startw(1):stopw(1)) == 'global_pair_model')then
+      rank_commands = 1 
       return
    end if
 !
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
-   if(command(startw(1):stopw(1)) == 'fit_gamma_gamma')then
-      rank_commands = 0
+   if(command(startw(1):stopw(1)) == 'global_fit_gamma_gamma')then
+      rank_commands = 1
       return
    end if
 !
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
-   if(command(startw(1):stopw(1)) == 'e1_model')then
-      rank_commands = 0
+   if(command(startw(1):stopw(1)) == 'global_lev_fit_d0')then
+      rank_commands = 8
+      return
+   end if
+!
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!
+   if(command(startw(1):stopw(1)) == 'global_lev_fit_aparam')then
+      rank_commands = 8
+      return
+   end if
+!
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!
+   if(command(startw(1):stopw(1)) == 'global_e1_model')then
+      rank_commands = 1
+      return
+   end if
+!
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!
+   if(command(startw(1):stopw(1)) == 'global_use_tran_states')then
+      rank_commands = 1
       return
    end if
 !
@@ -4109,6 +4220,14 @@ integer(kind=4) function rank_commands(command)
 !
    if(command(startw(1):stopw(1)) == 'do_dwba')then
       rank_commands = 1 
+      return
+   end if
+!
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!
+   if(command(startw(1):startw(1)+3) == 'num_theta_angles')then
+      rank_commands = 1
       return
    end if
 !
@@ -4212,14 +4331,6 @@ integer(kind=4) function rank_commands(command)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'proj_eminmax')then
-      rank_commands = 6
-      return
-   end if
-!
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!
-   if(command(startw(1):stopw(1)) == 'lev_aparam')then
       rank_commands = 7
       return
    end if
@@ -4227,23 +4338,7 @@ integer(kind=4) function rank_commands(command)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
-   if(command(startw(1):stopw(1)) == 'lev_fit_d0')then
-      rank_commands = 8
-      return
-   end if
-!
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!
-   if(command(startw(1):stopw(1)) == 'lev_fit_aparam')then
-      rank_commands = 8
-      return
-   end if
-!
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!
-   if(command(startw(1):stopw(1)) == 'pair_vib_enhance_mode')then
+   if(command(startw(1):stopw(1)) == 'lev_option')then
       rank_commands = 8 
       return
    end if
@@ -4251,7 +4346,7 @@ integer(kind=4) function rank_commands(command)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
-   if(command(startw(1):stopw(1)) == 'nuc_fit_gamma_gamma')then
+   if(command(startw(1):stopw(1)) == 'lev_fit_d0')then
       rank_commands = 9
       return
    end if
@@ -4259,15 +4354,15 @@ integer(kind=4) function rank_commands(command)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
-   if(command(startw(1):stopw(1)) == 'lev_nuc_option')then
-      rank_commands = 9 
+   if(command(startw(1):stopw(1)) == 'fit_gamma_gamma')then
+      rank_commands = 9
       return
    end if
 !
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
-   if(command(startw(1):stopw(1)) == 'lev_nuc_fit_d0')then
+   if(command(startw(1):stopw(1)) == 'lev_fit_d0')then
       rank_commands = 10
       return
    end if
@@ -4275,8 +4370,24 @@ integer(kind=4) function rank_commands(command)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
-   if(command(startw(1):stopw(1)) == 'lev_nuc_fit_aparam')then
+   if(command(startw(1):stopw(1)) == 'lev_vib_enhance_mode')then
+      rank_commands = 10 
+      return
+   end if
+!
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!
+   if(command(startw(1):stopw(1)) == 'lev_fit_aparam')then
       rank_commands = 10
+      return
+   end if
+!
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!
+   if(command(startw(1):stopw(1)) == 'lev_aparam')then
+      rank_commands = 11
       return
    end if
 !
@@ -4363,14 +4474,6 @@ integer(kind=4) function rank_commands(command)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
-   if(command(startw(1):startw(1)+3) == 'num_theta_angles')then
-      rank_commands = 13
-      return
-   end if
-!
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!
    if(command(startw(1):startw(1)+3) == 'optical_potential')then
       rank_commands = 13
       return
@@ -4381,6 +4484,22 @@ integer(kind=4) function rank_commands(command)
 !
    if(command(startw(1):startw(1)+3) == 'om_option')then
       rank_commands = 11
+      return
+   end if
+!
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!
+   if(command(startw(1):startw(1)+3) == 'e1_model')then
+      rank_commands = 15
+      return
+   end if
+!
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!
+   if(command(startw(1):startw(1)+3) == 'beta_2')then
+      rank_commands = 15
       return
    end if
 !
@@ -4403,15 +4522,7 @@ integer(kind=4) function rank_commands(command)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
-   if(command(startw(1):stopw(1)) == 'f_lev_delta')then
-      rank_commands = 24
-      return
-   end if
-!
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!
-   if(command(startw(1):stopw(1)) == 'f_lev_shell')then
+   if(command(startw(1):stopw(1)) == 'f_use_tran_states')then
       rank_commands = 25
       return
    end if
@@ -4419,7 +4530,7 @@ integer(kind=4) function rank_commands(command)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
-   if(command(startw(1):stopw(1)) == 'f_lev_gamma')then
+   if(command(startw(1):stopw(1)) == 'f_barr_states')then
       rank_commands = 26
       return
    end if
@@ -4427,7 +4538,7 @@ integer(kind=4) function rank_commands(command)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
-   if(command(startw(1):stopw(1)) == 'f_lev_spin')then
+   if(command(startw(1):stopw(1)) == 'f_spect_scale')then
       rank_commands = 27
       return
    end if
@@ -4435,7 +4546,7 @@ integer(kind=4) function rank_commands(command)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
-   if(command(startw(1):stopw(1)) == 'f_lev_ematch')then
+   if(command(startw(1):stopw(1)) == 'f_lev_shell')then
       rank_commands = 28
       return
    end if
@@ -4443,7 +4554,7 @@ integer(kind=4) function rank_commands(command)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
-   if(command(startw(1):stopw(1)) == 'f_barrier_symmetry')then
+   if(command(startw(1):stopw(1)) == 'f_lev_gamma')then
       rank_commands = 29
       return
    end if
@@ -4451,8 +4562,32 @@ integer(kind=4) function rank_commands(command)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
-   if(command(startw(1):stopw(1)) == 'f_lev_rot_enhance')then
+   if(command(startw(1):stopw(1)) == 'f_lev_spin')then
       rank_commands = 30
+      return
+   end if
+!
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!
+   if(command(startw(1):stopw(1)) == 'f_lev_ecut')then
+      rank_commands = 30
+      return
+   end if
+!
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!
+   if(command(startw(1):stopw(1)) == 'f_barrier_symmetry')then
+      rank_commands = 32
+      return
+   end if
+!
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!
+   if(command(startw(1):stopw(1)) == 'f_lev_rot_enhance')then
+      rank_commands = 32
       return
    end if
 !
@@ -4460,7 +4595,15 @@ integer(kind=4) function rank_commands(command)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):stopw(1)) == 'f_lev_vib_enhance')then
-      rank_commands = 30
+      rank_commands = 32
+      return
+   end if
+!
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!
+   if(command(startw(1):stopw(1)) == 'f_lev_ematch')then
+      rank_commands = 35
       return
    end if
 !
@@ -4468,7 +4611,7 @@ integer(kind=4) function rank_commands(command)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):startw(1)+1) == 'f_')then
-      rank_commands = 31
+      rank_commands = 33
       return
    end if
 !
@@ -4476,7 +4619,7 @@ integer(kind=4) function rank_commands(command)
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
    if(command(startw(1):startw(1)+1) == 'lev_den_read')then
-      rank_commands = 35
+      rank_commands = 40
       return
    end if
 !
@@ -4689,6 +4832,7 @@ subroutine extract_ZA_data(command, numw, startw, stopw, ndat,     &
    integer(kind=4), intent(out) :: iZ, iA
    real(kind=8), dimension(ndat), intent(out) :: X
    integer(kind=4), intent(out) :: nw
+   integer(kind=4) :: io_error
    logical, intent(out) :: read_error
 !--------------------------------------------------------------------
    integer(kind=4) :: nchar
@@ -4700,8 +4844,12 @@ subroutine extract_ZA_data(command, numw, startw, stopw, ndat,     &
    call find_ZA(nchar,command(startw(2):stopw(2)),iZ,iA)
    if(iZ == -1 .or. iA == -1)then
       nw = 3
-      read(command(startw(2):stopw(2)),*)iZ
-      read(command(startw(3):stopw(3)),*)iA
+      read(command(startw(2):stopw(2)),*,iostat = io_error)iZ
+      read(command(startw(3):stopw(3)),*,iostat = io_error)iA
+      if(io_error /= 0)then
+         read_error = .true.
+         return
+      end if
    else
       nw = 2
    end if
@@ -4836,6 +4984,7 @@ subroutine print_command_error(nchar,word)
    error_line(1:27) = 'Error in input for option "'
    ierr_last = 27
    if(iproc == 0)write(6,*)error_line(1:ierr_last)//word(1:nchar)//'"'
+   call exit_YAHFC(101)
    return
 end subroutine print_command_error
 !
