@@ -2060,6 +2060,7 @@ program YAHFC_MASTER
             if(iproj > 0)then                  !*******   Particle projectile
                call compound_xs(e_in,itarget,istate,iproj,absorption_cs(in),  &
                                 num_channel,channel_prob,ichannel)
+               if(num_channel == 0)cycle
 
                if(print_me)write(6,'(''Reaction cross section = '',1x,1pe15.7,1x,a2)')absorption_cs(in)*cs_scale,cs_units
 
