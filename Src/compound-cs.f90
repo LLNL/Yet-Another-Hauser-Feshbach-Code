@@ -120,7 +120,7 @@ subroutine compound_xs(e_in, itarget, istate, iproj, sigma,      &
 
    sigma = sum1
 
-   if(sigma < 1.0d-7)return
+!   if(sigma < 1.0d-7)return
    
    num_channel = 0
    do l = 0, particle(iproj)%lmax                                !   loop over angular momentum

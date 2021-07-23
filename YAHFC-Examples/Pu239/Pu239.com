@@ -8,8 +8,11 @@ do_dwba y
 track_gammas n
 scale_elastic   1.0 0.07    0.5
 Delta_e        0.100
+#----   Commands to specify incident energies for projectile
+#----   If commented out, default energy grid from 
+#----   0.001 - 20.0 MeV is used
 #proj_e_file   elist-1.input
-proj_eminmax  10.1  20.0  0.2 
+#proj_eminmax  10.1  20.0  0.2 
 #
 #######     Pu240   #####################
 lev_option   Pu240   2
@@ -146,9 +149,9 @@ f_lev_shell         Pu235  2   0.00
 f_lev_ematch        Pu235  2   2.0
 f_barrier_symmetry  Pu235  2   2
 #
-xs_only y
-WF_model  0 
+xs_only n
+WF_model  1 
 preeq_model 1
-num_mc_samp  100000
+num_mc_samp  1000000
 end
 input

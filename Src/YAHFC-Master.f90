@@ -192,6 +192,7 @@ program YAHFC_MASTER
       integer(kind=4) :: isp_max
       integer(kind=4) :: istate, jstate
       real(kind=8) :: sum
+!      real(kind=8) :: sum_check
       real(kind=8) :: ex_tot
 
       real(kind=8) :: temp_cs
@@ -354,8 +355,8 @@ program YAHFC_MASTER
 
 !--------   Total Inelastic Scattering
       real(kind=8) :: tot_direct, sum_d
-      logical direct, compound, preeq_decay,cc_decay, dwba_decay
-      logical inelastic,compound_elastic, fission_decay
+      logical direct, compound, preeq_decay, cc_decay, dwba_decay
+      logical inelastic, compound_elastic, fission_decay
 !-------    Sum of all processes in these different channels
 
 !
@@ -400,6 +401,10 @@ program YAHFC_MASTER
 
       real(kind=8) :: tally_weight
       real(kind=8) :: tally_norm
+
+!-------    logical variable to identify when an inelastic transition to continuous bins first decays 
+!-------    by a gamma to a discrete state
+      logical :: collect
 
       integer(kind=4),allocatable :: command_rank(:)
       character(len=132), dimension(:), allocatable :: command_buffer
@@ -1618,25 +1623,25 @@ program YAHFC_MASTER
                  allocate(Exit_Channel(i)%Spect(0:6,-1:num_s))
          do j = -1, num_s
             do k = 0, 6
-               if(.not.allocated(Exit_Channel(i)%Spect(k,j)%E_spec))                         &
+               if(.not.allocated(Exit_Channel(i)%Spect(k,j)%E_spec))                               &
                   allocate(Exit_Channel(i)%Spect(k,j)%E_spec(0:num_e))
 !----
-               if(.not.allocated(Exit_Channel(i)%Spect(k,j)%E_count))                        &
+               if(.not.allocated(Exit_Channel(i)%Spect(k,j)%E_count))                              &
                   allocate(Exit_Channel(i)%Spect(k,j)%E_count(0:num_e))
 !----
-               if(.not.allocated(Exit_Channel(i)%Spect(k,j)%Ang_Dist))                       &
+               if(.not.allocated(Exit_Channel(i)%Spect(k,j)%Ang_Dist))                             &
                   allocate(Exit_Channel(i)%Spect(k,j)%Ang_Dist(0:max_jx_10))
 !----
-               if(.not.allocated(Exit_Channel(i)%Spect(k,j)%Ang_L))                          &
+               if(.not.allocated(Exit_Channel(i)%Spect(k,j)%Ang_L))                                &
                   allocate(Exit_Channel(i)%Spect(k,j)%Ang_L(0:Ang_L_max))
 !----
-               if(.not.allocated(Exit_Channel(i)%Spect(k,j)%E_Ang_Dist))                     &
+               if(.not.allocated(Exit_Channel(i)%Spect(k,j)%E_Ang_Dist))                           &
                    allocate(Exit_Channel(i)%Spect(k,j)%E_Ang_Dist(0:max_jx_10,0:num_e))
 !----
-               if(.not.allocated(Exit_Channel(i)%Spect(k,j)%E_Ang_L))                        &
+               if(.not.allocated(Exit_Channel(i)%Spect(k,j)%E_Ang_L))                              &
                    allocate(Exit_Channel(i)%Spect(k,j)%E_Ang_L(0:Ang_L_max,0:num_e))
 !----
-               if(.not.allocated(Exit_Channel(i)%Spect(k,j)%E_Ang_L_max))                    &
+               if(.not.allocated(Exit_Channel(i)%Spect(k,j)%E_Ang_L_max))                          &
                    allocate(Exit_Channel(i)%Spect(k,j)%E_Ang_L_max(0:num_e))
             end do
          end do
@@ -1652,9 +1657,9 @@ program YAHFC_MASTER
             k = nucleus(1)%decay_particle(if1)
             isp_f_max = nint(2.0d0*particle(k)%spin)
             if(k == 0)cycle
-            if(.not. allocated(particle(k)%trans_bin))                                 &
+            if(.not. allocated(particle(k)%trans_bin))                                             &
                allocate(particle(k)%trans_bin(0:isp_f_max,0:particle(k)%lmax,nucleus(i_f)%nbin))
-            if(.not. allocated(particle(k)%trans_discrete))                            &
+            if(.not. allocated(particle(k)%trans_discrete))                                        &
                allocate(particle(k)%trans_discrete(0:isp_f_max,0:particle(k)%lmax,nucleus(i_f)%num_discrete))
          end do
       end if
@@ -1664,6 +1669,9 @@ program YAHFC_MASTER
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
       if(.not. pop_calc)then
+         if(.not.allocated(Inelastic_cont_cs))                                                     &
+             allocate(Inelastic_cont_cs(0:nucleus(itarget)%num_discrete,1:num_energies))
+         Inelastic_cont_cs(0:nucleus(itarget)%num_discrete,1:num_energies) = 0.0d0
          if(.not.allocated(Inelastic_cs))                                                          &
              allocate(Inelastic_cs(0:nucleus(itarget)%num_discrete,1:num_energies))
          Inelastic_cs(0:nucleus(itarget)%num_discrete,1:num_energies) = 0.0d0
@@ -1755,6 +1763,8 @@ program YAHFC_MASTER
 !-----    properly initialized.
 !--------------------------------------------------------------------------------------------------
       else
+         if(.not.allocated(Inelastic_cont_cs))allocate(Inelastic_cont_cs(1,1))
+         Inelastic_cont_cs(1,1) = 0.0d0
          if(.not.allocated(Inelastic_cs))allocate(Inelastic_cs(1,1))
          Inelastic_cs(1,1) = 0.0d0
          if(.not.allocated(Inelastic_count))allocate(Inelastic_count(1,1))
@@ -2050,6 +2060,7 @@ program YAHFC_MASTER
             if(iproj > 0)then                  !*******   Particle projectile
                call compound_xs(e_in,itarget,istate,iproj,absorption_cs(in),  &
                                 num_channel,channel_prob,ichannel)
+               if(num_channel == 0)cycle
 
                if(print_me)write(6,'(''Reaction cross section = '',1x,1pe15.7,1x,a2)')absorption_cs(in)*cs_scale,cs_units
 
@@ -3263,10 +3274,15 @@ program YAHFC_MASTER
                      Exit_channel(ichann)%Channel_cs(ictype,in) =                                  &
                          Exit_channel(ichann)%Channel_cs(ictype,in) + tally_weight
                      Exit_Channel(ichann)%num_event = Exit_Channel(ichann)%num_event + 1
+                     collect = .true.
                      do nn = 1, num_part                           !  loop over particles and collect spectra
                         jstate = nint(part_data(5,nn))
                         idb = nint(part_data(6,nn))
                         k = nint(part_data(2,nn))
+                        if(idb == 1 .and. collect)then
+                           Inelastic_cont_cs(jstate,in) = Inelastic_cont_cs(jstate,in) + tally_weight
+                           collect = .false.
+                        end if
 !------    If it is a discrete state, add a bit of smear to avoid accidental collision with boundary of spectrum
 !------    bin
 !                        e_shift = 0.0d0
@@ -3297,6 +3313,10 @@ program YAHFC_MASTER
                               end do
                            end if
                         end if
+!*****************************************************************************************************************
+!-----    This line will remove further discrete gammas from the spectra files --  if they are wanted comment out
+!*****************************************************************************************************************
+                        if(.not. collect)exit
                      end do
                   end if
                else
@@ -3836,7 +3856,10 @@ program YAHFC_MASTER
                   end do
               end if
               Inelastic_cs(j,in) = Inelastic_cs(j,in)*reaction_cs(in)/tally_norm
+              Inelastic_cont_cs(j,in) = Inelastic_cont_cs(j,in)*reaction_cs(in)/tally_norm
+   
            end do
+           Inelastic_cs(0,in) = Inelastic_cs(0,in)*reaction_cs(in)/tally_norm
         end if
 
 
@@ -4280,7 +4303,8 @@ program YAHFC_MASTER
                                                num_energies, Ang_L_max, max_jx_50, delta_jx_50, &
                                                cs_threshold, nucleus(itarget)%num_discrete,     &
                                                absorption_cs, Inelastic_cs, Inelastic_Ang_L,    &
-                                               Inelastic_L_max, reaction_cs, write_error)
+                                               Inelastic_L_max, Inelastic_cont_cs,              &
+                                               reaction_cs, write_error)
 #if(USE_MPI == 1)
             if(nproc > 1)then
                call MPI_Barrier(icomm, ierr)

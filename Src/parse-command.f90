@@ -1614,7 +1614,7 @@ subroutine parse_command(command, finish)
             return
          end if
       end do
-      if(iproc ==0)write(6,*)'Nucleus not found: f_Num_Barrier',' Z = ',iZ,' A = ',iA
+      if(iproc ==0)write(6,*)'Nucleus not found in this calculation: f_Num_Barrier',' Z = ',iZ,' A = ',iA
       return
    end if
 !
@@ -1645,7 +1645,7 @@ subroutine parse_command(command, finish)
             return
          end if
       end do
-      if(iproc == 0)write(6,*)'Nucleus not found: f_Barrier',' Z = ',iZ,' A = ',iA
+      if(iproc == 0)write(6,*)'Nucleus not found in this calculation: f_Barrier',' Z = ',iZ,' A = ',iA
       return
    end if
 !
@@ -1694,7 +1694,7 @@ subroutine parse_command(command, finish)
             return
          end if
       end do
-      if(iproc ==0)write(6,*)'Nucleus not found: F_Barrier_damp',' Z = ',iZ,' A = ',iA
+      if(iproc ==0)write(6,*)'Nucleus not found in this calculation: F_Barrier_damp',' Z = ',iZ,' A = ',iA
       return
    end if
 !
@@ -1749,7 +1749,7 @@ subroutine parse_command(command, finish)
          end if
       end do
       if(iproc ==0)then
-         write(6,*)'Nucleus not found: f_barrier_symmetry',' Z = ',iZ,' A = ',iA
+         write(6,*)'Nucleus not found in this calculation: f_barrier_symmetry',' Z = ',iZ,' A = ',iA
          write(6,*)'Keeping the default value for this nucleus and barrier'
       end if
       return
@@ -1780,7 +1780,7 @@ subroutine parse_command(command, finish)
             return
          end if
       end do
-      if(iproc == 0)write(6,*)'Nucleus not found: f_lev_ecut',' Z = ',iZ,' A = ',iA
+      if(iproc == 0)write(6,*)'Nucleus not found in this calculation: f_lev_ecut',' Z = ',iZ,' A = ',iA
       return
    end if
 !
@@ -1809,7 +1809,7 @@ subroutine parse_command(command, finish)
             return
          end if
       end do
-      if(iproc == 0)write(6,*)'Nucleus not found: f_lev_aparam',' Z = ',iZ,' A = ',iA
+      if(iproc == 0)write(6,*)'Nucleus not found in this calculation: f_lev_aparam',' Z = ',iZ,' A = ',iA
       return
    end if
 !
@@ -1843,7 +1843,7 @@ subroutine parse_command(command, finish)
             return
          end if
       end do
-      if(iproc == 0)write(6,*)'Nucleus not found: F_lev_spin',' Z = ',iZ,' A = ',iA
+      if(iproc == 0)write(6,*)'Nucleus not found in this calculation: F_lev_spin',' Z = ',iZ,' A = ',iA
       return
    end if
 !
@@ -1873,7 +1873,7 @@ subroutine parse_command(command, finish)
             return
          end if
       end do
-      if(iproc == 0)write(6,*)'Nucleus not found: F_lev_delta',' Z = ',iZ,' A = ',iA
+      if(iproc == 0)write(6,*)'Nucleus not found in this calculation: F_lev_delta',' Z = ',iZ,' A = ',iA
       return
    end if
 !
@@ -1902,7 +1902,7 @@ subroutine parse_command(command, finish)
             return
          end if
       end do
-      if(iproc == 0)write(6,*)'Nucleus not found: F_lev_shell',' Z = ',iZ,' A = ',iA
+      if(iproc == 0)write(6,*)'Nucleus not found in this calculation: F_lev_shell',' Z = ',iZ,' A = ',iA
       return
    end if
 !
@@ -1930,7 +1930,7 @@ subroutine parse_command(command, finish)
             return
          end if
       end do
-      if(iproc == 0)write(6,*)'Nucleus not found: F_spect_scale',' Z = ',iZ,' A = ',iA
+      if(iproc == 0)write(6,*)'Nucleus not found in this calculation: F_spect_scale',' Z = ',iZ,' A = ',iA
       return
    end if
 !
@@ -1960,7 +1960,7 @@ subroutine parse_command(command, finish)
             return
          end if
       end do
-      if(iproc == 0)write(6,*)'Nucleus not found: F_lev_gamma',' Z = ',iZ,' A = ',iA
+      if(iproc == 0)write(6,*)'Nucleus not found in this calculation: F_lev_gamma',' Z = ',iZ,' A = ',iA
       return
    end if
 !
@@ -1994,7 +1994,7 @@ subroutine parse_command(command, finish)
             return
          end if
       end do
-      if(iproc == 0)write(6,*)'Nucleus not found: F_lev_rot_enhance',' Z = ',iZ,' A = ',iA
+      if(iproc == 0)write(6,*)'Nucleus not found in this calculation: F_lev_rot_enhance',' Z = ',iZ,' A = ',iA
       return
    end if
 !
@@ -2028,7 +2028,7 @@ subroutine parse_command(command, finish)
             return
          end if
       end do
-      if(iproc == 0)write(6,*)'Nucleus not found: F_lev_vib_enhance',' Z = ',iZ,' A = ',iA
+      if(iproc == 0)write(6,*)'Nucleus not found in this calculation: F_lev_vib_enhance',' Z = ',iZ,' A = ',iA
       return
    end if
 !
@@ -2073,7 +2073,7 @@ subroutine parse_command(command, finish)
             return
          end if
       end do
-      if(iproc == 0)write(6,*)'Nucleus not found: F_lev_ematch',' Z = ',iZ,' A = ',iA
+      if(iproc == 0)write(6,*)'Nucleus not found in this calculation: F_lev_ematch',' Z = ',iZ,' A = ',iA
       return
    end if
 !
@@ -2109,7 +2109,7 @@ subroutine parse_command(command, finish)
             return
          end if
       end do
-      if(iproc == 0)write(6,*)'Nucleus not found: f_beta2',' Z = ',iZ,' A = ',iA
+      if(iproc == 0)write(6,*)'Nucleus not found in this calculation: f_beta2',' Z = ',iZ,' A = ',iA
       return
    end if
 !
@@ -2150,7 +2150,7 @@ subroutine parse_command(command, finish)
          if(iZ == nucleus(i)%Z .and. iA == nucleus(i)%A)            &
             nucleus(i)%fiss_tran_states = logic_char
       end do
-      if(iproc == 0)write(6,*)'Nucleus not found: f_use_tran_states',' Z = ',iZ,' A = ',iA
+      if(iproc == 0)write(6,*)'Nucleus not found in this calculation: f_use_tran_states',' Z = ',iZ,' A = ',iA
       return
    end if
 !
@@ -2222,7 +2222,7 @@ subroutine parse_command(command, finish)
          end if
       end do
 
-      if(iproc == 0)write(6,*)'Nucleus not found: f_barr_states',' Z = ',iZ,' A = ',iA
+      if(iproc == 0)write(6,*)'Nucleus not found in this calculation: f_barr_states',' Z = ',iZ,' A = ',iA
       return
    end if
 !
@@ -2999,7 +2999,7 @@ subroutine parse_command(command, finish)
             return
          end if
       end do
-      if(iproc == 0)write(6,*)'Nucleus not found: lev_den_read',' Z = ',iZ,' A = ',iA
+      if(iproc == 0)write(6,*)'Nucleus not found in this calculation: lev_den_read',' Z = ',iZ,' A = ',iA
    end if
 !
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
