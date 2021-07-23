@@ -1,4 +1,4 @@
-time YAHFC.x << input
+ltime YAHFC.x << input
 file Y87 
 all_discrete_states y
 target Y87 
@@ -12,9 +12,9 @@ el_param  Y88 1 1  16.790  3.960    205.3
 el_param  Y88 1 2   5.000  5.000      0.5
 el_param  Y87 1 1  16.790  3.960    205.3
 el_param  Y87 1 2   5.000  5.000      0.5
-wf_model 0
+wf_model 1
 preeq_model 1 
 track_gammas 0
-num_mc_samp  100000
+num_mc_samp  1000000
 end
 input

@@ -261,6 +261,9 @@ subroutine print_channels(in, itarget, istate, ilab, file_lab, ilib_dir, lib_dir
             ipf = nint((nucleus(inuc)%state(j)%parity + 1)/2.0d0)
             write(100,'(''# Xs collected in Final state = '',i3,3x,''J = '',f4.1,a1,3x,''Ex = '',1pe15.7,'' MeV'')')  &
                   j-1,nucleus(inuc)%state(j)%spin, ch_par(ipf), nucleus(inuc)%state(j)%energy
+            if(inuc == itarget)then
+               write(100,'(''# Gammas transitions between discrete states are not included'')')
+            end if
             write(100,'(''#'')')
             if(Exit_channel(i)%num_particles > 0)then
                if(explicit_channels)then
@@ -389,6 +392,9 @@ subroutine print_channels(in, itarget, istate, ilab, file_lab, ilib_dir, lib_dir
             write(100,'(''#'')')
             write(100,'(''# Angular Distribution data  P(x,Eout|Ein) '')')
             write(100,'(''# Normalized to unity over integral Int(-1,1) int(0,E_max)  P(x,Eout|Ein)dx,dEout '')')
+            if(inuc == itarget)then
+               write(100,'(''# Gammas transitions between discrete states are not included'')')
+            end if
             write(100,'(''# dx = '',1pe16.7,'' dEout = '',1pe16.7,'' MeV'')')delta_jx_20, de_spec
             write(100,'(''# Frame = COM'')')
          else
@@ -575,6 +581,9 @@ subroutine print_channels(in, itarget, istate, ilab, file_lab, ilib_dir, lib_dir
             write(100,'(''#'')')
             write(100,'(''# Angular Distribution data  P(x,Eout|Ein) '')')
             write(100,'(''# Normalized to unity over integral Int(-1,1) int(0,E_max)  P(x,Eout|Ein)dx,dEout '')')
+            if(inuc == itarget)then
+               write(100,'(''# Gammas transitions between discrete states are not included'')')
+            end if
             write(100,'(''# dx = '',1pe16.7,'' dEout = '',1pe16.7,'' MeV'')')delta_jx_20, de_spec
             write(100,'(''# Frame = COM'')')
          else
@@ -700,6 +709,9 @@ subroutine print_channels(in, itarget, istate, ilab, file_lab, ilib_dir, lib_dir
             write(100,'(''#'')')
             write(100,'(''# Angular Distribution data  P(x|Ein) '')')
             write(100,'(''# Normalized to unity over integral Int(-1,1) P(x|Ein)dx '')')
+            if(inuc == itarget)then
+               write(100,'(''# Gammas transitions between discrete states are not included'')')
+            end if
             write(100,'(''# dx = '',1pe16.7)')delta_jx_20
             write(100,'(''# Frame = COM'')')
          else
@@ -835,6 +847,9 @@ subroutine print_channels(in, itarget, istate, ilab, file_lab, ilib_dir, lib_dir
              write(100,'(''#'')')
              write(100,'(''# Emission Spectrum data  P(Eout|Ein) '')')
              write(100,'(''# Normalized to unity over integral Int(0,Emax) P(Eout|Ein)dEout '')')
+             if(inuc == itarget)then
+                write(100,'(''# Gammas transitions between discrete states are not included'')')
+             end if
              write(100,'(''# dEout = '',1pe16.7)')de_spec
              write(100,'(''# Frame = COM'')')
          else
@@ -980,6 +995,9 @@ subroutine print_channels(in, itarget, istate, ilab, file_lab, ilib_dir, lib_dir
          inuc = Exit_Channel(i)%Final_nucleus
          write(100,'(''# Mass of residual = '',1pe23.16,'' amu'')')nucleus(inuc)%mass/mass_u
          write(100,'(''# Total Xs in this channel '')')
+            if(inuc == itarget)then
+               write(100,'(''# Gammas transitions between discrete states are not included'')')
+            end if
          write(100,'(''#'')')
          if(Exit_channel(i)%num_particles > 0)then
             if(explicit_channels)then

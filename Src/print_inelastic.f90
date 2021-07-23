@@ -4,7 +4,8 @@
 subroutine print_inelastic(itarget, istate, ilab, file_lab, ilib_dir, lib_dir, ch_par,     &
                            num_energies, Ang_L_max, max_jx_50, delta_jx_50,                &
                            cs_threshold, nstates, absorption_cs, Inelastic_cs,             &
-                           Inelastic_Ang_L, Inelastic_L_max, reaction_cs, write_error)
+                           Inelastic_Ang_L, Inelastic_L_max, Inelastic_cont_cs,            &
+                           reaction_cs, write_error)
 !
 !*****************************************************************************80
 !
@@ -77,6 +78,7 @@ subroutine print_inelastic(itarget, istate, ilab, file_lab, ilib_dir, lib_dir, c
    real(kind=8), intent(in) :: Inelastic_Ang_L(0:Ang_L_max,0:nstates,num_energies)
    integer(kind=4), intent(in) :: Inelastic_L_max(0:nstates,num_energies)
    real(kind=8), intent(in) :: reaction_cs(num_energies)
+   real(kind=8), intent(in) :: Inelastic_cont_cs(0:nstates,num_energies)
    logical, intent(out) :: write_error
 !----------------------------------------------------------------------
    real(kind=8) :: Sum_Inelastic
@@ -119,13 +121,104 @@ subroutine print_inelastic(itarget, istate, ilab, file_lab, ilib_dir, lib_dir, c
 !---------    Inelastic to discrete states    ------------------------+
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
+!   open(unit=100, file = directory(1:idir)//'check_inelastic.dat',status = 'unknown')
+!   do in = 1, num_energies
+!      sum = 0.0d0
+!      do j = 1, nucleus(itarget)%num_discrete
+!         sum = sum + Inelastic_cont_cs(j,in)
+!      end do
+!      e_in = projectile%energy(in)
+!      write(100,'(1x,4(3x,1pe16.7))')e_in, sum*cs_scale, Inelastic_cs(0,in)*cs_scale
+!   end do
+!   close(unit=100)
+
+!++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!---------   Now inelastic transitions to continuous bins with first     ---+
+!---------   gamma decay to discrete state, cross section on entry into  ---+
+!---------   the knwon discrete spectrum                                 ---+
+!++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+   do j = 1, nucleus(itarget)%num_discrete
+
+      ifile = 26
+      outfile(1:8) = 'Channel_'
+      outfile(9:9) = particle(iproj)%label
+      outfile(10:26) = '_cs_entry_to_L000'
+      l = j - 1
+      if(l < 10)then
+         write(outfile(ifile:ifile),'(i1)')l
+      elseif(l >= 10 .and. l < 100)then
+         write(outfile(ifile-1:ifile),'(i2)')l
+      elseif(l >= 100 .and. l < 1000)then
+         write(outfile(ifile-2:ifile),'(i3)')l
+      else
+         write(6,*)'too many discrete states inelastic_cs ',l
+         write_error = .true.
+         return
+      end if
+!**********************************************************************************
+!-----   Check if this state has appreciable cross section. If not, skip     -----*
+!-----   Threshold is based on the number of samples, and the smallest       -----*
+!-----   cross section observable with one sample, i.e., abs_cs/num_mc_samp  -----*
+!-----   We use 10 times this as a cut off. Cross ection below this will be  -----*
+!-----   unreliable due to limitations in Monte Carlo sampling               -----*
+!**********************************************************************************
+      print_cs = .false.
+      do in = 1, num_energies
+         thresh = 20.0d0*absorption_cs(in)/real(num_mc_samp,kind=8)
+         if(Inelastic_cont_cs(j,in) > thresh)print_cs = .true.
+      end do
+      if(.not. print_cs)cycle
+!**********************************************************************************
+
+      open(unit=100, file = directory(1:idir)//outfile(1:ifile)//'.dat',status = 'unknown')
+      file_lab2(1:20) = ' '
+      ilab2 = ilab
+      file_lab2(1:ilab2) = file_lab(1:ilab)
+      ilab2 = ilab2 + 1
+      file_lab2(ilab2:ilab2) = particle(iproj)%label
+      ilab2 = ilab2 + 1
+      file_lab2(ilab2:ilab2) = quote
+      ilab2 = ilab2 + 1
+      file_lab2(ilab2:ilab2) = ')'
+      write(100,'(''# '',a20)')file_lab2
+      ipi = nint((nucleus(itarget)%state(istate)%parity + 1)/2.0d0)
+      write(100,'(''# Target state = '',i3,3x,''J = '',f4.1,a1,3x,''Ex = '',1pe15.7,'' MeV'')') &
+            istate-1,nucleus(itarget)%state(istate)%spin, ch_par(ipi),                          &
+            nucleus(itarget)%state(istate)%energy
+      write(100,'(''# Inelastic cross section.'')')
+      write(100,'(''# Contains cross section of inelastic transitions to continuous enrgy bins '')')
+      write(100,'(''# on entry into the discrete spectrum.'')')
+      write(100,'(''# Note subsequent gamma decays from the final state are not tracked.'')')
+      write(100,'(''#'')')
+      write(100,'(''# Mass amu = '',1pe23.16,'' MeV'')')mass_u
+      write(100,'(''# Mass of target = '',1pe23.16,'' amu'')')nucleus(itarget)%mass/mass_u
+      write(100,'(''# Mass of projectile = '',1pe23.16,'' amu'')')particle(iproj)%mass/mass_u
+      inuc = itarget
+      write(100,'(''# Mass of residual = '',1pe23.16,'' amu'')')nucleus(inuc)%mass/mass_u
+      ipf = nint((nucleus(inuc)%state(j)%parity + 1)/2.0d0)
+      write(100,'(''# Final state  = '',i3,3x,''J = '',f4.1,a1,3x,''Ex = '',1pe15.7,'' MeV'')') &
+            j-1,nucleus(inuc)%state(j)%spin, ch_par(ipf), nucleus(inuc)%state(j)%energy
+      write(100,'(''#'')')
+      write(100,'(''#         E_in              xs'',''('',a2,'')'')')cs_units
+      write(100,'(''#'',2(''   ----------------''))')
+      do in = 1, num_energies
+         e_in = projectile%energy(in)
+         write(100,'(1x,4(3x,1pe16.7))')e_in, Inelastic_cont_cs(j,in)*cs_scale
+      end do
+      close(unit=100)
+   end do
+
+
    if(.not.allocated(Ang_Dist))allocate(Ang_Dist(0:max_jx_50))
+
    do j = 1, nucleus(itarget)%num_discrete
       if(j == istate)cycle
-!++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!---------    cross section v. E_in           ------------------------+
-!++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
+!++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!---------    cross section v. E_in           ------------------------------+
+!++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!---------   Start with primary decays of projectile directly to a       ---+
+!---------   discrete state                                              ---+
+!++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
       ifile = 17
       outfile(1:ifile) = 'Inelastic_cs_L000'
       l = j - 1
@@ -171,7 +264,7 @@ subroutine print_inelastic(itarget, istate, ilab, file_lab, ilib_dir, lib_dir, c
             istate-1,nucleus(itarget)%state(istate)%spin, ch_par(ipi),                          &
             nucleus(itarget)%state(istate)%energy
       write(100,'(''# Inelastic cross section.'')')
-      write(100,'(''# Contains only primary decays to discrete final state.'')')
+      write(100,'(''# Contains only primary decays of projectile particle to discrete final state.'')')
       write(100,'(''# Note subsequent gamma decays from the final state are not tracked.'')')
       write(100,'(''#'')')
       write(100,'(''# Mass amu = '',1pe23.16,'' MeV'')')mass_u
