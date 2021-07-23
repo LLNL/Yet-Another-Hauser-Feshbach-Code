@@ -33,9 +33,12 @@ delta_e        0.100
 #----   Two ways to make energy list
 #----   proj_e_file which can have emax < delta_e
 #----   or proj_eminmax  emin, emax, de but emin >= delta_e
+#----   Commands to specify incident energies for projectile
+#----   If commented out, default energy grid from 
+#----   0.001 - 20.0 MeV is used
 #
 #proj_e_file   elist-1.input
-proj_eminmax   0.1 6.1  0.2
+#proj_eminmax   0.1 6.1  0.2
 #
 global_pair_model 1                    !  use pairing model #1
 global_lev_option 2                    !  use level density model #2 (default for actinides)
@@ -153,11 +156,14 @@ f_barrier_symmetry  U235  2   2
 #
 #----    Width Fluctuation model 0 = none, 1 = Moldauer
 #
-wf_model  0
+wf_model  1
+#
+#----    Calculatue only cross section (y) default= n
+#
+xs_only n
 #
 #----   Prequilibirum mode data
 # 
-xs_only y
 preeq_model 1
 #
 #----   Track all gamma decays 0/n/f = no  1/y/t = yes 
@@ -166,7 +172,7 @@ track_gammas n
 #
 #----   Number of Monte Carlo Samples
 #
-num_mc_samp  100000
+num_mc_samp  1000000
 #
 #---   All finished
 #

@@ -1,485 +1,429 @@
-version 3.0:
-Reworked version for release. Main features:
-1. Added sort for commands to be executed in the proper order - user can inoput
-   commands in any order
-2. Added description headers to all routines
-3. Added "open" routines for random number and Gauss-quadrature integration
-4. Added "default" feature for fission parameters located in
-   Data/Fission-Parameters.txt. These are set up on initialization and use a
-   format similar to YAHFC commands. They can be overridden by subsequent YAHFC
-   commands.
-
-Needs replacements for random number generator and Gauss-quadrature in order to
-be released as LLNL wants
-
-version 3.1:
-
-1. New Gauss-quadrature routines based on three-term recurrence relations
-   and their eigenvalues.
-2. New 64-bit random number generator based on combination of linear
-   congruential and Marsaglia xor bit shift operators
-3. Fixed sampling errors in pre-equilbrium module
-   a. Error in unbiased sampling for pre-equilibrium gammas when cross 
-      section is zero
-   b. Error in setting angle theta with high-energy emission to a discrete
-      state
-4. Fixed order of input fission commands to ensure f_lev_ematch is 
-   correctly set. The command f_lev_delta has an overide to ensure that
-   ematch is above delta. Thus, f_lev_delta needs to be executed first.
-5. Put explit intent() for each variable in each function and subroutine
-6. Converted file level-density.f to FORTRAN90 and replaced with
-   level-density.f90.
-7. Added warning when trying to use option "optical_code". No longer used as
-   FRESCO is now the only code used with this package.
-8. Added warning with option "cs_scale". No longer used and is superceded with 
-   the option "cs_unit".
-9. Fixed error in KD proton optical potentials in fresco-potentials.f90 
-
-version 3.2
-
-1. All particle types are operational with default optical model potentials. All
-   particles can be used as projectiles and ejectiles. By default particles
-   d - alpha are excluded as ejectiles and need to be activated with the
-   option max_particles. For charged particles the elastic angular distributions
-   are given as a ratio with respect to Rutherford scattering.
-2. Changed how the optical model is set with the variable particle(k)%opt_pot.
-   This is an integer representing one the available optical models for the
-   particle k.
-3. Decoupled DWBA states in the continuous energy bins from the bin structure.
-   It is no longer necessary to rerun fresco if you change the value of de 
-   from calculation to calculation.
-4. Fixed bug for !-comments placed after valid input. There was a crash if 
-   part of the input was optional and used a !-comment.
-5. Changed name of file optical_setup.f90 to optical-setup.f90 to make it
-   conform to the naming convention used for other files containing
-   subroutines.
-
-version 3.3
-
-1. Changed the way emission spectra are printed. They are now in bins centered
-   about the printed energy with spacing +/- de/2. At Eout = 0.0, the spectra
-   are zero. 
-2. Added samples for the elastic channel at the very end of the MC sampling. 
-   The elastic events are printed along with all the MC samples with the 
-   command dump_events.
-
-version 3.4
-
-1. Fixed error in Legendre expansion for angular distributions from FRESCO. 
-   Expanded the angualar distributions for Shape Elastic to 200 points for 
-   x=(-1,1).
-
-Version 3.5
-
-1. Completed expansion of angular distribution for all elastic channels, and
-   total elastic = Shape + Compound. Added print out of Legendre coefficients.
-2. Fixed "elastic" for charged particles. Elastic is printed as a ratio relative
-   to Rutherford scattering. Exception: Compound elastic is printed as
-   crosssection. The Shape Elastic (from optical model) and total Elastic 
-   angular distributions are printed as ratio relative to Rutherford.
-2. Improved sampling of emitted angles for primary decays, coupled-channels, 
-   DWBA excitations. 
-3. Modified angular distributions for inelastic channels. Inelastic scattering
-   spectra are collected for each emission energy in 11 bins from x=(-1,1) 
-   with dx = 0.2. These are then expanded with a Legendre expansion and 
-   angular distributions are reconstructed on a grid with dx = 0.1. The number 
-   of Legendre coefficients is based on the actual number of counts in that 
-   channel. 
-4. Modified angular distributions for all Channels. Inelastic scattering
-   spectra are collected for each emission energy in 11 bins from x=(-1,1) 
-   with dx = 0.2. These are then expanded with a Legendre expansion and 
-   angular distributions are reconstructed on a grid with dx = 0.1. The number 
-   of Legendre coefficients is based on the actual number of counts in that 
-   channel.
-5. Corrected output of level # in the files defining discrete states. The 
-   ground state is level # 0.
-6. Denoted the target state in output files, inlcuding spin, parity and
-   excitation energy.
-7. Print more information for properties of final state, whether an inelastic
-   reaction, or final state of residual nucleus. State number, spin, parity,
-   excitation energy.
-8. Fixed print out for charged particles with small cross sections. Note to
-   screen when absorption cross section < 1.0d-9 (b), and skipping decay
-   process.
-9. Added notification to screen during run if width fluctuations are being 
-   applied to that incident energy. Also, added notification if width 
-   fluctions option is off.
-10.Added consistent threshold for minimum cross section threshold.
-11.Fixed identification of emitted particles for inelastic reactions to be
-   the same as incident particle. Prior it was set up assuming neutrons.
-
-Version 3.6
-1. Fixed error in mass of residual printed in Exit Cannel files.
-2. Fixed error in "particle" multiplicities in Exit Channel cross section files.
-
-Version 3.7
-1. Fixed error in Q-values
-2. Added print out of total "Elastic" data for charged particles similar to
-   what was implmented for "Shape" (or optical model). For each energy, the
-   ratio averaged over cos(theta) is printed. In general, due to the 1(1-x)^2
-   factor, the ratio at x=1 is 1 for "shape", and shape >>> compound.
-3. Made sure version number was updated in modules.f90
-
-Version 3.8
-1. Fixed problem where Elastic_cs.dat wasn't showing up.com
-
-Version 3.9 
-1. Added feature to adjust a-parameter when fitting to D0 to provide a similar
-   feature as in TALYS. 
-2. Made some changes to option names for global and nucleus specfic
-   level-density options
-3. Adjusted order options are executed and adjusted how default parameters are
-   set while setting options and values to improve set up. Also, removed some
-   speghetti code that crept in as things were added over time.
-4. Fixed what was likely a bug in the boost matrix for cases where initial
-   kinetic energy is input with a spread. The boost matrix was setup with the 
-   central value and not adjusted for the spread.
-5. Fixed typo in output file while describing the vibrational collective
-   enhancement factor.
-
-Version 3.10
-1. Fixed variable-type mismatch in HF-decay-MC.f90. Corrected L_ang and Max_L
-   from integer(kind=8) to integer(kind=4). Potential issue with function poly
-2. Fixed some warnings for unitialized variables. They were initialized in
-   if statements, so they were "spurious" warnings.
-
-Version 3.11
-1. Added consistent options for pre-equilibrium all parameters that can be 
-   controlled with inputs, e.g., Rpp, etc
-2. Fixed error in well in pre-equilibrium model for incident protons, had same
-   value as for incident neutrons.
-3. Fixed problem with setting Preeq_V < Preeq_V1, which leads to funny looking
-   pre-equilibirum spectrum. Now, if user sets Preeq_V < Preeq_V1, Preeq_V1 =
-   Preeq_V - 3. Mostly, a failsafe mode.
-4. Reverted back to pure step function in the finite well routine in
-   pre-equilibirum model.
-5. Added randomness to initial seed if not set with command ran_seed.
-   Previously, iseed =  3141592654_int_64. Now, 
-   call system_clock(COUNT=cnt,COUNT_RATE=cnt_r,COUNT_MAX=cnt_m) is made 
-   to alter the seed at runtime so that iseed = iseed + max(mod(cnt,100000),1). 
-   Also, iseed is ensured to be odd. This adds randomness to the start so that 
-   successive runs won't be exactly the same. Not used if iseed is set with 
-   ran_seed.
-
-Version 3.12
-1. Fixed issue with setting up incident energies while calling frescox. Also,
-   fixed mixup between relative (COM) and lab frame energies for incdient
-   projectiles and calculating and storing transmission coefficients.
-
-Version 3.13
-1. Fixed issue with defining channels tht was messed up when not having protons
-   or neutrons as incident particles.
-2. Altered pre-equilibrium spectra files to permit incident energies greater 
-   than 100 MeV, should be OK up to 999.9999 - but note that YAHFC doesn't
-   do relativistic kinematics yet.
-3. Fixed issue with delta E for outgoing spectra that would be incorrectly set 
-   for some values of de for the continous energy bins.
-4. Added python parsing scripts to convert YAHFC output into a GNDS xml file 
-   and a python script to extract data from the GNDS xml file to plot. For Ian 
-   Thompson. REQUIRES that FUDGE be installed and in PYTHONPATH.
-
-Version 3.14 - never an official release
-1. Fixed energy misalignment for transmission coefficients when computing the 
-   HF denominators for reactions not involving incident neutrons and for
-   outgoing particles not involving neutrons.
-2. Made improvements to zero-energy transitions, i.e., transitions to bins 
-   whose centroids are the same. Allow transitions within the bin. Probably
-   doesn't affect the thrshold behavior that much.
-3. Improved performance of the interpolating routne to find the transmission
-   coefficients for a given energy on the computed grid - 6x speed up.
-
-Version 3.15
-1.  Fairly major reorganization in the structure of how decays are selected.
-    a. Correctly imposed max_particle(k) limit during the decay sequence. 
-       Changed array HF_prob from cumulative sum of probabilities to
-       just the probability for that decay type and added mechanism
-       to skip and renormalize if attempting to decay particle type k that 
-       violates max_particle(k). This fixed several potential array out
-       of bounds errors.
-    b. Changed "noise" in the energies of emitted particles. Returned to 
-       sampling decays explicitly from center of bins and adding "noise" after
-       the decays. Previously, the "noise" was added at the point of sampling,
-       which caused problems with energy conservation for later decays, which
-       had to be rebaselined. Much cleaner with better energy conservation.
-2.  Added feature with command "explicit_channels". If true, each
-    decay sequence, including order, is a distinct channel; i.e., outgoing
-    channels npd, ndp, dnp, pnd, pdn, dpn are distinct channels. If false, 
-    they are the treated as the same channel and printed in directories
-    by the number of particles, e.g.,  2npd.
-3.  Moved printed preequilbrium and direct spectra to the "Spectra" directory.
-4.  Added printing of the preequilibrium cross section into the main reaction
-    directory along with "Total", "Absorption", etc.
-5.  Added ability in commands that need a particle identifier to use the labels
-    n, p, d, t, h, a in addition to the internal number 1, 2, 3, 4, 5, 6.
-6.  Extended integer encoding data to define channels based on the particle
-    types to kind=8. This increases the number of allowed particles defining
-    a channel from 10 to 20.
-7.  Cleaned up several arrays and subroutines to remove data that wasn't needed.
-8.  Fixed a small error in HF-primary-decay-setup.f90 that offset the looping 
-    over bins. Didn't have much of an effect.
-9.  Laid foundation for non-equal excitation energy bins. In addition to energy
-    for each bin, also added width of the bin. Made changes internally to use
-    this value instead of the global de variable (hopefully everywhere). 
-    Nonequal bins will likely be based on a multiplicative factor of a 
-    base bin size at lower excitation energies that later increases. 
-    Unfortunatlely, this also means that it is a bit more difficult to 
-    find a bin based on the energy.
-10. Removed interpolation subroutine for EM transmission coefficients used to 
-    sum the HF denominators in HF-primary-decay-setup.f90 to make it 
-    conform with other calculations of the HF denominators and probabilities. 
-    As a consequence, the file HF-interpolate.f90 is no longer used, and can 
-    be removed.
-
-Version 3.16
-1.  Fixed error in subroutine Fission_transmission that caused a subscript
-    out of bounds CTD. Added blank line before the Q value for readibility. 
-2.  Fixed bad Q value for exit channels when explicit_channels = .false.
-3.  Fixed not printing mass of emitted particles when 
-    explicit_channels = .false.
-4.  Made explicit_channels = .false. the default. 
-5.  Fixed error in function compound_cs.
-6.  Implemented dynamic setting of max_J_allowed based on maximum 
-    angular momentum in the compound nucleus as computed from the tranmission
-    coefficients. Also, checked spins of discrete states to ensure max_J_allowed
-    is greater. Still capped at max_J_allowed = 40 for now.
-7.  Further clean up of energy width de to transition towards bin widths 
-    defined for each bin.
-8.  Set smearing width for x-particle spectra and preequilibirum and direct
-    spectra to .2 MeV.
-9.  Fixed error introduced in 3.14 while collecting elastic events for neutrons.
-10. Disabled option to scale elastic for charged particle projectiles.
-11. Fixed bug where protons weren't computing DWBA excitations.
-
-Version 3.17
-1.  Added new feature where all inputs requiring Z A can be accessed with 
-    isotope label, e.g., instead of using 92 238, one input U238, or 238U.
-2.  Fixed error where fitting to a-parameter was incorrectly set, leading to
-    a fit to D0 with the shell correction instead.
-
-Version 3.18
-1.  Put bypass in fresco-setup.f90 to address problems where FRESCO returns 
-    GARBAGE for low-energy charged particles. A check is made on the classical
-    turning radius. If this is greater than 5x the radius of the nuclear 
-    potential, then skip the call to FRESCO, set "elastic" to Rutherford and 
-    set all transmission coefficients and coupled-channels cross sections
-    to zero. Required modification with call to FRESCO being moved to a 
-    subroutine. This fixes an error introduced in 3.17 where a clumsy attempt
-    to address this issue by examining FRESCO outputs.
-2.  Fixed error for charged particles where angular distributions for 
-    non-elastic coupled-channels excitations were divided by Rutherford.
-3.  Moved FRESCO *.in, *.out, and *.err files to the sub-directory 
-    "Fresco-files" to reduce clutter in the main execution directory. 
-4.  Added "cutoff" for writing data for inelastic excitations to discrete 
-    states. If the largest cross section (as a function of incident energy) 
-    falls below a threshold of 20*absorption(in)/num_samp, the file will not be
-    opened and written too. Note that this is dynamic, in that the check is
-    for each incident energy. For the most part, the smallest cross section that
-    would be observable is with a single event to a channel, which would be
-    of the order absorption/num_samp. This would eliminate files for discrete
-    states with no cross section.
-5.  The statistics for the angular distributions is increased by "over sampling"
-    the angles for each emitted particle. A total of num_theta values of the
-    angle theta are sampled for each particle. The default is num_theta = 10.
-    Each of these angles are transformed to the COM and Lab frames, and then 
-    collected in the angular distributions. Each set of angles, labeled nang,
-    are treated as a distinct set of samples. At present, this increases the 
-    CPU time by ~ 2x, but increases the angular statistics by 10x 
-    (improves uncertainty by 3x). 
-6.  Introduced command "num_theta_angles N" to allow the user to specify the 
-    num_theta. It is required that N >= 1. If a number less than 1 is entered, 
-    it is overridden and num_theta = 1.
-7.  Changed the default delta_e to 0.1 MeV.
-8.  Put in trap on obsolete command "fit_aparam" to warn user and effectively 
-    call the commands "lev_fit_do y" and "lev_fit_aparam n", which is
-    essentially the default to fit to D0 by adjusting the shell correction
-    parameter.
-
-Version3.19
-1.  Fixed error due to uninitialized use of variable prob. Wasn't used and
-    was innocuous.
-    
-Version 3.20
-1.  Set up command "event_generator answer" to run YAHFC as an event generartor
-    and not collect spectra or cross section data. Also, created directory
-    in the "data library" area where the events are printed to. For example,
-    Target/projectile/Event-files.
-2.  Removed unused array test_spectra declared in modules.f90.
-3.  Cleaned up subroutine get_binding_energies. Switched to allocated
-    arrays rather than using large declared arrays to avoid potential
-    problems with oveflowing the stack. 
-4.  Switched to an allocatable array in subroutine cum_rho, which fits the 
-    cumulative level density. The array cumr(:) was delclared dimension 10000,
-    which gave a warning related to being too large for the stack. 
-
-Version 3.21
-1.  Fixed array out of bounds in cumr, start array at 0.
-2.  Changed output format to 1pe16.9 in fresco-setup.f90 and optical-setup.f90
+Version 3.63
+-------------
+1.  Converted README.txt file to markdown file, README.md
+2.  Changed message to screen when command doesn't find a nucleus in the 
+    calculation. Meaning is not to convey that it is an error, but that it is not
+    found and let user decide. If one changes the incident energy in a file,
+    commands could exist for nuclei that aren't present in the current calculation.
+3.  Fixed a problem with low-energy charged particles with very low cross sections.
+4.  Added files with the cross section for inelastic transitions to continuous 
+    energy bins for entry into the discrete spectrum. Note that this can include
+    "inelastic" transitions with photon decay in the compound, followed by emission
+    of the projectile particle, which can aslo be directly to a discrete state. This
+    has a small, but not zero probability.
+5.  Along with the entry cross sections, gammas between discrete states following
+    entry into the discrete spectrum are removed from the spectra and angular
+    distributions.
+6.  Adjusted the example files to run default energies with 10^6 samples. 
 
 
-Version 3.22
-1.  Fixed error arising from a blank line being in the string of input commands.
-2.  Implemented a dynamic check and rest of the FRESCO parameter hcm < 0.2/k
-    to prevent FRESCO crashes.
-3.  Added file with particle properties in library directory
-4.  Fixed incorrect spin assignment for alpha particles
-5.  Fixed error where coupled-channels cross sections were inadvertently set
-    to zero.
+Version 3.62
+-------------
+1.  Added command to set maximum value of the HF denominator for with the 
+    Moldauer width fluctuations are computed.
+2.  Added cache to store transmission coefficients used in H_primary_decay_setup
+    and to compute the Moldauer products. 
+3.  Fixed bug computing xj = l+s in HF denominator calculations.
 
-Version 3.23
-1.  Fixed error where coupled-channels cross sections were inadvertently set
-    to zero for charged particles. 
-2.  Adjusted decay chain search to fix subscript out of range with tritons
-    as an exit particle.
-3.  Forced an assignment for ground-state spin and parity when not in RIPL-3
-    file, but needed as an end-product in the decay chain. Set to J = 0 for
-    A even and J = 0.5 for A odd, and parity = +1. Otherwise a seg fault will
-    occur.
+Version 3.61
+-------------
+1.  Added ran_seed to default command set up first for all runs. If ran_seed
+    is not input by user, the command is generated with a "random" seed
+    based on the system clock counter. The seed is setup with  ran_seed 
+    caommand that is executed first. Intial random seed is printed to the
+    .out file.nedit fisd	
+2.  Adjusted command ranks to account for ran_seed and to add options.
+3.  Added "error" trap on E1_model if input is < 1 or > 3, as these are
+    invalid options. Termintes execution is set incorrectly.
+4.  Added ability to set E1_model for each nucleus via nuc_e1_model. Sets it
+    for isoptope called. While one might set e1_model globally, this was needed
+    if one stores commands in Saved_parameters.txt based on the assumption
+    that E1_model is set to a specific value. Since E1_model is a global
+    value it wouldn't be set reading from Saved-parameters.txt, which is 
+    meant to specify parameters for a given isotope. This option is called
+    before other EM options, and calls EM_str_param to set the ML strengths
+    which are based on the E1 strength. These are set for the default E1 values.
+    Setting any of the EM strengths through the commands overrides fit to
+    Gamma_gamma, so the user should adjust accordingly.
+5.  Provided better low-energy behavior for the level density. Addresses issue
+    with back-shifted fermi gass at low energy with 1/U behavior.
+6.  Modified global parameters for level densities to have prefix "global" to 
+    distinguish them from parameters defining parameters for individual
+    nuclei.
+7.  Fixed a bug that was introduced at some point into the calculation of 
+    the Moldauer Width fluctuation factor. Checked the integration for speed 
+    and accuracy. Adjusted the number of Laguerre integration points. Increased
+    the number of integration points at low excitation energy due to deviations
+    from a simple exponential. Decreased it for higher energies. Put in a check
+    to bypass EF if the HF denominator is > 50 and if the channel contributes
+    less than 0.1% to the absorption cross section. Idea being why compute what 
+    is at most a 20% correction to something that constributes less than 0.1%
+    to the reaction. Overall improvement in performance for the WF calculation.
+8.  Adjusted lower limit on the entrance channels due to a small contribution.
+    Previous a channel was bypassed if it contributed 1.0e-7 b to the absorption
+    cross section. Now, it is bypassed if it its fraction is < 1.0e-6 of the
+    total absorption cross section. The absorption cross section is
+    renormalized. 
+9.  Changed calls to "print_command_error" to terminate and to print the full 
+    text of the offending command.
+10. Added warning if user attempts to call both "proj_e_file" and
+    "proj_eminmax". Adjusted priorities so proj_e_file takes precedence.
+11. Fixed out-of-bounds error for pre-equilibrium spectra and cs when 
+    pre-equilibirum model is turned off (caused by "dummy" allocations to
+    eliminate spurious compilation warnings).
+12. Fixed bug setting axial rotational-collective enhancement factor when
+    reading in beta_2 for a barrier. Factor of sqrt(pi/2.0) was moved to
+    inside subroutine enhance_rot.
+13. Reverted to previous treatment of spin cutoff parameter below Ematch for 
+    fission-barrier level densities when no discrete transiton states are being
+    used, i.e., continuous level density is taken to Ex = 0.
+14. Set default beta_2 deformations for the fission inner and outer barriers to be
+    2x and 4x the ground state beta_2 value, respectively.
+15. Added fail safe check to readjust Ecut for the target if a Coupled-Channels
+    plus DWBA calculation was done for the transmission coefficients. Checks
+    to make sure Ecut is lower than the lowest DWBA excitation to a continuous
+    energy bin. Allows the user to continue using a "-CC.data" file if Ecut had
+    been set and then remobved. Added error check that if bin is not found
+    for DWBA state to exit program and throw and error message.
+16. Fixed bug parsing command "lev_fit_d0" - check was on "lev_fit_D0".
+17. Fixed bug where Ematch could fit incorrectly (introduced around 3.53).
 
-Version 3.24
-1.  Made subroutine that sets up the decay chains more efficient.
-2.  Adjusted the maximum value for the orbital angular momentum for each
-    particle. It is now set in fresco-setup.f90 and is based on the maximum
-    incident energy requested, now lmax = 2*R*k_max, with R being the nuclear
-    radius.
-3.  Fixed parts of subroutine get_spectrum where errors occured due to the 
-    requested nucleus not appearing in the RIPL-3 file. In all cases, if the
-    nucleus is absent, J = 0 if A even, and J = 0.5 if A odd, and parity is +.
-4.  Also, extended the excitation energy bins for all nuclei up to the neutron
-    separation energy.
-5.  Adjusted decay algorithms to include the Coulomb Barrier information to
-    limit the decays of charged particles. Important for alphas, which are
-    unbound, and nearly limitless for heavy nuclei. The Colomb barrier tests
-    limits some channels that will be extremely weak, and thus avoids including
-    them in the overall calculation. Including the Coulomb barrier test in
-    the set up forces the weak channels not to occur, which would give an
-    error while searching for the nonexistent channel.
-6.  Adjusted model for the oribital angular momentum for emitted particle 
-    in the pre-equilibrium model (two-component exciton model) to assume that
-    particles are emitted at the nuclear surface rather than the classical 
-    impact parameter for the incident projectile with orbital angular
-    momentum l. Reduces the overall emitted l.
-7.  Fixed error sampling pre-equilibrium particles with unbiased sampling.
-    Affected cases with multiple particles being emitted.
-8.  Fixed error in writing and reading transmission coefficients and energy
-    grid if the number of data was exactly a multiple of 10.
-9.  Adjusted Coulomb Barrier limits to help reduce channels that will have 
-    extremely small cross sections.
-10. Added check on incident energies to see if the compound system would be
-    excited below the continuous energy grid. If so, the calculation is skipped.
-    This affects loosely bound systems near the drip line where HF is not 
-    really applicable, and for alphas on heavy nuclei where the separation
-    energy is negative, i.e., unbound, and would try to create a compound
-    with negative excitation energy.
+Version 3.60
+-------------
+1.  Further adjustment to how low-energy behavior of level densities above 
+    the fission barriers are treated to improve the low-energy spin cut off 
+    parameters. Changed the algorithm to compute the spin cutoff parameter.
+    Introduced the derivative in level_param(20) rather than calculating it. 
+2.  Fixed a bug where the E0 and T are not set correctly when specifying 
+    Ematch with the lev_ematch command.
 
-Version 3.25
-1.  Implemented nonequal energy bins with option "use_unequal_bin y". With this
-    option, the base energy scale is E_base=S(projectile) + 2 MeV. A bin width 
-    of de (either default or with option "delta_e de") is used upto E_base, 
-    then 2*de for E_base <= Ex < 2*E_base, 4*de for 2*E_base <= Ex < 4*E_base,
-    and 8*de fpr Ex >= 4*E_base.
-2.  Major cleanup to modularize components of the code. Separate subroutines
-    were implemented to:
-    a.  Print library files 
-    b.  Print particle spectra 
-    c.  Set up of EM strength functions
-    d.  Fit to Gamma_gamma
-3.  Increased efficiency for angular distributions by storing Legendre
-    polynomials in arrays for later use. Used for primary decay, elastic,
-    and all direct and dwba channels.
-4.  Increased efficiency by switching to a 32-bit random number generator (RNG) 
-    where there wouldn't be a significant of accuracy. The 64-bit RNG is used 
-    only to select decays from the HF bins where there are potentially a 
-    large number of possible decays.
-5.  Implemented new option to calculate cross sections on "xs_only y".
-6.  Put in code to do MPI parallelization over the MC sample loop. Majority of
-    reads and writes are restricted to iproc = 0. Still needs to be fully 
-    debugged and numerous "stop" directives need to be replaced with 
-    "call MPI_Abort". It would also be useful to implement an error code system.
-    The call to frescox also needs to be parallelized, but this requires 
-    modifications to fresco. 
+Version 3.59
+-------------
+1.  Adjusted low-energy behavior of level densities above the fission barriers
+    to fix a potential issue extrapolating the spin cut off parameter to
+    energies below the matching energy
 
-Version 3.26
-1.  Fixed problem with nucleus(i)%nbin_em not being defined, leading to
-    potential runaway writing of the EM strength parameters.
-2.  Fixed error reading in and assigning E1 strength parameters from the
-    "exp" evaluated data file. 
+Version 3.58
+-------------
+1.  Converted the inelastic angular distributions in the COM frame to use
+    Legendre expansion. Analytic from primary decay, and decomposed expansions
+    for direct (from frescox) and pre-equilibrium. Not done for inelastic 
+    decays to continuous bins, which is bit more complicated as it is in the
+    Channels array and must be done for all particles and for each emission
+    angle.
+ 
+Version 3.57
+-------------
+1.  Fixed formatting error printing for the factor introducing a dependence
+    in the fission barriers on the excitation energy. 
+2.  Added direct printing of the cumulative level densities to help facilitate
+    the adjustment of the level density parameters. Exp is a staircase
+    function in the file named XXXEL-CLD-exp.dat. The modeled densities are
+    pointwise in the file XXXEL-CLD-modeled.dat.
+3.  Fixed improper initialization of the shell-correction damping factor gamma
+    for fission level densities
+4.  Modified low energy treatment of fission level densities. Improved the
+    spin cutoff parameter to follow the behavior of the discrete states.
+    Previously, it was the analytic formula. This leads to a much larger spin
+    cutoff at the lower end of the spectrum. Would be different with discrete
+    transition states. Also, fixed a mistake with the starting point in
+    computing the cumulative density depending on E0 > or < 0, low end of level
+    density is exp((E-E0)/T).
+5.  Changed level density calls to a subrotuine that included J and parity
+    rho_J_par_e instead of rho_e. No longer have separate calculation for the
+    spin and partity factors - removes possibility of an error binf introduced.
+6.  Added MPI_finalize to finish execution when complete (also added it to
+    terminate a run with the option "event_generator y")
+7.  Fixed error normalizing angular distributions in the compound-elastic
+    library file.
+8.  Fixed error computing the total elastic angular distributions. Error was 
+    made assuming that SE_Ang still carriend units of cross section. The
+    sum shape + compound was improperly normalized.
+9.  Added sum of all inelastic channels and print in file Inelastic_cs_Total.dat.
+10. Fixed "bug" in Jacobi polynomials for N=0 and alpha=beta=0.0 (not used in
+    YAHFC). Decreased convergence thresholds in tridiagonal eigensolver. 
+    Gives higher accuracy for Gauss-integration nodes - from 6-8 digits to 
+    10-12.
+11. Fixed bug accessing extra angles for computing angular distributions. Only
+    one angle was being used despite sampling num_theta extra theta angles.
+12. Removed unused array Channel()%Channel_trans
+13. Added pre-compiler variable to provide MPI condition to provide
+    a more coherent compilation between serial and MPI versions and remove
+    the dummy MPI routines. The pre-compiler variable USE_MPI is set to 0 or
+    1 in the make file and MPI routines are controled via a #if(USE_MPI ==Y)
+    command. In addition, introduced the subroutine exit_YAHFC to control
+    exit from YAHFC for both serial and MPI versions. Calls "exit" or 
+    "MPI_Abort".
+14. Removed all the "stop" calls and replaced with call exit_YAHFC.
+15. Replaced "dfloat" usage with "real(x,kind=8)".
+16. Removed MPI implementation in Moldauer_WF.f90. Probably better to use OpenMP
+    for these loops.
+17. Restructured ranks for global commands to ensure they are set first. Can
+    have subtle effects with nondefault parameters, e.g., e1_model will affect
+    the strength of the ML resonances, as the default is dependent on the
+    strength of the E1 strength at a given energy.
+18. Added capability to store saved parameters from previous runs as 
+    "default" parameters for later runs. These are stored in 
+    $YAHFC_DATA/Saved-Parameters.txt. These are read after the compound
+    nuclei are set up and default parameters are set. They are read in
+    prior to user options, which can override the saved "default" parameters.
+    This can be turned off with the new option "read_saved_parameters n". The 
+    default is "y". Subsequent inputs will override the parameters that are
+    read in.
 
-Version 3.27
-1.  Sped up subrotuine Boost_frame by using intrinsic function matmul and
-    aligning due loops to better use memory arrays.
-2.  Fixed a bug in the E1 strength parameters where every other nucleus would
-    not get assigned properly because the file was not closed before the
-    subroutine returned.
-3.  Fixed bug in subroutine calling fresco where the radius for the potential 
-    inadvertantly used the projectile (A_target**(1/3) + A_proj**(1/3)). A_proj
-    should only be used for alphas and heavier projectiles.This error was 
-    introduced in 3.18 when the bypass subroutine was implemented.
-4.  Minor fix to the MPI code: replaced variable mpi_error to ierr to avoid
-    conflict with intrinsic and fixed an incorrect call to MPI_Bcast. Further
-    integration with MPI will occur in 3.28.
+Version 3.56
+-------------
+1.  Added command to control whether the library directory is deleted when
+    the program sets up the library directory. Default is to delete and remove
+    previous library data so as to not potentially have results from a 
+    previous calculaiton linger in the directories and cause confusion.
+2.  Fixed a bug introduced in V3.55 that affected the particle multiplicities 
+    for channels where an isomer is present. Namely, the directory will
+    have multiple *_L00N.dat files. The multiplicity for the higher channels
+    was not being properly reset to 0 in the incident energy loop.
+3.  Added a "total" channel cross section file for each channel. This sums
+    the cross section to each "isomer".
+4.  Created a new directory for the gamma cross section files when using
+    "track_gammas y". This is to reduce some of the clutter in the channel
+    directories as there is a file for each incident energy.
 
-Version 3.28
-1.  Fixed MPI implementation
+Version 3.55
+-------------
+1.  Added fail-safe check on some parameters that would elad to unstable
+    results. These include negative EM strength functions and if the 
+    matching energy is less than Delta + 0.2 MeV. A message is sent to unit=6
+    and the program is terminated. Termination occurs after all nuclei are
+    checked in case there is more than one offending set.
+2.  Improved calculation of memory used in the program. Includes memory used
+    in the Exit_Channel derived type and the arrays used for elastic and 
+    inelastic scattering
+3.  Removed two unised arrays attached to Exit_Channel
+4.  Restructured the Exit_Channel derived type to not be indexed with the
+    incident energy. The channel data is printed within the the incident
+    energy do loop. This significantly reduces the memory footprint.
+ 
+Version 3.54
+-------------
+1.  Fixed problem where deformations were not being read from the
+    Coupled-Channels.txt file for runs after fresco was run. The default
+    values are in the file mass-frdm895.dat. These are overriden by values
+    in Coupled-Channels.txt. This can affect the value of the collective 
+    enhancement factors. 
+   
+Version 3.53
+-------------
+1.  fixed potential error defining ML strengths due to level density parameters
+    not being defined prior to attempting to set them relative to E1 strength.
+2.  Added comments and headers 
 
-Version 3.29
-1.  Fixed bugs in MPI implementation from transfer to Quartz for parallel loop
-    over Monte Carlo sampling. Paralelization for the HF denominators and 
-    primary decay are still in the works.
-2.  Fixed unnecessary writes to screen during MPI runs
-3.  Added option for "verbose_output y/n", If "y", then periodic updates to
-    screen given during the run, e.g., current energy, and some stats on the
-    run.
-4.  Added option suppress outfile. Two mechanisms: 
-    a. Calling option "file none" 
-    b. Calling option "write_outfile y/n". Ans asnwer of "n" suppresses priting
-       of the .out file even if the option "file faile_name" is given. 
 
-Version 3.30
-1.  Added MPI parallelization to subroutine HF_denominator().
-2.  Minor fixes to prints, etc.
-3.  Improved Makefile thanks to Kostas
+Version 3.52
+-------------
+1.  Added feature to read in level densities for a given nucleus from a file.
+    Use with command
+         lev_den_read Z A P file_name. 
+2.  Fixed error with low-energy level densities for the ground-state spin and
+    parity. The yrast energy for the ground state J and parity was being 
+    computed with the level density cut, rather than always accepting the expt 
+    value. The check was on yrast > 0.0, rather than yrast >= 0.0.
+3.  Fixed potential bug computing D0 and D1.
 
-Version 3.31
-1.  Fixed some minor bugs in subroutines HF_denominator and HF_primary_decay
-2.  Added MPI to the width fluctuation integral.
+Version 3.51
+-------------
+1.  Fixed bug reading in strength of electric and magnetic strengths with
+    command  el_param and ml_param. Form is:
+ 
+    el_param  Z  A  L  j  E_0   Width   Strength
 
+    Strength was not being read correctly.
+2.  Reordered setup for EM parameters so that they aren't conflicted while 
+    reading parameters in and check on number of strength functions so
+    that gamma_gamma is calculated correctly for read in strength functions.
+3.  Added optional answer to "event_generator" to change the type of name for
+    the file containing events. The new command is: 
 
-Version 3.32
-1.  Modified how the maximum angular momentum is used, through the parameter
-    max_J_allowed. The maximum angular momentum in the reaction (through
-    coupling j=l+s with target spin) is used to dynamically set max_J_allowed.
-    However, with the option to include all discrete states with complete 
-    gamma paths decay paths, there are discrete states with J higher than this 
-    value. Previously, the maximum angular momentum for the continuous 
-    energy bins was extended to include these states. Since, they are likely
-    never to be populated, instead they are removed from the calculation. This
-    reduces the memory used for cases like n+238U.
-2.  Implemented more efficient search for angles in subroutine HF_primary_decay
-    and fixed a sampling bug, where it seems the extra angles were the same as
-    the first.
+    event_generator  Ans1  Ans2
 
-Version 3.33
-1.  Fixed potential problem with max_J_allowed caused by fix 1 in V3.32. It is
-    necessary that max_J_allowed cannot be less than the maximum J in the
-    coupled-channels or DWBA states.
-2.  Implemented pre-equilibrium photon emission. It is dominated by the direct
-    component.
-3.  Changed allocation of arrays used in pre-equilibrium model. Allocated
-    in the main, and kept throughout the calculation. Before, they were
-    allocated at each call for each incident energy.
-4.  Fixed bug where number of arguments in print_channel_gammas was incorrect in
-    the main call, which was masked by an incorrect length in the character
-    string lib_dir (compiler should have caught this).
-5.  Fixed bug where Ix_f (the index for the final angular momentum) wasn't 
-    set properly in HF_primary_decay_setup when decaying to a discrete state. 
-    This got caught in an error trap in an N14 calculation where the spins are
-    low, and Ix_f > J_max_allowed. Technically, this incorrect setting didn't 
-    affect the subsequent decays, if it got past the error trap, since this 
-    state decays by the discrete decay branching ratios and the actual state
-    angular momentum is used. 
-    state 
+    If Ans1 = y/t/1, then it will operate in event generator mode. The default
+    file is based on the energy of the calculation, either the incident
+    projectile energy or the initial population energy. If Ans = y/t/1, the 
+    file name will be based on the indes of the energy; something like 
+    87Se_iE_001.Events.bin for a population calculation and the first energy.
+
+Version 3.50
+-------------
+1.  Fixed bug in MPI version where the variable energy_input was not broadcast 
+    from node 0. 
+2.  Cleaned up printing of warning message with MPI when using obsolete command
+    all_gammas.
+
+Version 3.49
+-------------
+1.  Fixed rare error in the primary decay where no primary decays were possible.
+    Occured in light nuclei with low level densities, a rare entrance channel
+    (prob ~ 1.0e-7) and high angular momentum. Renormalized entrance probability
+    to zero if it has no viable decays.
+2.  Fixed problem in printing decay probabilities to the .out file that occurs
+    when one channel drops out because it has extremely low decay probability.
+    Thus, a mismatch in the arrays occurs in the printing so that the
+    probability of a different channel was printed. 
+3.  Decreased sensitivity for gamma decay to include more gammas. 
+
+Version 3.48
+-------------
+1.  Changed factor for M2 matrix element in the two-component exciton model 
+    to be in line with current TALYS version as opposed to original paper
+    Koning NPA744, 15 (2004). Before, Rpp=Rnn = 1.0, Rpn=Rnp = 1.5. Now,
+    Rpp = Rpn = Rnp = 1.0 and Rnn = 1.5. 
+
+Version 3.47
+-------------
+1.  Implemented capability to read in gamma strength functions. They can be read
+    in using the commands "read_el_gsf" and read_ml_gsf for electric and 
+    magnetic strength functions.
+2.  Added ability to input strength function parameters for other modes besides
+    E1. Use commands el_param and ml_param. Used the same way as e1_param,
+    except the first input is L.
+3.  Added multiple strength functions for all modes. The number is controlled by
+    the variable max_num_gsf, which defaults to 4, but can be changed via the 
+    command max_num_gsf.
+4.  Fixed incinsistencies and confusion over the gamma strength function for 
+    L > 1. 
+
+Version 3.46
+-------------
+1.  Fixed error reading an evaluated file where the read could go to the end 
+    of the file. Added iostat=io_error to the read and check on io_error == 0
+    in the do while statement
+2.  Completed implementation of adding comments to evaluated file. Comments
+    should be possible anywhere in the file as long as the line has "#" or "!"
+    in the first column. Added check on iostat=io_error in the loop over 
+    levels (nol) and gamma lines (ngr). If io_error /= 0 and evaluated, error
+    message is printed indicating that the evaluated file likely has an error.
+
+Version 3.49
+-------------
+1.  Fixed rare error in the primary decay where no primary decays were possible.
+    Occured in light nuclei with low level densities, a rare entrance channel
+    (prob ~ 1.0e-7) and high angular momentum. Renormalized entrance probability
+    to zero if it has no viable decays.
+2.  Fixed problem in printing decay probabilities to the .out file that occurs
+    when one channel drops out because it has extremely low decay probability.
+    Thus, a mismatch in the arrays occurs in the printing so that the
+    probability of a different channel was printed. 
+3.  Decreased sensitivity for gamma decay to include more gammas. 
+
+Version 3.45
+-------------
+1.  Fixed issue with name for evaluated RIPL-3 level file for z=94. file
+    z094.dat was committed with case insensitive Mac as Z094.dat, and 
+    needed to be deleted and recommitted.
+2.  Deleted temporary level files not intended for distribution.
+3.  Removed tex output files from the Documentation directory.
+4.  Fixed incorrect radius for Avrigeanu alpha potential. Introduced integer
+    switch iradius to the optical potential. If iradius = 0, the radius
+    will be r0*A_Target^1/3, if iradius = 1, radius is 
+    r0*(A_Target^1/3 + A_projectile^1/3).
+
+Version 3.44
+-------------
+1.  Integrated some cosmetic changes from Nicolas Schunck, missing commas in
+    format statesments, etc.
+2.  Fixed error in "error message" parse_command, where message didn't print
+    full name of offending command
+3.  Changed way E1 parameters are read in. Now, input overwrites existing 
+    component. Before, it zeroed out the previous ones, assuming that all 
+    components would be read in. Now, the others will be kept as they were
+    initially, unless explicitly read in.
+3.  Tweaked fit_gamma_gamma. Made fit decision on each nucleus, rather than 
+    globally. Initially, it is set up globally to be true. And, if the command
+    "fit_gamma_gamma n" is issued, it will be disabled globally. However, it is 
+    set up so that if any e1_params are read in fit to gamma_gamma is disabled 
+    for that nucleus. Thus one could have fits to gamma_gamma for nuclei where
+    E1 parameters are not changed. Also, introduced command
+    "nuc_fit_gamma_gamma" that sets the fit on or off for an indivual nucleus.
+
+Version 3.43
+-------------
+1.  Fixed issues with level density and yrast states.
+    a.  Fixed error where yrast was above max # of bins, so level desnity wasn't
+        set to zero
+    b.  Fixed error where discrete states above E_cut where not being subtracted
+        from the level density.
+
+Version 3.42
+-------------
+1.  Fixed error defining max_J_allowed for population decays
+2.  Fixed information written to .out file, also added writing of isotope for
+    various data elements to help keep track in the out file.
+3.  Added capability to add a comment line in the evaluated RIPL files. A 
+    comment line MUST start with '#' or '!'.
+
+Version 3.41
+-------------
+1.  Adjusted energy bins for special cases where Ex_max ~ S_n.
+2.  Bypass calculation of D0 and Gamma_gamma for cases where E_cut < S_n. Fixed
+    printing of D0 for in .out file for these cases.
+ 
+Version 3.40
+-------------
+1.  Adjusted "cut off" for charged particles in the HF decay setup to be the 
+    same as when computing the transmission coefficient with frescox.
+
+Version 3.39
+-------------
+1.  Fixed inconsistency in labeling states while printing gammas with the option
+    "track_gammas y". They were supposed to start at 0. This didn't get changed
+    when it the change was made for other files.
+
+Version 3.38
+-------------
+1.  Fixed bug where isomers were being excluded - introduced in the rewrite
+    of spectrum.f90. Also, ensured that isomers would be below E_cut.
+2.  Fixed typos in output to screen and output file. Removed extraneous writes
+    fresco_make_tco and improved message about incident energies.
+3.  Implemented a message for input commands "output_mode" and out_gammas_vs_e",
+    which are deprecated.
+
+Version 3.37
+-------------
+1.  Added ability to set the lifetime that YAHFC uses to define an isomer;
+    "t12_isomer X", where X is the desired lifetime in seconds.
+
+Version 3.36
+-------------
+1.  Fixed issue when setting "max_particle iproj -1" (no restrictions) for the
+    projectile. It was overriden to max_particle(iproj) = 1. Happens only when
+    setting max_particle (especially for either neutrons or protons, which is
+    usually not done).
+2.  Fixed issue reading in binding energies for light nuclei, in particular, if
+    the terminus is near 4He. Can't compute proton or neutron pairing terms as
+    there are only two protons/neutrons.
+3.  Made change to have continuous bin that cannot decay because of max_particle
+    restrictions to be treated a hung bin, as in num_decay = 0. Can arise
+    if "max_particle n X" is used, e.g., X=1, and this compound nucleus was 
+    reached by emitting X neutrons previously. It can happen that gamma decay is
+    highly unlikely prob < 1.0e-6, and this would lead to no decay being 
+    possible.
+4.  Implemented a warning to user to not limit neutron emission with
+    "max_particle n X". Doing so can have consequences of truncating the decay
+    prematurely and omitting potentially important channels. This is less likely
+    for charged particles, and can be useful to reduce channels with very small
+    cross section, e.g., multiple alpha emission form actinide nuclei.
+
+Version 3.35
+-------------
+1.  Fixed issue with incident energies where a subsequent incident energy would
+    could be below a previous one due tomatching incident energies with the 
+    excitation energy grid. Could happen if spacing for incident projectile
+    energies was less than the excitation energy bin width.
+2.  Fixed out-of-bounds error in array clb_l due to large orbital angular
+    momenta for emitted particles, i.e., alphas relative to incident neutrons.
+    Array was set up anticipating l for just the projectile. This array is
+    needed in the primary decay.
 
 Version 3.34
+-------------
 1.  Fixed bug causing infinite loop running fresco for n+14N with alphas. Proper
     check on max energy in the Lab frame is made.
 2.  Fixed issues with population calculations with new version. Segmentation 
@@ -570,370 +514,512 @@ Version 3.34
 29. Added back Readme.txt to the main YAHFC directory for the gitLab
     distribution. Gives instructions for settign up environment variables.
 
-Version 3.35
-1.  Fixed issue with incident energies where a subsequent incident energy would
-    could be below a previous one due tomatching incident energies with the 
-    excitation energy grid. Could happen if spacing for incident projectile
-    energies was less than the excitation energy bin width.
-2.  Fixed out-of-bounds error in array clb_l due to large orbital angular
-    momenta for emitted particles, i.e., alphas relative to incident neutrons.
-    Array was set up anticipating l for just the projectile. This array is
-    needed in the primary decay.
+Version 3.33
+-------------
+1.  Fixed potential problem with max_J_allowed caused by fix 1 in V3.32. It is
+    necessary that max_J_allowed cannot be less than the maximum J in the
+    coupled-channels or DWBA states.
+2.  Implemented pre-equilibrium photon emission. It is dominated by the direct
+    component.
+3.  Changed allocation of arrays used in pre-equilibrium model. Allocated
+    in the main, and kept throughout the calculation. Before, they were
+    allocated at each call for each incident energy.
+4.  Fixed bug where number of arguments in print_channel_gammas was incorrect in
+    the main call, which was masked by an incorrect length in the character
+    string lib_dir (compiler should have caught this).
+5.  Fixed bug where Ix_f (the index for the final angular momentum) wasn't 
+    set properly in HF_primary_decay_setup when decaying to a discrete state. 
+    This got caught in an error trap in an N14 calculation where the spins are
+    low, and Ix_f > J_max_allowed. Technically, this incorrect setting didn't 
+    affect the subsequent decays, if it got past the error trap, since this 
+    state decays by the discrete decay branching ratios and the actual state
+    angular momentum is used. 
+    state 
 
-Version 3.36
-1.  Fixed issue when setting "max_particle iproj -1" (no restrictions) for the
-    projectile. It was overriden to max_particle(iproj) = 1. Happens only when
-    setting max_particle (especially for either neutrons or protons, which is
-    usually not done).
-2.  Fixed issue reading in binding energies for light nuclei, in particular, if
-    the terminus is near 4He. Can't compute proton or neutron pairing terms as
-    there are only two protons/neutrons.
-3.  Made change to have continuous bin that cannot decay because of max_particle
-    restrictions to be treated a hung bin, as in num_decay = 0. Can arise
-    if "max_particle n X" is used, e.g., X=1, and this compound nucleus was 
-    reached by emitting X neutrons previously. It can happen that gamma decay is
-    highly unlikely prob < 1.0e-6, and this would lead to no decay being 
-    possible.
-4.  Implemented a warning to user to not limit neutron emission with
-    "max_particle n X". Doing so can have consequences of truncating the decay
-    prematurely and omitting potentially important channels. This is less likely
-    for charged particles, and can be useful to reduce channels with very small
-    cross section, e.g., multiple alpha emission form actinide nuclei.
+Version 3.32
+-------------
+1.  Modified how the maximum angular momentum is used, through the parameter
+    max_J_allowed. The maximum angular momentum in the reaction (through
+    coupling j=l+s with target spin) is used to dynamically set max_J_allowed.
+    However, with the option to include all discrete states with complete 
+    gamma paths decay paths, there are discrete states with J higher than this 
+    value. Previously, the maximum angular momentum for the continuous 
+    energy bins was extended to include these states. Since, they are likely
+    never to be populated, instead they are removed from the calculation. This
+    reduces the memory used for cases like n+238U.
+2.  Implemented more efficient search for angles in subroutine HF_primary_decay
+    and fixed a sampling bug, where it seems the extra angles were the same as
+    the first.
 
-Version 3.37
-1.  Added ability to set the lifetime that YAHFC uses to define an isomer;
-    "t12_isomer X", where X is the desired lifetime in seconds.
+Version 3.31
+-------------
+1.  Fixed some minor bugs in subroutines HF_denominator and HF_primary_decay
+2.  Added MPI to the width fluctuation integral.
 
-Version 3.38
-1.  Fixed bug where isomers were being excluded - introduced in the rewrite
-    of spectrum.f90. Also, ensured that isomers would be below E_cut.
-2.  Fixed typos in output to screen and output file. Removed extraneous writes
-    fresco_make_tco and improved message about incident energies.
-3.  Implemented a message for input commands "output_mode" and out_gammas_vs_e",
-    which are deprecated.
+Version 3.30
+-------------
+1.  Added MPI parallelization to subroutine HF_denominator().
+2.  Minor fixes to prints, etc.
+3.  Improved Makefile thanks to Kostas
 
-Version 3.39
-1.  Fixed inconsistency in labeling states while printing gammas with the option
-    "track_gammas y". They were supposed to start at 0. This didn't get changed
-    when it the change was made for other files.
- 
-Version 3.40
-1.  Adjusted "cut off" for charged particles in the HF decay setup to be the 
-    same as when computing the transmission coefficient with frescox.
+Version 3.29
+-------------
+1.  Fixed bugs in MPI implementation from transfer to Quartz for parallel loop
+    over Monte Carlo sampling. Paralelization for the HF denominators and 
+    primary decay are still in the works.
+2.  Fixed unnecessary writes to screen during MPI runs
+3.  Added option for "verbose_output y/n", If "y", then periodic updates to
+    screen given during the run, e.g., current energy, and some stats on the
+    run.
+4.  Added option suppress outfile. Two mechanisms: 
+    a. Calling option "file none" 
+    b. Calling option "write_outfile y/n". Ans asnwer of "n" suppresses priting
+       of the .out file even if the option "file faile_name" is given. 
 
-Version 3.41
-1.  Adjusted energy bins for special cases where Ex_max ~ S_n.
-2.  Bypass calculation of D0 and Gamma_gamma for cases where E_cut < S_n. Fixed
-    printing of D0 for in .out file for these cases.
+Version 3.28
+-------------
+1.  Fixed MPI implementation
 
-Version 3.42
-1.  Fixed error defining max_J_allowed for population decays
-2.  Fixed information written to .out file, also added writing of isotope for
-    various data elements to help keep track in the out file.
-3.  Added capability to add a comment line in the evaluated RIPL files. A 
-    comment line MUST start with '#' or '!'.
+Version 3.27
+-------------
+1.  Sped up subrotuine Boost_frame by using intrinsic function matmul and
+    aligning due loops to better use memory arrays.
+2.  Fixed a bug in the E1 strength parameters where every other nucleus would
+    not get assigned properly because the file was not closed before the
+    subroutine returned.
+3.  Fixed bug in subroutine calling fresco where the radius for the potential 
+    inadvertantly used the projectile (A_target**(1/3) + A_proj**(1/3)). A_proj
+    should only be used for alphas and heavier projectiles.This error was 
+    introduced in 3.18 when the bypass subroutine was implemented.
+4.  Minor fix to the MPI code: replaced variable mpi_error to ierr to avoid
+    conflict with intrinsic and fixed an incorrect call to MPI_Bcast. Further
+    integration with MPI will occur in 3.28.
 
-Version 3.43
-1.  Fixed issues with level density and yrast states.
-    a.  Fixed error where yrast was above max # of bins, so level desnity wasn't
-        set to zero
-    b.  Fixed error where discrete states above E_cut where not being subtracted
-        from the level density.
+Version 3.26
+-------------
+1.  Fixed problem with nucleus(i)%nbin_em not being defined, leading to
+    potential runaway writing of the EM strength parameters.
+2.  Fixed error reading in and assigning E1 strength parameters from the
+    "exp" evaluated data file. 
 
-Version 3.44
-1.  Integrated some cosmetic changes from Nicolas Schunck, missing commas in
-    format statesments, etc.
-2.  Fixed error in "error message" parse_command, where message didn't print
-    full name of offending command
-3.  Changed way E1 parameters are read in. Now, input overwrites existing 
-    component. Before, it zeroed out the previous ones, assuming that all 
-    components would be read in. Now, the others will be kept as they were
-    initially, unless explicitly read in.
-3.  Tweaked fit_gamma_gamma. Made fit decision on each nucleus, rather than 
-    globally. Initially, it is set up globally to be true. And, if the command
-    "fit_gamma_gamma n" is issued, it will be disabled globally. However, it is 
-    set up so that if any e1_params are read in fit to gamma_gamma is disabled 
-    for that nucleus. Thus one could have fits to gamma_gamma for nuclei where
-    E1 parameters are not changed. Also, introduced command
-    "nuc_fit_gamma_gamma" that sets the fit on or off for an indivual nucleus.
+Version 3.25
+-------------
+1.  Implemented nonequal energy bins with option "use_unequal_bin y". With this
+    option, the base energy scale is E_base=S(projectile) + 2 MeV. A bin width 
+    of de (either default or with option "delta_e de") is used upto E_base, 
+    then 2*de for E_base <= Ex < 2*E_base, 4*de for 2*E_base <= Ex < 4*E_base,
+    and 8*de fpr Ex >= 4*E_base.
+2.  Major cleanup to modularize components of the code. Separate subroutines
+    were implemented to:
+    a.  Print library files 
+    b.  Print particle spectra 
+    c.  Set up of EM strength functions
+    d.  Fit to Gamma_gamma
+3.  Increased efficiency for angular distributions by storing Legendre
+    polynomials in arrays for later use. Used for primary decay, elastic,
+    and all direct and dwba channels.
+4.  Increased efficiency by switching to a 32-bit random number generator (RNG) 
+    where there wouldn't be a significant of accuracy. The 64-bit RNG is used 
+    only to select decays from the HF bins where there are potentially a 
+    large number of possible decays.
+5.  Implemented new option to calculate cross sections on "xs_only y".
+6.  Put in code to do MPI parallelization over the MC sample loop. Majority of
+    reads and writes are restricted to iproc = 0. Still needs to be fully 
+    debugged and numerous "stop" directives need to be replaced with 
+    "call MPI_Abort". It would also be useful to implement an error code system.
+    The call to frescox also needs to be parallelized, but this requires 
+    modifications to fresco. 
 
-Version 3.45
-1.  Fixed issue with name for evaluated RIPL-3 level file for z=94. file
-    z094.dat was committed with case insensitive Mac as Z094.dat, and 
-    needed to be deleted and recommitted.
-2.  Deleted temporary level files not intended for distribution.
-3.  Removed tex output files from the Documentation directory.
-4.  Fixed incorrect radius for Avrigeanu alpha potential. Introduced integer
-    switch iradius to the optical potential. If iradius = 0, the radius
-    will be r0*A_Target^1/3, if iradius = 1, radius is 
-    r0*(A_Target^1/3 + A_projectile^1/3).
+Version 3.24
+-------------
+1.  Made subroutine that sets up the decay chains more efficient.
+2.  Adjusted the maximum value for the orbital angular momentum for each
+    particle. It is now set in fresco-setup.f90 and is based on the maximum
+    incident energy requested, now lmax = 2*R*k_max, with R being the nuclear
+    radius.
+3.  Fixed parts of subroutine get_spectrum where errors occured due to the 
+    requested nucleus not appearing in the RIPL-3 file. In all cases, if the
+    nucleus is absent, J = 0 if A even, and J = 0.5 if A odd, and parity is +.
+4.  Also, extended the excitation energy bins for all nuclei up to the neutron
+    separation energy.
+5.  Adjusted decay algorithms to include the Coulomb Barrier information to
+    limit the decays of charged particles. Important for alphas, which are
+    unbound, and nearly limitless for heavy nuclei. The Colomb barrier tests
+    limits some channels that will be extremely weak, and thus avoids including
+    them in the overall calculation. Including the Coulomb barrier test in
+    the set up forces the weak channels not to occur, which would give an
+    error while searching for the nonexistent channel.
+6.  Adjusted model for the oribital angular momentum for emitted particle 
+    in the pre-equilibrium model (two-component exciton model) to assume that
+    particles are emitted at the nuclear surface rather than the classical 
+    impact parameter for the incident projectile with orbital angular
+    momentum l. Reduces the overall emitted l.
+7.  Fixed error sampling pre-equilibrium particles with unbiased sampling.
+    Affected cases with multiple particles being emitted.
+8.  Fixed error in writing and reading transmission coefficients and energy
+    grid if the number of data was exactly a multiple of 10.
+9.  Adjusted Coulomb Barrier limits to help reduce channels that will have 
+    extremely small cross sections.
+10. Added check on incident energies to see if the compound system would be
+    excited below the continuous energy grid. If so, the calculation is skipped.
+    This affects loosely bound systems near the drip line where HF is not 
+    really applicable, and for alphas on heavy nuclei where the separation
+    energy is negative, i.e., unbound, and would try to create a compound
+    with negative excitation energy.
 
-Version 3.46
-1.  Fixed error reading an evaluated file where the read could go to the end 
-    of the file. Added iostat=io_error to the read and check on io_error == 0
-    in the do while statement
-2.  Completed implementation of adding comments to evaluated file. Comments
-    should be possible anywhere in the file as long as the line has "#" or "!"
-    in the first column. Added check on iostat=io_error in the loop over 
-    levels (nol) and gamma lines (ngr). If io_error /= 0 and evaluated, error
-    message is printed indicating that the evaluated file likely has an error.
+Version 3.23
+-------------
+1.  Fixed error where coupled-channels cross sections were inadvertently set
+    to zero for charged particles. 
+2.  Adjusted decay chain search to fix subscript out of range with tritons
+    as an exit particle.
+3.  Forced an assignment for ground-state spin and parity when not in RIPL-3
+    file, but needed as an end-product in the decay chain. Set to J = 0 for
+    A even and J = 0.5 for A odd, and parity = +1. Otherwise a seg fault will
+    occur.
 
-Version 3.47
-1.  Implemented capability to read in gamma strength functions. They can be read
-    in using the commands "read_el_gsf" and read_ml_gsf for electric and 
-    magnetic strength functions.
-2.  Added ability to input strength function parameters for other modes besides
-    E1. Use commands el_param and ml_param. Used the same way as e1_param,
-    except the first input is L.
-3.  Added multiple strength functions for all modes. The number is controlled by
-    the variable max_num_gsf, which defaults to 4, but can be changed via the 
-    command max_num_gsf.
-4.  Fixed incinsistencies and confusion over the gamma strength function for 
-    L > 1. 
+Version 3.22
+-------------
+1.  Fixed error arising from a blank line being in the string of input commands.
+2.  Implemented a dynamic check and rest of the FRESCO parameter hcm < 0.2/k
+    to prevent FRESCO crashes.
+3.  Added file with particle properties in library directory
+4.  Fixed incorrect spin assignment for alpha particles
+5.  Fixed error where coupled-channels cross sections were inadvertently set
+    to zero.
 
-Version 3.48
-1.  Changed factor for M2 matrix element in the two-component exciton model 
-    to be in line with current TALYS version as opposed to original paper
-    Koning NPA744, 15 (2004). Before, Rpp=Rnn = 1.0, Rpn=Rnp = 1.5. Now,
-    Rpp = Rpn = Rnp = 1.0 and Rnn = 1.5. 
-
-Version 3.49
-1.  Fixed rare error in the primary decay where no primary decays were possible.
-    Occured in light nuclei with low level densities, a rare entrance channel
-    (prob ~ 1.0e-7) and high angular momentum. Renormalized entrance probability
-    to zero if it has no viable decays.
-2.  Fixed problem in printing decay probabilities to the .out file that occurs
-    when one channel drops out because it has extremely low decay probability.
-    Thus, a mismatch in the arrays occurs in the printing so that the
-    probability of a different channel was printed. 
-3.  Decreased sensitivity for gamma decay to include more gammas. 
-
-Version 3.50
-1.  Fixed bug in MPI version where the variable energy_input was not broadcast 
-    from node 0. 
-2.  Cleaned up printing of warning message with MPI when using obsolete command
-    all_gammas.
-
-Version 3.51
-1.  Fixed bug reading in strength of electric and magnetic strengths with
-    command  el_param and ml_param. Form is:
- 
-    el_param  Z  A  L  j  E_0   Width   Strength
-
-    Strength was not being read correctly.
-2.  Reordered setup for EM parameters so that they aren't conflicted while 
-    reading parameters in and check on number of strength functions so
-    that gamma_gamma is calculated correctly for read in strength functions.
-3.  Added optional answer to "event_generator" to change the type of name for
-    the file containing events. The new command is: 
-
-    event_generator  Ans1  Ans2
-
-    If Ans1 = y/t/1, then it will operate in event generator mode. The default
-    file is based on the energy of the calculation, either the incident
-    projectile energy or the initial population energy. If Ans = y/t/1, the 
-    file name will be based on the indes of the energy; something like 
-    87Se_iE_001.Events.bin for a population calculation and the first energy.
-
-Version 3.52
-1.  Added feature to read in level densities for a given nucleus from a file.
-    Use with command
-         lev_den_read Z A P file_name. 
-2.  Fixed error with low-energy level densities for the ground-state spin and
-    parity. The yrast energy for the ground state J and parity was being 
-    computed with the level density cut, rather than always accepting the expt 
-    value. The check was on yrast > 0.0, rather than yrast >= 0.0.
-3.  Fixed potential bug computing D0 and D1.
+Version 3.21
+-------------
+1.  Fixed array out of bounds in cumr, start array at 0.
+2.  Changed output format to 1pe16.9 in fresco-setup.f90 and optical-setup.f90
     
-Version 3.53
-1.  fixed potential error defining ML strengths due to level density parameters
-    not being defined prior to attempting to set them relative to E1 strength.
-2.  Added comments and headers 
+Version 3.20
+-------------
+1.  Set up command "event_generator answer" to run YAHFC as an event generartor
+    and not collect spectra or cross section data. Also, created directory
+    in the "data library" area where the events are printed to. For example,
+    Target/projectile/Event-files.
+2.  Removed unused array test_spectra declared in modules.f90.
+3.  Cleaned up subroutine get_binding_energies. Switched to allocated
+    arrays rather than using large declared arrays to avoid potential
+    problems with oveflowing the stack. 
+4.  Switched to an allocatable array in subroutine cum_rho, which fits the 
+    cumulative level density. The array cumr(:) was delclared dimension 10000,
+    which gave a warning related to being too large for the stack. 
 
-Version 3.54
-1.  Fixed problem where deformations were not being read from the
-    Coupled-Channels.txt file for runs after fresco was run. The default
-    values are in the file mass-frdm895.dat. These are overriden by values
-    in Coupled-Channels.txt. This can affect the value of the collective 
-    enhancement factors. 
+Version3.19
+-------------
+1.  Fixed error due to uninitialized use of variable prob. Wasn't used and
+    was innocuous.
 
-Version 3.55
-1.  Added fail-safe check on some parameters that would elad to unstable
-    results. These include negative EM strength functions and if the 
-    matching energy is less than Delta + 0.2 MeV. A message is sent to unit=6
-    and the program is terminated. Termination occurs after all nuclei are
-    checked in case there is more than one offending set.
-2.  Improved calculation of memory used in the program. Includes memory used
-    in the Exit_Channel derived type and the arrays used for elastic and 
-    inelastic scattering
-3.  Removed two unised arrays attached to Exit_Channel
-4.  Restructured the Exit_Channel derived type to not be indexed with the
-    incident energy. The channel data is printed within the the incident
-    energy do loop. This significantly reduces the memory footprint.
+Version 3.18
+-------------
+1.  Put bypass in fresco-setup.f90 to address problems where FRESCO returns 
+    GARBAGE for low-energy charged particles. A check is made on the classical
+    turning radius. If this is greater than 5x the radius of the nuclear 
+    potential, then skip the call to FRESCO, set "elastic" to Rutherford and 
+    set all transmission coefficients and coupled-channels cross sections
+    to zero. Required modification with call to FRESCO being moved to a 
+    subroutine. This fixes an error introduced in 3.17 where a clumsy attempt
+    to address this issue by examining FRESCO outputs.
+2.  Fixed error for charged particles where angular distributions for 
+    non-elastic coupled-channels excitations were divided by Rutherford.
+3.  Moved FRESCO *.in, *.out, and *.err files to the sub-directory 
+    "Fresco-files" to reduce clutter in the main execution directory. 
+4.  Added "cutoff" for writing data for inelastic excitations to discrete 
+    states. If the largest cross section (as a function of incident energy) 
+    falls below a threshold of 20*absorption(in)/num_samp, the file will not be
+    opened and written too. Note that this is dynamic, in that the check is
+    for each incident energy. For the most part, the smallest cross section that
+    would be observable is with a single event to a channel, which would be
+    of the order absorption/num_samp. This would eliminate files for discrete
+    states with no cross section.
+5.  The statistics for the angular distributions is increased by "over sampling"
+    the angles for each emitted particle. A total of num_theta values of the
+    angle theta are sampled for each particle. The default is num_theta = 10.
+    Each of these angles are transformed to the COM and Lab frames, and then 
+    collected in the angular distributions. Each set of angles, labeled nang,
+    are treated as a distinct set of samples. At present, this increases the 
+    CPU time by ~ 2x, but increases the angular statistics by 10x 
+    (improves uncertainty by 3x). 
+6.  Introduced command "num_theta_angles N" to allow the user to specify the 
+    num_theta. It is required that N >= 1. If a number less than 1 is entered, 
+    it is overridden and num_theta = 1.
+7.  Changed the default delta_e to 0.1 MeV.
+8.  Put in trap on obsolete command "fit_aparam" to warn user and effectively 
+    call the commands "lev_fit_do y" and "lev_fit_aparam n", which is
+    essentially the default to fit to D0 by adjusting the shell correction
+    parameter.
 
-Version 3.56
-1.  Added command to control whether the library directory is deleted when
-    the program sets up the library directory. Default is to delete and remove
-    previous library data so as to not potentially have results from a 
-    previous calculaiton linger in the directories and cause confusion.
-2.  Fixed a bug introduced in V3.55 that affected the particle multiplicities 
-    for channels where an isomer is present. Namely, the directory will
-    have multiple *_L00N.dat files. The multiplicity for the higher channels
-    was not being properly reset to 0 in the incident energy loop.
-3.  Added a "total" channel cross section file for each channel. This sums
-    the cross section to each "isomer".
-4.  Created a new directory for the gamma cross section files when using
-    "track_gammas y". This is to reduce some of the clutter in the channel
-    directories as there is a file for each incident energy.
- 
-Version 3.57
-1.  Fixed formatting error printing for the factor introducing a dependence
-    in the fission barriers on the excitation energy. 
-2.  Added direct printing of the cumulative level densities to help facilitate
-    the adjustment of the level density parameters. Exp is a staircase
-    function in the file named XXXEL-CLD-exp.dat. The modeled densities are
-    pointwise in the file XXXEL-CLD-modeled.dat.
-3.  Fixed improper initialization of the shell-correction damping factor gamma
-    for fission level densities
-4.  Modified low energy treatment of fission level densities. Improved the
-    spin cutoff parameter to follow the behavior of the discrete states.
-    Previously, it was the analytic formula. This leads to a much larger spin
-    cutoff at the lower end of the spectrum. Would be different with discrete
-    transition states. Also, fixed a mistake with the starting point in
-    computing the cumulative density depending on E0 > or < 0, low end of level
-    density is exp((E-E0)/T).
-5.  Changed level density calls to a subrotuine that included J and parity
-    rho_J_par_e instead of rho_e. No longer have separate calculation for the
-    spin and partity factors - removes possibility of an error binf introduced.
-6.  Added MPI_finalize to finish execution when complete (also added it to
-    terminate a run with the option "event_generator y")
-7.  Fixed error normalizing angular distributions in the compound-elastic
-    library file.
-8.  Fixed error computing the total elastic angular distributions. Error was 
-    made assuming that SE_Ang still carriend units of cross section. The
-    sum shape + compound was improperly normalized.
-9.  Added sum of all inelastic channels and print in file Inelastic_cs_Total.dat.
-10. Fixed "bug" in Jacobi polynomials for N=0 and alpha=beta=0.0 (not used in
-    YAHFC). Decreased convergence thresholds in tridiagonal eigensolver. 
-    Gives higher accuracy for Gauss-integration nodes - from 6-8 digits to 
-    10-12.
-11. Fixed bug accessing extra angles for computing angular distributions. Only
-    one angle was being used despite sampling num_theta extra theta angles.
-12. Removed unused array Channel()%Channel_trans
-13. Added pre-compiler variable to provide MPI condition to provide
-    a more coherent compilation between serial and MPI versions and remove
-    the dummy MPI routines. The pre-compiler variable USE_MPI is set to 0 or
-    1 in the make file and MPI routines are controled via a #if(USE_MPI ==Y)
-    command. In addition, introduced the subroutine exit_YAHFC to control
-    exit from YAHFC for both serial and MPI versions. Calls "exit" or 
-    "MPI_Abort".
-14. Removed all the "stop" calls and replaced with call exit_YAHFC.
-15. Replaced "dfloat" usage with "real(x,kind=8)".
-16. Removed MPI implementation in Moldauer_WF.f90. Probably better to use OpenMP
-    for these loops.
-17. Restructured ranks for global commands to ensure they are set first. Can
-    have subtle effects with nondefault parameters, e.g., e1_model will affect
-    the strength of the ML resonances, as the default is dependent on the
-    strength of the E1 strength at a given energy.
-18. Added capability to store saved parameters from previous runs as 
-    "default" parameters for later runs. These are stored in 
-    $YAHFC_DATA/Saved-Parameters.txt. These are read after the compound
-    nuclei are set up and default parameters are set. They are read in
-    prior to user options, which can override the saved "default" parameters.
-    This can be turned off with the new option "read_saved_parameters n". The 
-    default is "y". Subsequent inputs will override the parameters that are
-    read in.
+Version 3.17
+-------------
+1.  Added new feature where all inputs requiring Z A can be accessed with 
+    isotope label, e.g., instead of using 92 238, one input U238, or 238U.
+2.  Fixed error where fitting to a-parameter was incorrectly set, leading to
+    a fit to D0 with the shell correction instead.
 
-Version 3.58
-1.  Converted the inelastic angular distributions in the COM frame to use
-    Legendre expansion. Analytic from primary decay, and decomposed expansions
-    for direct (from frescox) and pre-equilibrium. Not done for inelastic 
-    decays to continuous bins, which is bit more complicated as it is in the
-    Channels array and must be done for all particles and for each emission
-    angle.
+Version 3.16
+-------------
+1.  Fixed error in subroutine Fission_transmission that caused a subscript
+    out of bounds CTD. Added blank line before the Q value for readibility. 
+2.  Fixed bad Q value for exit channels when explicit_channels = .false.
+3.  Fixed not printing mass of emitted particles when 
+    explicit_channels = .false.
+4.  Made explicit_channels = .false. the default. 
+5.  Fixed error in function compound_cs.
+6.  Implemented dynamic setting of max_J_allowed based on maximum 
+    angular momentum in the compound nucleus as computed from the tranmission
+    coefficients. Also, checked spins of discrete states to ensure max_J_allowed
+    is greater. Still capped at max_J_allowed = 40 for now.
+7.  Further clean up of energy width de to transition towards bin widths 
+    defined for each bin.
+8.  Set smearing width for x-particle spectra and preequilibirum and direct
+    spectra to .2 MeV.
+9.  Fixed error introduced in 3.14 while collecting elastic events for neutrons.
+10. Disabled option to scale elastic for charged particle projectiles.
+11. Fixed bug where protons weren't computing DWBA excitations.
 
-Version 3.59
-1.  Adjusted low-energy behavior of level densities above the fission barriers
-    to fix a potential issue extrapolating the spin cut off parameter to
-    energies below the matching energy
+Version 3.15
+-------------
+1.  Fairly major reorganization in the structure of how decays are selected.
+    a. Correctly imposed max_particle(k) limit during the decay sequence. 
+       Changed array HF_prob from cumulative sum of probabilities to
+       just the probability for that decay type and added mechanism
+       to skip and renormalize if attempting to decay particle type k that 
+       violates max_particle(k). This fixed several potential array out
+       of bounds errors.
+    b. Changed "noise" in the energies of emitted particles. Returned to 
+       sampling decays explicitly from center of bins and adding "noise" after
+       the decays. Previously, the "noise" was added at the point of sampling,
+       which caused problems with energy conservation for later decays, which
+       had to be rebaselined. Much cleaner with better energy conservation.
+2.  Added feature with command "explicit_channels". If true, each
+    decay sequence, including order, is a distinct channel; i.e., outgoing
+    channels npd, ndp, dnp, pnd, pdn, dpn are distinct channels. If false, 
+    they are the treated as the same channel and printed in directories
+    by the number of particles, e.g.,  2npd.
+3.  Moved printed preequilbrium and direct spectra to the "Spectra" directory.
+4.  Added printing of the preequilibrium cross section into the main reaction
+    directory along with "Total", "Absorption", etc.
+5.  Added ability in commands that need a particle identifier to use the labels
+    n, p, d, t, h, a in addition to the internal number 1, 2, 3, 4, 5, 6.
+6.  Extended integer encoding data to define channels based on the particle
+    types to kind=8. This increases the number of allowed particles defining
+    a channel from 10 to 20.
+7.  Cleaned up several arrays and subroutines to remove data that wasn't needed.
+8.  Fixed a small error in HF-primary-decay-setup.f90 that offset the looping 
+    over bins. Didn't have much of an effect.
+9.  Laid foundation for non-equal excitation energy bins. In addition to energy
+    for each bin, also added width of the bin. Made changes internally to use
+    this value instead of the global de variable (hopefully everywhere). 
+    Nonequal bins will likely be based on a multiplicative factor of a 
+    base bin size at lower excitation energies that later increases. 
+    Unfortunatlely, this also means that it is a bit more difficult to 
+    find a bin based on the energy.
+10. Removed interpolation subroutine for EM transmission coefficients used to 
+    sum the HF denominators in HF-primary-decay-setup.f90 to make it 
+    conform with other calculations of the HF denominators and probabilities. 
+    As a consequence, the file HF-interpolate.f90 is no longer used, and can 
+    be removed.
 
-Version 3.60
-1.  Further adjustment to how low-energy behavior of level densities above 
-    the fission barriers are treated to improve the low-energy spin cut off 
-    parameters. Changed the algorithm to compute the spin cutoff parameter.
-    Introduced the derivative in level_param(20) rather than calculating it. 
-2.  Fixed a bug where the E0 and T are not set correctly when specifying 
-    Ematch with the lev_ematch command.
+Version 3.14 - never an official release
+-------------
+1. Fixed energy misalignment for transmission coefficients when computing the 
+   HF denominators for reactions not involving incident neutrons and for
+   outgoing particles not involving neutrons.
+2. Made improvements to zero-energy transitions, i.e., transitions to bins 
+   whose centroids are the same. Allow transitions within the bin. Probably
+   doesn't affect the thrshold behavior that much.
+3. Improved performance of the interpolating routne to find the transmission
+   coefficients for a given energy on the computed grid - 6x speed up.
 
-Version 3.61
-1.  Added ran_seed to default command set up first for all runs. If ran_seed
-    is not input by user, the command is generated with a "random" seed
-    based on the system clock counter. The seed is setup with  ran_seed 
-    caommand that is executed first. Intial random seed is printed to the
-    .out file.nedit fisd	
-2.  Adjusted command ranks to account for ran_seed and to add options.
-3.  Added "error" trap on E1_model if input is < 1 or > 3, as these are
-    invalid options. Termintes execution is set incorrectly.
-4.  Added ability to set E1_model for each nucleus via nuc_e1_model. Sets it
-    for isoptope called. While one might set e1_model globally, this was needed
-    if one stores commands in Saved_parameters.txt based on the assumption
-    that E1_model is set to a specific value. Since E1_model is a global
-    value it wouldn't be set reading from Saved-parameters.txt, which is 
-    meant to specify parameters for a given isotope. This option is called
-    before other EM options, and calls EM_str_param to set the ML strengths
-    which are based on the E1 strength. These are set for the default E1 values.
-    Setting any of the EM strengths through the commands overrides fit to
-    Gamma_gamma, so the user should adjust accordingly.
-5.  Provided better low-energy behavior for the level density. Addresses issue
-    with back-shifted fermi gass at low energy with 1/U behavior.
-6.  Modified global parameters for level densities to have prefix "global" to 
-    distinguish them from parameters defining parameters for individual
-    nuclei.
-7.  Fixed a bug that was introduced at some point into the calculation of 
-    the Moldauer Width fluctuation factor. Checked the integration for speed 
-    and accuracy. Adjusted the number of Laguerre integration points. Increased
-    the number of integration points at low excitation energy due to deviations
-    from a simple exponential. Decreased it for higher energies. Put in a check
-    to bypass EF if the HF denominator is > 50 and if the channel contributes
-    less than 0.1% to the absorption cross section. Idea being why compute what 
-    is at most a 20% correction to something that constributes less than 0.1%
-    to the reaction. Overall improvement in performance for the WF calculation.
-8.  Adjusted lower limit on the entrance channels due to a small contribution.
-    Previous a channel was bypassed if it contributed 1.0e-7 b to the absorption
-    cross section. Now, it is bypassed if it its fraction is < 1.0e-6 of the
-    total absorption cross section. The absorption cross section is
-    renormalized. 
-9.  Changed calls to "print_command_error" to terminate and to print the full 
-    text of the offending command.
-10. Added warning if user attempts to call both "proj_e_file" and
-    "proj_eminmax". Adjusted priorities so proj_e_file takes precedence.
-11. Fixed out-of-bounds error for pre-equilibrium spectra and cs when 
-    pre-equilibirum model is turned off (caused by "dummy" allocations to
-    eliminate spurious compilation warnings).
-12. Fixed bug setting axial rotational-collective enhancement factor when
-    reading in beta_2 for a barrier. Factor of sqrt(pi/2.0) was moved to
-    inside subroutine enhance_rot.
-13. Reverted to previous treatment of spin cutoff parameter below Ematch for 
-    fission-barrier level densities when no discrete transiton states are being
-    used, i.e., continuous level density is taken to Ex = 0.
-14. Set default beta_2 deformations for the fission inner and outer barriers to be
-    2x and 4x the ground state beta_2 value, respectively.
-15. Added fail safe check to readjust Ecut for the target if a Coupled-Channels
-    plus DWBA calculation was done for the transmission coefficients. Checks
-    to make sure Ecut is lower than the lowest DWBA excitation to a continuous
-    energy bin. Allows the user to continue using a "-CC.data" file if Ecut had
-    been set and then remobved. Added error check that if bin is not found
-    for DWBA state to exit program and throw and error message.
-16. Fixed bug parsing command "lev_fit_d0" - check was on "lev_fit_D0".
-17. Fixed bug where Ematch could fit incorrectly (introduced around 3.53).
+Version 3.13
+-------------
+1. Fixed issue with defining channels tht was messed up when not having protons
+   or neutrons as incident particles.
+2. Altered pre-equilibrium spectra files to permit incident energies greater 
+   than 100 MeV, should be OK up to 999.9999 - but note that YAHFC doesn't
+   do relativistic kinematics yet.
+3. Fixed issue with delta E for outgoing spectra that would be incorrectly set 
+   for some values of de for the continous energy bins.
+4. Added python parsing scripts to convert YAHFC output into a GNDS xml file 
+   and a python script to extract data from the GNDS xml file to plot. For Ian 
+   Thompson. REQUIRES that FUDGE be installed and in PYTHONPATH.
 
-Version 3.62
-1.  Added command to set maximum value of the HF denominator for with the 
-    Moldauer width fluctuations are computed.
-2.  Added cache to store transmission coefficients used in H_primary_decay_setup
-    and to compute the Moldauer products. 
-3.  Fixed bug computing xj = l+s in HF denominator calculations.
- 
+Version 3.12
+-------------
+1. Fixed issue with setting up incident energies while calling frescox. Also,
+   fixed mixup between relative (COM) and lab frame energies for incdient
+   projectiles and calculating and storing transmission coefficients.
+
+Version 3.11
+1. Added consistent options for pre-equilibrium all parameters that can be 
+   controlled with inputs, e.g., Rpp, etc
+2. Fixed error in well in pre-equilibrium model for incident protons, had same
+   value as for incident neutrons.
+3. Fixed problem with setting Preeq_V < Preeq_V1, which leads to funny looking
+   pre-equilibirum spectrum. Now, if user sets Preeq_V < Preeq_V1, Preeq_V1 =
+   Preeq_V - 3. Mostly, a failsafe mode.
+4. Reverted back to pure step function in the finite well routine in
+   pre-equilibirum model.
+5. Added randomness to initial seed if not set with command ran_seed.
+   Previously, iseed =  3141592654_int_64. Now, 
+   call system_clock(COUNT=cnt,COUNT_RATE=cnt_r,COUNT_MAX=cnt_m) is made 
+   to alter the seed at runtime so that iseed = iseed + max(mod(cnt,100000),1). 
+   Also, iseed is ensured to be odd. This adds randomness to the start so that 
+   successive runs won't be exactly the same. Not used if iseed is set with 
+   ran_seed.
+
+Version 3.10
+-------------
+1. Fixed variable-type mismatch in HF-decay-MC.f90. Corrected L_ang and Max_L
+   from integer(kind=8) to integer(kind=4). Potential issue with function poly
+2. Fixed some warnings for unitialized variables. They were initialized in
+   if statements, so they were "spurious" warnings.
+
+Version 3.9 
+-------------
+1. Added feature to adjust a-parameter when fitting to D0 to provide a similar
+   feature as in TALYS. 
+2. Made some changes to option names for global and nucleus specfic
+   level-density options
+3. Adjusted order options are executed and adjusted how default parameters are
+   set while setting options and values to improve set up. Also, removed some
+   speghetti code that crept in as things were added over time.
+4. Fixed what was likely a bug in the boost matrix for cases where initial
+   kinetic energy is input with a spread. The boost matrix was setup with the 
+   central value and not adjusted for the spread.
+5. Fixed typo in output file while describing the vibrational collective
+   enhancement factor.
+
+Version 3.8
+-------------
+1. Fixed problem where Elastic_cs.dat wasn't showing up.com
+
+Version 3.7
+-------------
+1. Fixed error in Q-values
+2. Added print out of total "Elastic" data for charged particles similar to
+   what was implmented for "Shape" (or optical model). For each energy, the
+   ratio averaged over cos(theta) is printed. In general, due to the 1(1-x)^2
+   factor, the ratio at x=1 is 1 for "shape", and shape >>> compound.
+3. Made sure version number was updated in modules.f90
+
+Version 3.6
+-------------
+1. Fixed error in mass of residual printed in Exit Cannel files.
+2. Fixed error in "particle" multiplicities in Exit Channel cross section files.
+
+Version 3.5
+-------------
+1. Completed expansion of angular distribution for all elastic channels, and
+   total elastic = Shape + Compound. Added print out of Legendre coefficients.
+2. Fixed "elastic" for charged particles. Elastic is printed as a ratio relative
+   to Rutherford scattering. Exception: Compound elastic is printed as
+   crosssection. The Shape Elastic (from optical model) and total Elastic 
+   angular distributions are printed as ratio relative to Rutherford.
+2. Improved sampling of emitted angles for primary decays, coupled-channels, 
+   DWBA excitations. 
+3. Modified angular distributions for inelastic channels. Inelastic scattering
+   spectra are collected for each emission energy in 11 bins from x=(-1,1) 
+   with dx = 0.2. These are then expanded with a Legendre expansion and 
+   angular distributions are reconstructed on a grid with dx = 0.1. The number 
+   of Legendre coefficients is based on the actual number of counts in that 
+   channel. 
+4. Modified angular distributions for all Channels. Inelastic scattering
+   spectra are collected for each emission energy in 11 bins from x=(-1,1) 
+   with dx = 0.2. These are then expanded with a Legendre expansion and 
+   angular distributions are reconstructed on a grid with dx = 0.1. The number 
+   of Legendre coefficients is based on the actual number of counts in that 
+   channel.
+5. Corrected output of level # in the files defining discrete states. The 
+   ground state is level # 0.
+6. Denoted the target state in output files, inlcuding spin, parity and
+   excitation energy.
+7. Print more information for properties of final state, whether an inelastic
+   reaction, or final state of residual nucleus. State number, spin, parity,
+   excitation energy.
+8. Fixed print out for charged particles with small cross sections. Note to
+   screen when absorption cross section < 1.0d-9 (b), and skipping decay
+   process.
+9. Added notification to screen during run if width fluctuations are being 
+   applied to that incident energy. Also, added notification if width 
+   fluctions option is off.
+10.Added consistent threshold for minimum cross section threshold.
+11.Fixed identification of emitted particles for inelastic reactions to be
+   the same as incident particle. Prior it was set up assuming neutrons.
+
+version 3.4
+-------------
+1. Fixed error in Legendre expansion for angular distributions from FRESCO. 
+   Expanded the angualar distributions for Shape Elastic to 200 points for 
+   x=(-1,1).
+
+Version 3.3
+-------------
+1. Changed the way emission spectra are printed. They are now in bins centered
+   about the printed energy with spacing +/- de/2. At Eout = 0.0, the spectra
+   are zero. 
+2. Added samples for the elastic channel at the very end of the MC sampling. 
+   The elastic events are printed along with all the MC samples with the 
+   command dump_events.
+
+Version 3.2
+-------------
+1. All particle types are operational with default optical model potentials. All
+   particles can be used as projectiles and ejectiles. By default particles
+   d - alpha are excluded as ejectiles and need to be activated with the
+   option max_particles. For charged particles the elastic angular distributions
+   are given as a ratio with respect to Rutherford scattering.
+2. Changed how the optical model is set with the variable particle(k)%opt_pot.
+   This is an integer representing one the available optical models for the
+   particle k.
+3. Decoupled DWBA states in the continuous energy bins from the bin structure.
+   It is no longer necessary to rerun fresco if you change the value of de 
+   from calculation to calculation.
+4. Fixed bug for !-comments placed after valid input. There was a crash if 
+   part of the input was optional and used a !-comment.
+5. Changed name of file optical_setup.f90 to optical-setup.f90 to make it
+   conform to the naming convention used for other files containing
+   subroutines.
+
+Version 3.1:
+-------------
+1. New Gauss-quadrature routines based on three-term recurrence relations
+   and their eigenvalues.
+2. New 64-bit random number generator based on combination of linear
+   congruential and Marsaglia xor bit shift operators
+3. Fixed sampling errors in pre-equilbrium module
+   a. Error in unbiased sampling for pre-equilibrium gammas when cross 
+      section is zero
+   b. Error in setting angle theta with high-energy emission to a discrete
+      state
+4. Fixed order of input fission commands to ensure f_lev_ematch is 
+   correctly set. The command f_lev_delta has an overide to ensure that
+   ematch is above delta. Thus, f_lev_delta needs to be executed first.
+5. Put explit intent() for each variable in each function and subroutine
+6. Converted file level-density.f to FORTRAN90 and replaced with
+   level-density.f90.
+7. Added warning when trying to use option "optical_code". No longer used as
+   FRESCO is now the only code used with this package.
+8. Added warning with option "cs_scale". No longer used and is superceded with 
+   the option "cs_unit".
+9. Fixed error in KD proton optical potentials in fresco-potentials.f90  
+
+Version 3.0:
+-------------
+Reworked version for release. Main features:
+1. Added sort for commands to be executed in the proper order - user can inoput
+   commands in any order
+2. Added description headers to all routines
+3. Added "open" routines for random number and Gauss-quadrature integration
+4. Added "default" feature for fission parameters located in
+   Data/Fission-Parameters.txt. These are set up on initialization and use a
+   format similar to YAHFC commands. They can be overridden by subsequent YAHFC
+   commands.
+
+--------------------------------------------------------------------------------
+
  
 
 

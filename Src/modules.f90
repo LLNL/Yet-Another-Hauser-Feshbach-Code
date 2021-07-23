@@ -32,7 +32,7 @@ module options
 !
    use variable_kinds
    character(len=132) :: version
-   parameter (version = 'MC-3.62')
+   parameter (version = 'MC-3.63')
    integer(kind=int_64) :: iseed_64
    integer(kind=int_32) :: iseed_32
    integer(kind=int_32) :: iseed_start
@@ -373,6 +373,7 @@ module Scatter_info
 !
 !-------    Inelastic state by state starts here
 !-------    First sum of compound and compound and direct
+   real(kind=8), allocatable :: Inelastic_cont_cs(:,:)
    real(kind=8), allocatable :: Inelastic_cs(:,:)
    integer(kind=4), allocatable :: Inelastic_count(:,:)
    integer(kind=4), allocatable :: Inelastic_L_max(:,:)
