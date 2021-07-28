@@ -42,6 +42,13 @@ subroutine particle_data
 !
 !      Erich Ormand, LLNL
 !
+!  Revised:
+!      19 July 2021
+!  Author:
+!      Ian Thompson, LLNL
+!  Changes:
+!    1. Now 4 (not 3) kinds of optical potentials for neutrons and protons
+
 !*******************************************************************************
 !
    use variable_kinds
@@ -101,7 +108,7 @@ subroutine particle_data
    particle(1)%label = 'n'
    particle(1)%name = 'neutron'
    particle(1)%opt_pot_set = .false.
-   particle(1)%max_opt_pot = 3
+   particle(1)%max_opt_pot = 4
    particle(1)%om_option = 0  
    particle(1)%nume = 0
 !--------------   proton
@@ -114,7 +121,7 @@ subroutine particle_data
    particle(2)%label = 'p'
    particle(2)%name = 'proton'
    particle(2)%opt_pot_set = .false.
-   particle(2)%max_opt_pot = 3
+   particle(2)%max_opt_pot = 4
    particle(2)%om_option = 0  
    particle(2)%nume = 0
 !--------------   deuteron

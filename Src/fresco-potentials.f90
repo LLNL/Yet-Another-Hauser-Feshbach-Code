@@ -1,7 +1,7 @@
 !
 !*******************************************************************************
 !
-subroutine KD_potential(part_type, iA, iZ, energy, V_pot, R_pot, a_pot, RC, D3, iradius)
+subroutine KD_potential(part_type, iA, iZ, energy, V_pot, R_pot, a_pot, RC, D3, iradius, rela)
 !
 !*******************************************************************************
 !
@@ -49,7 +49,8 @@ subroutine KD_potential(part_type, iA, iZ, energy, V_pot, R_pot, a_pot, RC, D3, 
 !----    converted arithmetic to double                                    +
 !----    converted NA, NN, and NZ to real variables, used in formulae      +
 !----    especially previous use of NA**XX                                 +
-!    11 May 2021
+!---- Modified 19 July 2021 by Ian Thompson 
+!----    to return 'rela' string for relativistic options
 !
 !*******************************************************************************
 !
@@ -63,6 +64,15 @@ subroutine KD_potential(part_type, iA, iZ, energy, V_pot, R_pot, a_pot, RC, D3, 
    real(kind=8), intent(out) :: a_pot(2,3)
    real(kind=8), intent(out) :: rc, d3
    integer(kind=4), intent(out) :: iradius
+   character(len=2) rela
+!
+!    (1,1)   Real Volume
+!    (2,1)   Imaginary Volume
+!    (1,2)   Real Surface
+!    (2,2)   Imaginary Surface
+!    (1,3)   Real Spin-orbit
+!    (2,3)   Imaginary Spin-orbit
+!
 !------------------------------------------------------------------
    integer(kind=4) :: iN
    real(kind=8) :: diff
@@ -73,7 +83,10 @@ subroutine KD_potential(part_type, iA, iZ, energy, V_pot, R_pot, a_pot, RC, D3, 
    real(kind=8) :: del_vc
 !------------------------------------------------------------------
 
+!     iradius = 0    R = r0*A_T^1/3
+!     iradius = 1    R = r0*(A_Target^1/3 + A_proj^1/3)
    iradius = 0
+   rela = 'bg'
 
    iN = iA - iZ
    xA = real(iA,kind=8)
@@ -82,6 +95,7 @@ subroutine KD_potential(part_type, iA, iZ, energy, V_pot, R_pot, a_pot, RC, D3, 
 
    diff = (xN - xZ)/xA
 
+! part_type = 1 (neutrons)
    if(part_type > 2)then
       if(iproc == 0)write(6,*)'Error in KDParam, use only for protons and neutrons, not k = '
       call exit_YAHFC(301)
@@ -103,6 +117,7 @@ subroutine KD_potential(part_type, iA, iZ, energy, V_pot, R_pot, a_pot, RC, D3, 
    rc = 0.0d0
    rc = 1.198d0 + 0.697d0/(xA**(0.6666666666d0)) + 12.994d0/(xA**(1.6666666666d0))
    vc = 0.0d0
+! part_type = 2 (protons)
    if(part_type == 2) then
       v1 = 59.30d0 + 21.0d0*diff - 2.4d-2*xA
       v2 = 7.067d-3 + 4.23d-6*xA
@@ -157,7 +172,7 @@ end subroutine KD_potential
 !
 !*******************************************************************************
 !
-subroutine maslov_03_potential(E, V_pot, R_pot, a_pot, RC, iradius)
+subroutine maslov_03_potential(E, V_pot, R_pot, a_pot, RC, iradius, rela)
 !
 !*******************************************************************************
 !
@@ -208,9 +223,11 @@ subroutine maslov_03_potential(E, V_pot, R_pot, a_pot, RC, iradius)
    real(kind=8), intent(out) :: a_pot(2,3)
    real(kind=8), intent(out) :: RC
    integer(kind=4), intent(out) :: iradius
+   character(len=2) rela
 !----------------------------------------------------------
 
    iradius = 0
+   rela = 'bg'
 
    V_pot(1:2,1:3) = 0.0d0
 
@@ -250,7 +267,7 @@ end subroutine maslov_03_potential
 !*******************************************************************************
 !
 subroutine soukhovitskii_potential(part_type, iA, iZ, OM_option,        &
-                                   energy, V_pot, R_pot, a_pot, RC, iradius)
+                                   energy, V_pot, R_pot, a_pot, RC, iradius, rela)
 !
 !*******************************************************************************
 !
@@ -312,6 +329,7 @@ subroutine soukhovitskii_potential(part_type, iA, iZ, OM_option,        &
    real(kind=8), intent(out) :: a_pot(2,3)
    real(kind=8), intent(out) :: RC
    integer(kind=4), intent(out) :: iradius
+   character(len=2) rela
 !--------------------------------------------------------------------
    real(kind=8) :: v, rv, av, vd, rvd, avd
    real(kind=8) :: w, rw, aw, wd, rwd, awd
@@ -330,7 +348,10 @@ subroutine soukhovitskii_potential(part_type, iA, iZ, OM_option,        &
    real(kind=8) :: phase
 !--------------------------------------------------------------------
 
+!     iradius = 0    R = r0*A_T^1/3
+!     iradius = 1    R = r0*(A_Target^1/3 + A_proj^1/3)
    iradius = 0
+   rela = 'bg'
 
    if(part_type > 2)then
       write(6,*)'Error in soukhovitskii_potential: part_type > 2'
@@ -433,12 +454,14 @@ subroutine soukhovitskii_potential(part_type, iA, iZ, OM_option,        &
    V_pot(2,1) = w
    R_pot(2,1) = rw
    a_pot(2,1) = aw
+   
    V_pot(1,2) = vd
    R_pot(1,2) = rvd
    a_pot(1,2) = avd
    V_pot(2,2) = wd
    R_pot(2,2) = rwd
    a_pot(2,2) = awd
+   
    V_pot(1,3) = vso
    R_pot(1,3) = rvso
    a_pot(1,3) = avso
@@ -449,10 +472,182 @@ subroutine soukhovitskii_potential(part_type, iA, iZ, OM_option,        &
    return
 end subroutine soukhovitskii_potential
 !
+
+!*******************************************************************************
+!
+subroutine soukhovitskii_capote_dispopt(part_type, iA, iZ, OM_option,        &
+                                   energy, V_pot, R_pot, a_pot, rc, iradius, rela)
+!
+!*******************************************************************************
+!
+!  Discussion:
+!
+!    This subroutine calculates the parameters for the Capote/Soukhovitskii dispersive
+!    optical model potential
+!
+!  Reference:
+!    E. Sh. Soukhovitskii, R. Capote, J. M. Quesada, S. Chiba, and D. S. Martyanov, Physical Review C 94, 064605 (2016)
+!    E. Sh. Soukhovitskii, R. Capote, J. M. Quesada, S. Chiba, and D. S. Martyanov, Physical Review C 102, 059901(E) (2020)
+!          
+!  Licensing:
+!
+!    This code is distributed under the GNU LGPL version 2 license. 
+!
+!  Date:
+!
+!    5  May 2021
+!
+!  Author:
+!
+!      J. M. Quesada, U. Sevilla
+!      Ian Thompson, LLNL
+!      Roberto Capote Noy, IAEA Vienna
+!
+!  Modified 19 July 2021 by Ian Thompson to interface with YAHFC
+!
+!*******************************************************************************
+!
+   use nodeinfo
+   use variable_kinds
+   use directory_structure
+   use useful_data
+   use options
+   implicit none
+!--------------------------------------------------------------------
+   integer(kind=4) :: part_type, iA, iZ, OM_option
+   real(kind=8), intent(in) :: energy
+   real(kind=8), intent(out) :: V_pot(2,5)
+   real(kind=8), intent(out) :: R_pot(2,5)
+   real(kind=8), intent(out) :: a_pot(2,5)
+   real(kind=8), intent(out) :: rc
+   integer(kind=4), intent(out) :: iradius
+   character(len=2) rela
+!--------------------------------------------------------------------
+   real(kind=8) :: rv, av, vd, rvd, avd
+   real(kind=8) :: w, rw, aw, wd
+   real(kind=8) :: vso, wso
+!--------------------------------------------------------------------
+   integer(kind=4) :: iN,i
+   real(kind=8) :: xA, xZ, xN
+   real(kind=8) :: asym, efermi
+   real(kind=8) :: ccoul, rr
+   real(kind=8) :: Cviso, Cwiso
+   real(kind=8) :: onethird, ACroot
+   real(kind=8) :: me, be, sep(0:6)
+   real(kind=8) :: v0a, v0b, lambdhf, vspo, lambdso, rd
+   real(kind=8) :: rhfa, rhfb, rsa, rso, vr, w0a, w0b, waso, wrso, wspo
+   real(kind=8) :: ac, ad, adv, ahfa, ahfb, alphav, ar, as, aso, bs, bso, bv, cs, dav, dv, dvso, ea, rsb, avv, drv
+
+!     iradius = 0    R = r0*A_T^1/3
+!     iradius = 1    R = r0*(A_Target^1/3 + A_proj^1/3)
+   iradius = 0
+   rela = 'r'
+
+   if(part_type > 2)then
+      write(6,*)'Error in soukhovitskii_capote_dispopt: part_type > 2'
+      call exit_YAHFC(301)
+   end if
+   onethird = 1.0d0/3.0d0
+   iN = iA - iZ
+   xA = real(iA,kind=8)
+   xZ = real(iZ,kind=8)
+   xN = real(iN,kind=8)
+   ACroot = xA ** onethird
+   asym = (xA - 2.0d0*xZ)/xA
+   
+! parameters from PRC 102, 059901(E) (2020)
+
+    v0a=50.59; v0b=0.0608;  lambdhf=0.00982
+    cviso=16.79; vspo=6.83; lambdso=0.005; ccoul=1.43
+    av=11.66;  bv=81.61; w0a=17.30; w0b=-0.031; bs=10.55; wspo=-3.1
+    bso=160.0; ea=55.0; alphav=0.355; cs=0.01343; cwiso=28.96
+    adv=238.0; rhfa=1.2426; rhfb=-0.00246; ahfa=0.638; ahfb=0.00306
+    rv=1.2704; avv=0.6970; rsa=1.1860; rsb=0.0060
+    as=0.616; rso=1.0156; aso=0.549; 
+    rc=1.2262; ac=0.674
+  
+    dv = 0; drv = 0; dav = 0; dvso = 0.
+
+   eFermi = 0.0d0
+   if(part_type == 1)then
+      if(OM_option == 0)then
+         call get_binding_energy(data_path, len_path,     &
+                                 iZ, IA, me, be, sep)
+         eFermi = -0.5d0*sep(1)
+         call get_binding_energy(data_path, len_path,     &
+                                 iZ, IA+1, me, be, sep)
+         eFermi = eFermi - 0.5d0*sep(1)
+      elseif(OM_option > 0)then
+         eFermi = -11.2814d0 + 0.02646d0*xA
+      end if
+   elseif(part_type == 2)then
+      if(OM_option == 0)then
+         call get_binding_energy(data_path, len_path,     &
+                                 iZ, IA, me, be, sep)
+         eFermi = -0.5d0*sep(2)
+         call get_binding_energy(data_path, len_path,     &
+                                 iZ+1, IA+1, me, be, sep)
+         eFermi = eFermi - 0.5d0*sep(2)
+      elseif(OM_option > 0)then
+         eFermi = -8.4075d0 + 0.01378d0*xA
+      end if
+   end if
+
+    CALL dispers2(xA,xZ,part_type,energy,VR,RR,AR, dv,drv,dav, VD,RVD,AVD, &
+                 W,RW,AW, WD,RD,AD, VSO,RSO,ASO, dvso, WSO,WRSO,WASO, &
+                 v0a,v0b,lambdhf,cviso,vspo,lambdso,ccoul, &
+                 av,bv,w0a,w0b,bs,cs,cwiso,wspo,bso, &
+                 ea,alphav,eFermi,adv, &
+                 rhfa,rhfb,ahfa,ahfb,rv,avv, &
+                 rsa,rsb,as, &
+                 rso,aso)
+
+   V_pot(1:2,1:5) = 0.0d0
+
+   V_pot(1,1) = VR
+   R_pot(1,1) = RR
+   a_pot(1,1) = AR
+!    V_pot(2,1) = W
+!    R_pot(2,1) = RW
+!    a_pot(2,1) = AW
+   
+   V_pot(1,2) = VD
+   R_pot(1,2) = RVD
+   a_pot(1,2) = AVD
+   V_pot(2,2) = WD
+   R_pot(2,2) = RD
+   a_pot(2,2) = AD
+   
+   V_pot(1,3) = VSO
+   R_pot(1,3) = RSO
+   a_pot(1,3) = ASO
+   V_pot(2,3) = WSO
+   R_pot(2,3) = WRSO
+   a_pot(2,3) = WASO
+   
+   V_pot(1,4) = dv
+   R_pot(1,4) = drv
+   a_pot(1,4) = dav
+   V_pot(2,4) = W
+   R_pot(2,4) = RW
+   a_pot(2,4) = AW
+      
+   V_pot(1,5) = dvso
+   R_pot(1,5) = RSO
+   a_pot(1,5) = ASO   
+   
+   write(6,*) 'Dispopt at E =',energy,' from eFermi=',eFermi
+   do i=1,5
+   write(6,'(I3,6f12.5)') i,V_pot(1,i),R_pot(1,i),a_pot(1,i),V_pot(2,i),R_pot(2,i),a_pot(2,i)
+   enddo
+   return
+end subroutine soukhovitskii_capote_dispopt
+
+
 !*******************************************************************************
 !
 subroutine perey_d_potential(part_type, iA, iZ, E,                   &
-                             V_pot, R_pot, a_pot, RC, iradius)
+                             V_pot, R_pot, a_pot, RC, iradius, rela)
 !
 !*******************************************************************************
 !
@@ -510,13 +705,17 @@ subroutine perey_d_potential(part_type, iA, iZ, E,                   &
    real(kind=8), intent(out) :: a_pot(2,3)
    real(kind=8), intent(out) :: RC
    integer(kind=4), intent(out) :: iradius
+   character(len=2) rela
 !----------------------------------------------------------
    integer(kind=4) :: iN
    real(kind=8) :: xZ, xN, xA, xA13
    real(kind=8) :: diff
 !----------------------------------------------------------
 
+!     iradius = 0    R = r0*A_T^1/3
+!     iradius = 1    R = r0*(A_Target^1/3 + A_proj^1/3)
    iradius = 0
+   rela = 'bg'
 
    if(part_type /= 3)then
       if(iproc == 0)then
@@ -558,7 +757,7 @@ end subroutine perey_d_potential
 !*******************************************************************************
 !
 subroutine becchetti_t_potential(part_type, iA, iZ, E,           &
-                                 V_pot, R_pot, a_pot, RC, iradius)
+                                 V_pot, R_pot, a_pot, RC, iradius, rela)
 !
 !*******************************************************************************
 !
@@ -615,6 +814,7 @@ subroutine becchetti_t_potential(part_type, iA, iZ, E,           &
    real(kind=8), intent(out) :: a_pot(2,3)
    real(kind=8), intent(out) :: RC
    integer(kind=4), intent(out) :: iradius
+   character(len=2) rela
 !----------------------------------------------------------
    integer(kind=4) :: iN
    real(kind=8) :: xZ, xN, xA
@@ -622,6 +822,7 @@ subroutine becchetti_t_potential(part_type, iA, iZ, E,           &
 !----------------------------------------------------------
 
    iradius = 0
+   rela = 'bg'
 
    if(part_type /= 4)then
       if(iproc == 0)then
@@ -668,7 +869,7 @@ end subroutine becchetti_t_potential
 !*******************************************************************************
 !
 subroutine becchetti_h_potential(part_type, iA, iZ, E,           &
-                                 V_pot, R_pot, a_pot, RC, iradius)
+                                 V_pot, R_pot, a_pot, RC, iradius, rela)
 !
 !*******************************************************************************
 !
@@ -725,6 +926,7 @@ subroutine becchetti_h_potential(part_type, iA, iZ, E,           &
    real(kind=8), intent(out) :: a_pot(2,3)
    real(kind=8), intent(out) :: RC
    integer(kind=4), intent(out) :: iradius
+   character(len=2) rela
 !----------------------------------------------------------
    integer(kind=4) :: iN
    real(kind=8) :: xZ, xN, xA
@@ -732,6 +934,7 @@ subroutine becchetti_h_potential(part_type, iA, iZ, E,           &
 !----------------------------------------------------------
 
    iradius = 0
+   rela = 'bg'
 
    if(part_type /= 5)then
       if(iproc == 0)then
@@ -778,7 +981,7 @@ end subroutine becchetti_h_potential
 !*******************************************************************************
 !
 subroutine avrigeanu_a_potential(part_type, iA, iZ, E,                  &
-                                 V_pot, R_pot, a_pot, RC, iradius)
+                                 V_pot, R_pot, a_pot, RC, iradius, rela)
 !
 !*******************************************************************************
 !
@@ -834,6 +1037,7 @@ subroutine avrigeanu_a_potential(part_type, iA, iZ, E,                  &
    real(kind=8), intent(out) :: a_pot(2,3)
    real(kind=8), intent(out) :: RC
    integer(kind = 4), intent(out) :: iradius
+   character(len=2) rela
 !----------------------------------------------------------
    integer(kind=4) :: iN
    real(kind=8) :: xZ, xN, xA, xA13
@@ -841,6 +1045,7 @@ subroutine avrigeanu_a_potential(part_type, iA, iZ, E,                  &
    real(kind=8) :: diff
 
    iradius = 0
+   rela = 'bg'
 
    if(part_type /= 6)then
       if(iproc == 0)then

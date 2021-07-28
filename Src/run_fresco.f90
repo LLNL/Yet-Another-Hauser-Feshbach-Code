@@ -3,7 +3,7 @@
 !
 subroutine run_fresco(ener, fresco_dir, len_fresco, fresco_name, iendf, fname, err_name, symb,      &
                       pindex, mass_proj, iZ, iA, namet, mass_target, beta, deformed, J_gs, K_band,  &
-                      V_pot, R_pot, a_pot, RC, iradius, ncc, nex, if_state,                         &
+                      V_pot, R_pot, a_pot, RC, iradius, rela, ncc, nex, if_state,                         &
                       cc_state_par, cc_state_type, cc_state_k, cc_state_kpp,                        &
                       cc_state_j, cc_state_e, cc_state_str)
 !
@@ -12,7 +12,7 @@ subroutine run_fresco(ener, fresco_dir, len_fresco, fresco_name, iendf, fname, e
 !  Discussion:
 !
 !    This routine is called from make_fresco_tco to run fresco for the
-!    case requested, i.e., a particualt optical potential at a given
+!    case requested, i.e., a particular optical potential at a given
 !    incident energy
 !
 !   Dependencies:
@@ -47,8 +47,17 @@ subroutine run_fresco(ener, fresco_dir, len_fresco, fresco_name, iendf, fname, e
 !
 !      Erich Ormand, LLNL
 !
-!*******************************************************************************
+!  Revised:
+!      19 July 2021
+!  Author:
+!      Ian Thompson, LLNL
+!  Changes:
+!    1. Relativistic specification 'rela' from each optical potential routine
+!    2. Now 5 (not 3) columns of potential forms available.
+!       Array 'ipotk' specifies Fresco kind of each column.
+!    3. Add opt_pot = 4 for the Capote/Soukhovitskii dispersive optical model potential
 !
+!*******************************************************************************
    use constants
    use particles_def
    use options
@@ -82,7 +91,7 @@ subroutine run_fresco(ener, fresco_dir, len_fresco, fresco_name, iendf, fname, e
    real(kind=8), intent(in) :: cc_state_str(nex)
 !-------    End of in and out variables
 !----------------------------------------------------------------------------------------
-   integer(kind=4) :: ipot
+   integer(kind=4) :: ipot,ipk,ipotk(5)
    real(kind=8) :: th_min, th_max, th_inc
    integer(kind=4) :: zpart, apart
    real(kind=8) :: A, Z, Ap, AAp
@@ -91,7 +100,7 @@ subroutine run_fresco(ener, fresco_dir, len_fresco, fresco_name, iendf, fname, e
    integer(kind=4) :: kp
    integer(kind=8) :: ifirst, ilast, ipot_end
    integer(kind=4) :: i, k
-   character(len=2) :: opt_label
+   character(len=2) :: opt_label,rela
    real(kind=8) :: K_state, J_state
    real(kind=8) :: xk_factor
    character(len=15) char_energy
@@ -168,29 +177,30 @@ subroutine run_fresco(ener, fresco_dir, len_fresco, fresco_name, iendf, fname, e
       ipot_end = 2
    end if
 
-   write(20,'(a)') fname(1:iendf)//' with potential #'//opt_label(1:ipot_end)//', at E_lab ='//char_energy
-   write(20,'(a)') 'NAMELIST'
-   write(20,'('' &Fresco  hcm= '',f6.4, '' rmatch= '',f7.3)')hcm, rmatch
-   absend = 1.0d-4
-   if(ener <= 0.5d0)absend = 1.0d-6
-   write(20,'(''    jtmin= '',f5.2,'' jtmax = '',f5.2,'' absend = '',f10.7)')jtmin,jtmax,absend
-   write(20,14) th_min, th_inc, th_max, ncc
-14    format('    thmin= ',f3.1,' thinc= ',f3.1,' thmax= ',f5.1,' iblock= ',i3)
-   write(20,'(''    chans= 1 smats= 2 xstabl= 1 tcfile= 3 iter= '',i2)')iter
-   write(20,15) ener
-15    format('    elab=',e15.7,'  pel= 1 exl= 1 lab= 1 lin= 1 lex= 1 /')
-   write(20,*)
-   if(ncc == nex)then
-      write(20,16) label, mass_proj, zpart, nex
-16       format('&Partition  namep=''',a1,'       '' massp= ',f12.8,' zp= ',i3,' nex=',i3)
-   else
-      write(20,166) label, mass_proj, zpart, nex
-166      format('&Partition  namep=''',a1,'       '' massp= ',f12.8,' zp= ',i3,' nex=',i3,4x,'mixpot=2')
-   end if
-   write(20,17) namet, mass_target, iZ
-17    format('            namet=''',a8,''' masst= ',f12.8,' zt= ',i3,' qval=  0.000/')
-   write(20,18)spin,1, cc_state_kpp(1), cc_state_j(1), cc_state_par(1), cc_state_e(1), K_band
-18    format('&States jp= ',f3.1,' ptyp=',i2,' ep=  0.000000  cpot=',i3,' jt=',f4.1,' ptyt=',i2,' et=',f8.4,' kkt = ',f4.1,'/')
+     write(20,'(a)') fname(1:iendf)//' with potential #'//opt_label(1:ipot_end)//', at E_lab ='//char_energy
+     write(20,'(a)') 'NAMELIST'
+     write(20,13) hcm, rmatch, rela
+13   format(' &Fresco  hcm= ',f6.4, ' rmatch= ',f7.3,' rela="',a2,'"')
+     absend = 1.0d-4
+     if(ener <= 0.5d0)absend = 1.0d-6
+     write(20,'(''    jtmin= '',f5.2,'' jtmax = '',f5.2,'' absend = '',f10.7)')jtmin,jtmax,absend
+     write(20,14) th_min, th_inc, th_max, ncc
+14      format('    thmin= ',f3.1,' thinc= ',f3.1,' thmax= ',f5.1,' iblock= ',i3)
+     write(20,'(''    chans= 1 smats= 2 xstabl= 1 tcfile= 3 iter= '',i2)')iter
+     write(20,15) ener
+15      format('    elab=',e15.7,'  pel= 1 exl= 1 lab= 1 lin= 1 lex= 1 /')
+     write(20,*)
+     if(ncc == nex)then
+        write(20,16) label, mass_proj, zpart, nex
+16         format('&Partition  namep=''',a1,'       '' massp= ',f12.8,' zp= ',i3,' nex=',i3)
+     else
+        write(20,166) label, mass_proj, zpart, nex
+166        format('&Partition  namep=''',a1,'       '' massp= ',f12.8,' zp= ',i3,' nex=',i3,4x,'mixpot=2')
+     end if
+     write(20,17) namet, mass_target, iZ
+17      format('            namet=''',a8,''' masst= ',f12.8,' zt= ',i3,' qval=  0.000/')
+     write(20,18)spin,1, cc_state_kpp(1), cc_state_j(1), cc_state_par(1), cc_state_e(1), K_band
+18      format('&States jp= ',f3.1,' ptyp=',i2,' ep=  0.000000  cpot=',i3,' jt=',f4.1,' ptyt=',i2,' et=',f8.4,' kkt = ',f4.1,'/')
 
    do i = 2, ncc
       write(20,21)cc_state_kpp(i), cc_state_j(i), cc_state_par(i), cc_state_e(i),K_band
@@ -213,50 +223,63 @@ subroutine run_fresco(ener, fresco_dir, len_fresco, fresco_name, iendf, fname, e
    write(20,30) kp, 0, 0, A, AAp, RC
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !---------   Now loop over indvidual components of nuclear potentials
-!---------   ipot = 1, 6
-!---------   ipot = 1 : Volume
-!---------   ipot = 2 : derivative - surface
-!---------   ipot = 3 : Spin-orbit
+!---------   ipot = 1, 6,  giving ipk=ipotk(ipot) for Fresco kind
+!---------   ipk = 1 : Volume
+!---------   ipk = 2 : derivative - surface
+!---------   ipk = 3 : Spin-orbit
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-   do ipot = 1, 3
-      if(abs(V_pot(1,ipot)) > 1.0d-6)then
-         write(20,31) kp,ipot,0,V_pot(1,ipot),R_pot(1,ipot),a_pot(1,ipot),0.,0.,0.
-         if(ipot /= 3 .and. deformed)write(20,31)kp,11,ifresco_shape,(beta(k)*ac*R_pot(1,ipot),k=1,6)
-      end if
-      if(abs(V_pot(2,ipot)) > 1.0d-6)then
-         write(20,31) kp,ipot,0,0.,0.,0.,V_pot(2,ipot),R_pot(2,ipot),a_pot(2,ipot)
-         if(ipot /= 3 .and. deformed)write(20,31)kp,11,ifresco_shape,(beta(k)*ac*R_pot(2,ipot),k=1,6)
-      end if
-   end do
-   if(ncc /= nex)then
-      write(20,*)
-      kp = 2
-      write(20,30) kp,0,0,A,AAp,RC
-      ipot = 1
-      write(20,31) kp,ipot,0,V_pot(1,ipot),R_pot(1,ipot),a_pot(1,ipot),V_pot(2,ipot),R_pot(2,ipot),a_pot(2,ipot)
-      ipot = 2
-      write(20,31) kp,-ipot,0,V_pot(1,ipot),R_pot(1,ipot),a_pot(1,ipot),V_pot(2,ipot),R_pot(2,ipot),a_pot(2,ipot)
-      write(20,31)kp,13,10,0.0,0.5,0.5,0.5,0.0,0.0
 
- 33   format('  &step ib=',i3,1x,'ia= ',i2,1x,'k=',i2,' str=',f10.6,1x,'/')
- 34   format('  &step /')
-      do i = ncc + 1, nex
-         xk_factor = sqrt(2.0d0*J_gs + 1.0d0)
-         if(cc_state_type(i) == 0)then
-            K_state = real(cc_state_k(i),kind=8)
-            J_state = real(cc_state_j(i),kind=8)
-            xk_factor = sqrt(2.0d0*J_gs + 1.0d0)*clebr(J_gs,K_band,K_state,zzero,J_state,K_band)
-         end if
-         write(20,33)i,if_state,cc_state_k(i),cc_state_str(i)*ac*R_pot(1,1)*xk_factor*cc_scale
-      end do
-      write(20,34)
-      ipot = 3
-      write(20,31) kp,ipot,0,V_pot(1,ipot),R_pot(1,ipot),a_pot(1,ipot),V_pot(2,ipot),R_pot(2,ipot),a_pot(2,ipot)
-   end if
-   write(20,*)
-   write(20,32)
-   write(20,'(''&Overlap /'')')
-   write(20,'(''&Coupling /'')')
+       ipotk(:) = (/ 1, 2, 3, 1, 3/)
+     do ipot = 1, 5
+        ipk = ipotk(ipot)
+        if(abs(V_pot(1,ipot)) > 1.0d-6)then
+           write(20,31) kp,ipk,0,V_pot(1,ipot),R_pot(1,ipot),a_pot(1,ipot),0.,0.,0.
+           if(ipk /= 3 .and. deformed )write(20,31)kp,11,ifresco_shape,(beta(k)*ac*R_pot(1,ipot),k=1,6)
+        end if
+        if(abs(V_pot(2,ipot)) > 1.0d-6)then
+           write(20,31) kp,ipk,0,0.,0.,0.,V_pot(2,ipot),R_pot(2,ipot),a_pot(2,ipot)
+           if(ipk /= 3 .and. deformed) write(20,31)kp,11,ifresco_shape,(beta(k)*ac*R_pot(2,ipot),k=1,6)
+        end if
+     end do
+     if(ncc /= nex)then
+        write(20,*)
+        kp = 2
+        write(20,30) kp,0,0,A,AAp,RC
+        ipot = 1
+        ipk = ipotk(ipot)
+        write(20,31) kp,ipk,0,V_pot(1,ipot),R_pot(1,ipot),a_pot(1,ipot),V_pot(2,ipot),R_pot(2,ipot),a_pot(2,ipot)
+        ipot = 2
+        ipk = ipotk(ipot)
+        if(abs(V_pot(1,ipot)) + abs(V_pot(2,ipot)) > 1.0d-6)then
+         write(20,31) kp,-ipk,0,V_pot(1,ipot),R_pot(1,ipot),a_pot(1,ipot),V_pot(2,ipot),R_pot(2,ipot),a_pot(2,ipot)
+         endif
+        ipot = 4
+        ipk = ipotk(ipot)
+        if(abs(V_pot(1,ipot)) + abs(V_pot(2,ipot)) > 1.0d-6)then
+         write(20,31) kp,-ipk,0,V_pot(1,ipot),R_pot(1,ipot),a_pot(1,ipot),V_pot(2,ipot),R_pot(2,ipot),a_pot(2,ipot)
+         endif
+        write(20,31)kp,13,10,0.0,0.5,0.5,0.5,0.0,0.0
+
+ 33  format('  &step ib=',i3,1x,'ia= ',i2,1x,'k=',i2,' str=',f10.6,1x,'/')
+ 34  format('  &step /')
+        do i = ncc + 1, nex
+           xk_factor = sqrt(2.0d0*J_gs + 1.0d0)
+           if(cc_state_type(i) == 0)then
+              K_state = real(cc_state_k(i),kind=8)
+              J_state = real(cc_state_j(i),kind=8)
+              xk_factor = sqrt(2.0d0*J_gs + 1.0d0)*clebr(J_gs,K_band,K_state,zzero,J_state,K_band)
+           end if
+           write(20,33)i,if_state,cc_state_k(i),cc_state_str(i)*ac*R_pot(1,1)*xk_factor*cc_scale
+        end do
+        write(20,34)
+        ipot = 3
+        ipk = ipotk(ipot)
+        write(20,31) kp,ipk,0,V_pot(1,ipot),R_pot(1,ipot),a_pot(1,ipot),V_pot(2,ipot),R_pot(2,ipot),a_pot(2,ipot)
+     end if
+     write(20,*)
+     write(20,32)
+     write(20,'(''&Overlap /'')')
+     write(20,'(''&Coupling /'')')
 
    close(unit=20)
 

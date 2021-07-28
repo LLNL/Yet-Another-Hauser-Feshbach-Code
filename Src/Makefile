@@ -52,6 +52,7 @@ decay-chain.o                    \
 fission-model.o                  \
 fix-incident-energies.o          \
 fresco-potentials.o              \
+dispersive.o                     \
 Gamma_gamma.o                    \
 fit_nuke_Gamma_gamma.o           \
 Gauss-quadrature.o               \
@@ -105,18 +106,18 @@ read_saved_parameters.o
 %.o : %.f90 $(DEPS)
 	$(COMPILER) -c $(CFLAGS) $(<F) -o $@
 #
-#----   Rules to compile serial verison, creates YAHFC.x and copies to YAHFC bin directory 
+#----   Rules to compile serial verison, creates YAHFC.x and copiesssss to YAHFC bin directory 
 #
 YAHFC:  
 	$(MAKE) $(HAUSER_OBJECTS) COMPILER=$(F90COMPILER) CFLAGS=$(F90CFLAGS) 
-	$(F90COMPILER) -o $@.x $(HAUSER_OBJECTS) 
+	$(F90COMPILER) -o $@.x $(HAUSER_OBJECTS)  $(LFLAGS)
 	cp $@.x $(YAHFC_BIN_DIR)/.
 #
 #----   Rules to compile MPI verison, creates YAHFC.x and copies to YAHFC bin directory 
 #
 YAHFC-MPI:  
 	$(MAKE) $(HAUSER_OBJECTS) COMPILER=$(MPIF90COMPILER) CFLAGS=$(MPIF90CFLAGS) 
-	$(MPIF90COMPILER) -o $@.x $(HAUSER_OBJECTS) 
+	$(MPIF90COMPILER) -o $@.x $(HAUSER_OBJECTS)  $(LFLAGS)
 	cp $@.x $(YAHFC_BIN_DIR)/.
 #
 #----   Rules to make modules
