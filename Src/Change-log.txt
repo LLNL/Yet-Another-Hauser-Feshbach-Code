@@ -1,3 +1,11 @@
+Version 3.64
+-------------
+
+1.  Added Soukhovitskii & Capote (2016, 2020) dispersive optical potential, 
+    though without their side-bands, for neutrons and protons on actinides
+2.  Added Maslove (2004) U238 potential for use with all actinides.
+
+ 
 Version 3.63
 -------------
 1.  Converted README.txt file to markdown file, README.md
@@ -1019,8 +1027,3 @@ Reworked version for release. Main features:
    commands.
 
 --------------------------------------------------------------------------------
-
- 
-
-
- 
