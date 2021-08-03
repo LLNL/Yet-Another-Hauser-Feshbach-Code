@@ -1,3 +1,17 @@
+Version 3.65
+1.  Converted kinematics for the incident particle and target to the relativistic 
+    center-of-momentum frame. Corrected the boost frame transformation. 
+2.  Updated the manual. 
+
+Version 3.64
+1.  Adjusted description for probability densities for emission spectra and
+    angular distributions to be more explicit it.
+2.  Fixed potential problem where the headers for spectr and angular
+    distributions wouldn't be printed if the cross section for the first 
+    incident energy was below the print threshold.
+3.  Updates to manual.
+
+-------------
 Version 3.63
 -------------
 1.  Converted README.txt file to markdown file, README.md

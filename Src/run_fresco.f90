@@ -12,7 +12,7 @@ subroutine run_fresco(ener, fresco_dir, len_fresco, fresco_name, iendf, fname, e
 !  Discussion:
 !
 !    This routine is called from make_fresco_tco to run fresco for the
-!    case requested, i.e., a particualt optical potential at a given
+!    case requested, i.e., a particular optical potential at a given
 !    incident energy
 !
 !   Dependencies:
@@ -30,6 +30,7 @@ subroutine run_fresco(ener, fresco_dir, len_fresco, fresco_name, iendf, fname, e
 !     External functions:
 !
 !        clebr
+!        real(kind=8) :: pc_com
 !
 !     MPI routines:
 !
@@ -108,6 +109,10 @@ subroutine run_fresco(ener, fresco_dir, len_fresco, fresco_name, iendf, fname, e
    real(kind=8) :: hcm, hcm_check
 !----------    External functions   -------------------
    real(kind=8) :: clebr
+   real(kind=8) :: KE_com
+   real(kind=8) :: pc_com
+!---------------------------------------------------------------------
+!---------------------------------------------------------------------
 
    write(char_energy,'(e15.7)')ener
 
@@ -123,11 +128,16 @@ subroutine run_fresco(ener, fresco_dir, len_fresco, fresco_name, iendf, fname, e
    A = real(iA,kind=8)
    Z = real(iZ,kind=8)
    ac = A**(1.0d0/3.0d0)
-
+!
+!-------    Masses are passed in units of atomic masses, mass_u
+!
    mass_rel = mass_proj*mass_target*mass_u/(mass_proj + mass_target)
-   e_rel = ener*mass_target/(mass_target + mass_proj)
-   momentum = dsqrt(2.0d0*e_rel*mass_rel)
+!   e_rel = ener*mass_target/(mass_target + mass_proj)
+   e_rel = KE_com(mass_proj*mass_u, mass_target*mass_u, ener)
+!   momentum = dsqrt(2.0d0*e_rel*mass_rel)
+   momentum = pc_com(mass_proj*mass_u, mass_target*mass_u, ener)
    wave_number = momentum/hbar_c
+!---------------------------------------------------------------------
    hcm_check = 0.2/wave_number
    hcm = 0.1d0
    if(hcm_check < 0.1d0)then

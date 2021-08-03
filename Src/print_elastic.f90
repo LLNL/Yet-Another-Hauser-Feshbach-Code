@@ -187,7 +187,8 @@ subroutine print_elastic(itarget, istate, ilab, file_lab, ilib_dir, lib_dir, ch_
          istate-1,nucleus(itarget)%state(istate)%spin, ch_par(ipi),                             &
          nucleus(itarget)%state(istate)%energy
    if(iproj == 1)write(100,'(''# Shape Elastic Angular Distribution data '')')
-   if(iproj == 1)write(100,'(''# Angular Distribution normalized to unity '')')
+   if(iproj == 1)write(100,'(''# Probability density function, P(x,E_in), x = cos(theta)'')')
+   if(iproj == 1)write(100,'(''# Angular Distribution normalized to unity using Trapazoidial rule'')')
    if(iproj > 1)write(100,'(''# Elastic Scattering Angular Distribution data '')')
    if(iproj > 1)write(100,'(''# Calculated as ratio to Rutherford: OM/Rutherford '')')
    write(100,'(''#'')')
@@ -216,7 +217,7 @@ subroutine print_elastic(itarget, istate, ilab, file_lab, ilib_dir, lib_dir, ch_
                     e_in,SE_cs(in)
       end if
       if(iproj == 1)then
-         write(100,'(''#         E_in            cos(theta)            Prob'')')
+         write(100,'(''#         E_in           x=cos(theta)         P(x|E_in)'')')
       elseif(iproj > 1)then
          write(100,'(''#         E_in            cos(theta)        OM/Rutherford'')')
       end if
@@ -265,8 +266,7 @@ subroutine print_elastic(itarget, istate, ilab, file_lab, ilib_dir, lib_dir, ch_
    write(100,'(''# Target state = '',i3,3x,''J = '',f4.1,a1,3x,''Ex = '',1pe15.7,'' MeV'')')    &
          istate-1,nucleus(itarget)%state(istate)%spin, ch_par(ipi),                             &
          nucleus(itarget)%state(istate)%energy
-   if(iproj == 1)write(100,'(''# Shape Elastic Angular Distribution data '')')
-   if(iproj == 1)write(100,'(''# Angular Distribution normalized to unity '')')
+   if(iproj == 1)write(100,'(''# Shape Elastic Angular Distribution Legendre expansion '')')
    if(iproj == 1)write(100,'(''# Angular Distribution normalized to unity '')')
    if(iproj > 1)write(100,'(''# Elastic Scattering Angular Distribution data '')')
    if(iproj > 1)write(100,'(''# Calculated as ratio to Rutherford: OM/Rutherford '')')
@@ -328,7 +328,9 @@ subroutine print_elastic(itarget, istate, ilab, file_lab, ilib_dir, lib_dir, ch_
          istate - 1, nucleus(itarget)%state(istate)%spin, ch_par(ipi),                          &
          nucleus(itarget)%state(istate)%energy
    write(100,'(''# Elastic Angular Distribution data '')')
-   if(iproj ==1)write(100,'(''# Distribution normalized to unity'')')
+   if(iproj == 1)write(100,'(''# Distribution normalized to unity'')')
+   if(iproj == 1)write(100,'(''# Probability density function, P(x,E_in), x = cos(theta)'')')
+   if(iproj == 1)write(100,'(''# Angular Distribution normalized to unity using Trapazoidial rule'')')
    if(iproj > 1)write(100,'(''# Distribution given as Elastic/Rutherford'')')
    write(100,'(''#'')')
    write(100,'(''# Mass amu = '',1pe23.16,'' MeV'')')mass_u
@@ -403,7 +405,7 @@ subroutine print_elastic(itarget, istate, ilab, file_lab, ilib_dir, lib_dir, ch_
                     e_in,xnorm
       end if
       if(iproj == 1)then
-         write(100,'(''#         E_in            cos(theta)            Prob'')')
+         write(100,'(''#         E_in           x=cos(theta)         P(x|E_in)'')')
       elseif(iproj > 1)then
          write(100,'(''#         E_in            cos(theta)        EL/Rutherford'')')
       end if
@@ -489,7 +491,7 @@ subroutine print_elastic(itarget, istate, ilab, file_lab, ilib_dir, lib_dir, ch_
    write(100,'(''# Target state = '',i3,3x,''J = '',f4.1,a1,3x,''Ex = '',1pe15.7,'' MeV'')')    &
          j-1, nucleus(itarget)%state(j)%spin, ch_par(ipi),                                       &
          nucleus(itarget)%state(j)%energy
-   if(iproj == 1)write(100,'(''# Elastic Angular Distribution data '')')
+   if(iproj == 1)write(100,'(''# Elastic Angular Distribution Legendre expansion '')')
    if(iproj == 1)write(100,'(''# Angular Distribution normalized to unity '')')
    if(iproj > 1)write(100,'(''# Elastic Scattering Angular Distribution data '')')
    if(iproj > 1)write(100,'(''# Calculated as ratio to Rutherford: OM/Rutherford '')')
@@ -697,7 +699,8 @@ subroutine print_compound_elastic(itarget, istate, ilab, file_lab, ilib_dir, lib
          istate-1,nucleus(itarget)%state(istate)%spin, ch_par(ipi),                             &
          nucleus(itarget)%state(istate)%energy
    write(100,'(''# Compound Elastic Angular Distribution data '')')
-   write(100,'(''# Distribution normalized to unity'')')
+   write(100,'(''# Probability density function P(x,E_in), x = cos(theta)'')')
+   write(100,'(''# Distribution normalized to unity using trapaziodial rule'')')
    write(100,'(''#'')')
    write(100,'(''# Mass amu = '',1pe23.16,'' MeV'')')mass_u
    write(100,'(''# Mass of target = '',1pe23.16,'' amu'')')nucleus(itarget)%mass/mass_u
@@ -719,7 +722,7 @@ subroutine print_compound_elastic(itarget, istate, ilab, file_lab, ilib_dir, lib
       write(100,'(''# E_in = '',1pe16.7,3x,''Cross Section = '',1pe16.7,1x,''('',a2,'')'')')    &
                  e_in,Inelastic_cs(istate,in),cs_units
       if(Inelastic_cs(istate,in) < cs_threshold)cycle
-      write(100,'(''#         E_in            cos(theta)            Prob'')')
+      write(100,'(''#         E_in           x=cos(theta)         P(x|E_in)'')')
       write(100,'(''#'',3(''   ----------------''))')
       xnorm = 0.0d0
       do jx = 0, max_jx_100
@@ -762,7 +765,7 @@ subroutine print_compound_elastic(itarget, istate, ilab, file_lab, ilib_dir, lib
    write(100,'(''# Target state = '',i3,3x,''J = '',f4.1,a1,3x,''Ex = '',1pe15.7,'' MeV'')')    &
          istate-1,nucleus(itarget)%state(istate)%spin, ch_par(ipi),                             &
          nucleus(itarget)%state(istate)%energy
-   if(iproj == 1)write(100,'(''# Compound Elastic Angular Distribution data '')')
+   if(iproj == 1)write(100,'(''# Compound Elastic Angular Distribution Legendre expansion '')')
    if(iproj == 1)write(100,'(''# Angular Distribution normalized to unity '')')
    write(100,'(''# Coefficients of Legendre expansion'')')
    write(100,'(''# Ang_dist(x) = Sum_L a(L)*P(L,x)'')')

@@ -32,7 +32,7 @@ module options
 !
    use variable_kinds
    character(len=132) :: version
-   parameter (version = 'MC-3.63')
+   parameter (version = 'MC-3.65')
    integer(kind=int_64) :: iseed_64
    integer(kind=int_32) :: iseed_32
    integer(kind=int_32) :: iseed_start
@@ -664,6 +664,7 @@ module nuclei
       integer(kind=4) :: A
       integer(kind=4) :: icomp
       integer(kind=4) :: istate
+      real(kind=8) :: mass
       real(kind=8), allocatable, dimension(:,:) :: pop_xjpi
       real(kind=8), allocatable, dimension(:,:,:,:) :: pop_channel
    end type target_nucleus
@@ -677,6 +678,7 @@ module nuclei
       integer(kind=4) :: Z
       integer(kind=4) :: A
       integer(kind=4) :: particle_type
+      real(kind=8) :: mass
       real(kind=8), allocatable, dimension (:) :: energy
       integer(kind=4) :: num_e
       real(kind=8) :: e_max

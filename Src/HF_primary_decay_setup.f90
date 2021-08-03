@@ -105,7 +105,10 @@ subroutine HF_primary_decay_setup(e_in,iproj,itarget,icomp,                  &
    integer(kind=4) :: itemp, idb
 
    real(kind=8) cs,cs_fac
-   real(kind=8) :: mass_i, mass_t, mass_rel, e_rel
+!   real(kind=8) :: mass_i, mass_t, mass_rel, e_rel
+   real(kind=8) :: e_rel
+!   real(kind=8) :: mass_rel
+   real(kind=8) :: mass_proj, mass_target
    real(kind=8) :: momentum, wave_number
    real(kind=8) :: spin_proj, spin_target
    real(kind=8) sp1,sp2
@@ -127,6 +130,8 @@ subroutine HF_primary_decay_setup(e_in,iproj,itarget,icomp,                  &
    real(kind=8) :: tco_interpolate
    real(kind=8) :: jhat
    real(kind=8) :: EL_trans, ML_trans
+   real(kind=8) :: KE_com
+   real(kind=8) :: pc_com
 !-rem   real(kind=8) :: xnu
 !-------------------------------------------------------------------------+
 !------                                                                   +
@@ -137,16 +142,20 @@ subroutine HF_primary_decay_setup(e_in,iproj,itarget,icomp,                  &
    nume = particle(iproj)%nume
    j_max = nucleus(icomp)%j_max
    nbin = nucleus(icomp)%nbin
-   e_rel = e_in*real(nucleus(itarget)%A,kind=8)/                           &
-           real(nucleus(itarget)%A+projectile%A,kind=8)
    spin_target = nucleus(itarget)%state(istate)%spin
    spin_proj = particle(iproj)%spin
-   isp_max = nint(2.0d0*spin_proj)
    EM_proj = 0
-   mass_i = particle(iproj)%Mass
-   mass_t = nucleus(itarget)%Mass + nucleus(itarget)%state(istate)%energy
-   mass_rel = mass_i*mass_t/(mass_t+mass_i)
-   momentum = dsqrt(2.0d0*e_rel*mass_rel)
+   isp_max = nint(2.0d0*spin_proj)
+   mass_proj = projectile%mass
+   mass_target = target%mass
+!   e_rel = e_in*real(nucleus(itarget)%A,kind=8)/                           &
+!           real(nucleus(itarget)%A+projectile%A,kind=8)
+   e_rel = KE_com(mass_proj, mass_target, E_in)
+   momentum = pc_com(mass_proj, mass_target, E_in)
+!   mass_i = particle(iproj)%Mass
+!   mass_t = nucleus(itarget)%Mass + nucleus(itarget)%state(istate)%energy
+!   mass_rel = mass_i*mass_t/(mass_t+mass_i)
+!   momentum = dsqrt(2.0d0*e_rel*mass_rel)
    wave_number = momentum/hbar_c
    cs = pi/wave_number**2*fmsq_eq_barn
    sp1 = abs(spin_target-spin_proj)
