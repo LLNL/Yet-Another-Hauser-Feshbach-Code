@@ -60,6 +60,16 @@ subroutine fresco_make_tco(data_path, len_path, tco_file, len_tco,           &
 !
 !      Erich Ormand, LLNL
 !
+!  Revised:
+!      19 July 2021
+!  Author:
+!      Ian Thompson, LLNL
+!  Changes:
+!    1. Relativistic specification 'rela' from each optical potential routine
+!    2. Now 5 (not 3) columns of potential forms available.
+!       Array 'ipotk' specifies Fresco kind of each column.
+!    3. Add opt_pot = 4 for the Capote/Soukhovitskii dispersive optical model potential
+!
 !*******************************************************************************
 !
   use variable_kinds
@@ -136,11 +146,12 @@ subroutine fresco_make_tco(data_path, len_path, tco_file, len_tco,           &
   real(kind=8) :: ener, ebin_min
   real(kind=8) :: d3
 
-  real(kind=8) :: V_pot(2,3)
-  real(kind=8) :: R_pot(2,3)
-  real(kind=8) :: A_pot(2,3)
+  real(kind=8) :: V_pot(2,5)
+  real(kind=8) :: R_pot(2,5)
+  real(kind=8) :: A_pot(2,5)
   real(kind=8) :: RC
   integer(kind=4) :: iradius
+  character(len=2) rela
 
   logical deformed
   logical cc_found
@@ -190,7 +201,6 @@ subroutine fresco_make_tco(data_path, len_path, tco_file, len_tco,           &
   real(kind=8) diff
   logical flap
   
-  character(len=2) rela
 
   integer(kind=4) :: kp, ncc, nccba, nex
   integer(kind=4) :: num_cc, num_dwba, num_read, num_tot, num_cc_read
@@ -231,7 +241,7 @@ subroutine fresco_make_tco(data_path, len_path, tco_file, len_tco,           &
 !-----   neutrons first
 
   zzero = 0.0d0
-  rela = 'bg'
+  rela = '  '
   kp = 1
 
   deformed = .false.
@@ -824,36 +834,45 @@ subroutine fresco_make_tco(data_path, len_path, tco_file, len_tco,           &
      ener = energy(ie)
      char_energy(1:15) = ' '
      write(char_energy,'(e15.7)')ener
+     V_pot(:,:) = 0.0d0
+     R_pot(:,:) = 0.0d0
+     a_pot(:,:) = 0.0d0
      if(pindex == 1)then
         RC = 1.2d0
         if(particle(pindex)%opt_pot == 1)                                            &
-           call KD_potential(pindex, iA, iZ, ener, V_pot, R_pot, a_pot, RC, D3, iradius)
+           call KD_potential(pindex, iA, iZ, ener, V_pot, R_pot, a_pot, RC, D3, iradius, rela)
         if(particle(pindex)%opt_pot == 2)                                            &
            call soukhovitskii_potential(pindex, iA, iZ, particle(pindex)%om_option,  &
-                                        ener, V_pot, R_pot, a_pot, RC, iradius)
+                                        ener, V_pot, R_pot, a_pot, RC, iradius, rela)
         if(particle(pindex)%opt_pot == 3)                                            &
-           call maslov_03_potential(ener, V_pot, R_pot, a_pot, RC, iradius)
+           call maslov_03_potential(ener, V_pot, R_pot, a_pot, RC, iradius, rela)
+        if(particle(pindex)%opt_pot == 4)                                            &
+           call soukhovitskii_capote_dispopt(pindex, iA, iZ, particle(pindex)%om_option,  &
+                                        ener, V_pot, R_pot, a_pot, RC, iradius, rela)
      elseif(pindex == 2)then
         RC = 1.2d0
         if(particle(pindex)%opt_pot == 1)                                            &
-           call KD_potential(pindex, iA, iZ, ener, V_pot, R_pot, a_pot, RC, D3, iradius)
+           call KD_potential(pindex, iA, iZ, ener, V_pot, R_pot, a_pot, RC, D3, iradius, rela)
         if(particle(pindex)%opt_pot == 2)                                            &
            call soukhovitskii_potential(pindex, iA, iZ, particle(pindex)%om_option,  &
-                                        ener, V_pot, R_pot, a_pot, RC, iradius)
+                                        ener, V_pot, R_pot, a_pot, RC, iradius, rela)
         if(particle(pindex)%opt_pot == 3)                                            &
-           call maslov_03_potential(ener, V_pot, R_pot, a_pot, RC, iradius)
+           call maslov_03_potential(ener, V_pot, R_pot, a_pot, RC, iradius, rela)
+        if(particle(pindex)%opt_pot == 4)                                            &
+           call soukhovitskii_capote_dispopt(pindex, iA, iZ, particle(pindex)%om_option,  &
+                                        ener, V_pot, R_pot, a_pot, RC, iradius, rela)
      elseif(pindex == 3)then
         if(particle(pindex)%opt_pot == 1)                                            &
-        call perey_d_potential(pindex, iA, iZ, ener, V_pot, R_pot, a_pot, RC, iradius)
+        call perey_d_potential(pindex, iA, iZ, ener, V_pot, R_pot, a_pot, RC, iradius, rela)
      elseif(pindex == 4)then
         if(particle(pindex)%opt_pot == 1)                                            &
-        call becchetti_t_potential(pindex, iA, iZ, ener, V_pot, R_pot, a_pot, RC, iradius)
+        call becchetti_t_potential(pindex, iA, iZ, ener, V_pot, R_pot, a_pot, RC, iradius, rela)
      elseif(pindex == 5)then
         if(particle(pindex)%opt_pot == 1)                                            &
-        call becchetti_h_potential(pindex, iA, iZ, ener, V_pot, R_pot, a_pot, RC, iradius)
+        call becchetti_h_potential(pindex, iA, iZ, ener, V_pot, R_pot, a_pot, RC, iradius, rela)
      elseif(pindex == 6)then
         if(particle(pindex)%opt_pot == 1)                                            &
-        call avrigeanu_a_potential(pindex, iA, iZ, ener, V_pot, R_pot, a_pot, RC, iradius)
+        call avrigeanu_a_potential(pindex, iA, iZ, ener, V_pot, R_pot, a_pot, RC, iradius, rela)
      end if
 
 
@@ -905,7 +924,7 @@ subroutine fresco_make_tco(data_path, len_path, tco_file, len_tco,           &
      if(execute_fresco)then
         call run_fresco(ener, fresco_dir, len_fresco, fresco_name, iendf, fname, err_name, symb,      &
                         pindex, mass_proj, iZ, iA, namet, mass_target, beta, deformed, J_gs, K_band,  &
-                        V_pot, R_pot, a_pot, RC, iradius, ncc, nex, if_state,                         &
+                        V_pot, R_pot, a_pot, RC, iradius, rela, ncc, nex, if_state,                         &
                         cc_state_par, cc_state_type, cc_state_k, cc_state_kpp,                        &
                         cc_state_j, cc_state_e, cc_state_str)
 

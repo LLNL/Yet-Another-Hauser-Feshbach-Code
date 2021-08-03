@@ -27,6 +27,9 @@ from pqu import PQU as PQUModule
 import xData.standards as standardsModule
 import xData.XYs as XYsModule
 import xData.multiD_XYs as multiD_XYsModule
+from xData.Documentation import documentation as documentationModule
+from xData.Documentation import computerCode  as computerCodeModule
+from xData import date
 
 from fudge.gnds import physicalQuantity as physicalQuantityModule
 from fudge.gnds import reactionSuite as reactionSuiteModule
@@ -59,6 +62,7 @@ defaultVerbose      = 0
 defaultFalse        = 'False'
 defaultNone         = 'False'
 defaultEndl         = ''
+defaultInputDeck = 'YAHFC-commands.txt'
 
 # Physics for calculating Rutherford elastic cross-sections:
 amu = 931.494013
@@ -88,6 +92,8 @@ parser.add_argument('-v', '--verbose', action='count', default = defaultVerbose,
 parser.add_argument('--saved',  action='store_true', default = None, help=' Use a pickle file to save the data in an intermediate step, once read.' )
 parser.add_argument('--resave',  action='store_true', default = None, help=' Use a pickle file to save the data in an intermediate step, once read.' )
 parser.add_argument( '--ENDL_I_1_3',  action='store_true', default = None, help = '''Converts P(E',mu|E) distributions to ENDL I = 1 and 3 data for outputting.''' )
+parser.add_argument( '--inputDeck', type=str, default = defaultInputDeck, help='Yahfc input parameter deck. Default = %s'%defaultInputDeck )
+
 args = parser.parse_args()
 
 print('\nRun:',' '.join([sys.argv[0].split('/')[-1]]+sys.argv[1:]),'\n')
@@ -95,6 +101,10 @@ aliasNameDict = {}
 
 CWD = os.getcwd()
 YAHFC_DATA = os.getenv('YAHFC_DATA')
+if args.target[-1] == '/': args.target = args.target[:-1]
+
+def now():
+    return date.Date( resolution = date.Resolution.time )
 
 def collateByFirstElement( data ) :
 
@@ -128,6 +138,19 @@ def main():
     
     RxnSte = sortChannels(channels,PoPs,decayDataStructure)
     
+    
+    parameterFile = open(os.path.join(CWD,args.inputDeck),'r')
+    inputParameters = parameterFile.readlines()
+    print('Read parameter file',os.path.join(CWD,args.inputDeck),'with',len(inputParameters),'lines')
+    inputDataSpecs = computerCodeModule.InputDeck( "Yahfc input commands" , ('\n  %s\n' % now() )  + (''.join( inputParameters ))+'\n' ) 
+    computerCodeModel = computerCodeModule.ComputerCode( label = 'Yahfc fit', name = 'YAHFC', version = '', date = now() )
+    computerCodeModel.inputDecks.add( inputDataSpecs )  
+    
+    computerCodes = RxnSte.documentation.computerCodes
+    computerCodes.add( computerCodeModel )
+#     print(RxnSte.toXML())
+    
+    
     ### now load old endl and convert
     if args.endl != None:
         from brownies.legacy.toENDL import reactionSuite
@@ -137,13 +160,15 @@ def main():
     
     targetS,targetZ,targetA,ZAtarget = getSymAZfromIsotope(args.target)
     yi = 'npdtha'.find(args.projectile)+1
-    outfileName = os.path.join(CWD,'yi%02dza%03d%03d.yahfc.xml'%(yi,targetZ,targetA))
-    RxnSte.saveToFile(outfileName , xs_pdf_cdf1d_singleLine = True )
+    protare = 'yi%02dza%03d%03d.yahfc.xml'%(yi,targetZ,targetA)
+    print('\nWriting protare  ',protare)
+    
+    RxnSte.saveToFile(os.path.join(CWD,protare) , xs_pdf_cdf1d_singleLine = True )
     
     #RxnSte.check()
     
     if args.endl != None:
-        RxnSte.toENDL( '../../endl2009.3_ex5/ascii' )
+        RxnSte.toENDL( os.path.join(CWD,'yi%02dza%03d%03d.yahfc-ENDL/asciii'%(yi,targetZ,targetA)) )
     
 def sortChannels(channels,PopsData,decayData):
 #     print("sortChannels. PopsData for",list(PopsData.keys()))
@@ -170,7 +195,7 @@ def sortChannels(channels,PopsData,decayData):
     datenow = datetime.datetime.today()
     maxDate = '%04d-%02d-%02d'%(int(datenow.year),int(datenow.month),int(datenow.day))
     evaluatedStyle = stylesModule.evaluated( styleName, '', thisTemp, projectileDomain, evaluationLibrary, evaluationVersion, date = maxDate )
-    reactionSuite = reactionSuiteModule.reactionSuite( projectile.id, target.id, evaluation, style = evaluatedStyle, PoPs = PopsData, interaction = 'nuclear' )
+    reactionSuite = reactionSuiteModule.reactionSuite( projectile.id, target.id, evaluation, style = evaluatedStyle, PoPs = PopsData, interaction = 'nuclear', formatVersion = '2.0.LLNL_3' )
     
     NTdict = defineInitialNTs(args.projectile)
     
@@ -425,6 +450,9 @@ def sortChannels(channels,PopsData,decayData):
 
     if ZpZt == 0:
         allChannels = [reaction.label for reaction in reactionSuite.reactions ]
+        if len(allChannels)==0:
+            print("There are no (non-zero) reactions channels!!!")
+            sys.exit()
         NT = 1
         label = 'total'
         totalreac = reactionSuite.buildCrossSectionSum( label, NT, 'eval', allChannels, 0.0)
@@ -1011,7 +1039,7 @@ def getEvaluationData():
             ### move residual and product ZA info to each individual file    
             chanList = os.listdir(drPath)
             for chan in chanList :
-                if( chan[0] == '.' ) : continue                     # Can happen when someone is looking at a file with an editor.
+                if chan[0] == '.' or chan == 'gammas' : continue                     # Can happen when someone is looking at a file with an editor.
                 ### FIXME  Erich needs to fix this in his file names.
                 if 'cs_gammas' in chan or chan.startswith('Compound_Elastic') or chan.startswith('Shape_Elastic') or 'Leg' in chan:
                     if args.verbose>2: print('File',chan,'ignored')

@@ -29,7 +29,7 @@ nofootinbib
 
 \begin{document}
 
-\title{Monte Carlo Hauser-Feshbach computer code system to model nuclear reactions: YAHFC V3.64  }
+\title{Monte Carlo Hauser-Feshbach computer code system to model nuclear reactions: YAHFC V3.65  }
 
 \email{ormand1@llnl.gov}
 \author{W. E. Ormand}
@@ -453,11 +453,15 @@ A limited set of optical potentials is provided with YAHFC and are listed in Tab
 Proj. & Opt. & Target & Optical potential \\
 \hline\hline
 n & 1 & $ Z < 90 $, $Z >96$ & Koning \& Delaroche~\cite{Koning:2003}\\
-  &  2 & $90 \le Z \le 96$ & Soukhovitskii~\cite{Soukhovitskii:2004} \\
+  &  2 & $90 \le Z \le 96$   & 'hovitskii~\cite{Soukhovitskii:2004} \\
+  & 3 &  $Z = 92$   &  Maslov ~\cite{Maslov:2003} \\
+  & 4 &  $90 \le Z \le 96$   & Soukhovitskii \& Capote   ~\cite{Soukhovitskii:2016,Soukhovitskii:2020} \\ 
 \hline
 p & 1 & $ Z < 90 $, $Z >96$&  Koning \& Delaroche~\cite{Koning:2003}\\
   &  2 & $90 \le Z \le 96$& Soukhovitskii~\cite{Soukhovitskii:2004} \\
-\hline
+  & 3 &  $Z = 92$   &  Maslov ~\cite{Maslov:2003} \\
+  & 4 &  $90 \le Z \le 96$   & Soukhovitskii \& Capote  ~\cite{Soukhovitskii:2016,Soukhovitskii:2020} \\ 
+ \hline
 d & 1 & All $Z,A$  &  Perey~\cite{Perey:1976}\\
 \hline
 t & 1 & All $Z,A$ & Becchetti~\cite{Perey:1976}\\
@@ -1706,14 +1710,16 @@ ${\texttt{optical\_potential}}$ & $k, j$ & Defining the optical potential for pa
 & & \hskip 2.1 cm (Default $Z < 90$ and $Z > 96$ \\
 & & \hskip 1.1 cm j = 2: Soukhovitskii (Default $Z \ge 90$ and $Z \le 96$) \\
 & & \hskip 1.1 cm j = 3: Maslov 03 \\
+& & \hskip 1.1 cm j = 4: Soukhovitskii \& Capote    20 \\
 & & $k=2$,  j = 1: Koning \& Delaroche \\
 & & \hskip 2.1 cm (Default $Z < 90$ and $Z > 96$ \\
 & & \hskip 1.1 cm j = 2: Soukhovitskii (Default $Z \ge 90$ and $Z \le 96$) \\
 & & \hskip 1.1 cm j = 3: Maslov 03\\
-& & $k=2$,  j = 3: Perey \\
-& & $k=2$,  j = 4: Perey \\
-& & $k=2$,  j = 5: Bechetti \\
-& & $k=2$,  j = 6: Avrigeanu \\
+& & \hskip 1.1 cm j = 4: Soukhovitskii \& Capote    20 \\
+& & $k=3$,  j = 1: Perey \\
+& & $k=4$,  j = 1: Perey \\
+& & $k=5$,  j = 1: Bechetti \\
+& & $k=6$,  j = 1: Avrigeanu \\
 \hline
 ${\texttt{fresco\_shape}}$ & $i$ & Integer defining the shape used in the FRESCOX coupled-channels calculation. See FRESCO manual.\\
 & & {\bf Default:} $i = 13$.\\

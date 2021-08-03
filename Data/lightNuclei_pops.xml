@@ -1,0 +1,204 @@
+<PoPs name="ripl3" version="1.0.0" format="0.1">
+<aliases>
+    <particle id="gamma" pid="photon"/></aliases>
+  <gaugeBosons>
+    <gaugeBoson id="photon">
+      <mass>
+        <double label="base" value="0.0" unit="amu"/></mass>
+      <spin>
+        <fraction label="base" value="1" unit="hbar"/></spin>
+      <parity>
+        <integer label="base" value="1"/></parity>
+      <charge>
+        <integer label="base" value="0" unit="e"/></charge>
+      <halflife>
+        <string label="base" value="stable" unit="s"/></halflife></gaugeBoson></gaugeBosons>
+  <leptons>
+    <lepton id="e-" generation="electronic">
+      <mass>
+        <double label="default" value="0.000548579909" unit="amu"/></mass>
+      <spin>
+        <fraction label="default" value="1/2" unit="hbar"/></spin>
+      <parity>
+        <integer label="default" value="1"/></parity>
+      <charge>
+        <integer label="default" value="-1" unit="e"/></charge>
+      <halflife>
+        <string label="default" value="stable" unit="s"/></halflife></lepton>
+    <lepton id="e-_anti" generation="electronic">
+      <mass>
+        <double label="default" value="0.000548579909" unit="amu"/></mass>
+      <spin>
+        <fraction label="default" value="1/2" unit="hbar"/></spin>
+      <parity>
+        <integer label="default" value="-1"/></parity>
+      <charge>
+        <integer label="default" value="-1" unit="e"/></charge>
+      <halflife>
+        <string label="default" value="stable" unit="s"/></halflife></lepton></leptons>
+  <baryons>
+    <baryon id="n">
+      <mass>
+        <double label="base" value="1.00866491588" unit="amu"/></mass>
+      <spin>
+        <fraction label="base" value="1/2" unit="hbar"/></spin>
+      <parity>
+        <integer label="base" value="1"/></parity>
+      <charge>
+        <integer label="base" value="0" unit="e"/></charge>
+      <halflife>
+        <double label="base" value="881.5" unit="s"/></halflife>
+      <decayData>
+        <decayModes>
+          <decayMode label="0" mode="beta">
+            <probability>
+              <double label="eval" value="1.0"/></probability>
+            <decayPath>
+              <decay index="0">
+                <products>
+                  <product label="e-" pid="e-"/>
+                  <product label="p" pid="p"/>
+                  <product label="nu_e-_anti" pid="nu_e-_anti"/></products></decay></decayPath></decayMode></decayModes></decayData></baryon>
+    <baryon id="n_anti">
+      <mass>
+        <double label="base" value="1.00866491588" unit="amu"/></mass>
+      <spin>
+        <fraction label="base" value="1/2" unit="hbar"/></spin>
+      <parity>
+        <integer label="base" value="1"/></parity>
+      <charge>
+        <integer label="base" value="0" unit="e"/></charge>
+      <halflife>
+        <double label="base" value="881.5" unit="s"/></halflife>
+      <decayData>
+        <decayModes>
+          <decayMode label="0" mode="beta">
+            <probability>
+              <double label="eval" value="1.0"/></probability>
+            <decayPath>
+              <decay index="0">
+                <products>
+                  <product label="e-_anti" pid="e-_anti"/>
+                  <product label="p_anti" pid="p_anti"/>
+                  <product label="nu_e-" pid="nu_e-"/></products></decay></decayPath></decayMode></decayModes></decayData></baryon>
+    <baryon id="p">
+      <mass>
+        <double label="base" value="1.00727646681" unit="amu"/></mass>
+      <spin>
+        <fraction label="base" value="1/2" unit="hbar"/></spin>
+      <parity>
+        <integer label="base" value="1"/></parity>
+      <charge>
+        <integer label="base" value="1" unit="e"/></charge>
+      <halflife>
+        <string label="base" value="stable" unit="s"/></halflife></baryon>
+    <baryon id="p_anti">
+      <mass>
+        <double label="base" value="1.00727646681" unit="amu"/></mass>
+      <spin>
+        <fraction label="base" value="1/2" unit="hbar"/></spin>
+      <parity>
+        <integer label="base" value="1"/></parity>
+      <charge>
+        <integer label="base" value="1" unit="e"/></charge>
+      <halflife>
+        <string label="base" value="stable" unit="s"/></halflife></baryon></baryons>
+
+  <chemicalElements>
+    <chemicalElement symbol="H" Z="1" name="Hydrogen">
+      <isotopes>
+        <isotope symbol="H1" A="1">
+          <nuclides>
+            <nuclide id="H1">
+              <mass>
+                <double label="default" value="1.00782503207" unit="amu"/></mass>
+              <charge>
+                <integer label="default" value="0" unit="e"/></charge>
+              <nucleus id="h1" index="0">
+                <spin>
+                  <fraction label="default" value="1/2" unit="hbar"/></spin>
+                <parity>
+                  <integer label="default" value="1"/></parity>
+                <charge>
+                  <integer label="default" value="1" unit="e"/></charge>
+                <halflife>
+                  <string label="default" value="stable" unit="s"/></halflife>
+                <energy>
+                  <double label="default" value="0." unit="MeV"/></energy></nucleus></nuclide></nuclides></isotope>
+        <isotope symbol="H2" A="2">
+          <nuclides>
+            <nuclide id="H2">
+              <mass>
+                <double label="default" value="2.01410177785" unit="amu"/></mass>
+              <charge>
+                <integer label="default" value="0" unit="e"/></charge>
+              <nucleus id="h2" index="0">
+                <spin>
+                  <fraction label="default" value="1" unit="hbar"/></spin>
+                <parity>
+                  <integer label="default" value="1"/></parity>
+                <charge>
+                  <integer label="default" value="1" unit="e"/></charge>
+                <halflife>
+                  <string label="default" value="stable" unit="s"/></halflife>
+                <energy>
+                  <double label="default" value="0." unit="MeV"/></energy></nucleus></nuclide></nuclides></isotope>
+        <isotope symbol="H3" A="3">
+          <nuclides>
+            <nuclide id="H3">
+              <mass>
+                <double label="default" value="3.01604927767" unit="amu"/></mass>
+              <charge>
+                <integer label="default" value="0" unit="e"/></charge>
+              <nucleus id="h3" index="0">
+                <spin>
+                  <fraction label="default" value="1/2" unit="hbar"/></spin>
+                <parity>
+                  <integer label="default" value="1"/></parity>
+                <charge>
+                  <integer label="default" value="1" unit="e"/></charge>
+                <halflife>
+                  <double label="default" value="3.888e8" unit="s"/></halflife>
+                <energy>
+                  <double label="default" value="0." unit="MeV"/></energy> </nucleus></nuclide></nuclides></isotope>
+       </isotopes></chemicalElement>
+    <chemicalElement symbol="He" Z="2" name="Helium">
+      <isotopes>
+        <isotope symbol="He3" A="3">
+          <nuclides>
+            <nuclide id="He3">
+              <mass>
+                <double label="default" value="3.01602931914" unit="amu"/></mass>
+              <charge>
+                <integer label="default" value="0" unit="e"/></charge>
+              <nucleus id="he3" index="0">
+                <spin>
+                  <fraction label="default" value="1/2" unit="hbar"/></spin>
+                <parity>
+                  <integer label="default" value="1"/></parity>
+                <charge>
+                  <integer label="default" value="2" unit="e"/></charge>
+                <halflife>
+                  <string label="default" value="stable" unit="s"/></halflife>
+                <energy>
+                  <double label="default" value="0." unit="MeV"/></energy></nucleus></nuclide></nuclides></isotope>
+        <isotope symbol="He4" A="4">
+          <nuclides>
+            <nuclide id="He4">
+              <mass>
+                <double label="default" value="4.00260325415" unit="amu"/></mass>
+              <charge>
+                <integer label="default" value="0" unit="e"/></charge>
+              <nucleus id="he4" index="0">
+                <spin>
+                  <fraction label="default" value="0" unit="hbar"/></spin>
+                <parity>
+                  <integer label="default" value="1"/></parity>
+                <charge>
+                  <integer label="default" value="2" unit="e"/></charge>
+                <halflife>
+                  <string label="default" value="stable" unit="s"/></halflife>
+                <energy>
+                  <double label="default" value="0." unit="MeV"/></energy> </nucleus></nuclide></nuclides></isotope>
+    </isotopes></chemicalElement> </chemicalElements>
+</PoPs>
