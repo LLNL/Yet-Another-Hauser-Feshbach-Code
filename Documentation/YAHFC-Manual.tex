@@ -13,6 +13,7 @@ nofootinbib
 \usepackage[colorlinks=true,urlcolor=blue,citecolor=blue]{hyperref}
 \usepackage{color}
 \usepackage{lipsum}
+\usepackage{amsmath}
 %\usepackage[symbol]{footmisc}
 
 \def\@fnsymbol#1{\ensuremath{\ifcase#1\or *\or \dagger\or \ddagger\or
@@ -28,7 +29,7 @@ nofootinbib
 
 \begin{document}
 
-\title{Monte Carlo Hauser-Feshbach computer code system to model nuclear reactions: YAHFC  Version 3.64 }
+\title{Monte Carlo Hauser-Feshbach computer code system to model nuclear reactions: YAHFC V3.65  }
 
 \email{ormand1@llnl.gov}
 \author{W. E. Ormand}
@@ -92,12 +93,14 @@ Low-energy nuclear reactions take place primarily through the formation of the c
 \end{enumerate}
 \item Following the initial decay, the system is decayed statistically to the terminus.
 \end{enumerate}
-In YAHFC, the decays are conducted via Monte Carlo and data is collected at each step; for example, the emission energy, angle, etc., for emitted particle in both the Lab frame and the reaction center-of-mass reference system. Options exist to print data for each decay step for later analysis by the user. After completing the calculation, the data is collected via the exit channels and printed into libraries that can be translated in GNDS format.
+In YAHFC, the decays are conducted via Monte Carlo and data is collected at each step; for example, the emission energy, angle, etc., for emitted particle in both the stationary Lab frame and the reaction center-of-momentum reference system. Options exist to print data for each decay step for later analysis by the user. After completing the calculation, the data is collected via the exit channels and printed into libraries that can be translated in GNDS format.
 
 \subsection{Formation Probability}
+\label{sec:Form}
+
 Modeling the decay of any nucleus can be initiated in one of two ways with YAHFC. The first is to model the reaction formation with the optical model formalism, which provides the reaction cross sections for elastic and direct processes as well as absorption. The second is to manually input populations as a function of excitation energy, angular momentum, and parity.
 
-The optical potential formalism is used to provide details the total cross section, absorption cross section, and elastic scattering. Direct excitations to rotational or vibrational states are accounted for within the standard coupled-channels framework and additional direct excitations to ancillary states can be accounted for with the distorted-wave Born approximation (DWBA). The optical potential provides the transmission coefficients for the incident particle, $T_{lj}(E_{\rm in})$, where $E_{\rm in}$ is chosen here to be the incident energy of the projectile in the center-of-mass frame, $l$ is the orbital angular momentum, and $j$ is the total angular momentum of the projectile particle, i.e., $\vec j = \vec l + \vec s$, with $s$ being the intrinsic spin of the projectile. The absorption cross section for the entrance channel defined by $l$ and $j$ coupled to a target state with angular momentum and parity $J_T^{\pi_T}$ to form a state with angular momentum and parity $J^\pi$ in the composite nucleus is
+The optical potential formalism is used to provide details the total cross section, absorption cross section, and elastic scattering. Direct excitations to rotational or vibrational states are accounted for within the standard coupled-channels framework and additional direct excitations to ancillary states can be accounted for with the distorted-wave Born approximation (DWBA). The optical potential provides the transmission coefficients for the incident particle, $T_{lj}(E_{\rm in})$, where $E_{\rm in}$ is chosen here to be the incident energy of the projectile in the center-of-momentum frame, $l$ is the orbital angular momentum, and $j$ is the total angular momentum of the projectile particle, i.e., $\vec j = \vec l + \vec s$, with $s$ being the intrinsic spin of the projectile. The absorption cross section for the entrance channel defined by $l$ and $j$ coupled to a target state with angular momentum and parity $J_T^{\pi_T}$ to form a state with angular momentum and parity $J^\pi$ in the composite nucleus is
 \begin{equation}
 \sigma_{\rm abs}^{ljJ_TJ^\pi}(E_{\rm in}) = {\pi}{\lambdabar^2} \frac{2J + 1}{(2j+1)(2J_T+1)}T_{lj}(E_{\rm in}),
 \label{eq:abs_chan}
@@ -231,7 +234,7 @@ $T > 10$ & 10\\
 \end{center}
 To enhance performance without sacrificing accuracy, width fluctuations are not applied for entrance channels with $T>50$, which may be changed with the command ${\texttt{moldauer\_cutoff}}$, or if it contributes less than 0.01\% to the absorption cross section. The Moldauer width-fluctuation model is turned on(off) with the command ${\texttt{wf\_model 1(0)}}$ (the default is on). 
 
-Now, we turn to the angular distribution for the primary decay of a compound system with angular momentum and parity $J^\pi$. In this case, the incident particle is type  $k$ with intrinsic spin $s$, orbital angular momentum $l$, angular momentum $j$ ($|l-s| \le j \le l+s$) coupled to the initial target state with angular momentum and parity $J_T^{\pi_T}$. The ejectile is a particle of type $k^\prime$ with intrinsic spin $s^\prime$, orbital angular momentum $l^\prime$, and angular momentum $j^\prime$ coupled to a final state with angular momentum and parity $J_F^{\pi_F}$. The angular distribution has the probability distribution for the angle $\theta$ in the center-of-mass frame as (the probability distribution for the azimuthal angle $\phi$ is uniform)
+Now, we turn to the angular distribution for the primary decay of a compound system with angular momentum and parity $J^\pi$. In this case, the incident particle is type  $k$ with intrinsic spin $s$, orbital angular momentum $l$, angular momentum $j$ ($|l-s| \le j \le l+s$) coupled to the initial target state with angular momentum and parity $J_T^{\pi_T}$. The ejectile is a particle of type $k^\prime$ with intrinsic spin $s^\prime$, orbital angular momentum $l^\prime$, and angular momentum $j^\prime$ coupled to a final state with angular momentum and parity $J_F^{\pi_F}$. The angular distribution has the probability distribution for the angle $\theta$ in the center-of-momentum frame as (the probability distribution for the azimuthal angle $\phi$ is uniform)
 \begin{equation}
 P(\theta) = \sum_L A^J_{J_Tlj,J_Fl^\prime j^\prime ;L} P_L(\theta).
 \end{equation}
@@ -621,7 +624,7 @@ Default parameters from ${\texttt{RIPL-3}}$ are provided for the fission barrier
 
 YAHFC is effectively an event-by-event reaction simulator. An initial state with excitation energy $E_x$ and angular momentum/parity $J^\pi$ is populated via the probability dictated by the reaction cross section from an optical model calculation, or a population probability specified by the user. This initial state is then decayed via the emission of gammas, particles, and/or fission with probabilities governed by the Hauser-Feshbach process (including pre-equilibrium) until the system reaches a state where further decay is not possible (this includes isomeric states whose lifetime is longer than the default threshold of 1s or a value  specified by the user with the command ``${\texttt{t12\_isomer }}t_{1/2}$''). The decays from each event are then sorted into the allowed channels, with data then collected for each channel and then printed into data files following the completion of the calculation. With the command ${\texttt{dump\_events}}$ the decays for each event can be printed to a specified file in either a binary or ascii format.  
 
-The decay probabilities for each continuous energy bin and discrete state are pre-calculated, stored, and associated with each state. These decay probabilities are sorted by particle type, and a master list of viable decays for this particle type is made with a running sum of the probability. Associated with each listed decay, the properties of the final state, e.g., bin number, $J$ and $\pi$, are stored in a packed integer. A state is decayed by first checking on the particle decay probability, which is then followed with a search through the viable decays to the various final states. This is accomplished by selecting a random number and bracketing the probability in the list via bi-section search. At this point, the data associated with this decay, e.g., particle type, energy, angles $\theta$ and $\phi$, angular momentum, recoil energy, etc., are stored in an array. At each step of the decay, the reference frame for the final nucleus is updated, and the particle data are transformed to both the lab frame and the center-of-mass frame for the reaction using a Lorentz boost transformation. Data in these frames is stored in the particle-decay array. At this point, the endpoint for this decay then becomes the initial state, and the Monte Carlo decay process is repeated until the decay terminates to a point where further decay is no longer possible. 
+The decay probabilities for each continuous energy bin and discrete state are pre-calculated, stored, and associated with each state. These decay probabilities are sorted by particle type, and a master list of viable decays for this particle type is made with a running sum of the probability. Associated with each listed decay, the properties of the final state, e.g., bin number, $J$ and $\pi$, are stored in a packed integer. A state is decayed by first checking on the particle decay probability, which is then followed with a search through the viable decays to the various final states. This is accomplished by selecting a random number and bracketing the probability in the list via bi-section search. At this point, the data associated with this decay, e.g., particle type, energy, angles $\theta$ and $\phi$, angular momentum, recoil energy, etc., are stored in an array. At each step of the decay, the reference frame for the final nucleus is updated, and the particle data are transformed to both the lab frame and the center-of-momentum frame for the reaction using a Lorentz boost transformation. Data in these frames is stored in the particle-decay array. At this point, the endpoint for this decay then becomes the initial state, and the Monte Carlo decay process is repeated until the decay terminates to a point where further decay is no longer possible. 
 
 It is to be noted that list of viable decays following each particle is truncated by specifying a minimum probability (the default is $10^{-7}$ and may be set by the user with the command ${\texttt{prob\_cut}}$). Additional cutoffs are imposed on the transmission coefficients for ``particle'' emission. For electromagnetic transitions, a cutoff of $10^{-14}$ is imposed and is controlled with the command ${\texttt{trans\_e\_cut}}$. For particle emission two cutoffs are imposed. The first is on the magnitude of the transmission coefficient, $10^{-7}$, which is controlled with the command ${\texttt{trans\_p\_cut}}$. The second is affects the emission of low-energy charged particles. Similar to their calculation with the optical potential, charged particle emission is not considered if the distance of closest approach as associated with the emission energy is fives the nuclear radius. This limits the list of decays to those that are viable and speeds up execution. Along these lines, in the subroutine that sets up the Hauser-Feshbach decays, the array of possible decays is actually looped over three times: (1) determine the scale of the Hauser Feshbach denominator, (2) count the number of viable decays and allocate the list arrays, and (3) fill the list arrays. Overall, the time to set up the Hauser Feshbach decays is of the order of a few minutes.
 
@@ -629,7 +632,7 @@ One complication with Monte Carlo sampling is the treatment of so-called ``rare'
 
 With Monte Carlo sampling, the angular distributions collected for each emission energy can also be subject to unacceptably large fluctuations due to smaller sampling size. In YAHFC, these fluctuations are countered in three ways. First, for inelastic transitions involving a primary decay directly to a discrete state, which are handled separately in the YAHFC library files, the Legendre coefficients for the angular distribution of the primary decay, as defined in Eq. (\ref{eq:Pri-Ang}), are stored for each decay and are averaged over all Monte Carlo samples in this decay channel. The angular distributions are then constructed using these averaged Legendre coefficients.  Second, for each decay, a set of extra theta angles are sampled, and distributed accordingly, which effectively increasing the angular statistics. The default number of theta angles is 10, which incurs approximately a factor two cost in cpu time. The number of extra angles is controlled with the option ``${\texttt{num\_theta\_angles }} N$'' (the minimum is $N = 1$). Third, the angular distributions for particles emitted in each channel are sorted into 11 equally spaced bins of $x=\cos(\theta)$, $\Delta x = 0.2$. These angular distributions are then decomposed into a Legendre expansion with the number of terms, $L_{\rm max}$, dependent on the number of events in the emission energy window and the magnitude of the deviations in the distribution relative to that expected from isotropic emission (which is the default expectation for compound nucleus emission). The value of $L_{\rm max}$ used for the Legendre decomposition is given by the conditions specified in Table~\ref{tab:L_max} for the number of events in the emission energy window across all angles for inelastic scattering, $N_e^{inel}$, and all other reaction channels $N_e$. An additional check for reactions not involving inelastic scattering is made on the variations in the angular distributions relative to isotropic emission. For example, with 11 equally spaced bins for $x$, and $N$ total events in the energy window, for isotropic emission would expect $N_e=N/11$ events in each $x$-bin with an uncertainty $\delta N_e = \sqrt{N/11}$. For cases where $L_{\rm max} > 0$ based on the total number of events, if the average difference across the angular bins between the calculated angular distribution and isotropic distribution, $\delta A$, is of the order $\delta N_e$, then $L_{\rm max} = 0$, for $\delta N_e \le \delta A < 1.75 \delta N_e$, we take $L_{\rm max} = 2$, for $1.75\delta N_e \le \delta A < 2.5 \delta N_e$, $L_{\rm max} = 4$, and finally $L_{\rm max} = 6$ for $ \delta A \ge 2.5 \delta N_e$. This second check is implemented in order to avoid over ``fitting'' the distributions for systems that are expected to be nearly isotropic. It is not, however, applied to inelastic reactions, where as seen in Eqs.~(\ref{eq:PE-Ang}) and (\ref{eq:Pri-Ang}) some anisotropy is expected.  The angular distributions for the output ``data library'' are printed for both the Legendre coefficients and the reconstructed angular distributions using the Legendre coefficients and printed out with 21 equally spaced values in $x$, i.e., $\Delta x = 0.1$. Angular distributions for all particles and channels are normalized to unity with the exception of elastic scattering for charged particles, which are normalized to the ratio to Rutherford. 
 
-If only the cross section data is desired for a calculation, the option ``${\texttt{xs\_only y}}$'' is provided (default = ${texttt{n}}$). With this option, no angles are sampled for any of the events, and the Lorentz transformations from the decaying system to the center-of-mass and laboratory reference frames are not performed, as emission spectra are not printed. This option decreases the CPU time to complete the calculation by approximately a factor of two.
+If only the cross section data is desired for a calculation, the option ``${\texttt{xs\_only y}}$'' is provided (default = ${\texttt{n}}$). With this option, no angles are sampled for any of the events, and the Lorentz transformations from the decaying system to the center-of-momentum and the stationary  laboratory reference frames are not performed, as emission spectra are not printed. This option decreases the CPU time to complete the calculation by approximately a factor of two.
 
 \begin{table}
 \caption{The maximum number of terms, $L_{\rm max}$, for the Legendre decomposition of the angular distributions as a function of the number of events within a given energy window across all angles for inelastic reactions, $N_e^{inel}$, and all other channels, $N_e$.}
@@ -687,7 +690,7 @@ Index & Data & Description \\
 
 \section{Monte Carlo Events}
 
-With the options ``${\texttt{dump\_events y a(b)}}$'' or ``${\texttt{event\_generator}}$, YAHFC will write each Monte Carlo decay sequence to a file on disk in ascii or binary format for post processing or other uses. For each event, a header is printed that contains the event number, the number of emitted particle, $N_{part}$, the incident energy, the kinetic energy of the initial energy (only valid for a population decay), and Monte Carlo weight for this event (not necessarily unity when using unbiased sampling). For each particle, 25 pieces of data are printed including initial and final states, the kinetic parameters for the emitted particles in three frames: 1) rest (Rest) frame of the decaying nucleus, 2) the center-of-mass (COM) of the projectile and target, and 3) the fixed laboratory (Lab) frame. The data in these frames are computed by tracking the relativistic Lorentz boost transformation from the decaying nucleus to the Lab frame. The 25 data elements printed to the file are listed in Table~\ref{tab:events}
+With the options ``${\texttt{dump\_events y a(b)}}$'' or ``${\texttt{event\_generator}}$, YAHFC will write each Monte Carlo decay sequence to a file on disk in ascii or binary format for post processing or other uses. For each event, a header is printed that contains the event number, the number of emitted particle, $N_{part}$, the incident energy, the kinetic energy of the initial energy (only valid for a population decay), and Monte Carlo weight for this event (not necessarily unity when using unbiased sampling). For each particle, 25 pieces of data are printed including initial and final states, the kinetic parameters for the emitted particles in three frames: 1) rest (Rest) frame of the decaying nucleus, 2) the center-of-momentum (COM) of the projectile and target, and 3) the fixed laboratory (Lab) frame. The data in these frames are computed by tracking the relativistic Lorentz boost transformation from the decaying nucleus to the Lab frame. The 25 data elements printed to the file are listed in Table~\ref{tab:events}
 
 \section{Data Libraries}
 \label{sec:Libraries}
@@ -703,6 +706,40 @@ ${\texttt{235U/n/np}}$\\
 ${\texttt{235U/n/f}}$\\
 \\
 are used for neutrons incident on $^{235}$U to describe neutron capture, (n,n$^\prime$), (n,2n), (n,3n), and neutron induced fission. For fissioning systems, the cross section for fission following particle emission is also printed in the channel directory. 
+
+Data are printed in these directories related to the cross section and the emission spectra and angular distributions if option "${\texttt{xs\_only n}}$" is selected. For channel directories that do not contain inelastic reactions, data are printed associated with the channel and decays that terminate to a given state in the residual nucleus. The terminus states are either the ground state or an isomer defined in the calculation, and are noted with the label "${\texttt{LXXX}}$", where ${\texttt{XXX}}$ is the state number (starting at zero for the ground state). For each channel, the following files appear for each terminus state:\\
+\\
+${\texttt{Channel\_label\_cs\_LXXX.dat}}$ \\
+${\texttt{Channel\_label\_Eout\_Ang\_G\_Ein\_LXXX.dat}}$ \\
+${\texttt{Channel\_label\_Eout\_Ang\_Leg\_G\_Ein\_LXXX.dat}}$\\
+${\texttt{Channel\_label\_Eout\_G\_Ein\_LXXX.dat}}$\\
+${\texttt{Channel\_label\_Ang\_G\_Ein\_LXXX.dat}}$\\
+\\
+where ${\texttt{label}}$ denotes the channel label, e.g., ${\texttt{2n}}$ for two emitted neutrons. The first file contains the cross section for each incident energy. In the second file, the emission spectra and angular distributions for each incident energy are printed as a probability-density function, $P(E,x|E_{in})$, with $x=\cos\theta$, and is normalized according to 
+\begin{equation}
+\int\int_{-1}^1 P(E,x|E_{in})dE dx = 1.
+\end{equation}
+In the file, the distributions are printed on equally spaced grids in $E$ and $x$ and are normalized over the distribution range using the trapazoidial rule.  The third file is similar to the second file except that the angular distribution is expanded with Legendre coefficients. In the fourth and fifth files, only the emission spectrum ($P(E|E_{in})$) and the angular distributions ($P(x|E_{in})$) are printed, respectively.  The total cross section for this channel is collected in the file ${\texttt{Channel\_label\_cs\_Tot.dat}}$. In the case where fission is present, the contribution to the fission cross section from this channel is printed in ${\texttt{Channel\_label\_cs\_fission.dat}}$
+
+For inelastic channels, i.e., reactions with a single emitted particle that is identical to the projectile, two types of files are printed. The first represents reactions where the first, or primary decay, involves the emission of the projectile particle directly to a discrete state in the target nucleus. These data are collected in the files\\
+\\
+${\texttt{Inelastic\_cs\_LXXX.dat}}$ \\
+${\texttt{Inelastic\_Ang\_LXXX.dat}}$ \\
+${\texttt{Inelastic\_Ang\_leg\_LXXX.dat}}$ \\
+\\
+for the cross section, angular distribution of the emitted particle, and the Legendre coefficients of the angular distribution, respectively. As before, ${\texttt{LXXX}}$ denotes the discrete state in the target nucleus. These files contain direct reactions via coupled channels and DWBA as well as pre-equilibirum emission and decays for the compound nucleus. Note that these files begin with the label ${\texttt{L001}}$, as state 0 is the ground state, whose decays are collected in the files starting with name ${\texttt{Compound\_Elastic}}$. The second set of files, which are similar to the channel data files described above, represent all inelastic transitions that do not involve populating a discrete state in the target nucleus by the emission of the projectile particle directly to that state in the first decay of the cascade. These include a particle emitted to the continuous energy bins and rare cases where a photon is emitted prior to the emission of a particle. Similar to the channel data above, are the files\\
+\\
+${\texttt{Channel\_P\_cs\_LXXX.dat}}$ \\
+${\texttt{Channel\_P\_Eout\_Ang\_G\_Ein\_LXXX.dat}}$ \\
+${\texttt{Channel\_P\_Eout\_Ang\_Leg\_G\_Ein\_LXXX.dat}}$\\
+${\texttt{Channel\_P\_Eout\_G\_Ein\_LXXX.dat}}$\\
+${\texttt{Channel\_P\_Ang\_G\_Ein\_LXXX.dat}}$\\
+\\
+where ${\texttt{P}}$ denotes the particle label for for the projectile, and hence the label for inelastic channels. These files include all  reactions where the cascade of decays terminate in the ${\texttt{XXX}}$ level. In order to provide a more accurate description of the gamma transitions for these reactions, a second set of files\\
+\\
+${\texttt{Channel\_P\_cs\_entry\_to\_LXXX.dat}}$, \\
+\\
+containing the cross section for these decays at their entry point into the discrete spectrum in the target nucleus is provided. As a consequence, the gamma spectra in the channel files do not contain gamma transitions between discrete states in the cascade of decays. As noted above, these files contain transitions from the continuous energy bins in the target as well as the rare cases of photon decay in the composite nucleus followed by emission of the projectile particle. Consequently, rather weak cross section will be present in these files for incident energies below $E_{cut}$. It is to be noted that the sum of the channel files and the entry files are equal to the total cross sections appearing in  ${\texttt{Channel\_P\_cs\_Tot.dat}}$
 
 By default, channels are not explicit, in that the order of particle emission is not considered, just the number and type of each emitted particle is used to define a channel. If information regarding the explicit channels is desired, i.e., distinguishing between the reactions (n,nnp), (n,npn), and (n,pnn), the command ``${\texttt{explicit\_channels y}}$'' is provided (default = ${\texttt{n}}$). In this case, the library data structure would be, for example\\
 \\
@@ -836,6 +873,64 @@ where input.pop is a user defined file that specifies the probabilities for each
 \end{tabular}
 \end{center}
 This file contains entries for five initial excitation energies with populations for different angular momenta and parity states. The second input on the energy line is a an option to add an energy spread to the incident excitation energy. For each Monte Carlo sample, the excitation energy will be Gaussian distributed with a central energy $E_x$ with a width $dE_x$. This can be useful for modeling the decay of fission fragments, where the initial excitation energy has a spread. The third entry on the excitation energy line is the overall population normalization, for example, a cross section as computed from another reaction model code. If only population probabilities are desired, this entry may be omitted, and all populations will be normalized to unity. Following the excitation energy line, is the number of populations to be read in, e.g., 4, where the initial $J^\pi$ values are specified as well as the population probability. These initial probabilities should be normalized to unity, but will be normalized by YAHFC and used as population probabilities during execution. 
+
+\section{Center-of-Momentum Frame}
+
+The kinematics of the incident projectile, and the decay from each nucleus in the decay chain are computed using relativistic dynamics. Reactions are computed with an incident projectile, moving in the $z$-direction with kinetic energy $E_{Lab}$ impacting a target nucleus at rest in the laboratory frame. In the center-of-momentum frame (COM), the incident kinetic energy, $E_{in}$ (as used in Sec.~\ref{sec:Form}), of the projectile that is available to excite the compound nucleus is
+\begin{equation}
+E_{in} =  \sqrt{(M_p+M_T)^2 + 2M_T E_{Lab}}-(M_p+M_T),
+\end{equation}
+where $M_p$ and $M_T$ are the rest masses of the projectile and target nuclei (in units of energy), respectively. The center-of-momentum frame is then moving relative to the fixed laboratory frame in the positive $z$-direction with Lorentz transformation parameters
+\begin{align}
+\beta & = \frac{p_{Lab}}{M_T + M_p + E_{Lab}},\\
+\gamma & = \frac{M_T+M_p + E_{Lab}}{(M_p+M_T)^2 + 2M_T E_{Lab}},
+\end{align}
+where $p_{Lab} = \sqrt{(M_p+E_{Lab})^2-M_p^2}$ is the momentum of the projectile in the laboratory frame. The Lorentz transformation from the COM frame back to the laboratory frame\footnote{Note the positive sign for the off-diagonal term $\gamma\beta$, this is due to the laboratory frame moving with velocity $\beta$ in the negative $z$-direction relative to the COM frame.} is
+\begin{equation}
+\Gamma_1 =
+\begin{pmatrix}
+\gamma &  \gamma\beta &  0  & 0 \\
+\gamma\beta  &  \gamma &  0  & 0 \\
+0 & 0 & 1 & 0 \\
+0 & 0 & 0 & 1 \\
+\end{pmatrix}.
+\end{equation}
+By definition, the decay of the fist particle occurs in the COM frame.
+
+For the decay of the $n^{th}$ particle with energy release $E_n$, the decay particle (d) and residual nucleus (R) exit back-to-back, with equal momenta of magnitude
+\begin{equation}
+p = \frac{\sqrt{E_E^4-M_d^2M_R^2}}{E_T},
+\end{equation}
+where $E_T=E_n+M_d+M_R$\footnote{Here, any excitation energy in the residual nucleus is included in the mass $M_R$.} is the total energy of the decaying nucleus and
+\begin{equation}
+E_E = \sqrt{\frac{E_T^2-M_d^2-M_R^2}{2}}.
+\end{equation}
+The cartesian components of the momentum of the decay particle are
+\begin{align}
+p_{d,1} & = p\cos(\theta) \\
+p_{d,2} &= p\sin(\theta)\cos(\phi)\\
+p_{d,3} & = p\sin(\theta)\sin(\phi).
+\end{align}
+The momentum of the residual nucleus is then $\vec p_R = - \vec p_d$, and the velocity of the recoil nucleus, which is the rest frame for the next decay, is 
+\begin{equation}
+\vec \beta = \frac{\vec p_{R}}{\gamma M_R},
+\end{equation}
+where  $\gamma = \sqrt{p^2+M_R^2}/M_R$. The Lorentz transformation back to the rest frame of the previous decay is
+\begin{equation}
+\Gamma_n =
+\begin{pmatrix}
+\gamma &  \gamma\beta_1 &  \gamma\beta_2  & \gamma\beta_3 \\
+\gamma\beta_1  &  1+\gamma^\prime\beta_1^2 &  -\gamma^\prime\beta_1\beta_2  & -\gamma^\prime\beta_1\beta_3 \\
+\gamma\beta_2 &- \gamma^\prime\beta_1\beta_2 & 1+\gamma^\prime\beta_2^2 & -\gamma^\prime\beta_2\beta_3 \\
+\gamma\beta_3 & -\gamma^\prime\beta_1\beta_3 & -\gamma^\prime\beta_2\beta_3 & 1+\gamma^\prime\beta_3^2 \\
+\end{pmatrix},
+\end{equation}
+where $\gamma^\prime = (\gamma-1)/\beta^2$. Thus, the energy and angles of the $n^{th}$ decay particle in the center-of-momentum and the laboratory frame are obtained via successive applications of Lorentz transformations to four-momentum $p_d$ of the decaying particle, i.e.,
+\begin{align}
+p_d^{COM} &= \Gamma_2 ...\Gamma_{n-1}p_d,\\
+p_d^{Lab} &= \Gamma_1p_d^{COM}.
+\end{align}
+
 
 \section{Pre-equilibrium Parameters}
 \label{App:Preeq}

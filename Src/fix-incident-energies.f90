@@ -1,7 +1,8 @@
 !
 !*****************************************************************************80
 !
-subroutine fix_incident_energies(iproj, rel_factor)
+!subroutine fix_incident_energies(iproj, rel_factor)
+subroutine fix_incident_energies
 !
 !*****************************************************************************80
 !
@@ -55,16 +56,17 @@ subroutine fix_incident_energies(iproj, rel_factor)
    use nuclei
    use particles_def
    implicit none
-   integer(kind=4), intent(in) :: iproj
-   real(kind=8), intent(in) :: rel_factor
 !-------------------------------------------------------------------------
    integer(kind=4) :: num_energies
+   integer(kind=4) :: iproj
    integer(kind=4) :: j, in, in2, in3
    integer(kind=4) :: ishift
    logical :: e_in_problem
    real(kind=8) :: e_in, e_in2, e_rel, e_x
 !------------    External functions
    integer(kind=4) :: find_ibin
+   real(kind=8) :: KE_com
+   real(kind=8) :: KE_lab
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !------                                                                   +
 !--------   Now that energy grids are set up, remap incident projectile   +
@@ -73,6 +75,7 @@ subroutine fix_incident_energies(iproj, rel_factor)
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
    num_energies = projectile%num_e
+   iproj = projectile%particle_type
 
 
 !---    If incident photons, remove low-energy below E_cut
@@ -104,7 +107,8 @@ subroutine fix_incident_energies(iproj, rel_factor)
    do in = 1, num_energies
       e_in = projectile%energy(in)
       if(.not.pop_calc)then
-         e_rel = e_in*rel_factor
+!         e_rel = e_in*rel_factor
+         e_rel = KE_com(projectile%mass, target%mass, e_in)
          e_x = e_rel + nucleus(1)%sep_e(projectile%particle_type)
          if(e_x < nucleus(1)%sep_e(projectile%particle_type) +     &
                0.5d0*nucleus(1)%delta_e(1))cycle
@@ -115,12 +119,14 @@ subroutine fix_incident_energies(iproj, rel_factor)
          if(j > 0)then
             e_x = nucleus(1)%e_grid(j)
             e_rel = e_x - nucleus(1)%sep_e(projectile%particle_type)
-            e_in = e_rel/rel_factor
+!            e_in = e_rel/rel_factor
+            e_in = KE_lab(projectile%mass, target%mass, e_rel)
             projectile%energy(in) = e_in
          else
             e_x = nucleus(1)%e_grid(1)
             e_rel = e_x - nucleus(1)%sep_e(projectile%particle_type)
-            e_in = e_rel/rel_factor
+!            e_in = e_rel/rel_factor
+            e_in = KE_lab(projectile%mass, target%mass, e_rel)
             projectile%energy(in) = e_in
             e_in_problem = .true.
          end if

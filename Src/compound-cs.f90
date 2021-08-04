@@ -78,14 +78,18 @@ subroutine compound_xs(e_in, itarget, istate, iproj, sigma,      &
 !----------   External functions
    real(kind=8) :: jhat
    real(kind=8) :: tco_interpolate
+   real(kind=8) :: KE_com
+   real(kind=8) :: pc_com
 !-----------------------------------------------------------
    spin_target = nucleus(itarget)%state(istate)%spin
    spin_proj = particle(iproj)%spin
    mass_i = particle(iproj)%Mass
    mass_t = nucleus(itarget)%Mass + nucleus(itarget)%state(istate)%energy
-   e_rel = e_in*mass_t/(mass_t + mass_i)
-   mass_rel = mass_i*mass_t/(mass_t + mass_i)
-   momentum = dsqrt(2.0d0*e_rel*mass_rel)
+!   e_rel = e_in*mass_t/(mass_t + mass_i)
+!   mass_rel = mass_i*mass_t/(mass_t + mass_i)
+!   momentum = dsqrt(2.0d0*e_rel*mass_rel)
+   e_rel = KE_com(mass_i, mass_t, E_in)
+   momentum = pc_com(mass_i, mass_t, E_in)
    wave_number = momentum/hbar_c
    cs = pi/wave_number**2*fmsq_eq_barn
    cpar = nint(particle(iproj)%par*nucleus(itarget)%state(istate)%parity)
@@ -250,7 +254,8 @@ real(kind=8) function comp_cs(ie,itarget,istate,k)
    real(kind=8) :: xj
    real(kind=8) :: xI, xI_min, xI_max
    integer(kind=4) :: Ix
-   real(kind=8) :: mass_i,mass_t,mass_rel,e_rel
+   real(kind=8) :: mass_i,mass_t
+!   real(kind=8) :: mass_rel,e_rel
    real(kind=8) :: momentum,wave_number
    real(kind=8) :: spin_proj,spin_target
    integer(kind=4) isp
@@ -263,15 +268,19 @@ real(kind=8) function comp_cs(ie,itarget,istate,k)
    real(kind=8) :: mass_target
 !----------   External functions
    real(kind=8) :: jhat
+   real(kind=8) :: KE_com
+   real(kind=8) :: pc_com
 !-----------------------------------------------------------
-   e_rel = particle(k)%e_grid(ie)
+!   e_rel = particle(k)%e_grid(ie)
    mass_target = nucleus(itarget)%mass + nucleus(itarget)%state(istate)%energy
    spin_target = nucleus(itarget)%state(istate)%spin
    spin_proj = particle(k)%spin
    mass_i = particle(k)%Mass
    mass_t = nucleus(itarget)%Mass + nucleus(itarget)%state(istate)%energy
-   mass_rel = mass_i*mass_t/(mass_t + mass_i)
-   momentum = dsqrt(2.0d0*e_rel*mass_rel)
+!   mass_rel = mass_i*mass_t/(mass_t + mass_i)
+!   momentum = dsqrt(2.0d0*e_rel*mass_rel)
+!   e_rel = KE_com(mass_i, mass_t, E_in)
+   momentum = pc_com(mass_i, mass_t, particle(k)%e_grid(ie))
    wave_number = momentum/hbar_c
    cs = pi/wave_number**2*fmsq_eq_barn
 
@@ -379,6 +388,8 @@ real(kind=8) function compound_cs(e_in,ipar,xI,itarget,istate,iproj)
 !----------   External functions
    real(kind=8) :: jhat
    real(kind=8) :: tco_interpolate
+   real(kind=8) :: KE_com
+   real(kind=8) :: pc_com
 !-----------------------------------------------------------
    compound_cs = 0.0d0
    par = 2*ipar - 1
@@ -386,9 +397,11 @@ real(kind=8) function compound_cs(e_in,ipar,xI,itarget,istate,iproj)
    spin_proj = particle(iproj)%spin
    mass_i = particle(iproj)%Mass
    mass_t = nucleus(itarget)%Mass + nucleus(itarget)%state(istate)%energy
-   e_rel = e_in*mass_t/(mass_t + mass_i)
-   mass_rel = mass_i*mass_t/(mass_t + mass_i)
-   momentum = dsqrt(2.0d0*e_rel*mass_rel)
+!   e_rel = e_in*mass_t/(mass_t + mass_i)
+!   mass_rel = mass_i*mass_t/(mass_t + mass_i)
+!   momentum = dsqrt(2.0d0*e_rel*mass_rel)
+   e_rel = KE_com(mass_i, mass_t, E_in)
+   momentum = pc_com(mass_i, mass_t, E_in)
    wave_number = momentum/hbar_c
    cs = pi/wave_number**2*fmsq_eq_barn
    cpar = nint(particle(iproj)%par*nucleus(itarget)%state(istate)%parity)

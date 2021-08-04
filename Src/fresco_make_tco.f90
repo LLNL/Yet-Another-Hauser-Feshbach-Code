@@ -42,6 +42,7 @@ subroutine fresco_make_tco(data_path, len_path, tco_file, len_tco,           &
 !        real(kind=8) :: poly
 !        real(kind=8) :: interp
 !        integer(kind=4) :: state_index
+!        real(kind=8) :: KE_com
 !
 !     MPI routines:
 !
@@ -232,6 +233,8 @@ subroutine fresco_make_tco(data_path, len_path, tco_file, len_tco,           &
   real(kind=8) :: poly
   real(kind=8) :: interp
   integer(kind=4) :: state_index
+  real(kind=8) :: KE_com
+!--------------------------------------------------------------------
 
 !-----   set up templates for protons and neutrons so that we can run 
 !-----   RunTemplate
@@ -752,9 +755,10 @@ subroutine fresco_make_tco(data_path, len_path, tco_file, len_tco,           &
   if(iproc == 0)write(6,*)'Running frescox with the following Lab energies'
   do ie = 1, nume
      ener = ener*factor
-     particle(pindex)%e_grid(ie) = ener*mass_target/(mass_target + mass_proj)     !   COM frame
+!     particle(pindex)%e_grid(ie) = ener*mass_target/(mass_target + mass_proj)     !   COM frame
+     particle(pindex)%e_grid(ie) = KE_com(mass_proj, mass_target, ener)            !   COM frame
      e_lab = ener
-     energy(ie) = e_lab                                                           !   Lab frame
+     energy(ie) = e_lab                                                            !   Lab frame
      if(iproc == 0)write(6,*)ie, energy(ie)
   end do
 

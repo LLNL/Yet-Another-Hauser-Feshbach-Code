@@ -317,8 +317,10 @@ subroutine print_inelastic(itarget, istate, ilab, file_lab, ilib_dir, lib_dir, c
             istate-1,nucleus(itarget)%state(istate)%spin, ch_par(ipi),                          &
             nucleus(itarget)%state(istate)%energy
       write(100,'(''# Inelastic Angular Distribution data '')')
-      write(100,'(''# Contains only primary decays to discrete final state.'')')
+      write(100,'(''# Contains only primary decays of the projectile particle to discrete final state.'')')
       write(100,'(''# Note subsequent gamma decays from the final state are not tracked.'')')
+      write(100,'(''# The probability density function P(x|E_in) is printed, x = cos(theta)'')')
+      write(100,'(''# This distribution is normalized using the trapazoidial rule'')')
       write(100,'(''#'')')
       write(100,'(''# Mass amu = '',1pe23.16,'' MeV'')')mass_u
       write(100,'(''# Mass of target = '',1pe23.16,'' amu'')')nucleus(itarget)%mass/mass_u
@@ -328,14 +330,14 @@ subroutine print_inelastic(itarget, istate, ilab, file_lab, ilib_dir, lib_dir, c
       ipf = nint((nucleus(inuc)%state(j)%parity + 1)/2.0d0)
       write(100,'(''# Final state  = '',i3,3x,''J = '',f4.1,a1,3x,''Ex = '',1pe15.7,'' MeV'')') &
             j-1,nucleus(inuc)%state(j)%spin, ch_par(ipf), nucleus(inuc)%state(j)%energy
-      write(100,'(''# Frame = COM'')')
+      write(100,'(''# Frame = COM (center-of-momentum)'')')
       write(100,'(''#'')')
       do in = 1, num_energies
          e_in = projectile%energy(in)
          write(100,'(''# E_in = '',1pe16.7,3x,''Cross Section = '',1pe16.7,1x,''('',a2,'')'')') &
                  e_in,Inelastic_cs(j,in),cs_units
          if(Inelastic_cs(j,in) < cs_threshold)cycle
-         write(100,'(''#         E_in            cos(theta)            Prob'')')
+         write(100,'(''#         E_in           x=cos(theta)         P(x|E_in)'')')
          write(100,'(''#'',3(''   ----------------''))')
          xnorm = 0.0d0
          do jx = 0, max_jx_50
@@ -402,7 +404,7 @@ subroutine print_inelastic(itarget, istate, ilab, file_lab, ilib_dir, lib_dir, c
       ipf = nint((nucleus(inuc)%state(j)%parity + 1)/2.0d0)
       write(100,'(''# Final state = '',i3,3x,''J = '',f4.1,a1,3x,''Ex = '',1pe15.7,'' MeV'')')  &
             j-1,nucleus(inuc)%state(j)%spin, ch_par(ipf), nucleus(inuc)%state(j)%energy
-      write(100,'(''# Frame = COM'')')
+      write(100,'(''# Frame = COM (center-of-momentum)'')')
       write(100,'(''#'')')
 
       do in = 1, num_energies

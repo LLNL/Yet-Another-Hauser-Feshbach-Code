@@ -1489,7 +1489,7 @@ subroutine Boost_frame(e_f, mass_1, mass_2, theta_0, phi_0,                   &
    real(kind=8), intent(inout) :: T_1, theta, phi, T_2, T_L, theta_L, phi_L
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !-------------    Inteneral Data
-   real(kind=8) :: E_T, EE, pp
+   real(kind=8) :: E_T, EE, pp, pp1, pp2, gam_mass_2
    real(kind=8) :: p_1(0:3), P_2(0:3), Lor(0:3,0:3), Temp(0:3,0:3), v_2(1:3)
    real(kind=8) :: vtemp, gamma_m1
    real(kind=8) :: ptemp(0:3)
@@ -1505,8 +1505,8 @@ subroutine Boost_frame(e_f, mass_1, mass_2, theta_0, phi_0,                   &
    e_f1 = max(e_f, 1.0d-5)
 
    E_T = e_f1 + mass_1 + mass_2                                   !  Total energy
-   EE = sqrt(E_T**2 - (mass_1**2 + mass_2**2))
-   pp = sqrt((EE**4 - 4.0d0*mass_1**2*mass_2**2)/(4.0d0*E_T**2))  !  momentum
+   EE = sqrt(0.5d0*(E_T**2 - mass_1**2 - mass_2**2))
+   pp = sqrt((EE**4 - (mass_1*mass_2)**2))/E_T  !  momentum
 
 
    ptemp(0) = sqrt(pp**2 + mass_1**2)                             !  momentum four-vector of emitted particle
@@ -1525,24 +1525,24 @@ subroutine Boost_frame(e_f, mass_1, mass_2, theta_0, phi_0,                   &
 !---------------------------   Kinetic energies in COM frame
    T_1 = p_1(0) - mass_1                                     !   Kinetic energy of emitted particle
    T_2 = p_2(0) - mass_2                                     !   Kinetic energy of residual nucleus
-   pp = 0.0d0
+   pp1 = 0.0d0
    do i = 1, 3
-      pp = pp + p_1(i)*p_1(i)                                !  magnitude of vector momentum
+      pp1 = pp1 + p_1(i)*p_1(i)                                !  magnitude of vector momentum
    end do
-   pp = sqrt(pp)
+   pp1 = sqrt(pp1)
    cos_theta = 0.0d0
    sin_theta = 1.0d0
    phi = 0.0d0
    cos_phi = 1.0d0
    sin_phi = 0.0d0
 !--------------------------   Compute theta and phi in COM
-   cos_theta = p_1(1)/pp
+   cos_theta = p_1(1)/pp1
    sin_theta = sqrt(1.0d0 - cos_theta**2)
    theta = acos(cos_theta)
 
    if(sin_theta > 0.0d0)then
-      cos_phi = p_1(2)/(sin_theta*pp)
-      sin_phi = p_1(3)/(sin_theta*pp)
+      cos_phi = p_1(2)/(sin_theta*pp1)
+      sin_phi = p_1(3)/(sin_theta*pp1)
       phi = acos(cos_phi)
       if(sin_phi < 0.0d0)phi = two_pi - phi
    end if
@@ -1552,35 +1552,39 @@ subroutine Boost_frame(e_f, mass_1, mass_2, theta_0, phi_0,                   &
    p_1 = matmul(Boost_Lab,ptemp)
 !
    T_L = p_1(0) - mass_1                                 !   Kinetic energy of emitted particle
-   pp = 0.0d0
+   pp1 = 0.0d0
    do i = 1, 3
-      pp = pp + p_1(i)*p_1(i)                                !  magnitude of vector momentum
+      pp1 = pp1 + p_1(i)*p_1(i)                                !  magnitude of vector momentum
    end do
-   pp = sqrt(pp)
+   pp1 = sqrt(pp1)
    cos_theta = 0.0d0
    sin_theta = 1.0d0
    phi_L = 0.0d0
 !--------------------------   Compute theta and phi in Lab
-   cos_theta = p_1(1)/pp
+   cos_theta = p_1(1)/pp1
    sin_theta = sqrt(1.0d0 - cos_theta**2)
    theta_L = acos(cos_theta)
    if(sin_theta > 0.0d0)then
-      cos_phi = p_1(2)/(sin_theta*pp)
-      sin_phi = p_1(3)/(sin_theta*pp)
+      cos_phi = p_1(2)/(sin_theta*pp1)
+      sin_phi = p_1(3)/(sin_theta*pp1)
       phi_L = acos(cos_phi)
       if(sin_phi < 0.0d0)phi_L = two_pi - phi_L
    end if
 
 !------------------------------------    Update Lorentz transformation to COM frame for next decay
 !------------------------------------    Velocity of residual nucleus in units of c, i.e., V_2(i) = beta(i)
-   pp = 0.0d0
+
+   gamma = p_2(0)/mass_2
+   beta = sqrt(gamma**2 - 1.0d0)/gamma
+
+   gam_mass_2 = gamma*mass_2
+   pp2 = 0.0d0
    do i = 1, 3
-      v_2(i) = p_2(i)/mass_2
-      pp = pp + p_2(i)*p_2(i)
+      v_2(i) = -p_2(i)/gam_mass_2                         !   in units v/c, take negative
+                                                          !   because transforming from recoil back to COM
+      pp2 = pp2 + p_2(i)*p_2(i)
    end do
-   pp = sqrt(pp)
-   beta = pp/mass_2
-   gamma = 1.0d0/sqrt(1.0d0 - beta**2)
+   pp2 = sqrt(pp2)
 !---------------------------    Lorentz transformation for the residual nucleus
    Lor = 0.0d0
    Lor(0,0) = gamma

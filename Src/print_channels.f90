@@ -315,7 +315,7 @@ subroutine print_channels(in, itarget, istate, ilab, file_lab, ilib_dir, lib_dir
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !---------    Angular distribution and spectrum  ---------------------+
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!--------------   Output P(Eout,x|Ein)   -----------------------------+
+!--------------   Output P(x,Eout|Ein)   -----------------------------+
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
          ifile = 8
          outfile(1:ifile) = 'Channel_'
@@ -390,117 +390,121 @@ subroutine print_channels(in, itarget, istate, ilab, file_lab, ilib_dir, lib_dir
             write(100,'(''#'')')
             write(100,'(''# Q-value = '',f15.8,'' MeV'')')Q
             write(100,'(''#'')')
-            write(100,'(''# Angular Distribution data  P(x,Eout|Ein) '')')
+            write(100,'(''# Angular Distribution data  P(x,Eout|E_in) '')')
             write(100,'(''# Normalized to unity over integral Int(-1,1) int(0,E_max)  P(x,Eout|Ein)dx,dEout '')')
+            write(100,'(''# Normalized using trapaziodial rule'')')
             if(inuc == itarget)then
                write(100,'(''# Gammas transitions between discrete states are not included'')')
             end if
             write(100,'(''# dx = '',1pe16.7,'' dEout = '',1pe16.7,'' MeV'')')delta_jx_20, de_spec
-            write(100,'(''# Frame = COM'')')
+            write(100,'(''# Frame = COM (center-of-momentum)'')')
          else
             call get_to_eof(100)
          end if
 
 
          e_in = projectile%energy(in)
-         if(e_in < -Q)cycle
-         cs = Exit_Channel(i)%Channel_cs(n,in)*reaction_cs(in)
-         if(pop_calc .and. pop_calc_prob)then
-            write(100,'(''# E_in = '',1pe16.7,3x,''Decay Probability = '',1pe16.7)') &
-                    e_in,cs
-         else
-            write(100,'(''# E_in = '',1pe16.7,3x,''Cross Section = '',1pe16.7,1x,''('',a2,'')'')') &
-                    e_in,cs,cs_units
-         end if
-         if(cs < cs_threshold)cycle
-         write(100,'(''#'')')
-         write(100,1910)(particle(k)%label, k = 0,6)
- 1910    format('#         E_in               E_out           cos(theta)   ',                      &
-             7(3x,(5x,'Prob(',a1,')',4x)))
-         write(100,'(''#'',10(''   ----------------''))')
+!         if(e_in < -Q)cycle
+         if(e_in >= -Q)then
+            cs = Exit_Channel(i)%Channel_cs(n,in)*reaction_cs(in)
+            if(pop_calc .and. pop_calc_prob)then
+               write(100,'(''# E_in = '',1pe16.7,3x,''Decay Probability = '',1pe16.7)')               &
+                       e_in,cs
+            else
+               write(100,'(''# E_in = '',1pe16.7,3x,''Cross Section = '',1pe16.7,1x,''('',a2,'')'')') &
+                       e_in,cs,cs_units
+            end if
+            if(cs >= cs_threshold)then
+               write(100,'(''#'')')
+               write(100,1910)(particle(k)%label, k = 0,6)
+ 1910    format('#         E_in               E_out          x=cos(theta)  ',                         &
+             7(3x,('P(x,Eout,',a1,'|E_in)')))
+               write(100,'(''#'',10(''   ----------------''))')
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !-----------    Find max value of icc to print out
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !----   Normalize the particle spectra and find max icc to print out
-         Temp_Ang_Dist(0:max_jx_20,0:num_e,0:6) = 0.0d0
-         do k = 0, 6
-            xnorm = 0.0d0
-            do icc = 0, num_e
-               xnorm = xnorm + Exit_Channel(i)%Spect(k,n)%E_spec(icc)*de_spec
-            end do
-            if(xnorm > 1.0d-8)then
-               do icc = 0, num_e
-                  Exit_Channel(i)%Spect(k,n)%E_spec(icc) =                                   &
-                    Exit_Channel(i)%Spect(k,n)%E_spec(icc)/xnorm
+               Temp_Ang_Dist(0:max_jx_20,0:num_e,0:6) = 0.0d0
+               do k = 0, 6
+                  xnorm = 0.0d0
+                  do icc = 0, num_e
+                     xnorm = xnorm + Exit_Channel(i)%Spect(k,n)%E_spec(icc)*de_spec
+                  end do
+                  if(xnorm > 1.0d-8)then
+                     do icc = 0, num_e
+                        Exit_Channel(i)%Spect(k,n)%E_spec(icc) =                                      &
+                            Exit_Channel(i)%Spect(k,n)%E_spec(icc)/xnorm
+                     end do
+                  else
+                     do icc = 0, num_e
+                        Exit_Channel(i)%Spect(k,n)%E_spec(icc) = 0.0d0
+                     end do
+                  end if
                end do
-            else
-               do icc = 0, num_e
-                  Exit_Channel(i)%Spect(k,n)%E_spec(icc) = 0.0d0
-               end do
-            end if
-         end do
-         icc_max = num_e
-         do icc = num_e - 1, 0, -1
-            sum = 0.0d0
-            do k = 0, 6
-               sum = sum + Exit_Channel(i)%Spect(k,n)%E_spec(icc)
-            end do
-            if(sum >= 1.0d-8)then
-               icc_max = icc + 1
-               exit
-            end if
-         end do
-         if(icc_max < 1)icc_max = 1
-!------   Create angular distribution array - normalize over angle and multiply by prob
-         alf = 0.0d0
-         bet = 0.0d0
-         do k = 0, 6
-            do icc = 0, icc_max
-               do jx = 0, max_jx_20
-                  x = real(jx,kind=8)*delta_jx_20 - 1.0d0
+               icc_max = num_e
+               do icc = num_e - 1, 0, -1
                   sum = 0.0d0
-                  do L = 0, Exit_Channel(i)%Spect(k,n)%E_Ang_L_Max(icc)
-                     sum = sum + Exit_Channel(i)%Spect(k,n)%E_Ang_L(L,icc)*                  &
-                                 poly(L,1,alf,bet,x)
+                  do k = 0, 6
+                     sum = sum + Exit_Channel(i)%Spect(k,n)%E_spec(icc)
                   end do
-                  Temp_Ang_Dist(jx,icc,k) = sum
+                  if(sum >= 1.0d-8)then
+                     icc_max = icc + 1
+                     exit
+                  end if
                end do
-               xnorm = 0.0d0
-               do jx = 0, max_jx_20 - 1
-                  xnorm = xnorm + (Temp_Ang_Dist(jx,icc,k) + Temp_Ang_Dist(jx+1,icc,k))*        &
-                          delta_jx_20*0.5d0
-               end do
-               if(xnorm > 0.0d0)then
-                  do jx = 0, max_jx_20
-                     Temp_Ang_Dist(jx,icc,k) = Temp_Ang_Dist(jx,icc,k)/xnorm*                   &
+               if(icc_max < 1)icc_max = 1
+!------   Create angular distribution array - normalize over angle and multiply by prob
+               alf = 0.0d0
+               bet = 0.0d0
+               do k = 0, 6
+                  do icc = 0, icc_max
+                     do jx = 0, max_jx_20
+                        x = real(jx,kind=8)*delta_jx_20 - 1.0d0
+                        sum = 0.0d0
+                        do L = 0, Exit_Channel(i)%Spect(k,n)%E_Ang_L_Max(icc)
+                           sum = sum + Exit_Channel(i)%Spect(k,n)%E_Ang_L(L,icc)*                     &
+                                       poly(L,1,alf,bet,x)
+                        end do
+                        Temp_Ang_Dist(jx,icc,k) = sum
+                     end do
+                     xnorm = 0.0d0
+                     do jx = 0, max_jx_20 - 1
+                        xnorm = xnorm + (Temp_Ang_Dist(jx,icc,k) + Temp_Ang_Dist(jx+1,icc,k))*        &
+                                delta_jx_20*0.5d0
+                     end do
+                     if(xnorm > 0.0d0)then
+                        do jx = 0, max_jx_20
+                           Temp_Ang_Dist(jx,icc,k) = Temp_Ang_Dist(jx,icc,k)/xnorm*                   &
                                                Exit_Channel(i)%Spect(k,n)%E_spec(icc)
+                        end do
+                     end if
                   end do
-               end if
-            end do
-            xnorm = 0.0d0
-            temp = 0.0d0
-            do icc = 0, icc_max
-               sum = 0.0d0
-               do jx = 0, max_jx_20 - 1
-                  sum = sum + (Temp_Ang_Dist(jx,icc,k) + Temp_Ang_Dist(jx+1,icc,k))*            &
-                               0.5d0*delta_jx_20
+                  xnorm = 0.0d0
+                  temp = 0.0d0
+                  do icc = 0, icc_max
+                     sum = 0.0d0
+                     do jx = 0, max_jx_20 - 1
+                        sum = sum + (Temp_Ang_Dist(jx,icc,k) + Temp_Ang_Dist(jx+1,icc,k))*            &
+                                    0.5d0*delta_jx_20
+                     end do
+                     if(Exit_Channel(i)%Spect(k,n)%E_spec(icc)> 1.0d-8)                               &
+                        xnorm = xnorm + sum*de_spec
+                     temp = temp + Exit_Channel(i)%Spect(k,n)%E_spec(icc)*de_spec
+                  end do
                end do
-               if(Exit_Channel(i)%Spect(k,n)%E_spec(icc)> 1.0d-8)                            &
-               xnorm = xnorm + sum*de_spec
-               temp = temp + Exit_Channel(i)%Spect(k,n)%E_spec(icc)*de_spec
-            end do
-         end do
 
 !----------   Print out data
-         do icc = 0, icc_max
-            e_out = real(icc,kind=8)*de_spec
-            if(icc >0)e_out = e_out - de_spec/2.0d0
-            do jx = 0, max_jx_20
-               x = real(jx,kind=8)*delta_jx_20 - 1.0d0
-               write(100,'(1x,10(3x,1pe16.7))')e_in, e_out, x,                                 &
-                     (Temp_Ang_Dist(jx,icc,k),k = 0,6)
-            end do
-         end do
+               do icc = 0, icc_max
+                  e_out = real(icc,kind=8)*de_spec
+                  if(icc >0)e_out = e_out - de_spec/2.0d0
+                  do jx = 0, max_jx_20
+                     x = real(jx,kind=8)*delta_jx_20 - 1.0d0
+                     write(100,'(1x,10(3x,1pe16.7))')e_in, e_out, x,                                  &
+                          (Temp_Ang_Dist(jx,icc,k),k = 0,6)
+                  end do
+               end do
+            end if
+         end if
 
          close(unit=100)
 
@@ -585,7 +589,7 @@ subroutine print_channels(in, itarget, istate, ilab, file_lab, ilib_dir, lib_dir
                write(100,'(''# Gammas transitions between discrete states are not included'')')
             end if
             write(100,'(''# dx = '',1pe16.7,'' dEout = '',1pe16.7,'' MeV'')')delta_jx_20, de_spec
-            write(100,'(''# Frame = COM'')')
+            write(100,'(''# Frame = COM (center-of-momentum)'')')
          else
             call get_to_eof(100)
          end if
@@ -600,38 +604,39 @@ subroutine print_channels(in, itarget, istate, ilab, file_lab, ilib_dir, lib_dir
             write(100,'(''# E_in = '',1pe16.7,3x,''Cross Section = '',1pe16.7,1x,''('',a2,'')'')') &
                     e_in,cs,cs_units
          end if
-         if(cs < cs_threshold)cycle
-         do icc = num_e - 1, 0, -1
-            sum = 0.0d0
-            do k = 0, 6
-               sum = sum + Exit_Channel(i)%Spect(k,n)%E_spec(icc)
+         if(cs >= cs_threshold)then
+            do icc = num_e - 1, 0, -1
+               sum = 0.0d0
+               do k = 0, 6
+                  sum = sum + Exit_Channel(i)%Spect(k,n)%E_spec(icc)
+               end do
+               if(sum >= 1.0d-8)then
+                  icc_max = icc + 1
+                  exit
+               end if
             end do
-            if(sum >= 1.0d-8)then
-               icc_max = icc + 1
-               exit
-            end if
-         end do
-         if(icc_max < 1)icc_max = 1
-         do icc = 0, icc_max
-            E_out = real(icc,kind=8)*de_spec
-            if(icc > 0)E_out = E_out - 0.5d0*de_spec
-            write(100,'(''#'')')
-            write(100,'(''#'',36x,''Prob(Eout)'',7(3x,1pe16.7))')                               &
-                  (Exit_Channel(i)%Spect(k,n)%E_spec(icc),k=0,6)
-            write(100,'(''#'')')
-            write(100,2110)(particle(k)%label, k = 0,6)
+            if(icc_max < 1)icc_max = 1
+            do icc = 0, icc_max
+               E_out = real(icc,kind=8)*de_spec
+               if(icc > 0)E_out = E_out - 0.5d0*de_spec
+               write(100,'(''#'')')
+               write(100,'(''#'',34x,''P(Eout|E_in)'',7(3x,1pe16.7))')                               &
+                     (Exit_Channel(i)%Spect(k,n)%E_spec(icc),k=0,6)
+               write(100,'(''#'')')
+               write(100,2110)(particle(k)%label, k = 0,6)
  2110    format('#         E_in               E_out           L',7(3x,(5x,'a(L)(',a1,')',4x)))
-            write(100,'(''#   ----------------   ----------------     ---'',7(3x,''----------------''))')
-            L_max = 0
-            do k = 0, 6
-               if(Exit_Channel(i)%Spect(k,n)%E_Ang_L_Max(icc) > L_max)                       &
-                  L_max = Exit_Channel(i)%Spect(k,n)%E_Ang_L_Max(icc)
+               write(100,'(''#   ----------------   ----------------     ---'',7(3x,''----------------''))')
+               L_max = 0
+               do k = 0, 6
+                  if(Exit_Channel(i)%Spect(k,n)%E_Ang_L_Max(icc) > L_max)                       &
+                     L_max = Exit_Channel(i)%Spect(k,n)%E_Ang_L_Max(icc)
+               end do
+               do L = 0, L_max
+                 write(100,'(1x,3x,1pe16.7,3x,1pe16.7,3x,i5,7(3x,1pe16.7))')e_in, e_out, L,        &
+                    (Exit_Channel(i)%Spect(k,n)%E_Ang_L(L,icc),k=0,6)
+               end do
             end do
-            do L = 0, L_max
-              write(100,'(1x,3x,1pe16.7,3x,1pe16.7,3x,i5,7(3x,1pe16.7))')e_in, e_out, L,        &
-                 (Exit_Channel(i)%Spect(k,n)%E_Ang_L(L,icc),k=0,6)
-            end do
-         end do
+         end if
 
          close(unit=100)
 
@@ -707,13 +712,13 @@ subroutine print_channels(in, itarget, istate, ilab, file_lab, ilib_dir, lib_dir
             write(100,'(''#'')')
             write(100,'(''# Q-value = '',f15.8,'' MeV'')')Q
             write(100,'(''#'')')
-            write(100,'(''# Angular Distribution data  P(x|Ein) '')')
-            write(100,'(''# Normalized to unity over integral Int(-1,1) P(x|Ein)dx '')')
+            write(100,'(''# Angular Distribution data  P(x|E_in) '')')
+            write(100,'(''# Normalized to unity over integral Int(-1,1) P(x|E_in)dx '')')
             if(inuc == itarget)then
                write(100,'(''# Gammas transitions between discrete states are not included'')')
             end if
             write(100,'(''# dx = '',1pe16.7)')delta_jx_20
-            write(100,'(''# Frame = COM'')')
+            write(100,'(''# Frame = COM (center-of-momentum)'')')
          else
             call get_to_eof(100)
          end if
@@ -731,41 +736,42 @@ subroutine print_channels(in, itarget, istate, ilab, file_lab, ilib_dir, lib_dir
              write(100,'(''# E_in = '',1pe16.7,3x,''Cross Section = '',1pe16.7,1x,''('',a2,'')'')') &
                      e_in,cs,cs_units
           end if
-          if(cs < cs_threshold)cycle
-          fstring = "('#',9x,'E_in',13x,'cos(theta)',6x,7(3x,(5x,'Prob(',a1,')',4x)))"
-          write(100,fstring)(particle(k)%label, k = 0,6)
-          write(100,'(''#'',9(''   ----------------''))')
+         if(cs >= cs_threshold)then
+            fstring = "('#',9x,'E_in',13x,'cos(theta)',2x,7(3x,(4x,'P(x,',a1,'|E_in)',1x)))"
+            write(100,fstring)(particle(k)%label, k = 0,6)
+            write(100,'(''#'',9(''   ----------------''))')
 !----    Calculate Angular distribution again and then integrate over energy
-          alf = 0.0d0
-          bet = 0.0d0
-          do k = 0, 6
-             do jx = 0, max_jx_20
-                Ang_Dis(jx,k) = 0.0d0
-                sum = 0.0d0
-                do icc = 0, num_e
-                   x = real(jx,kind=8)*delta_jx_20 - 1.0d0
-                   do L = 0, Exit_Channel(i)%Spect(k,n)%E_Ang_L_Max(icc)
-                      sum = sum + Exit_Channel(i)%Spect(k,n)%E_Ang_L(L,icc)*                  &
-                                 poly(L,1,alf,bet,x)*                                           &
-                                 Exit_Channel(i)%Spect(k,n)%E_spec(icc)*de_spec
+            alf = 0.0d0
+            bet = 0.0d0
+            do k = 0, 6
+               do jx = 0, max_jx_20
+                  Ang_Dis(jx,k) = 0.0d0
+                  sum = 0.0d0
+                  do icc = 0, num_e
+                     x = real(jx,kind=8)*delta_jx_20 - 1.0d0
+                     do L = 0, Exit_Channel(i)%Spect(k,n)%E_Ang_L_Max(icc)
+                        sum = sum + Exit_Channel(i)%Spect(k,n)%E_Ang_L(L,icc)*                  &
+                                   poly(L,1,alf,bet,x)*                                           &
+                                   Exit_Channel(i)%Spect(k,n)%E_spec(icc)*de_spec
+                     end do
                   end do
-                end do
-                Ang_dis(jx,k) = sum
-             end do
-             xnorm = 0.0d0
-             do jx = 1, max_jx_20
-                xnorm = xnorm + (Ang_dis(jx-1,k)+Ang_dis(jx,k))*delta_jx_20*0.5d0
-             end do
-             if(xnorm > 0.0d0)then
-                do jx = 0, max_jx_20
-                   Ang_dis(jx,k) = Ang_dis(jx,k)/xnorm
-                end do
-             end if
-          end do
-          do jx = 0, max_jx_20
-             x = real(jx,kind=8)*delta_jx_20 - 1.0d0
-             write(100,'(1x,9(3x,1pe16.7))')e_in, x, (Ang_dis(jx,k),k = 0,6)
-          end do
+                  Ang_dis(jx,k) = sum
+               end do
+               xnorm = 0.0d0
+               do jx = 1, max_jx_20
+                  xnorm = xnorm + (Ang_dis(jx-1,k)+Ang_dis(jx,k))*delta_jx_20*0.5d0
+               end do
+               if(xnorm > 0.0d0)then
+                  do jx = 0, max_jx_20
+                     Ang_dis(jx,k) = Ang_dis(jx,k)/xnorm
+                  end do
+               end if
+            end do
+            do jx = 0, max_jx_20
+               x = real(jx,kind=8)*delta_jx_20 - 1.0d0
+               write(100,'(1x,9(3x,1pe16.7))')e_in, x, (Ang_dis(jx,k),k = 0,6)
+            end do
+         end if
 
          close(unit=100)
 
@@ -845,54 +851,56 @@ subroutine print_channels(in, itarget, istate, ilab, file_lab, ilib_dir, lib_dir
              write(100,'(''#'')')
              write(100,'(''# Q-value = '',f15.8,'' MeV'')')Q
              write(100,'(''#'')')
-             write(100,'(''# Emission Spectrum data  P(Eout|Ein) '')')
+             write(100,'(''# Probability density function for emission spectra P(Eout|Ein) '')')
              write(100,'(''# Normalized to unity over integral Int(0,Emax) P(Eout|Ein)dEout '')')
              if(inuc == itarget)then
                 write(100,'(''# Gammas transitions between discrete states are not included'')')
              end if
              write(100,'(''# dEout = '',1pe16.7)')de_spec
-             write(100,'(''# Frame = COM'')')
+             write(100,'(''# Frame = COM (center-of-momentum)'')')
          else
             call get_to_eof(100)
          end if
 
          e_in=projectile%energy(in)
-         if(e_in < -Q)cycle
-         write(100,'(''#'')')
-         cs = Exit_Channel(i)%Channel_cs(n,in)*reaction_cs(in)
-         if(pop_calc .and. pop_calc_prob)then
-            write(100,'(''# E_in = '',1pe16.7,3x,''Decay Probability = '',1pe16.7)')               &
-                    e_in,cs
-         else
-            write(100,'(''# E_in = '',1pe16.7,3x,''Cross Section = '',1pe16.7,1x,''('',a2,'')'')') &
-                    e_in,cs,cs_units
-         end if
-         if(cs < cs_threshold)cycle
-         write(100,1904)(particle(k)%label, k = 0,6)
-  1904   format('#         E_in               E_out      ',7(3x,(5x,'Prob(',a1,')',4x)))
-         write(100,'(''#'',9(''   ----------------''))')
+         if(e_in >= -Q)then
+            write(100,'(''#'')')
+            cs = Exit_Channel(i)%Channel_cs(n,in)*reaction_cs(in)
+            if(pop_calc .and. pop_calc_prob)then
+               write(100,'(''# E_in = '',1pe16.7,3x,''Decay Probability = '',1pe16.7)')               &
+                       e_in,cs
+            else
+               write(100,'(''# E_in = '',1pe16.7,3x,''Cross Section = '',1pe16.7,1x,''('',a2,'')'')') &
+                       e_in,cs,cs_units
+            end if
+            if(cs >= cs_threshold)then
+               write(100,1904)(particle(k)%label, k = 0,6)
+  1904   format('#         E_in               E_out     ',7(3x,(2x,'P(Eout,',a1,'|E_in)')))
+               write(100,'(''#'',9(''   ----------------''))')
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !-----------    Find max value of icc to print out
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !----
-         icc_max = num_e
-         do icc = num_e - 1, 0, -1
-            sum = 0.0d0
-            do k = 0, 6
-               sum = sum + Exit_Channel(i)%Spect(k,n)%E_spec(icc)
-            end do
-            if(sum >= 1.0d-8)then
-               icc_max = icc + 1
-               exit
+               icc_max = num_e
+               do icc = num_e - 1, 0, -1
+                  sum = 0.0d0
+                  do k = 0, 6
+                     sum = sum + Exit_Channel(i)%Spect(k,n)%E_spec(icc)
+                  end do
+                  if(sum >= 1.0d-8)then
+                     icc_max = icc + 1
+                     exit
+                  end if
+               end do
+               if(icc_max < 1)icc_max = 1
+               do icc = 0, icc_max
+                  e_out = real(icc,kind=8)*de_spec
+                  if(icc > 0)e_out = e_out - de_spec/2
+                  write(100,'(1x,9(3x,1pe16.7))')e_in, e_out,                                           &
+                       (Exit_Channel(i)%Spect(k,n)%E_spec(icc),k = 0,6)
+               end do
             end if
-         end do
-         if(icc_max < 1)icc_max = 1
-         do icc = 0, icc_max
-            e_out = real(icc,kind=8)*de_spec
-            if(icc > 0)e_out = e_out - de_spec/2
-            write(100,'(1x,9(3x,1pe16.7))')e_in, e_out,                                           &
-                 (Exit_Channel(i)%Spect(k,n)%E_spec(icc),k = 0,6)
-         end do
+         end if
 
          close(unit=100)
 

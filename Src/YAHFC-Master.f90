@@ -109,6 +109,7 @@ program YAHFC_MASTER
 !        real(kind=8) :: interpolate_exp
 !        real(kind=8) :: Gauss_var
 !        integer(kind=4) :: rank_commands
+!        real(kind=8) :: KE_com
 !
 !     MPI routines:
 !
@@ -181,7 +182,7 @@ program YAHFC_MASTER
 
       real(kind=8) :: E_in, e_rel
       real(kind=8) :: E_f, Ex_f
-      real(kind=8) :: rel_factor
+!      real(kind=8) :: rel_factor
       integer(kind=4) :: iproj, itarget
       integer(kind=4) :: jproj
 
@@ -390,6 +391,7 @@ program YAHFC_MASTER
       real(kind=8) :: mass_1, mass_2
       real(kind=8) :: pp_res, p_res(0:3), v_res(0:3)
       real(kind=8) :: beta, gamma
+      real(kind=8) :: E_lab, E_com, p_lab
 
       real(kind=8) :: theta_0, phi_0, T_1, phi, T_2, T_L, theta_L, phi_L
 
@@ -481,6 +483,7 @@ program YAHFC_MASTER
    real(kind=8) :: interpolate_exp
    real(kind=8) :: Gauss_var
    integer(kind=4) :: rank_commands
+   real(kind=8) :: KE_com
 !***********************************************************************
 !***********************************************************************
 !-----------------   Start Main body of calculation     ----------------
@@ -1083,8 +1086,10 @@ program YAHFC_MASTER
          call exit_YAHFC(101)
       end if
       mass_proj = particle(iproj)%mass
+      projectile%mass = mass_proj
       mass_target = nucleus(itarget)%mass + nucleus(itarget)%state(target%istate)%energy
-      rel_factor = mass_target/(mass_target + mass_proj)
+      target%mass = mass_target
+!      rel_factor = mass_target/(mass_target + mass_proj)
 !-------------------------------------------------------------------------------------
       num_theta = num_theta_angles
       if(xs_only)num_theta = 1
@@ -1260,7 +1265,7 @@ program YAHFC_MASTER
 !--------   energies to fit on excitation energy grid                     +
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
       if(.not. pop_calc)then
-         call fix_incident_energies(iproj, rel_factor)
+         call fix_incident_energies
       else
           call fix_pop_energies
       end if
@@ -1492,7 +1497,8 @@ program YAHFC_MASTER
       call fit_nuke_Gamma_gamma
 
       if(.not.pop_calc)then
-         e_rel = projectile%energy(num_energies)*rel_factor
+!         e_rel = projectile%energy(num_energies)*rel_factor
+         e_rel = KE_com(projectile%mass, target%mass, projectile%energy(num_energies))
          ee_max = e_rel + nucleus(1)%sep_e(iproj) +               &
                           nucleus(itarget)%state(target%istate)%energy
       else
@@ -1966,7 +1972,8 @@ program YAHFC_MASTER
 !--------------    that leads to small neg energies -1.d-4. Use non-relativistic approximation to get
 !--------------    initial excitation energy. OK to 1e-4 MeV which is smaller than binning.
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-            e_rel = E_in*mass_target/(mass_target + mass_proj)
+!            e_rel = E_in*mass_target/(mass_target + mass_proj)
+            e_rel = KE_com(projectile%mass, target%mass, E_in)
             ex_tot = e_rel + nucleus(1)%sep_e(iproj) +                          &
                              nucleus(itarget)%state(target%istate)%energy
 
@@ -1980,34 +1987,42 @@ program YAHFC_MASTER
 !------   For a reaction with incident particle keep track of relative energy
 !------   Hence lab frame and COM are not the same
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-            KE = e_in - e_rel
-            mass_2 = nucleus(1)%Mass + e_rel
-            pp_res = sqrt(2.0d0*mass_2*KE)
-            p_res(0) = mass_2 + KE
-            pp_res = sqrt(p_res(0)**2 - mass_2**2)
-            p_res(1) = pp_res
-            p_res(2) = 0.0d0
-            p_res(3) = 0.0d0
-            do i = 1, 3
-               v_res(i) = p_res(i)/mass_2
-            end do
-            beta = pp_res/mass_2
-            gamma = 1.0d0/sqrt(1.0d0 - beta**2)
+!            KE = e_in - e_rel
+!            mass_2 = nucleus(1)%Mass + e_rel
+!            pp_res = sqrt(2.0d0*mass_2*KE)
+!            p_res(0) = mass_2 + KE
+!            pp_res = sqrt(p_res(0)**2 - mass_2**2)
+!            p_res(1) = pp_res
+!            p_res(2) = 0.0d0
+!            p_res(3) = 0.0d0
+!            do i = 1, 3
+!               v_res(i) = p_res(i)/mass_2
+!            end do
+!            beta = pp_res/mass_2
+!            gamma = 1.0d0/sqrt(1.0d0 - beta**2)
+
+            E_lab = projectile%mass + E_in
+            p_lab = sqrt(E_lab**2 - projectile%mass**2)
+            E_com = sqrt((projectile%mass + target%mass)**2 + 2.0d0*target%mass*E_in)
+            beta = p_lab/(target%mass + E_lab)
+            gamma = (target%mass + E_lab)/E_com
             Boost_Lab(0:3,0:3) = 0.0d0
             do i = 0, 3
                Boost_Lab(i,i) = 1.0d0
             end do
             Boost_Lab(0,0) = gamma
-            Boost_Lab(0,1) = -gamma*v_res(1)
+!            Boost_Lab(0,1) = -gamma*v_res(1)    !   Not negative, this is mant to go from COM to Lab
+            Boost_Lab(0,1) = gamma*beta
             Boost_Lab(1,0) = Boost_Lab(0,1)
-            Boost_Lab(1,1) = 1.0d0 + (gamma - 1.0d0)*v_res(1)**2/beta**2
+            Boost_Lab(1,1) = gamma
+!            Boost_Lab(1,1) = 1.0d0 + (gamma - 1.0d0)*v_res(1)**2/beta**2
             if(print_me)then
                write(6,*)
                write(6,'(''-----------------------------------------------------------------------------'')')
                write(6,'(''*****************************************************************************'')')
                write(6,'(''-----------------------------------------------------------------------------'')')
                write(6,'(''Incident energy ='',1x,1pe15.7,'' MeV'')')E_in
-               write(6,'(''Center-of-mass E ='',1x,1pe15.7,'' MeV'')')e_rel
+               write(6,'(''Center-of-momentum E ='',1x,1pe15.7,'' MeV'')')e_rel
                write(6,'(''Delta_E ='',1x,1pe15.7,'' MeV'')')de
             elseif(iproc == 0 .and. print_output)then
                write(13,*)
@@ -2015,7 +2030,7 @@ program YAHFC_MASTER
                write(13,'(''*****************************************************************************'')')
                write(13,'(''-----------------------------------------------------------------------------'')')
                write(13,'(''Incident energy ='',1x,1pe15.7,'' MeV'')')E_in
-               write(13,'(''Center-of-mass E ='',1x,1pe15.7,'' MeV'')')e_rel
+               write(13,'(''Center-of-momentum E ='',1x,1pe15.7,'' MeV'')')e_rel
                write(13,'(''Delta_E ='',1x,1pe15.7,'' MeV'')')de
             end if
          else
@@ -2501,17 +2516,18 @@ program YAHFC_MASTER
                p_res(1) = pp_res
                p_res(2) = 0.0d0
                p_res(3) = 0.0d0
+               gamma = p_res(0)/mass_2
                do i = 1, 3
-                  v_res(i) = p_res(i)/mass_2
+                  v_res(i) = p_res(i)/(gamma*mass_2)
                end do
-               beta = pp_res/mass_2
-               gamma = 1.0d0/sqrt(1.0d0 - beta**2)
+               beta = sqrt(gamma**2-1.0d0)/gamma
                Boost_Lab(0:3,0:3) = 0.0d0
                do i = 0, 3
                   Boost_Lab(i,i) = 1.0d0
                end do
                Boost_Lab(0,0) = gamma
-               Boost_Lab(0,1) = -gamma*v_res(1)
+               Boost_Lab(0,1) = -gamma*v_res(1)       !   not negative as it is the transformation back
+                                                      !   back to Lab frame
                Boost_Lab(1,0) = Boost_Lab(0,1)
                if(beta > 1.0d-16)Boost_Lab(1,1) = 1.0d0 + (gamma - 1.0d0)*v_res(1)**2/beta**2
 !------     Populations are based on level density, so recompute probabilities based on
@@ -5861,7 +5877,181 @@ subroutine exit_YAHFC(error_code)
 #endif
    return
 end subroutine exit_YAHFC
+!
+!*****************************************************************************80
+!
+!  Discussion:
+!
+!    This Subroutine calculates the kinetic energy in the center of momentum frame 
+!    for the projectile iproj with energy KE_lab in the lab frame. The target, itarget,
+!    is assumed at rest in the lab frame. This is the energy available in a compound
+!    reaction where the projectile is absorbed.
+!
+!   Dependencies:
+!
+!     Modules:
+!
+!        constants
+!        nuclei
+!        particles_def
+!
+!     Subroutines:
+!
+!        none
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        None
+!
+!  Licensing:
+!
+!    SPDX-License-Identifier: MIT 
+!
+!  Date:
+!
+!    28 July 2021
+!
+!  Author:
+!
+!      Erich Ormand, LLNL
+!
+!*****************************************************************************80
+!
+real(kind=8) function KE_com(mass_proj, mass_target, KE_lab)
+   implicit none
+!-------------------------------------------------------------------------
+   real(kind=8), intent(in) :: mass_proj
+   real(kind=8), intent(in) :: mass_target
+   real(kind=8), intent(in) :: KE_lab
+!-------------------------------------------------------------------------
+   real(kind=8) :: mass_tot
+!-------------------------------------------------------------------------
+   mass_tot = mass_proj + mass_target
+   KE_com = sqrt(mass_tot**2 + 2.0d0*mass_target*KE_lab) - mass_tot
+   return
+end function KE_com
+!
+!*****************************************************************************80
+!
+!  Discussion:
+!
+!    This Subroutine calculates the kinetic energy in the Lab frame, KE_Lab, 
+!    for the projectile iproj with kineteic energy KE_com in the center-of-momentum 
+!    frame. The target, itarget, is assumed at rest in the lab frame. 
+!
+!   Dependencies:
+!
+!     Modules:
+!
+!        constants
+!        nuclei
+!        particles_def
+!
+!     Subroutines:
+!
+!        none
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        None
+!
+!  Licensing:
+!
+!    SPDX-License-Identifier: MIT 
+!
+!  Date:
+!
+!    28 July 2021
+!
+!  Author:
+!
+!      Erich Ormand, LLNL
+!
+!*****************************************************************************80
+!
+real(kind=8) function KE_lab(mass_proj, mass_target, KE_com)
+   implicit none
+!-------------------------------------------------------------------------
+   real(kind=8), intent(in) :: mass_proj
+   real(kind=8), intent(in) :: mass_target
+   real(kind=8), intent(in) :: KE_com
+!-------------------------------------------------------------------------
+   real(kind=8) :: mass_tot
+!-------------------------------------------------------------------------
+   mass_tot = mass_proj + mass_target
+   KE_Lab = ((KE_com + mass_tot)**2 - mass_tot**2)/(2.0d0*mass_target)
+   return
+end function KE_lab
 
+!
+!*****************************************************************************80
+!
+!  Discussion:
+!
+!    This Subroutine calculates the momentum in the center-of-mass frame for
+!    a system with a projectile with kinetic energy KE_lab incident on a 
+!    target nucleus at rest in the lab frame.
+!
+!   Dependencies:
+!
+!     Modules:
+!
+!        constants
+!        nuclei
+!        particles_def
+!
+!     Subroutines:
+!
+!        none
+!
+!     External functions:
+!
+!        None
+!
+!     MPI routines:
+!
+!        None
+!
+!  Licensing:
+!
+!    SPDX-License-Identifier: MIT 
+!
+!  Date:
+!
+!    28 July 2021
+!
+!  Author:
+!
+!      Erich Ormand, LLNL
+!
+!*****************************************************************************80
+!
+real(kind=8) function pc_com(mass_proj, mass_target, KE_lab)
+   implicit none
+!-------------------------------------------------------------------------
+   real(kind=8), intent(in) :: mass_proj
+   real(kind=8), intent(in) :: mass_target
+   real(kind=8), intent(in) :: KE_lab
+!-------------------------------------------------------------------------
+   real(kind=8) :: mass_tot
+   real(kind=8) :: pc_lab
+   real(kind=8) :: E_com, E_lab
+!-------------------------------------------------------------------------
+   mass_tot = mass_proj + mass_target
+   E_lab = mass_proj + KE_lab
+   pc_lab = sqrt(E_lab**2 - mass_proj**2)
+   E_com = sqrt(mass_proj**2 + mass_target**2 + 2.0d0*mass_target*E_lab)
+   pc_com = mass_target*pc_lab/E_com
+   return
+end function pc_com
 
 
 

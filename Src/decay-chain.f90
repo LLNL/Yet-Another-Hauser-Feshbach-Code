@@ -32,7 +32,7 @@ subroutine set_up_decay_chain(Z_p, A_p, Z_t, A_t)
 !
 !     External functions:
 !
-!        None
+!        KE_com
 !
 !     MPI routines:
 !
@@ -73,6 +73,8 @@ subroutine set_up_decay_chain(Z_p, A_p, Z_t, A_t)
    integer(kind=4) :: Z_pp, N_pp, A_pp
    real(kind=8) :: D_p, D_n
    real(kind=8) :: me, be, sep(0:6), me_f, be_f, sep_f(0:6)
+   real(kind=8) :: me_t, be_t
+   real(kind=8) :: mass_proj, mass_target
    real(kind=8) :: sep_tot
    real(kind=8) :: emax
    integer(kind=4) ::  N_i, d_i, t_i, h_i, alpha_i
@@ -101,7 +103,9 @@ subroutine set_up_decay_chain(Z_p, A_p, Z_t, A_t)
    integer(kind=8) :: channel_code
    integer(kind=4) :: max_p(1:6)
    real(kind=8) :: Coulomb_Barrier(1:6)
-!-------------------------------------------------------
+!---------------------------------------------------------------------------
+   real(kind=8) :: KE_com
+!---------------------------------------------------------------------------
    Z_i = Z_p + Z_t
    A_i = A_p + A_t
 
@@ -133,12 +137,18 @@ subroutine set_up_decay_chain(Z_p, A_p, Z_t, A_t)
    max_p(6) = min(alpha_i,30)
 
    call get_binding_energy(data_path,len_path,              &
+                           Z_t,A_t,me_t,be_t, sep)
+   mass_target = real(A_t,kind=8)*mass_u + me_t
+   
+   call get_binding_energy(data_path,len_path,              &
                            Z_i,A_i,me,be, sep)
 
    if(projectile%particle_type >= 0 .and. projectile%particle_type <= 6)then
+      mass_proj = particle(projectile%particle_type)%mass
       em_proj = projectile%e_max
       if(em_proj < de) em_proj = de/2.
-      e_rel = em_proj*real(A_t,kind=8)/real(A_t+A_p,kind=8)
+!      e_rel = em_proj*real(A_t,kind=8)/real(A_t+A_p,kind=8)
+      e_rel = KE_com(mass_proj, mass_target, em_proj)
       emax = e_rel + sep(projectile%particle_type)
    else
       emax = 0.0
