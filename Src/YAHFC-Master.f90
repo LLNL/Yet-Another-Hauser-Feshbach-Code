@@ -3108,6 +3108,10 @@ program YAHFC_MASTER
                end do
 
                do nang = 2, num_theta
+                  Boost_COM(0:3,0:3) = 0.0d0
+                  do i = 0, 3
+                     Boost_COM(i,i) = 1.0d0
+                  end do
                   do nn = 1, num_part
                      k = nint(part_data(2,nn))
                      if(k == 7) cycle                     !   Fission event, essentially finished here
@@ -3337,7 +3341,7 @@ program YAHFC_MASTER
                   end if
                else
 
-                  Exit_channel(ichann)%Channel_cs(ictype,in) =                                     &
+                  Exit_channel(ichann)%Channel_cs(ictype,in) =                                  &
                       Exit_channel(ichann)%Channel_cs(ictype,in) + tally_weight
                   Exit_Channel(ichann)%num_event = Exit_Channel(ichann)%num_event + 1
                   do nn = 1, num_part
@@ -3391,8 +3395,11 @@ program YAHFC_MASTER
                         write(6,*)'Check: cc_decay = ',cc_decay
                         write(6,*)'Check: dwba_decay = ',dwba_decay
                         write(6,*)'idb = ',idb
-                        write(6,*)'paritcle type = ',int(part_data(2,i))
-                        write(6,*)'energy = ',part_data(15,i)
+                        write(6,*)'particle type = ',int(part_data(2,i))
+                        write(6,*)'Decay particle # ',i
+                        write(6,*)'energy = ',part_data(9,i),part_data(12,i),part_data(15,i)
+                        write(6,*)'Theta = ',part_data(10,i),part_data(13,i),part_data(16,i)
+                        write(6,*)'Phi = ',part_data(11,i),part_data(14,i),part_data(17,i)
                         write(6,*)'icc = ',icc,' num_e = ',num_e
                         write(6,*)'Issue with part_Lab_spectrum inde > num_spect_e'
                      end if

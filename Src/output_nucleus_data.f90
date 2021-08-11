@@ -326,7 +326,7 @@ subroutine output_nucleus_data(j_max, itarget)
             if(i == itarget .and. k == target%istate)then
                write(13,'(2x,i3,2x,f10.5,1x,f5.1,1x,f3.0,1x,'//        &
                           '1x,e15.7,1x,l4,4x,l4,6x,''Target State'')') &
-                 k,                                                    &
+                 k-1,                                                  &
                  nucleus(i)%state(k)%energy,                           &
                  nucleus(i)%state(k)%spin,                             &
                  nucleus(i)%state(k)%parity,                           &
@@ -336,7 +336,7 @@ subroutine output_nucleus_data(j_max, itarget)
             else
                write(13,'(2x,i3,2x,f10.5,1x,f5.1,1x,f3.0,1x,'//        &
                           '1x,e15.7,1x,l4,4x,l4)')                     &
-                 k,                                                    &
+                 k-1,                                                  &
                  nucleus(i)%state(k)%energy,                           &
                  nucleus(i)%state(k)%spin,                             &
                  nucleus(i)%state(k)%parity,                           &
@@ -349,7 +349,7 @@ subroutine output_nucleus_data(j_max, itarget)
             write(13,'(''   --------------------   Ecut   ---------------------------------'')')
             write(13,'(2x,i3,2x,f10.5,1x,f5.1,1x,f3.0,1x,'//           &
                        '1x,e15.7,1x,l4,4x,l4)')                        &
-              k,                                                       &
+              k-1,                                                     &
               nucleus(i)%state(k)%energy,                              &
               nucleus(i)%state(k)%spin,                                &
               nucleus(i)%state(k)%parity,                              &
@@ -360,8 +360,8 @@ subroutine output_nucleus_data(j_max, itarget)
       end do
 
       write(13,*)'Decay properties of discrete states'
-      do k = nucleus(i)%num_discrete, 2, -1
-         write(13,*)'Decay of state',k
+      do k = nucleus(i)%num_discrete, 1, -1
+         write(13,*)'Decay of state',k-1
          write(13,*)'Number of transitions',nucleus(i)%state(k)%nbranch
          write(13,'(''       i --->   f'',12x,''branch'',6x,''prob_gamma'',9x,''prob_ic'',9x,''Modified'')')
          write(13,'(''     ---      ---'',3(5x,''-------------''),5x,''--------'')')
@@ -370,7 +370,7 @@ subroutine output_nucleus_data(j_max, itarget)
          do m = 1, nucleus(i)%state(k)%nbranch
             prob = prob + nucleus(i)%state(k)%branch(m)
             write(13,'(4x,i4,'' --->'',i4,3(3x,e15.7),5x,l4)')         &
-                k,nucleus(i)%state(k)%ibranch(m),                      &
+                k-1,nucleus(i)%state(k)%ibranch(m)-1,                  &
                 nucleus(i)%state(k)%branch(m),                         &
                 nucleus(i)%state(k)%p_gamma(m),                        &
                 nucleus(i)%state(k)%p_ic(m),                           &
@@ -1194,7 +1194,7 @@ subroutine output_nucleus_data(j_max, itarget)
                   char = '+'
                   if(nucleus(i)%F_barrier(j)%state_pi(k) < 0)char = '-'
                   write(13,'(i5,1x,f10.3,1x,f4.1,a1)')                               &
-                     k,nucleus(i)%F_barrier(j)%state_e(k),                           &
+                     k-1,nucleus(i)%F_barrier(j)%state_e(k),                         &
                        nucleus(i)%F_barrier(j)%state_j(k),char
                end do
             end if

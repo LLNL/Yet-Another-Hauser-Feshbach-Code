@@ -29,6 +29,8 @@ subroutine compound_xs(e_in, itarget, istate, iproj, sigma,      &
 !
 !       real(kind=8) :: jhat
 !       real(kind=8) :: tco_interpolate
+!       real(kind=8) :: KE_com
+!       real(kind=8) :: pc_com
 !
 !     MPI routines:
 !
@@ -66,7 +68,7 @@ subroutine compound_xs(e_in, itarget, istate, iproj, sigma,      &
    real(kind=8) :: xj
    real(kind=8) :: xI, xI_min, xI_max
    integer(kind=4) :: Ix, Ix_min, Ix_max
-   real(kind=8) :: mass_i, mass_t, mass_rel, e_rel
+   real(kind=8) :: mass_i, mass_t, e_rel
    real(kind=8) :: momentum, wave_number
    real(kind=8) :: spin_proj, spin_target
    integer(kind=4) isp
@@ -220,6 +222,7 @@ real(kind=8) function comp_cs(ie,itarget,istate,k)
 !     External functions:
 !
 !       real(kind=8) :: jhat
+!       real(kind=8) :: pc_com
 !
 !     MPI routines:
 !
@@ -268,7 +271,6 @@ real(kind=8) function comp_cs(ie,itarget,istate,k)
    real(kind=8) :: mass_target
 !----------   External functions
    real(kind=8) :: jhat
-   real(kind=8) :: KE_com
    real(kind=8) :: pc_com
 !-----------------------------------------------------------
 !   e_rel = particle(k)%e_grid(ie)
@@ -374,7 +376,7 @@ real(kind=8) function compound_cs(e_in,ipar,xI,itarget,istate,iproj)
    integer(kind=4), intent(in) :: itarget,istate,iproj
 !----------------------------------------------------------
    real(kind=8) :: cs,cs_fac
-   real(kind=8) :: mass_i, mass_t, mass_rel, e_rel
+   real(kind=8) :: mass_i, mass_t, e_rel
    real(kind=8) :: momentum, wave_number
    real(kind=8) :: spin_proj, spin_target
    integer(kind=4) isp

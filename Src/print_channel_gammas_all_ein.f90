@@ -184,7 +184,7 @@ subroutine print_channel_gammas_all_ein(itarget, istate, ilab, file_lab, ilib_di
             ipi = nint((nucleus(inuc)%state(k)%parity+1.0d0)/2.0d0)
             ipf = nint((nucleus(inuc)%state(nf)%parity+1.0d0)/2.0d0)
 
-            write(100,'(''# Transitions involving gamma ray #'',i4,'' from state #'',i4)')m,k
+            write(100,'(''# Transitions involving gamma branch #'',i4,'' from state #'',i4)')m,k-1
 
             write(100,'(''#   i    Jp     f    Jp     e-gamma (MeV)'')')
             write(100,'(''#  --- ----    --- ----     ------------- '')')
