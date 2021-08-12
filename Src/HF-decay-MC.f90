@@ -1489,7 +1489,8 @@ subroutine Boost_frame(e_f, mass_1, mass_2, theta_0, phi_0,                   &
    real(kind=8), intent(inout) :: T_1, theta, phi, T_2, T_L, theta_L, phi_L
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !-------------    Inteneral Data
-   real(kind=8) :: E_T, EE, pp, pp1, pp2, gam_mass_2
+   real(kind=8) :: E_T, EE, pp, pp1, gam_mass_2
+   real(kind=8) :: pp2
    real(kind=8) :: p_1(0:3), P_2(0:3), Lor(0:3,0:3), Temp(0:3,0:3), v_2(1:3)
    real(kind=8) :: vtemp, gamma_m1
    real(kind=8) :: ptemp(0:3)
@@ -1582,13 +1583,13 @@ subroutine Boost_frame(e_f, mass_1, mass_2, theta_0, phi_0,                   &
    yy = sqrt(1.0d0-beta**2)
 
    gam_mass_2 = gamma*mass_2
-   pp2 = 0.0d0
+!   pp2 = 0.0d0
    do i = 1, 3
       v_2(i) = -p_2(i)/gam_mass_2                         !   in units v/c, take negative
                                                           !   because transforming from recoil back to COM
-      pp2 = pp2 + p_2(i)*p_2(i)
+!      pp2 = pp2 + p_2(i)*p_2(i)
    end do
-   pp2 = sqrt(pp2)
+!   pp2 = sqrt(pp2)
 !---------------------------    Lorentz transformation for the residual nucleus
    Lor = 0.0d0
    Lor(0,0) = gamma
