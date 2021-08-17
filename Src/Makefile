@@ -20,7 +20,7 @@ F90CFLAGS   = '-Wall -Ofast -cpp -DUSE_MPI=0'
 #
 #----   Bounds checking, with optimization     --------------------------------------------------
 #
-#F90CFLAGS   = '-Wall -g -fcheck=bounds -Ofast -cpp -DUSE_MPI=0'
+#F90CFLAGS   = '-Wall -fbounds-check -fcheck=all -g -Ofast -cpp -DUSE_MPI=0'
 #
 #************************************************************************************************
 #----   Flags for compilation with MPI         -------------------------------------------------*

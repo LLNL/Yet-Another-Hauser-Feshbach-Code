@@ -1,4 +1,12 @@
+Version 3.66
+-------------
+1.  Fixed labeling error for discrete states in several library files. They were
+    not starting at index 0 for the ground state.
+2.  Fixed a round off problem with the Boost matrix when the recoil energy is
+    very small. More accurate calculation of (gamma-1)/beta**2 for small beta.
+
 Version 3.65
+-------------
 1.  Converted kinematics for the incident particle and target to the relativistic 
     center-of-momentum frame. Corrected the boost frame transformation. 
 2.  Updated the manual. 
@@ -11,7 +19,6 @@ Version 3.65
 
 Version 3.64
 -------------
-
 1.  Added Soukhovitskii & Capote (2016, 2020) dispersive optical potential, 
     though without their side-bands, for neutrons and protons on actinides
 2.  Added Maslove (2004) U238 potential for use with all actinides.

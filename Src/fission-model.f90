@@ -223,10 +223,10 @@ subroutine Fission_levels(data_path,len_path,icomp)
    real(kind=8) :: A
    integer(kind=4) :: nfit
 !   real(kind=8) :: sig2
-   real(kind=8) :: sig2F
+!   real(kind=8) :: sig2F
 !   real(kind=8) :: sig2_em
    real(kind=8) :: sig2_min
-   real(kind=8) :: deriv
+!   real(kind=8) :: deriv
 
    real(kind=8), allocatable :: elv(:)
    real(kind=8), allocatable :: cum_rho(:),weight(:)
@@ -416,16 +416,13 @@ subroutine Fission_levels(data_path,len_path,icomp)
 
          Ematch = nucleus(icomp)%level_param(6)
          sig2_min = (0.83*real(nucleus(icomp)%A,kind=8)**0.26)**2
-         deriv = (sig2F - sig2_min)/(Ematch - Ecut)
+!         deriv = (sig2F - sig2_min)/(Ematch - Ecut)
          nucleus(icomp)%F_Barrier(i)%level_param(9) = nucleus(icomp)%level_param(9)
          Ecut = 0.0001
          nucleus(icomp)%F_Barrier(i)%ecut = Ecut
          nucleus(icomp)%F_Barrier(i)%level_param(8) = sig2_min
          nucleus(icomp)%F_Barrier(i)%level_param(7) = nucleus(icomp)%F_Barrier(i)%ecut
-         deriv = (sig2F - sig2_min)/(Ematch - Ecut)
-
-
-
+!         deriv = (sig2F - sig2_min)/(Ematch - Ecut)
 
          call Find_T_E0(ia,nucleus(icomp)%F_Barrier(i)%level_param,            &
                         nucleus(icomp)%F_Barrier(i)%vib_enh,                   &
