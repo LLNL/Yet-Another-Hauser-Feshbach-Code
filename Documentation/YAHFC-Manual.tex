@@ -29,7 +29,7 @@ nofootinbib
 
 \begin{document}
 
-\title{Monte Carlo Hauser-Feshbach computer code system to model nuclear reactions: YAHFC V3.65  }
+\title{Monte Carlo Hauser-Feshbach computer code system to model nuclear reactions: YAHFC V3.66  }
 
 \email{ormand1@llnl.gov}
 \author{W. E. Ormand}
@@ -882,8 +882,8 @@ E_{in} =  \sqrt{(M_p+M_T)^2 + 2M_T E_{Lab}}-(M_p+M_T),
 \end{equation}
 where $M_p$ and $M_T$ are the rest masses of the projectile and target nuclei (in units of energy), respectively. The center-of-momentum frame is then moving relative to the fixed laboratory frame in the positive $z$-direction with Lorentz transformation parameters
 \begin{align}
-\beta & = \frac{p_{Lab}}{M_T + M_p + E_{Lab}},\\
-\gamma & = \frac{M_T+M_p + E_{Lab}}{(M_p+M_T)^2 + 2M_T E_{Lab}},
+\beta & = \frac{p_{Lab}}{M_T + E_{Lab}},\\
+\gamma & = \frac{M_T+ E_{Lab}}{(M_p+M_T)^2 + 2M_T E_{Lab}},
 \end{align}
 where $p_{Lab} = \sqrt{(M_p+E_{Lab})^2-M_p^2}$ is the momentum of the projectile in the laboratory frame. The Lorentz transformation from the COM frame back to the laboratory frame\footnote{Note the positive sign for the off-diagonal term $\gamma\beta$, this is due to the laboratory frame moving with velocity $\beta$ in the negative $z$-direction relative to the COM frame.} is
 \begin{equation}

@@ -1489,12 +1489,13 @@ subroutine Boost_frame(e_f, mass_1, mass_2, theta_0, phi_0,                   &
    real(kind=8), intent(inout) :: T_1, theta, phi, T_2, T_L, theta_L, phi_L
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !-------------    Inteneral Data
-   real(kind=8) :: E_T, EE, pp, pp1, pp2, gam_mass_2
+   real(kind=8) :: E_T, EE, pp, pp1, gam_mass_2
+   real(kind=8) :: pp2
    real(kind=8) :: p_1(0:3), P_2(0:3), Lor(0:3,0:3), Temp(0:3,0:3), v_2(1:3)
    real(kind=8) :: vtemp, gamma_m1
    real(kind=8) :: ptemp(0:3)
    real(kind=8) :: cos_theta, sin_theta, cos_phi, sin_phi
-   real(kind=8) :: beta, gamma 
+   real(kind=8) :: beta, gamma, yy
    real(kind=8) :: e_f1
    integer(kind=4) :: i, j
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -1525,6 +1526,7 @@ subroutine Boost_frame(e_f, mass_1, mass_2, theta_0, phi_0,                   &
 !---------------------------   Kinetic energies in COM frame
    T_1 = p_1(0) - mass_1                                     !   Kinetic energy of emitted particle
    T_2 = p_2(0) - mass_2                                     !   Kinetic energy of residual nucleus
+
    pp1 = 0.0d0
    do i = 1, 3
       pp1 = pp1 + p_1(i)*p_1(i)                                !  magnitude of vector momentum
@@ -1536,7 +1538,7 @@ subroutine Boost_frame(e_f, mass_1, mass_2, theta_0, phi_0,                   &
    cos_phi = 1.0d0
    sin_phi = 0.0d0
 !--------------------------   Compute theta and phi in COM
-   cos_theta = p_1(1)/pp1
+   if(pp1 >= 1.0d-10)cos_theta = p_1(1)/pp1
    sin_theta = sqrt(1.0d0 - cos_theta**2)
    theta = acos(cos_theta)
 
@@ -1552,6 +1554,7 @@ subroutine Boost_frame(e_f, mass_1, mass_2, theta_0, phi_0,                   &
    p_1 = matmul(Boost_Lab,ptemp)
 !
    T_L = p_1(0) - mass_1                                 !   Kinetic energy of emitted particle
+
    pp1 = 0.0d0
    do i = 1, 3
       pp1 = pp1 + p_1(i)*p_1(i)                                !  magnitude of vector momentum
@@ -1561,7 +1564,7 @@ subroutine Boost_frame(e_f, mass_1, mass_2, theta_0, phi_0,                   &
    sin_theta = 1.0d0
    phi_L = 0.0d0
 !--------------------------   Compute theta and phi in Lab
-   cos_theta = p_1(1)/pp1
+   if(pp1 >= 1.0d-10)cos_theta = p_1(1)/pp1
    sin_theta = sqrt(1.0d0 - cos_theta**2)
    theta_L = acos(cos_theta)
    if(sin_theta > 0.0d0)then
@@ -1575,25 +1578,31 @@ subroutine Boost_frame(e_f, mass_1, mass_2, theta_0, phi_0,                   &
 !------------------------------------    Velocity of residual nucleus in units of c, i.e., V_2(i) = beta(i)
 
    gamma = p_2(0)/mass_2
-   beta = sqrt(gamma**2 - 1.0d0)/gamma
+!   beta = sqrt(gamma**2 - 1.0d0)/gamma
+   beta = pp/p_2(0)
+   yy = sqrt(1.0d0-beta**2)
 
    gam_mass_2 = gamma*mass_2
-   pp2 = 0.0d0
+!   pp2 = 0.0d0
    do i = 1, 3
       v_2(i) = -p_2(i)/gam_mass_2                         !   in units v/c, take negative
                                                           !   because transforming from recoil back to COM
-      pp2 = pp2 + p_2(i)*p_2(i)
+!      pp2 = pp2 + p_2(i)*p_2(i)
    end do
-   pp2 = sqrt(pp2)
+!   pp2 = sqrt(pp2)
 !---------------------------    Lorentz transformation for the residual nucleus
    Lor = 0.0d0
    Lor(0,0) = gamma
    do i = 1, 3
       Lor(i,0) = -gamma*v_2(i)
-      Lor(0,i) = Lor(i,0)
+      Lor(0,i) = -gamma*v_2(i)
       Lor(i,i) = 1.0d0
    end do
-   gamma_m1 = (gamma - 1.0d0)/beta**2
+   if(beta > 0.1d0)then
+      gamma_m1 = (gamma-1.0d0)/beta**2
+   else
+      gamma_m1 = 0.5d0*(1.0d0+0.25d0*beta**2+beta**4/24.0d0)/yy
+   end if
    do j = 1, 3
       vtemp = gamma_m1*v_2(j)
       do i = 1, 3
