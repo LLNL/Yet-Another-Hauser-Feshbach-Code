@@ -301,6 +301,7 @@ program YAHFC_MASTER
       integer(kind=4) :: ibranch, numd
       integer(kind=4) :: JJ
       logical :: check
+      real(kind=8) :: ecut
 !---------------------------------------------------------------------
       character(len=2) char_pos,char_neg
       integer(kind=4) :: max_part
@@ -1441,16 +1442,18 @@ program YAHFC_MASTER
 !-----  that decay to a state greater than max_J_allowed. If so, remove them the list of discrete states
 !--------------------------------------------------------------------------+
       do i = 1, num_comp
+         ecut = nucleus(i)%level_ecut
          numd = 0
+!   write(6,*)i,nucleus(i)%ncut
          do n = 1, nucleus(i)%num_discrete
             J = nint(nucleus(i)%state(n)%spin - nucleus(i)%jshift)
             state_map(n) = -1
-            if(J <= max_J_allowed)then            !   J is below max_J_allowed
+            if(J <= max_J_allowed .or. n <= nucleus(i)%ncut)then            !   J is below max_J_allowed
                check = .true.
                do m = 1, nucleus(i)%state(n)%nbranch
                   ibranch = nucleus(i)%state(n)%ibranch(m)
                   JJ = nint(nucleus(i)%state(ibranch)%spin - nucleus(i)%jshift)
-                  if(JJ > max_J_allowed)check = .false.
+                  if(JJ > max_J_allowed .and. m > nucleus(i)%ncut)check = .false.
 !--------------------------------------------------------------------------+
 !----   Check if the final state has been marked for removal
 !----   if so, remove this one too
@@ -1463,8 +1466,11 @@ program YAHFC_MASTER
                end if
             end if
          end do
+!  write(6,*)i,numd,nucleus(i)%num_discrete
          if(numd < nucleus(i)%num_discrete)call remove_states(i,nucleus(i)%num_discrete,state_map)
+!  write(6,*)i,numd,nucleus(i)%num_discrete
       end do
+
 !----------------------------------------------------------------------------------------+
 !-----  set up and initialze arrays for starting populations
 !----------------------------------------------------------------------------------------+

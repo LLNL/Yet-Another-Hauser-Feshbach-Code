@@ -54,6 +54,9 @@ subroutine remove_states(inuc, num, state_map)
    integer(kind=4) :: ibranch
    integer(kind=4) :: nnd
 !---------------------------------------------------------------------------
+!---   Before removing states, check on ecut. If levels below ecut are being 
+!---   removed, we may have to adjust ecut
+!---   Loop over levels up to ecut (ncut), pick maximum 
    nnd = 0   
    do n = 1, nucleus(inuc)%num_discrete
       if(state_map(n) > 0)then
@@ -129,7 +132,9 @@ subroutine remove_states(inuc, num, state_map)
       if(allocated(nucleus(inuc)%state(n)%cs))deallocate(nucleus(inuc)%state(n)%cs)
       if(allocated(nucleus(inuc)%state(n)%branch_modified))deallocate(nucleus(inuc)%state(n)%branch_modified)
    end do
+!---------  Once states have been removed, reset the number of discretes
    nucleus(inuc)%num_discrete = nnd
+
    return
 end subroutine remove_states
 

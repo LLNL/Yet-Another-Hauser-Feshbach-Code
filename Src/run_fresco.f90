@@ -3,7 +3,7 @@
 !
 subroutine run_fresco(ener, fresco_dir, len_fresco, fresco_name, iendf, fname, err_name, symb,      &
                       pindex, mass_proj, iZ, iA, namet, mass_target, beta, deformed, J_gs, K_band,  &
-                      V_pot, R_pot, a_pot, RC, iradius, rela, ncc, nex, if_state,                         &
+                      V_pot, R_pot, a_pot, RC, iradius, rela, ncc, nex, if_state,                   &
                       cc_state_par, cc_state_type, cc_state_k, cc_state_kpp,                        &
                       cc_state_j, cc_state_e, cc_state_str)
 !
@@ -80,9 +80,9 @@ subroutine run_fresco(ener, fresco_dir, len_fresco, fresco_name, iendf, fname, e
    logical, intent(in) :: deformed
    real(kind=8), intent(in) :: J_gs
    real(kind=8), intent(in) :: K_band
-   real(kind=8), intent(in) :: V_pot(2,3)
-   real(kind=8), intent(in) :: R_pot(2,3)
-   real(kind=8), intent(in) :: A_pot(2,3)
+   real(kind=8), intent(in) :: V_pot(2,5)
+   real(kind=8), intent(in) :: R_pot(2,5)
+   real(kind=8), intent(in) :: A_pot(2,5)
    real(kind=8), intent(in) :: RC
    integer(kind=4), intent(in) :: iradius
    integer(kind=4), intent(in) :: ncc, nex, if_state
@@ -261,13 +261,13 @@ subroutine run_fresco(ener, fresco_dir, len_fresco, fresco_name, iendf, fname, e
         ipot = 2
         ipk = ipotk(ipot)
         if(abs(V_pot(1,ipot)) + abs(V_pot(2,ipot)) > 1.0d-6)then
-         write(20,31) kp,-ipk,0,V_pot(1,ipot),R_pot(1,ipot),a_pot(1,ipot),V_pot(2,ipot),R_pot(2,ipot),a_pot(2,ipot)
-         endif
+           write(20,31) kp,-ipk,0,V_pot(1,ipot),R_pot(1,ipot),a_pot(1,ipot),V_pot(2,ipot),R_pot(2,ipot),a_pot(2,ipot)
+        endif
         ipot = 4
         ipk = ipotk(ipot)
         if(abs(V_pot(1,ipot)) + abs(V_pot(2,ipot)) > 1.0d-6)then
-         write(20,31) kp,-ipk,0,V_pot(1,ipot),R_pot(1,ipot),a_pot(1,ipot),V_pot(2,ipot),R_pot(2,ipot),a_pot(2,ipot)
-         endif
+            write(20,31) kp,-ipk,0,V_pot(1,ipot),R_pot(1,ipot),a_pot(1,ipot),V_pot(2,ipot),R_pot(2,ipot),a_pot(2,ipot)
+        endif
         write(20,31)kp,13,10,0.0,0.5,0.5,0.5,0.0,0.0
 
  33  format('  &step ib=',i3,1x,'ia= ',i2,1x,'k=',i2,' str=',f10.6,1x,'/')

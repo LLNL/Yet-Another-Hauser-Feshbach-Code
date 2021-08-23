@@ -756,10 +756,10 @@ subroutine fresco_make_tco(data_path, len_path, tco_file, len_tco,           &
   do ie = 1, nume
      ener = ener*factor
 !     particle(pindex)%e_grid(ie) = ener*mass_target/(mass_target + mass_proj)     !   COM frame
-     particle(pindex)%e_grid(ie) = KE_com(mass_proj, mass_target, ener)            !   COM frame
+     particle(pindex)%e_grid(ie) = KE_com(mass_proj*mass_u, mass_target*mass_u, ener)            !   COM frame
      e_lab = ener
      energy(ie) = e_lab                                                            !   Lab frame
-     if(iproc == 0)write(6,*)ie, energy(ie)
+     if(iproc == 0)write(6,*)ie, energy(ie), particle(pindex)%e_grid(ie)
   end do
 
   Radius = 1.30d0*(A**(1.0d0/3.0d0) + Ap**(1.0d0/3.0d0))

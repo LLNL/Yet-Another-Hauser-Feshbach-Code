@@ -580,6 +580,24 @@ subroutine get_spectrum(data_path, len_path, overide, symb, iz, ia, inuc)
    nucleus(inuc)%ncut = n_cut
    nucleus(inuc)%level_ecut = nucleus(inuc)%state(nucleus(inuc)%ncut)%energy + 0.001d0
    nucleus(inuc)%level_param(7) = nucleus(inuc)%level_ecut
+
+!   write(46,*)inuc, nucleus(inuc)%Z,nucleus(inuc)%A
+!   write(46,*)nucleus(inuc)%num_discrete,nucleus(inuc)%ncut,nucleus(inuc)%level_ecut
+!      do k = 1, nucleus(inuc)%num_discrete
+!         write(46,*)inuc,k,nucleus(inuc)%state(k)%energy,nucleus(inuc)%state(k)%nbranch
+!         do m = 1, nucleus(inuc)%state(k)%nbranch
+!            write(46,'(4x,i4,'' --->'',i4,3(3x,1pe15.7),5x,l4)')                         &
+!                  k-1,nucleus(inuc)%state(k)%ibranch(m)-1,                                   &
+!                      nucleus(inuc)%state(k)%branch(m),                                      &
+!                      nucleus(inuc)%state(k)%p_gamma(m),                                     &
+!                      nucleus(inuc)%state(k)%p_ic(m),                                        &
+!                      nucleus(inuc)%state(k)%branch_modified(m) 
+!             flush(46)
+!         end do
+!      end do
+
+
+
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !------   Should now be done
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
