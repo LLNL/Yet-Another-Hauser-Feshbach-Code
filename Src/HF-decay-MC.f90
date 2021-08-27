@@ -1490,7 +1490,7 @@ subroutine Boost_frame(e_f, mass_1, mass_2, theta_0, phi_0,                   &
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !-------------    Inteneral Data
    real(kind=8) :: E_T, EE, pp, pp1, gam_mass_2
-   real(kind=8) :: pp2
+!   real(kind=8) :: pp2
    real(kind=8) :: p_1(0:3), P_2(0:3), Lor(0:3,0:3), Temp(0:3,0:3), v_2(1:3)
    real(kind=8) :: vtemp, gamma_m1
    real(kind=8) :: ptemp(0:3)

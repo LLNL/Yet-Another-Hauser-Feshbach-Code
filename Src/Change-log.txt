@@ -1,3 +1,19 @@
+Version 3.67
+-------------
+1.  Fixed bug introduced with implementing the dispresive optical potential that
+    created a subscript out of bounds. Needed to set dimensions for V_pot,
+    R_pot, and a_pot from (2,3) to (2,5).
+2.  Fixed issue when discrete states below Ecut were removed because their
+    angular momentum exceeded the maximum in the calculation due to
+    target+projectile kinematics.
+3.  Fixed bug in fresco_make_tco.f90 where the masses sent to KE_com where in
+    atomic mass units instead of MeV. Caused a missmatch in the Lab and
+    center-of-momentum energies.
+4.  Fixed bug where the state scale for nuclei with a single barrier was
+    being set prior to being allocated. Affected nuclei with a single fission
+    barrier.
+
+
 Version 3.66
 -------------
 1.  Fixed labeling error for discrete states in several library files. They were

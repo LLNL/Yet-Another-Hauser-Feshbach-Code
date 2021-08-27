@@ -59,9 +59,9 @@ subroutine KD_potential(part_type, iA, iZ, energy, V_pot, R_pot, a_pot, RC, D3, 
    implicit none
    integer(kind=4), intent(in) :: part_type, iA, iZ
    real(kind=8), intent(in) :: energy
-   real(kind=8), intent(out) :: V_pot(2,3)
-   real(kind=8), intent(out) :: R_pot(2,3)
-   real(kind=8), intent(out) :: a_pot(2,3)
+   real(kind=8), intent(out) :: V_pot(2,5)
+   real(kind=8), intent(out) :: R_pot(2,5)
+   real(kind=8), intent(out) :: a_pot(2,5)
    real(kind=8), intent(out) :: rc, d3
    integer(kind=4), intent(out) :: iradius
    character(len=2) rela
@@ -138,7 +138,9 @@ subroutine KD_potential(part_type, iA, iZ, energy, V_pot, R_pot, a_pot, RC, D3, 
    end if
    del_vc = vc*v1*(v2 - 2.0d0*V3*(energy - eFermi) + 3.0d0*V4*(energy - eFermi)**2)
 
-   V_pot(1:2,1:3) = 0.0d0
+   V_pot(1:2,1:5) = 0.0d0
+   R_pot(1:2,1:5) = 0.0d0
+   a_pot(1:2,1:5) = 0.0d0
 
    V_pot(1,1) = v1*(1.0d0 - v2*(energy - eFermi) + v3*(energy - eFermi)**2 - &
                 v4*(energy - eFermi)**3) + del_vc
@@ -218,9 +220,9 @@ subroutine maslov_03_potential(E, V_pot, R_pot, a_pot, RC, iradius, rela)
    use variable_kinds
    implicit none
    real(kind=8), intent(in) :: E
-   real(kind=8), intent(out) :: V_pot(2,3)
-   real(kind=8), intent(out) :: R_pot(2,3)
-   real(kind=8), intent(out) :: a_pot(2,3)
+   real(kind=8), intent(out) :: V_pot(2,5)
+   real(kind=8), intent(out) :: R_pot(2,5)
+   real(kind=8), intent(out) :: a_pot(2,5)
    real(kind=8), intent(out) :: RC
    integer(kind=4), intent(out) :: iradius
    character(len=2) rela
@@ -229,7 +231,9 @@ subroutine maslov_03_potential(E, V_pot, R_pot, a_pot, RC, iradius, rela)
    iradius = 0
    rela = 'bg'
 
-   V_pot(1:2,1:3) = 0.0d0
+   V_pot(1:2,1:5) = 0.0d0
+   R_pot(1:2,1:5) = 0.0d0
+   a_pot(1:2,1:5) = 0.0d0
 
    V_pot(1,1) = 45.93d0 - 0.28d0*E + 5.73d-4*E*E
    R_pot(1,1) = 1.26d0
@@ -324,9 +328,9 @@ subroutine soukhovitskii_potential(part_type, iA, iZ, OM_option,        &
 !--------------------------------------------------------------------
    integer(kind=4) :: part_type, iA, iZ, OM_option
    real(kind=8), intent(in) :: energy
-   real(kind=8), intent(out) :: V_pot(2,3)
-   real(kind=8), intent(out) :: R_pot(2,3)
-   real(kind=8), intent(out) :: a_pot(2,3)
+   real(kind=8), intent(out) :: V_pot(2,5)
+   real(kind=8), intent(out) :: R_pot(2,5)
+   real(kind=8), intent(out) :: a_pot(2,5)
    real(kind=8), intent(out) :: RC
    integer(kind=4), intent(out) :: iradius
    character(len=2) rela
@@ -446,7 +450,9 @@ subroutine soukhovitskii_potential(part_type, iA, iZ, OM_option,        &
      rc = 1.2643d0
    end if
 
-   V_pot(1:2,1:3) = 0.0d0
+   V_pot(1:2,1:5) = 0.0d0
+   R_pot(1:2,1:5) = 0.0d0
+   a_pot(1:2,1:5) = 0.0d0
 
    V_pot(1,1) = v
    R_pot(1,1) = rv
@@ -603,6 +609,8 @@ subroutine soukhovitskii_capote_dispopt(part_type, iA, iZ, OM_option,        &
                  rso,aso)
 
    V_pot(1:2,1:5) = 0.0d0
+   R_pot(1:2,1:5) = 0.0d0
+   a_pot(1:2,1:5) = 0.0d0
 
    V_pot(1,1) = VR
    R_pot(1,1) = RR
@@ -700,9 +708,9 @@ subroutine perey_d_potential(part_type, iA, iZ, E,                   &
    implicit none
    integer(kind=4), intent(in) :: part_type, iA, iZ
    real(kind=8), intent(in) :: E
-   real(kind=8), intent(out) :: V_pot(2,3)
-   real(kind=8), intent(out) :: R_pot(2,3)
-   real(kind=8), intent(out) :: a_pot(2,3)
+   real(kind=8), intent(out) :: V_pot(2,5)
+   real(kind=8), intent(out) :: R_pot(2,5)
+   real(kind=8), intent(out) :: a_pot(2,5)
    real(kind=8), intent(out) :: RC
    integer(kind=4), intent(out) :: iradius
    character(len=2) rela
@@ -733,7 +741,9 @@ subroutine perey_d_potential(part_type, iA, iZ, E,                   &
 
    diff = (xN - xZ)/xA
 
-   V_pot(1:2,1:3) = 0.0d0
+   V_pot(1:2,1:5) = 0.0d0
+   R_pot(1:2,1:5) = 0.0d0
+   a_pot(1:2,1:5) = 0.0d0
 !
 !-------    Real volume potential
 !
@@ -809,9 +819,9 @@ subroutine becchetti_t_potential(part_type, iA, iZ, E,           &
    implicit none
    integer(kind=4), intent(in) :: part_type, iA, iZ
    real(kind=8), intent(in) :: E
-   real(kind=8), intent(out) :: V_pot(2,3)
-   real(kind=8), intent(out) :: R_pot(2,3)
-   real(kind=8), intent(out) :: a_pot(2,3)
+   real(kind=8), intent(out) :: V_pot(2,5)
+   real(kind=8), intent(out) :: R_pot(2,5)
+   real(kind=8), intent(out) :: a_pot(2,5)
    real(kind=8), intent(out) :: RC
    integer(kind=4), intent(out) :: iradius
    character(len=2) rela
@@ -839,7 +849,9 @@ subroutine becchetti_t_potential(part_type, iA, iZ, E,           &
 
    diff = (xN - xZ)/xA
 
-   V_pot(1:2,1:3) = 0.0d0
+   V_pot(1:2,1:5) = 0.0d0
+   R_pot(1:2,1:5) = 0.0d0
+   a_pot(1:2,1:5) = 0.0d0
 !
 !-------    Real volume potential
 !
@@ -921,9 +933,9 @@ subroutine becchetti_h_potential(part_type, iA, iZ, E,           &
    implicit none
    integer(kind=4), intent(in) :: part_type, iA, iZ
    real(kind=8), intent(in) :: E
-   real(kind=8), intent(out) :: V_pot(2,3)
-   real(kind=8), intent(out) :: R_pot(2,3)
-   real(kind=8), intent(out) :: a_pot(2,3)
+   real(kind=8), intent(out) :: V_pot(2,5)
+   real(kind=8), intent(out) :: R_pot(2,5)
+   real(kind=8), intent(out) :: a_pot(2,5)
    real(kind=8), intent(out) :: RC
    integer(kind=4), intent(out) :: iradius
    character(len=2) rela
@@ -951,7 +963,9 @@ subroutine becchetti_h_potential(part_type, iA, iZ, E,           &
 
    diff = (xN - xZ)/xA
 
-   V_pot(1:2,1:3) = 0.0d0
+   V_pot(1:2,1:5) = 0.0d0
+   R_pot(1:2,1:5) = 0.0d0
+   a_pot(1:2,1:5) = 0.0d0
 !
 !-------    Real volume potential
 !
@@ -1032,9 +1046,9 @@ subroutine avrigeanu_a_potential(part_type, iA, iZ, E,                  &
    implicit none
    integer(kind=4), intent(in) :: part_type, iA, iZ
    real(kind=8), intent(in) :: E
-   real(kind=8), intent(out) :: V_pot(2,3)
-   real(kind=8), intent(out) :: R_pot(2,3)
-   real(kind=8), intent(out) :: a_pot(2,3)
+   real(kind=8), intent(out) :: V_pot(2,5)
+   real(kind=8), intent(out) :: R_pot(2,5)
+   real(kind=8), intent(out) :: a_pot(2,5)
    real(kind=8), intent(out) :: RC
    integer(kind = 4), intent(out) :: iradius
    character(len=2) rela
@@ -1063,7 +1077,9 @@ subroutine avrigeanu_a_potential(part_type, iA, iZ, E,                  &
 
    diff = (xN - xZ)/xA
 
-   V_pot(1:2,1:3) = 0.0d0
+   V_pot(1:2,1:5) = 0.0d0
+   R_pot(1:2,1:5) = 0.0d0
+   a_pot(1:2,1:5) = 0.0d0
 !
 !-------    Real volume potential
 !

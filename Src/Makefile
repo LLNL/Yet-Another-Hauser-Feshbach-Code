@@ -37,7 +37,7 @@ DPLIBS   =
 #
 DEPS = modules.o
 #
-#----    Objects comprised of YAHFC code system
+#----    Objects comprising YAHFC code system
 #
 HAUSER_OBJECTS =                 \
 modules.o                        \

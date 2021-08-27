@@ -91,9 +91,9 @@ subroutine Fission_data(data_path,len_path,icomp)
       nucleus(icomp)%F_n_barr = 2
       if(Eb <= 0.001)then
          nucleus(icomp)%fission = .true.
-         nucleus(icomp)%F_Barrier(1)%state_scale = 1.0d0
          nucleus(icomp)%F_n_barr = 1
          if(.not.allocated(nucleus(icomp)%F_Barrier))allocate(nucleus(icomp)%F_Barrier(1))
+         nucleus(icomp)%F_Barrier(1)%state_scale = 1.0d0
          nucleus(icomp)%F_barrier(1)%barrier = Ea
          nucleus(icomp)%F_Barrier(1)%fit_ematch = .true.
 

@@ -877,6 +877,7 @@ subroutine fit_lev_den(icomp)
    D0_exp = nucleus(icomp)%D0exp
    dD0_exp = nucleus(icomp)%dD0exp
    nfit = nucleus(icomp)%ncut
+
    if(nfit <= 5)then
        if(print_me)then
            write(6,*)'*************************************************'

@@ -86,8 +86,10 @@ subroutine Setup_Energy_bins(de)
             else
                dep = de
                nbin = 1
+               nucleus(i)%nbin = nbin
             end if
          end if
+
          if(nbin > 0)then
             allocate(nucleus(i)%e_grid(nbin))
             allocate(nucleus(i)%delta_e(nbin))
